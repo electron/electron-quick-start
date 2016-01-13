@@ -18,11 +18,11 @@ To clone and run this repository you'll need [Git](https://git-scm.com) and [Nod
 
 ```bash
 # Clone this repository
-$ git clone https://github.com/atom/electron-quick-start
+git clone https://github.com/atom/electron-quick-start
 # Go into the repository
-$ cd electron-quick-start
+cd electron-quick-start
 # Install dependencies and run the app
-$ npm install && npm start
+npm install && npm start
 ```
 
 Learn more about Electron and its API in the [documentation](http://electron.atom.io/docs/latest).
