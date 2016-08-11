@@ -29,4 +29,10 @@ npm install && npm start
 
 Learn more about Electron and its API in the [documentation](http://electron.atom.io/docs/latest).
 
+## Other Example Apps
+
+For more example apps, see the
+[list of boilerplates](http://electron.atom.io/community/#boilerplates)
+created by the awesome electron community.
+
 #### License [CC0 (Public Domain)](LICENSE.md)
