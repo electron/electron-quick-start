@@ -35,3 +35,13 @@ Also uses:
 - [JQuery v3.1.0](https://jquery.com/) for parsing
 
 #### License [CC0 (Public Domain)](LICENSE.md)
+
+# Examples
+
+The running app:
+
+![Running App](/Running App Example.PNG)
+
+The generated file:
+
+![Generated File](/Generated File Example.PNG)
