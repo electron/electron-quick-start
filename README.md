@@ -1,38 +1,47 @@
-# electron-quick-start
+# eSports Initiative - Involvement Fair SignUp App
 
-**Clone and run for a quick way to see an Electron in action.**
+Creates a **.csv** file of form entries. With the following format:
 
-This is a minimal Electron application based on the [Quick Start Guide](http://electron.atom.io/docs/latest/tutorial/quick-start) within the Electron documentation.
+```csv
+ First Name, Last Name, .#, Email, Event Organization (ESI Staff), Competitive Play (Teams / Management / Coaching), Casual Play (Attend Events), CS:GO, League of Legends, Dota 2, Smash - Melee, Smash - PM, Smash - 4, Smash - Other, Hearthstone, StarCraft 2, Overwatch, Call of Duty, FIFA, Madden, NBA 2K
+```
 
-**Use this app along with the [Electron API Demos](http://electron.atom.io/#get-started) app for API code examples to help you get started.**
+## Making executables
 
-A basic Electron application needs just these files:
+Make the `.exe`'s by installing the development environment (specified below) and running `npm run build`. Distribute the resulting files with contain the `.exe`.
 
-- `package.json` - Points to the app's main file and lists its details and dependencies.
-- `main.js` - Starts the app and creates a browser window to render HTML. This is the app's **main process**.
-- `index.html` - A web page to render. This is the app's **renderer process**.
+### Caveats
 
-You can learn more about each of these components within the [Quick Start Guide](http://electron.atom.io/docs/latest/tutorial/quick-start).
+The location of the generated `.csv` is currently hardcoded. Please change it in `js/csv.js` (When in executable form `resources/app/js/csv.js`)
 
-## To Use
+## To Further Develop
 
 To clone and run this repository you'll need [Git](https://git-scm.com) and [Node.js](https://nodejs.org/en/download/) (which comes with [npm](http://npmjs.com)) installed on your computer. From your command line:
 
 ```bash
 # Clone this repository
-git clone https://github.com/electron/electron-quick-start
+git clone https://github.com/esportsinitiative/involvement-fair-signup
 # Go into the repository
-cd electron-quick-start
+cd involvement-fair-signup
 # Install dependencies and run the app
 npm install && npm start
 ```
 
-Learn more about Electron and its API in the [documentation](http://electron.atom.io/docs/latest).
+Built with Electron. Learn more about Electron and its API in the [documentation](http://electron.atom.io/docs/latest).
 
-## Other Example Apps
+Also uses:
 
-For more example apps, see the
-[list of boilerplates](http://electron.atom.io/community/#boilerplates)
-created by the awesome electron community.
+- [Bootstrap v3.3.7](https://getbootstrap.com/) for styling
+- [JQuery v3.1.0](https://jquery.com/) for parsing
 
 #### License [CC0 (Public Domain)](LICENSE.md)
+
+# Examples
+
+The running app:
+
+![Running App](/Running App Example.PNG)
+
+The generated file:
+
+![Generated File](/Generated File Example.PNG)
