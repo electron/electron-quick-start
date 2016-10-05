@@ -35,4 +35,4 @@ For more example apps, see the
 [list of boilerplates](http://electron.atom.io/community/#boilerplates)
 created by the awesome electron community.
 
-#### License [CC0 (Public Domain)](LICENSE.md)
+#### License [CC0 1.0 (Public Domain)](LICENSE.md)
