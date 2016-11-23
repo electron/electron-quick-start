@@ -1,6 +1,6 @@
 # electron-quick-start
 
-**Clone and run for a quick way to see an Electron in action.**
+**Clone and run for a quick way to see Electron in action.**
 
 This is a minimal Electron application based on the [Quick Start Guide](http://electron.atom.io/docs/latest/tutorial/quick-start) within the Electron documentation.
 
