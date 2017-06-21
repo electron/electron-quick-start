@@ -1,0 +1,274 @@
+
+R Under development (unstable) (2016-03-23 r70368) -- "Unsuffered Consequences"
+Copyright (C) 2016 The R Foundation for Statistical Computing
+Platform: i686-pc-linux-gnu (32-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> options(na.action=na.exclude) # preserve missings
+> options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
+> library(survival)
+> 
+> #
+> # Tests from the appendix of Therneau and Grambsch
+> #  d. Data set 2 and Efron estimate
+> #
+> test2 <- data.frame(start=c(1, 2, 5, 2, 1, 7, 3, 4, 8, 8),
++                     stop =c(2, 3, 6, 7, 8, 9, 9, 9,14,17),
++                     event=c(1, 1, 1, 1, 1, 1, 1, 0, 0, 0),
++                     x    =c(1, 0, 0, 1, 0, 1, 1, 1, 0, 0) )
+> 
+> byhand <- function(beta, newx=0) {
++     r <- exp(beta)
++     loglik <- 4*beta - (log(r+1) + log(r+2) + 2*log(3*r+2) + 2*log(3*r+1) +
++         log(2*r +2))
++     u <- 1/(r+1) +  1/(3*r+1) + 2*(1/(3*r+2) + 1/(2*r+2)) -
++                  ( r/(r+2) +3*r/(3*r+2) + 3*r/(3*r+1))
++     imat <- r*(1/(r+1)^2 + 2/(r+2)^2 + 6/(3*r+2)^2 +
++             6/(3*r+1)^2 + 6/(3*r+2)^2 + 4/(2*r +2)^2)
++ 
++     hazard <-c( 1/(r+1), 1/(r+2), 1/(3*r+2), 1/(3*r+1), 1/(3*r+1),
++                1/(3*r+2), 1/(2*r +2) )
++ 
++ 
++     # The matrix of weights, one row per obs, one col per time
++     #   deaths at 2,3,6,7,8,9
++     wtmat <- matrix(c(1,0,0,0,1, 0, 0,0,0,0,
++                       0,1,0,1,1, 0, 0,0,0,0,
++                       0,0,1,1,1, 0, 1,1,0,0,
++                       0,0,0,1,1, 0, 1,1,0,0,
++                       0,0,0,0,1, 1, 1,1,0,0,
++                       0,0,0,0,0, 1, 1,1,1,1,
++                       0,0,0,0,0,.5,.5,1,1,1), ncol=7)
++     wtmat <- diag(c(r,1,1,r,1,r,r,r,1,1)) %*% wtmat
++ 
++     x      <- c(1,0,0,1,0,1,1,1,0,0)
++     status <- c(1,1,1,1,1,1,1,0,0,0)
++     xbar <- colSums(wtmat*x)/ colSums(wtmat)
++     n <- length(x)
++ 
++    # Table of sums for score and Schoenfeld resids
++     hazmat <- wtmat %*% diag(hazard) #each subject's hazard over time
++     dM <- -hazmat  #Expected part
++     for (i in 1:5) dM[i,i] <- dM[i,i] +1  #observed
++     dM[6:7,6:7] <- dM[6:7,6:7] +.5  # observed
++     mart <- rowSums(dM)
++ 
++     # Table of sums for score and Schoenfeld resids
++     #  Looks like the last table of appendix E.2.1 of the book
++     resid <- dM * outer(x, xbar, '-')
++     score <- rowSums(resid)
++     scho <- colSums(resid)
++ 
++     # We need to add the ties back up (they are symmetric)
++     scho[6:7] <- rep(mean(scho[6:7]), 2)
++ 
++     list(loglik=loglik, u=u, imat=imat, xbar=xbar, haz=hazard,
++ 	     mart=mart,  score=score, rmat=resid,
++ 		scho=scho)
++     }
+> 
+> 
+> aeq <- function(x,y) all.equal(as.vector(x), as.vector(y))
+> 
+> fit0 <-coxph(Surv(start, stop, event) ~x, test2, iter=0)
+> truth0 <- byhand(0,0)
+> aeq(truth0$loglik, fit0$loglik[1])
+[1] TRUE
+> aeq(1/truth0$imat, fit0$var)
+[1] TRUE
+> aeq(truth0$mart, fit0$resid)
+[1] TRUE
+> aeq(truth0$scho, resid(fit0, 'schoen'))
+[1] TRUE
+> aeq(truth0$score, resid(fit0, 'score')) 
+[1] TRUE
+> 
+> 
+> fit <- coxph(Surv(start, stop, event) ~x, test2, eps=1e-8)
+> truth <- byhand(fit$coef, 0)
+> aeq(truth$loglik, fit$loglik[2])
+[1] TRUE
+> aeq(1/truth$imat, fit$var)
+[1] TRUE
+> aeq(truth$mart, fit$resid)
+[1] TRUE
+> aeq(truth$scho, resid(fit, 'schoen'))
+[1] TRUE
+> aeq(truth$score, resid(fit, 'score'))
+[1] TRUE
+> 
+> # Reprise the test, with strata
+> #  offseting the times ensures that we will get the wrong risk sets
+> #  if strata were not kept separate
+> test2b <- rbind(test2, test2, test2)
+> test2b$group <- rep(1:3, each= nrow(test2))
+> test2b$start <- test2b$start + test2b$group
+> test2b$stop  <- test2b$stop  + test2b$group
+> fit0 <- coxph(Surv(start, stop, event) ~ x + strata(group), test2b, iter=0)
+> aeq(3*truth0$loglik, fit0$loglik[1])
+[1] TRUE
+> aeq(3*truth0$imat, 1/fit0$var)
+[1] TRUE
+> aeq(rep(truth0$mart,3), fit0$resid)
+[1] TRUE
+> aeq(rep(truth0$scho,3),  resid(fit0, 'schoen'))
+[1] TRUE
+> aeq(rep(truth0$score,3), resid(fit0, 'score')) 
+[1] TRUE
+> 
+> fit3 <- coxph(Surv(start, stop, event) ~x + strata(group), test2b, eps=1e-8)
+> aeq(3*truth$loglik, fit3$loglik[2])
+[1] TRUE
+> aeq(3*truth$imat, 1/fit3$var)
+[1] TRUE
+> aeq(rep(truth$mart,3), fit3$resid)
+[1] TRUE
+> aeq(rep(truth$scho,3), resid(fit3, 'schoen'))
+[1] TRUE
+> aeq(rep(truth$score,3), resid(fit3, 'score'))
+[1] TRUE
+> 
+> # 
+> # Done with the formal test, now print out lots of bits
+> #
+> resid(fit)
+          1           2           3           4           5           6 
+ 0.50527611  0.66432995  0.79746211  0.22435805 -0.55144018  0.42933697 
+          7           8           9          10 
+-0.01764508 -1.14132605 -0.45517594 -0.45517594 
+> resid(fit, 'scor')
+         1          2          3          4          5          6          7 
+ 0.2553039 -0.2183386 -0.4744295 -0.1101520  0.1137126  0.2491954  0.1057078 
+         8          9         10 
+-0.4119611  0.2454808  0.2454808 
+> resid(fit, 'scho')
+         2          3          6          7          8          9          9 
+ 0.5052761 -0.3286599 -0.5949242  0.2539781 -0.7460219  0.4551759  0.4551759 
+> 
+> predict(fit, type='lp')
+ [1] -0.0105526  0.0105526  0.0105526 -0.0105526  0.0105526 -0.0105526
+ [7] -0.0105526 -0.0105526  0.0105526  0.0105526
+> predict(fit, type='risk')
+ [1] 0.9895029 1.0106085 1.0106085 0.9895029 1.0106085 0.9895029 0.9895029
+ [8] 0.9895029 1.0106085 1.0106085
+> predict(fit, type='expected')
+        1         2         3         4         5         6         7         8 
+0.4947239 0.3356701 0.2025379 0.7756420 1.5514402 0.5706630 1.0176451 1.1413261 
+        9        10 
+0.4551759 0.4551759 
+> predict(fit, type='terms')
+            x
+1  -0.0105526
+2   0.0105526
+3   0.0105526
+4  -0.0105526
+5   0.0105526
+6  -0.0105526
+7  -0.0105526
+8  -0.0105526
+9   0.0105526
+10  0.0105526
+attr(,"constant")
+[1] -0.0105526
+> predict(fit, type='lp', se.fit=T)
+$fit
+         1          2          3          4          5          6          7 
+-0.0105526  0.0105526  0.0105526 -0.0105526  0.0105526 -0.0105526 -0.0105526 
+         8          9         10 
+-0.0105526  0.0105526  0.0105526 
+
+$se.fit
+        1         2         3         4         5         6         7         8 
+0.3975884 0.3975884 0.3975884 0.3975884 0.3975884 0.3975884 0.3975884 0.3975884 
+        9        10 
+0.3975884 0.3975884 
+
+> predict(fit, type='risk', se.fit=T)
+$fit
+        1         2         3         4         5         6         7         8 
+0.9895029 1.0106085 1.0106085 0.9895029 1.0106085 0.9895029 0.9895029 0.9895029 
+        9        10 
+1.0106085 1.0106085 
+
+$se.fit
+        1         2         3         4         5         6         7         8 
+0.3954962 0.3996918 0.3996918 0.3954962 0.3996918 0.3954962 0.3954962 0.3954962 
+        9        10 
+0.3996918 0.3996918 
+
+> predict(fit, type='expected', se.fit=T)
+$fit
+        1         2         3         4         5         6         7         8 
+0.4947239 0.3356701 0.2025379 0.7756420 1.5514402 0.5706630 1.0176451 1.1413261 
+        9        10 
+0.4551759 0.4551759 
+
+$se.fit
+ [1] 0.5331623 0.3940109 0.3241963 0.6388491 1.0026838 0.6453101 0.7848594
+ [8] 0.7848594 0.6401915 0.6401915
+
+> predict(fit, type='terms', se.fit=T)
+$fit
+            x
+1  -0.0105526
+2   0.0105526
+3   0.0105526
+4  -0.0105526
+5   0.0105526
+6  -0.0105526
+7  -0.0105526
+8  -0.0105526
+9   0.0105526
+10  0.0105526
+attr(,"constant")
+[1] -0.0105526
+
+$se.fit
+           x
+1  0.3975884
+2  0.3975884
+3  0.3975884
+4  0.3975884
+5  0.3975884
+6  0.3975884
+7  0.3975884
+8  0.3975884
+9  0.3975884
+10 0.3975884
+
+> 
+> summary(survfit(fit))
+Call: survfit(formula = fit)
+
+ time n.risk n.event survival std.err lower 95% CI upper 95% CI
+    2      2       1    0.607   0.303       0.2277        1.000
+    3      3       1    0.435   0.262       0.1337        1.000
+    6      5       1    0.356   0.226       0.1029        1.000
+    7      4       1    0.277   0.189       0.0729        1.000
+    8      4       1    0.215   0.157       0.0516        0.899
+    9      5       2    0.137   0.109       0.0288        0.655
+> summary(survfit(fit, list(x=2)))
+Call: survfit(formula = fit, newdata = list(x = 2))
+
+ time n.risk n.event survival std.err lower 95% CI upper 95% CI
+    2      2       1    0.616   0.465      0.14013            1
+    3      3       1    0.447   0.519      0.04568            1
+    6      5       1    0.368   0.504      0.02512            1
+    7      4       1    0.288   0.464      0.01232            1
+    8      4       1    0.226   0.418      0.00603            1
+    9      5       2    0.146   0.343      0.00147            1
+> 
+> proc.time()
+   user  system elapsed 
+  0.244   0.020   0.259 

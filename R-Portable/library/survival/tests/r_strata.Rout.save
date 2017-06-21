@@ -1,0 +1,148 @@
+
+R version 2.11.1 (2010-05-31)
+Copyright (C) 2010 The R Foundation for Statistical Computing
+ISBN 3-900051-07-0
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> options(na.action=na.exclude) # preserve missings
+> options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
+> library(survival)
+Loading required package: splines
+> 
+> #
+> # Test out the strata capabilities
+> #
+> tol <- survreg.control()$rel.tolerance
+> aeq <- function(x,y,...) all.equal(as.vector(x), as.vector(y), ...)
+> 
+> # intercept only models
+> fit1 <- survreg(Surv(time, status) ~ strata(sex), lung)
+> fit2 <- survreg(Surv(time, status) ~ strata(sex) + sex, lung)
+> fit3a<- survreg(Surv(time,status) ~1, lung, subset=(sex==1))
+> fit3b<- survreg(Surv(time,status) ~1, lung, subset=(sex==2))
+> 
+> fit1
+Call:
+survreg(formula = Surv(time, status) ~ strata(sex), data = lung)
+
+Coefficients:
+(Intercept) 
+   6.062171 
+
+Scale:
+    sex=1     sex=2 
+0.8167551 0.6533036 
+
+Loglik(model)= -1152.5   Loglik(intercept only)= -1152.5
+n= 228 
+> fit2
+Call:
+survreg(formula = Surv(time, status) ~ strata(sex) + sex, data = lung)
+
+Coefficients:
+(Intercept)         sex 
+   5.494409    0.380171 
+
+Scale:
+    sex=1     sex=2 
+0.8084294 0.6355816 
+
+Loglik(model)= -1147.1   Loglik(intercept only)= -1152.5
+	Chisq= 10.9 on 1 degrees of freedom, p= 0.00096 
+n= 228 
+> aeq(fit2$scale, c(fit3a$scale, fit3b$scale), tolerance=tol)
+[1] TRUE
+> aeq(fit2$loglik[2], (fit3a$loglik + fit3b$loglik)[2], tolerance=tol)
+[1] TRUE
+> aeq(fit2$coef[1] + 1:2*fit2$coef[2], c(fit3a$coef, fit3b$coef), tolerance=tol)
+[1] TRUE
+> 
+> #penalized models
+> fit1 <- survreg(Surv(time, status) ~ pspline(age, theta=.92)+
++                 strata(sex), lung)
+> fit2 <- survreg(Surv(time, status) ~  pspline(age, theta=.92)+ 
++ 		strata(sex) + sex, lung)
+> fit1
+Call:
+survreg(formula = Surv(time, status) ~ pspline(age, theta = 0.92) + 
+    strata(sex), data = lung)
+
+                          coef    se(coef) se2    Chisq DF   p      
+(Intercept)                6.9036 0.8469   0.5688 66.45 1.00 3.3e-16
+pspline(age, theta = 0.92 -0.0124 0.0067   0.0067  3.45 1.00 6.3e-02
+pspline(age, theta = 0.92                          2.53 2.65 4.0e-01
+
+Scale:
+sex=1 sex=2 
+0.807 0.654 
+
+Iterations: 1 outer, 4 Newton-Raphson
+     Theta= 0.92 
+Degrees of freedom for terms= 0.5 3.6 2.0 
+Likelihood ratio test=6.54  on 3.1 df, p=0.0937  n= 228 
+> fit2
+Call:
+survreg(formula = Surv(time, status) ~ pspline(age, theta = 0.92) + 
+    strata(sex) + sex, data = lung)
+
+                          coef    se(coef) se2     Chisq DF   p      
+(Intercept)                6.3729 0.84471  0.59118 56.92 1.00 4.5e-14
+pspline(age, theta = 0.92 -0.0111 0.00666  0.00666  2.77 1.00 9.6e-02
+pspline(age, theta = 0.92                           2.46 2.68 4.2e-01
+sex                        0.3686 0.11711  0.11685  9.91 1.00 1.6e-03
+
+Scale:
+sex=1 sex=2 
+0.800 0.636 
+
+Iterations: 1 outer, 5 Newton-Raphson
+     Theta= 0.92 
+Degrees of freedom for terms= 0.5 3.7 1.0 2.0 
+Likelihood ratio test=16.8  on 4.2 df, p=0.00245  n= 228 
+> 
+> age1 <- ifelse(lung$sex==1, lung$age, mean(lung$age))
+> age2 <- ifelse(lung$sex==2, lung$age, mean(lung$age))
+> fit3 <- survreg(Surv(time,status) ~ pspline(age1, theta=.92) +
++ 		pspline(age2, theta=.95) + sex + strata(sex), lung)
+> fit3a<- survreg(Surv(time,status) ~pspline(age, theta=.92), lung, 
++ 		    subset=(sex==1))
+> fit3b<- survreg(Surv(time,status) ~pspline(age, theta=.95), lung, 
++ 		     subset=(sex==2))
+> fit3b<- survreg(Surv(time,status) ~pspline(age, theta=.95),
++                 lung[lung$sex==2,], x=T) 
+> #
+> # The above line is tricky, and it took me a long time to realize
+> #  it's necessity.  The range of age1 = range(age) = 39-82.  That for
+> #  age2 = range of females = 41-77.  The basis functions for pspline are
+> #  based on age.  If I used data=lung, subset=(sex==2) in fit3b (earlier
+> #  form of the test, the pspline function is called before the subset
+> #  occurs, and fit3b has a different basis for the second spline than
+> #  fit3 does; leading to failure of the all.equal tests below.  A theta
+> #  of .95 on one basis is not exactly the same as a theta of .95 on the
+> #  other. Coefficients were within 1%, but not the same.  
+> 
+> aeq(fit3$scale, c(fit3a$scale, fit3b$scale))
+[1] TRUE
+> aeq(fit3$loglik[2], (fit3a$loglik + fit3b$loglik)[2])
+[1] TRUE
+> pred <- predict(fit3)
+> aeq(pred[lung$sex==1] , predict(fit3a))
+[1] TRUE
+> aeq(pred[lung$sex==2],  predict(fit3b))
+[1] TRUE
+> 
+> 
+> 
+> 
+> 

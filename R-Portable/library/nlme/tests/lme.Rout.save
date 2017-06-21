@@ -1,0 +1,201 @@
+
+R version 3.3.2 Patched (2016-12-10 r71773) -- "Sincere Pumpkin Patch"
+Copyright (C) 2016 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> library(nlme)
+> 
+> options(digits = 6)# <==> less platform dependency in print() output
+> if(!dev.interactive(orNone=TRUE)) pdf("test_lme.pdf")
+> 
+> fm1 <- lmList(Oxboys)
+> fm1
+Call:
+  Model: height ~ age | Subject 
+   Data: Oxboys 
+
+Coefficients:
+   (Intercept)     age
+10     130.262 3.72291
+26     137.993 5.58878
+25     139.210 4.02408
+9      138.137 6.00906
+2      142.858 5.44018
+6      146.791 3.96317
+7      146.128 4.99005
+17     142.978 8.61178
+16     147.545 4.54520
+15     144.276 7.12426
+8      148.293 6.46471
+20     151.471 4.37447
+1      148.120 7.17815
+18     151.180 5.95779
+5      151.429 6.24613
+23     151.065 7.18512
+11     150.047 8.50608
+21     150.521 7.49779
+3      155.651 4.77467
+24     153.140 6.76470
+22     154.567 8.08751
+12     156.811 7.01547
+13     156.071 8.49381
+14     159.474 8.67089
+19     164.576 9.06562
+4      165.072 9.36056
+
+Degrees of freedom: 234 total; 182 residual
+Residual standard error: 0.659888
+> fm2 <- lme(fm1)
+> fm2
+Linear mixed-effects model fit by REML
+  Data: Oxboys 
+  Log-restricted-likelihood: -362.045
+  Fixed: height ~ age 
+(Intercept)         age 
+  149.37175     6.52547 
+
+Random effects:
+ Formula: ~age | Subject
+ Structure: General positive-definite, Log-Cholesky parametrization
+            StdDev   Corr  
+(Intercept) 8.081077 (Intr)
+age         1.680717 0.641 
+Residual    0.659889       
+
+Number of Observations: 234
+Number of Groups: 26 
+> vc2 <- VarCorr(fm2)
+> stopifnot(
++     all.equal(fixef(fm2), c("(Intercept)" = 149.371753,
++                             age = 6.52546866), tol=1e-8),
++     all.equal(as.numeric(vc2[,"StdDev"]),
++               c(8.081077, 1.680717, 0.659889), tol=4e-7))
+> 
+> # bug report from Arne.Mueller@sanofi-aventis.com
+> mod <- distance ~ age + Sex
+> fm3 <- lme(mod, Orthodont, random = ~ 1)
+> pm3 <- predict(fm3, Orthodont)
+> stopifnot(all.equal(mean(pm3), 24.023148148),
++ 	  all.equal(  sd(pm3), 2.4802195115),
++ 	  all.equal(quantile(pm3), c("0%"  = 17.0817792, "25%" = 22.3481813,
++ 				     "50%" = 23.9271016, "75%" = 25.5740014,
++ 				     "100%"= 30.8662241)))
+> 
+> 
+> ## bug report and fix from Dimitris Rizopoulos and Spencer Graves:
+> ## when 'returnObject = TRUE', do not stop() but give warning() on non-convergence:
+> tools::assertWarning(
++ fm1 <- lme(distance ~ age, data = Orthodont,
++ 	   control = lmeControl(msMaxIter = 1, returnObject = TRUE))
++ )
+> 
+> ## based on bug report on R-help
+> (p3.1 <- predict(fm3, Orthodont[1,]))
+    M01 
+25.3924 
+attr(,"label")
+[1] "Predicted values (mm)"
+> # failed in 3.1-88
+> stopifnot(all.equal(pm3[1], p3.1,
++ 		    check.attributes=FALSE, tolerance = 1e-14))
+> 
+> ## Intervals failed in a patch proposal (Nov.2015):
+> (fm4 <- lme(distance ~ age, Orthodont, random = ~ age | Subject))
+Linear mixed-effects model fit by REML
+  Data: Orthodont 
+  Log-restricted-likelihood: -221.318
+  Fixed: distance ~ age 
+(Intercept)         age 
+  16.761111    0.660185 
+
+Random effects:
+ Formula: ~age | Subject
+ Structure: General positive-definite, Log-Cholesky parametrization
+            StdDev   Corr  
+(Intercept) 2.327034 (Intr)
+age         0.226428 -0.609
+Residual    1.310040       
+
+Number of Observations: 108
+Number of Groups: 27 
+> i4 <- intervals(fm4)
+> ## from  dput(signif(i4$reStruct$Subject, 8))
+> ## R-devel 2016-01-11; 64-bit :
+> reSS <- data.frame(lower = c(0.9485605, 0.10250901, -0.93825047),
++                    est.  = c(2.3270341, 0.22642779, -0.60933286),
++                    upper = c(5.7087424, 0.50014674,  0.29816857))
+> ## R-devel 2016-01-11; 32-bit :
+> ## reSS <- data.frame(lower = c(0.94962127,0.10262181, -0.93804767),
+> ##                    est.  = c(2.3270339, 0.22642779, -0.60933284),
+> ##                    upper = c(5.7023648, 0.49959695,  0.29662651))
+> rownames(reSS) <- rownames(i4$reStruct$Subject)
+> sm4 <- summary(fm4)
+> stopifnot(
++     all.equal(fixef(fm4),
++               c("(Intercept)" = 16.761111, age = 0.66018519)),
++     identical(fixef(fm4), sm4$tTable[,"Value"]),
++     all.equal(sm4$tTable[,"Std.Error"],
++               c("(Intercept)" = 0.77524603, age = 0.071253264), tol=6e-8),
++     all.equal(i4$reStruct$Subject[,"est."], reSS[,"est."], tol= 1e-7)
++     ## (lower, upper) cannot be very accurate for these : ==> tol = *e-4
++    ,## "interestingly" 32-bit values changed from 3.2.3 to R-devel(3.3.0):
++     all.equal(i4$reStruct$Subject[,c(1,3)], reSS[,c(1,3)], tol = .005)
++    ,
++     all.equal(as.vector(i4$sigma),
++               ##  lower     est.        upper
++               c(1.0849772, 1.3100397, 1.5817881), tol=8e-4)
++    ,
++     all.equal(as.vector(i4$fixed),
++               as.vector(rbind(c(15.218322, 16.761111, 18.3039),
++                               c(0.51838667, 0.66018519, 0.8019837))),
++               tol = 1e-6)
++ )
+> 
+> 
+> ## wrong results from getData:
+> ss2 <- readRDS("ss2.rds")
+> m1 <- lme(PV1MATH ~  ESCS + Age +time ,
++           random = ~   time|SCHOOLID,
++           data = ss2,
++           weights = varIdent(form=~1|time),
++           corr = corCompSymm(form=~1|SCHOOLID/StIDStd),
++           na.action = na.omit)
+> plot(m1, resid(.) ~ WEALTH)
+> 
+> m2 <- lme(PV1MATH ~  ESCS + Age +time ,
++           random = ~   time|SCHOOLID,
++           data = ss2,
++           weights = varIdent(form=~1|time),
++           corr = corCompSymm(form=~1|SCHOOLID/StIDStd),
++           na.action = na.omit)
+> plot(m2, resid(.) ~ WEALTH)
+> 
+> 
+> ## Variogram() failing in the case of  1-observation groups (PR#17192):
+> BW <- subset(BodyWeight, ! (Rat=="1" & Time > 1))
+> if(interactive())
++     print( xtabs(~ Rat + Time, data = BW) )# Rat '1' only at Time == 1
+> fm2 <- lme(fixed = weight ~ Time * Diet, random = ~ 1 | Rat, data = BW)
+> Vfm2 <- Variogram(fm2, form = ~ Time | Rat)
+> stopifnot(is.data.frame(Vfm2),
++ 	  identical(dim(Vfm2), c(19L, 3L)),
++ 	  all.equal(unlist(Vfm2[10,]), c(variog = 1.08575384191148,
++ 					 dist = 22, n.pairs = 15))
++ 	  )
+> ## failed in nlme from 3.1-122 till 3.1-128
+> 
+> proc.time()
+   user  system elapsed 
+  1.884   0.089   2.066 

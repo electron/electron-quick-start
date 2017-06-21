@@ -1,0 +1,169 @@
+\documentclass{article}
+\usepackage{myVignette}
+\usepackage[authoryear,round]{natbib}
+\bibliographystyle{plainnat}
+%%\VignetteIndexEntry{Introduction to the Matrix Package}
+%%\VignetteDepends{Matrix}
+\SweaveOpts{engine=R,eps=FALSE,pdf=TRUE,width=5,height=3,strip.white=true,keep.source=TRUE}
+\title{Introduction to the Matrix package --- as of Feb.~2005\footnote{
+    There's an unfinished ``2nd Introduction to the Matrix package''
+    which contains partly newer information, but is not at all self-contained.
+    Eventually that will replace this one.}}
+\author{Douglas Bates\\R Core Development Group\\\email{bates@r-project.org}}
+\date{\today}
+\begin{document}
+\maketitle
+\begin{abstract}
+  Linear algebra is at the core of many areas of statistical computing
+  and from its inception the \Slang{} has supported numerical linear
+  algebra via a matrix data type and several functions and operators,
+  such as \code{\%*\%}, \code{qr}, \code{chol}, and \code{solve}.
+  However, these data types and functions do not provide direct access
+  to all of the facilities for efficient manipulation of dense
+  matrices, as provided by the Lapack subroutines, and they do not
+  provide for manipulation of sparse matrices.
+
+  The \code{Matrix} package provides a set of S4 classes for dense and
+  sparse matrices that extend the basic matrix data type.  Methods for
+  a wide variety of functions and operators applied to objects from
+  these classes provide efficient access to BLAS (Basic Linear Algebra
+  Subroutines), Lapack (dense matrix), TAUCS (sparse matrix) and
+  UMFPACK (sparse matrix) routines.  One notable characteristic of the
+  package is that whenever a matrix is factored, the factorization is
+  stored as part of the original matrix so that further operations on
+  the matrix can reuse this factorization.
+\end{abstract}
+<<preliminaries, echo=FALSE>>=
+options(width=75)
+@
+
+\section{Introduction}
+\label{sec:Intro}
+
+Linear algebra is at the core of many statistical computing techniques
+and, from its inception, the \Slang{} has supported numerical linear
+algebra via a matrix data type and several functions and operators,
+such as \code{\%*\%}, \code{qr}, \code{chol}, and \code{solve}.
+Initially the numerical linear algebra functions in \RR{} called
+underlying Fortran routines from the Linpack~\citep{Linpack} and
+Eispack~\cite{Eispack} libraries but over the years most of these
+functions have been switched to use routines from the
+Lapack~\cite{Lapack} library.  Furthermore, \RR{} can be configured to
+use accelerated BLAS (Basic Linear Algebra Subroutines), such as those
+from the Atlas~\cite{Atlas} project or Goto's BLAS~\cite{GotosBLAS}.
+
+Lapack provides routines for operating on several special forms of
+matrices, such as triangular matrices and symmetric matrices.
+Furthermore,matrix decompositions like the QR decompositions produce
+multiple output components that should be regarded as parts of a
+single object.  There is some support in R for operations on special
+forms of matrices (e.g. the \code{backsolve}, \code{forwardsolve} and
+\code{chol2inv} functions) and for special structures (e.g. a QR
+structure is implicitly defined as a list by the \code{qr},
+\code{qr.qy}, \code{qr.qty}, and related functions) but it is not as
+fully developed as it could be.
+
+Also there is no direct support for sparse matrices in R although
+\citet{koen:ng:2003} have developed a contributed package for sparse
+matrices based on SparseKit.
+
+The \code{Matrix} package provides S4 classes and methods for dense
+and sparse matrices.  The methods for dense matrices use Lapack and
+BLAS.  The sparse matrix methods use TAUCS~\citep{Taucs},
+UMFPACK~\citep{Umfpack}, and Metis~\citep{Metis}.
+
+
+\section{Classes for dense matrices}
+\label{sec:DenseClasses}
+
+The \code{Matrix} package will provide classes for real (stored as
+double precision) and complex (stored as double precision complex)
+dense matrices.  At present only the real classes have been
+implemented.  These classes are
+\begin{description}
+\item[dgeMatrix] Real matrices in general storage mode
+\item[dsyMatrix] Symmetric real matrices in non-packed storage
+\item[dspMatrix] Symmetric real matrices in packed storage (one triangle only)
+\item[dtrMatrix] Triangular real matrices in non-packed storage
+\item[dtpMatrix] Triangular real matrices in packed storage (triangle only)
+\item[dpoMatrix] Positive semi-definite symmetric real matrices in
+  non-packed storage
+\item[dppMatrix] \ \ ditto \ \ in packed storage
+\end{description}
+Methods for these classes include coercion between these classes, when
+appropriate, and coercion to the \code{matrix} class; methods for
+matrix multiplication (\code{\%*\%}); cross products
+(\code{crossprod}), matrix norm (\code{norm}); reciprocal condition
+number (\code{rcond}); LU factorization (\code{lu}) or, for the
+\code{poMatrix} class, the Cholesky decomposition (\code{chol}); and
+solutions of linear systems of equations (\code{solve}).
+
+Further, group methods have been defined for the \code{Arith} (basic
+arithmetic, including with scalar numbers) and the \code{Math} (basic
+mathematical functions) group..
+
+Whenever a factorization or a decomposition is calculated it is
+preserved as a (list) element in the \code{factors} slot of the
+original object.  In this way a sequence of operations, such as
+determining the condition number of a matrix then solving a linear
+system based on the matrix, do not require multiple factorizations of
+the same matrix nor do they require the user to store the intermediate
+results.
+
+
+\section{Classes for sparse matrices}
+\label{sec:SparseClasses}
+
+
+\subsection{Representations of sparse matrices}
+\label{ssec:SparseReps}
+
+Conceptually, the simplest representation of a sparse matrix is as a
+triplet of an integer vector \code{i} giving the row numbers, an
+integer vector \code{j} giving the column numbers, and a numeric
+vector \code{x} giving the non-zero values in the matrix.  An S4 class
+definition might be
+\begin{Schunk}
+\begin{Sinput}
+setClass("dgTMatrix",
+         representation(i = "integer", j = "integer", x = "numeric",
+                        Dim = "integer"))
+\end{Sinput}
+\end{Schunk}
+
+The triplet representation is row-oriented if elements in the same row
+were adjacent and column-oriented if elements in the same column were
+adjacent.  The compressed sparse row (csr) (or compressed sparse
+column - csc) representation is similar to row-oriented triplet
+(column-oriented triplet) except that \code{i} (\code{j}) just stores
+the index of the first element in the row (column).  (There are a
+couple of other details but that is the gist of it.)  These compressed
+representations remove the redundant row (column) indices and provide
+faster access to a given location in the matrix because you only need
+to check one row (column).
+
+The preferred representation of sparse matrices in the SparseM package
+is csr.  Matlab uses csc.  We hope that Octave will also use this
+representation. There are certain advantages to csc in systems like R
+and Matlab where dense matrices are stored in column-major order.  For
+example, Sivan Toledo's TAUCS~\cite{Taucs} library and Tim Davis's
+UMFPACK~\cite{Umfpack} library are both based on csc and can both use
+level-3 BLAS in certain sparse matrix computations.
+
+The Matrix package provides the following classes for sparse matrices
+\begin{description}
+\item[dgTMatrix] general, numeric, sparse matrices in (a possibly
+  redundant) triplet form.  This can be a convenient form in which to
+  construct sparse matrices.
+\item[dgCMatrix] general, numeric, sparse matrices in the (sorted) compressed
+  sparse column format.
+\item[dsCMatrix] symmetric, real, sparse matrices in the (sorted)
+  compressed sparse column format.  Only the upper or the lower triangle is
+  stored.  Although there is provision for both forms, the lower
+  triangle form works best with TAUCS.
+\item[dtCMatrix] triangular, real, sparse matrices in the (sorted)
+  compressed sparse column format.
+\end{description}
+
+\bibliography{Matrix}
+\end{document}

@@ -1,0 +1,267 @@
+%\VignetteIndexEntry{xtable List of Tables Gallery}
+%\VignetteDepends{xtable, lsmeans}
+%\VignetteKeywords{LaTeX, HTML, table}
+%\VignettePackage{xtable}
+% !Rnw weave = knitr
+% \VignetteEngine{knitr::knitr}
+%**************************************************************************
+\documentclass{article}
+\usepackage[a4paper,height=24cm]{geometry} % geometry first
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{parskip}
+\usepackage{rotating}
+\usepackage{tabularx}
+\usepackage{titlesec}
+\usepackage{hyperref} % hyperref last
+\titleformat\subsubsection{\bfseries\itshape}{}{0pt}{}
+\newcommand\p{\vspace{2ex}}
+\newcommand\code[1]{\texttt{#1}}
+\newcommand\pkg[1]{\textbf{#1}}
+\setcounter{tocdepth}{2}
+\begin{document}
+
+\title{\bfseries\Large The \code{xtableList} Gallery}
+\author{\bfseries David J. Scott}
+\maketitle
+
+\tableofcontents
+
+\newpage
+
+\section{Introduction}
+This document represents a test of the functions in \pkg{xtable} which
+deal with lists of dataframes.
+
+<<set, include=FALSE>>=
+library(knitr)
+opts_chunk$set(fig.path='Figures/list', debug=TRUE, echo=TRUE)
+opts_chunk$set(out.width='0.9\\textwidth')
+@
+
+The first step is to load the package and set some options for this document.
+<<package, results='asis'>>=
+library(xtable)
+options(xtable.floating = FALSE)
+options(xtable.timestamp = "")
+options(width = 60)
+@
+
+
+Next we create a list of dataframes with attributes.
+
+<<data>>=
+require(xtable)
+data(mtcars)
+mtcars <- mtcars[, 1:6]
+mtcarsList <- split(mtcars, f = mtcars$cyl)
+### Reduce the size of the list elements
+mtcarsList[[1]] <- mtcarsList[[1]][1,]
+mtcarsList[[2]] <- mtcarsList[[2]][1:2,]
+mtcarsList[[3]] <- mtcarsList[[3]][1:3,]
+attr(mtcarsList, "subheadings") <- paste0("Number of cylinders = ",
+                                          names(mtcarsList))
+attr(mtcarsList, "message") <- c("Line 1 of Message",
+                                 "Line 2 of Message")
+str(mtcarsList)
+attributes(mtcarsList)
+@ %def
+
+Now create a list of \code{xtable} objects.
+
+
+<<xtablelist>>=
+xList <- xtableList(mtcarsList)
+str(xList)
+@ %def
+
+Create an alternative version where the lists have different values
+for \code{digits}.
+
+
+<<xtablelist1>>=
+xList1 <- xtableList(mtcarsList, digits = c(0,2,0,0,0,1,2))
+str(xList1)
+@ %def
+
+<<xtablelist2>>=
+xList2 <- xtableList(mtcarsList, digits = c(0,2,0,0,0,1,2),
+                            caption = "Caption to List",
+                            label = "tbl:xtableList")
+str(xList2)
+@ %def
+
+Further versions with no subheadings, and no message
+
+<<xtablelist3>>=
+attr(mtcarsList, "subheadings") <- NULL
+xList3 <- xtableList(mtcarsList)
+str(xList3)
+@ %def
+
+<<xtablelist4>>=
+attr(mtcarsList, "message") <- NULL
+xList4 <- xtableList(mtcarsList)
+str(xList4)
+@ %def
+
+\newpage
+
+\section{Single Column Names}
+\label{sec:single-column-names}
+
+Print the list of \code{xtable} objects with a single header of the
+column names.
+
+First the default.
+
+
+<<singledefault, results='asis'>>=
+print.xtableList(xList)
+@ %def
+
+Booktabs should work.
+<<singlebooktabs, results='asis'>>=
+print.xtableList(xList, booktabs = TRUE)
+@ %def
+
+With digits being specified.
+<<singlebooktabs1, results='asis'>>=
+print.xtableList(xList1, booktabs = TRUE)
+@ %def
+
+Row and column names, subheadings, and the message can be sanitized.
+
+<<sanitize>>=
+large <- function(x){
+  paste0('{\\Large{\\bfseries ', x, '}}')
+}
+italic <- function(x){
+  paste0('{\\emph{ ', x, '}}')
+}
+bold <- function(x){
+  paste0('{\\bfseries ', x, '}')
+}
+red <- function(x){
+  paste0('{\\color{red} ', x, '}')
+}
+@ %def
+
+
+<<sanitizesingle, results='asis'>>=
+print.xtableList(xList,
+                 sanitize.rownames.function = italic,
+                 sanitize.colnames.function = large,
+                 sanitize.subheadings.function = bold,
+                 sanitize.message.function = red,
+                 booktabs = TRUE)
+@ %def
+
+A label and caption can be added.
+<<singlecaption, results='asis'>>=
+print.xtableList(xList2, floating = TRUE)
+@ %def
+
+Rotated column names?
+<<singlerotated, results='asis'>>=
+print.xtableList(xList, rotate.colnames = TRUE)
+@ %def
+
+No subheadings?
+<<nosubheadings, results='asis'>>=
+print.xtableList(xList3)
+@ %def
+
+No message?
+<<nomessage, results='asis'>>=
+print.xtableList(xList4)
+@ %def
+
+
+\section{Multiple Column Names}
+\label{sec:multiple-column-names}
+
+Print the list of \code{xtable} objects with multiple headers of the
+column names.
+
+First the default with multiple column name headers.
+
+<<multipledefault, results='asis'>>=
+print.xtableList(xList, colnames.format = "multiple")
+@ %def
+
+Using booktabs:
+
+<<multiplebooktabs, results='asis'>>=
+print.xtableList(xList, colnames.format = "multiple",
+                 booktabs = TRUE)
+@ %def
+
+With sanitization.
+<<sanitizemultiple, results='asis'>>=
+print.xtableList(xList, colnames.format = "multiple",
+                 sanitize.rownames.function = italic,
+                 sanitize.colnames.function = large,
+                 sanitize.subheadings.function = bold,
+                 sanitize.message.function = red,                 
+                 booktabs = TRUE)
+@ %def
+
+A label and caption can be added.
+<<multiplecaption, results='asis'>>=
+print.xtableList(xList2, colnames.format = "multiple",
+                 floating = TRUE)
+@ %def
+
+Rotated column names?
+<<multiplerotated, results='asis'>>=
+print.xtableList(xList, colnames.format = "multiple",
+                 rotate.colnames = TRUE)
+@ %def
+
+No subheadings?
+<<multiplenosubheadings, results='asis'>>=
+print.xtableList(xList3, colnames.format = "multiple")
+@ %def
+
+No message?
+<<multiplenomessage, results='asis'>>=
+print.xtableList(xList4, colnames.format = "multiple")
+@ %def
+
+\section{lsmeans}
+\label{sec:lsmeans}
+
+Summaries from the \code{lsmeans} function from the \pkg{lsmeans}
+package can easily be produced using the function
+\code{xtableLSMeans}. This function produces a list of \pkg{xtable}
+objects.
+
+
+<<lsmeans>>=
+library(lsmeans)
+warp.lm <- lm(breaks ~ wool*tension, data = warpbreaks)
+warp.lsm <- lsmeans(warp.lm, ~ tension | wool)
+warp.sum <- summary(warp.lsm, adjust = "mvt")
+warp.xtblList <- xtableLSMeans(warp.sum, digits = c(0,0,2,2,0,2,2))
+str(warp.xtblList)
+@ %def
+
+<<lsmeansstr>>=
+print.xtableList(warp.xtblList, colnames.format = "multiple",
+                 include.rownames = FALSE)
+@ %def
+<<lsmeanstable, results='asis'>>=
+print.xtableList(warp.xtblList, colnames.format = "multiple",
+                 include.rownames = FALSE)
+@ %def
+\p
+<<lsmeansbooktabs, results='asis'>>=
+print.xtableList(warp.xtblList, colnames.format = "multiple",
+                 booktabs = TRUE,
+                 include.rownames = FALSE)
+@ %def
+
+
+\end{document}

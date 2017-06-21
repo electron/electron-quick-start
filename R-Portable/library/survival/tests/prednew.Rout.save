@@ -1,0 +1,118 @@
+
+R Under development (unstable) (2013-02-24 r62054) -- "Unsuffered Consequences"
+Copyright (C) 2013 The R Foundation for Statistical Computing
+ISBN 3-900051-07-0
+Platform: i686-pc-linux-gnu (32-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> #
+> # Make sure that the newdata argument works for various
+> #   predictions
+> # We purposely use a subset of the lung data that has only some
+> #   of the levels of the ph.ecog
+> library(survival)
+Loading required package: splines
+> options(na.action=na.exclude, contrasts=c('contr.treatment', 'contr.poly'))
+> aeq <- function(x,y) all.equal(as.vector(x), as.vector(y))
+> 
+> myfit <- coxph(Surv(time, status) ~ age + factor(ph.ecog) + strata(sex), lung)
+> 
+> keep <- which(lung$inst<13 & (lung$ph.ecog==1 | lung$ph.ecog==2))
+> p1 <- predict(myfit, type='lp')
+> p2 <- predict(myfit, type="lp", newdata=lung[keep,])
+> p3 <- predict(myfit, type='lp', se.fit=TRUE)
+> p4 <- predict(myfit, type="lp", newdata=lung[keep,], se.fit=TRUE)
+> aeq(p1[keep], p2)
+[1] TRUE
+> aeq(p1, p3$fit)
+[1] TRUE
+> aeq(p1[keep], p4$fit)
+[1] TRUE
+> aeq(p3$se.fit[keep], p4$se.fit)
+[1] TRUE
+> 
+> p1 <- predict(myfit, type='risk')
+> p2 <- predict(myfit, type="risk", newdata=lung[keep,])
+> p3 <- predict(myfit, type='risk', se.fit=TRUE)
+> p4 <- predict(myfit, type="risk", newdata=lung[keep,], se.fit=TRUE)
+> aeq(p1[keep], p2)
+[1] TRUE
+> aeq(p1, p3$fit)
+[1] TRUE
+> aeq(p1[keep], p4$fit)
+[1] TRUE
+> aeq(p3$se.fit[keep], p4$se.fit)
+[1] TRUE
+> 
+> # The all.equal fails for type=expected, Efron approx, and tied death
+> #  times due to use of an approximation.  See comments in the source code.
+> myfit <- coxph(Surv(time, status) ~ age + factor(ph.ecog) + strata(sex), 
++                data=lung, method='breslow')
+> p1 <- predict(myfit, type='expected')
+> p2 <- predict(myfit, type="expected", newdata=lung[keep,])
+> p3 <- predict(myfit, type='expected', se.fit=TRUE)
+> p4 <- predict(myfit, type="expected", newdata=lung[keep,], se.fit=TRUE)
+> aeq(p1[keep], p2)
+[1] TRUE
+> aeq(p1, p3$fit)
+[1] TRUE
+> aeq(p1[keep], p4$fit)
+[1] TRUE
+> aeq(p3$se.fit[keep], p4$se.fit)
+[1] TRUE
+> 
+> p1 <- predict(myfit, type='terms')
+> p2 <- predict(myfit, type="terms",newdata=lung[keep,])
+> p3 <- predict(myfit, type='terms', se.fit=T)
+> p4 <- predict(myfit, type="terms",newdata=lung[keep,], se.fit=T)
+> aeq(p1[keep,], p2)
+[1] TRUE
+> aeq(p1, p3$fit)
+[1] TRUE
+> aeq(p1[keep,], p4$fit)
+[1] TRUE
+> aeq(p3$se.fit[keep,], p4$se.fit)
+[1] TRUE
+> 
+> #
+> # Check out the logic whereby predict does not need to
+> #  recover the model frame.  The first call should not 
+> #  need to do so, the second should in each case.
+> #
+> myfit <- coxph(Surv(time, status) ~ age + factor(sex), lung, x=T)
+> p1 <- predict(myfit, type='risk', se=T)
+> myfit2 <- coxph(Surv(time, status) ~ age + factor(sex), lung)
+> p2 <- predict(myfit2, type='risk', se=T)
+> aeq(p1$fit, p2$fit)
+[1] TRUE
+> aeq(p1$se, p2$se)
+[1] TRUE
+> 
+> p1 <- predict(myfit, type='expected', se=T)
+> p2 <- predict(myfit2, type='expected', se=T)
+> aeq(p1$fit, p2$fit)
+[1] TRUE
+> aeq(p1$se.fit, p2$se.fit)
+[1] TRUE
+> 
+> p1 <- predict(myfit, type='terms', se=T)
+> p2 <- predict(myfit2, type='terms', se=T)
+> aeq(p1$fit, p2$fit)
+[1] TRUE
+> aeq(p1$se.fit, p2$se.fit)
+[1] TRUE
+> 
+> proc.time()
+   user  system elapsed 
+  0.380   0.016   0.394 

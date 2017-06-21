@@ -1,0 +1,97 @@
+
+R version 3.3.2 (2016-10-31) -- "Sincere Pumpkin Patch"
+Copyright (C) 2016 The R Foundation for Statistical Computing
+Platform: x86_64-apple-darwin13.4.0 (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> options(na.action=na.exclude) # preserve missings
+> options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
+> library(survival)
+> 
+> #
+> # Test out subscripting in the case of a coxph survival curve
+> #
+> aeq <- function(x,y, ...) all.equal(as.vector(x), as.vector(y), ...)
+> 
+> fit <- coxph(Surv(time, status) ~ age + sex + meal.cal + strata(ph.ecog),
++ 		data=cancer)
+> surv1 <- survfit(fit)
+> temp <- surv1[2:3]
+> 
+> which <- cumsum(surv1$strata)
+> zed   <- (which[1]+1):(which[3])
+> aeq(surv1$surv[zed], temp$surv)
+[1] TRUE
+> aeq(surv1$time[zed], temp$time)
+[1] TRUE
+> 
+> # This call should not create a model frame in the code -- so same
+> #  answer but a different path through the underlying code
+> fit <- coxph(Surv(time, status) ~ age + sex + meal.cal + strata(ph.ecog),
++ 		x=T, data=cancer)
+> surv2 <- survfit(fit)
+> all.equal(surv1, surv2)
+[1] TRUE
+> 
+> #
+> # Now a result with a matrix of survival curves
+> #
+> dummy <- data.frame(age=c(30,40,60), sex=c(1,2,2), meal.cal=c(500, 1000, 1500))
+> surv2 <- survfit(fit, newdata=dummy)
+> 
+> zed <- 1:which[1]
+> aeq(surv2$surv[zed,1], surv2[1,1]$surv)
+[1] TRUE
+> aeq(surv2$surv[zed,2], surv2[1,2]$surv)
+[1] TRUE
+> aeq(surv2$surv[zed,3], surv2[1,3]$surv)
+[1] TRUE
+> aeq(surv2$surv[zed, ], surv2[1,1:3]$surv)
+[1] TRUE
+> aeq(surv2$surv[zed],   (surv2[1]$surv)[,1])
+[1] TRUE
+> aeq(surv2$surv[zed, ], surv2[1, ]$surv)
+[1] TRUE
+> 
+> # And the depreciated form - call with a named vector as 'newdata'
+> #  the resulting $call component  won't match so delete it before comparing
+> surv3 <- survfit(fit, c(age=40, sex=2, meal.cal=1000))
+> all.equal(unclass(surv2[,2])[-length(surv3)], unclass(surv3)[-length(surv3)])
+[1] TRUE
+> 
+> 
+> 
+> # Test out offsets, which have recently become popular due to a Langholz paper
+> fit1 <- coxph(Surv(time, status) ~ age + ph.ecog, lung)
+> fit2 <- coxph(Surv(time, status) ~ age + offset(ph.ecog * fit1$coef[2]), lung)
+> 
+> surv1 <- survfit(fit1, newdata=data.frame(age=50, ph.ecog=1))
+> surv2 <- survfit(fit2, newdata=data.frame(age=50, ph.ecog=1))
+> all.equal(surv1$surv, surv2$surv)
+[1] TRUE
+> 
+> #
+> # Check out the start.time option
+> #
+> surv3 <- survfit(fit1, newdata=data.frame(age=50, ph.ecog=1),
++                  start.time=100)
+> index <- match(surv3$time, surv1$time)
+> rescale <- summary(surv1, time=100)$surv
+> all.equal(surv3$surv, surv1$surv[index]/rescale)
+[1] TRUE
+> 
+> 
+> proc.time()
+   user  system elapsed 
+  0.769   0.054   0.843 

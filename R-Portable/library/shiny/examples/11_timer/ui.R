@@ -1,0 +1,3 @@
+fluidPage(
+  textOutput("currentTime")
+)

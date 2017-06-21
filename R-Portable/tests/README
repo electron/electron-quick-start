@@ -1,0 +1,116 @@
+There is a hierarchy of check targets:
+
+     make check
+
+for all builders.  If this works one can be reasonably happy R is working
+and do `make install' (or the equivalent).
+
+    make check-devel
+
+for people changing the code: this runs things like the demos and
+no-segfault which might be broken by code changes, and checks on the
+documentation (effectively R CMD check on each of the base packages).
+This needs recommended packages installed.
+
+    make check-all
+
+runs all the checks, those in check-devel plus tests of the recommended
+packages.
+
+Note that for complete testing you will need a number of other
+packages installed and available, so if you have a CRAN installation,
+set R_LIBS (perhaps in ~/.R/check.Renviron) to include it before
+running these tests.  For example, some of the tests on 'nlme' depend
+on 'Hmisc', and there are a number of cross references from help pages
+to CRAN packages.
+
+If a check fails there will almost always be a .Rout.fail file with
+the problematic output, so looking at the tail of that file should
+help pinpoint the problem.
+
+The \dontest sections of the examples can be run by
+
+     make check TEST_DONTTEST=TRUE
+
+(but expect some differences from the reference ouput).  This requires
+functional Tcl/Tk, e.g. for X11-based versions DISPLAY must be set to
+a usable X server.
+
+
+	---------- Historical Information -----------
+
+In this directory, various tests on R are run automatically.
+This is the recommended way to check if R has been built successfully on
+your architecture.
+
+	make check
+
+does
+
+	make test-Examples
+
+runs all the examples from the help files (*.Rd) of all core packages
+(base, ctest, ..., ts) -- which can take quite long (a few minutes,
+depending on your environment).
+
+	make test-Specific
+
+The "fast" part of the tests is `test-Specific' which runs the *.R
+files in this (./tests) directory (tolerantly) compares the result
+*.Rout file with the prespecified *.Rout.save (if that exists).
+
+	make test-Reg
+
+runs regression tests, that is tests that ensure that things which have been
+changed (perhaps as a result of bug reports) stay fixed.
+
+	make test-Internet
+	make test-Internet2
+
+runs tests which need access to the Internet and/or sockets and so may
+not run on every machine.  You will see some differences in the
+output, but no test should fail if you do have sockets and Internet
+access.  test-Internet2 is part of 'make check-devel' and checks less
+commonly-used options.
+
+
+Further tests are run by the target `make check-devel', including
+
+
+	make test-Demo
+
+runs all the demos in packages base and stats (but not tcltk), except
+demo(lm.glm) which is run by example(demo) and so not run again.
+
+
+	make test-Random
+
+runs a series of tests on the distribution of random variates generated
+by the rxxxx() functions.  The test is a large deviation bound on the 
+Kolmogorov statistic, so also provides a test of the cumulative distribution
+functions pxxxx().  Because rare events do happen, this test suite
+will be failed in about 1 in 50 runs.
+
+
+	make test-Segfault
+
+runs a test abusing all the functions in the base packages via
+no-segfault.R, and that can be quite slow (a minute or more).
+
+
+A target not run by anything else is
+
+	make test-System
+
+which checks options in system[2]() calls.
+
+
+A rarely-used target is
+
+	make test-Gct
+
+runs a subset of the specific tests with gctorture turned on.  This is slow,
+taking an hour or two.
+
+
+Martin Maechler for the R Core Team.

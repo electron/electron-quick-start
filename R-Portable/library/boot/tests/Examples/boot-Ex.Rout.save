@@ -1,0 +1,2040 @@
+
+R Under development (unstable) (2017-02-10 r72157) -- "Unsuffered Consequences"
+Copyright (C) 2017 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> pkgname <- "boot"
+> source(file.path(R.home("share"), "R", "examples-header.R"))
+> options(warn = 1)
+> library('boot')
+> 
+> base::assign(".oldSearch", base::search(), pos = 'CheckExEnv')
+> cleanEx()
+> nameEx("Imp.Estimates")
+> ### * Imp.Estimates
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: Imp.Estimates
+> ### Title: Importance Sampling Estimates
+> ### Aliases: Imp.Estimates imp.moments imp.prob imp.quantile imp.reg
+> ### Keywords: htest nonparametric
+> 
+> ### ** Examples
+> 
+> # Example 9.8 of Davison and Hinkley (1997) requires tilting the 
+> # resampling distribution of the studentized statistic to be centred 
+> # at the observed value of the test statistic, 1.84.  In this example
+> # we show how certain estimates can be found using resamples taken from
+> # the tilted distribution.
+> grav1 <- gravity[as.numeric(gravity[,2]) >= 7, ]
+> grav.fun <- function(dat, w, orig) {
++      strata <- tapply(dat[, 2], as.numeric(dat[, 2]))
++      d <- dat[, 1]
++      ns <- tabulate(strata)
++      w <- w/tapply(w, strata, sum)[strata]
++      mns <- as.vector(tapply(d * w, strata, sum)) # drop names
++      mn2 <- tapply(d * d * w, strata, sum)
++      s2hat <- sum((mn2 - mns^2)/ns)
++      c(mns[2] - mns[1], s2hat, (mns[2] - mns[1] - orig)/sqrt(s2hat))
++ }
+> grav.z0 <- grav.fun(grav1, rep(1, 26), 0)
+> grav.L <- empinf(data = grav1, statistic = grav.fun, stype = "w", 
++                  strata = grav1[,2], index = 3, orig = grav.z0[1])
+> grav.tilt <- exp.tilt(grav.L, grav.z0[3], strata = grav1[, 2])
+> grav.tilt.boot <- boot(grav1, grav.fun, R = 199, stype = "w", 
++                        strata = grav1[, 2], weights = grav.tilt$p,
++                        orig = grav.z0[1])
+> # Since the weights are needed for all calculations, we shall calculate
+> # them once only.
+> grav.w <- imp.weights(grav.tilt.boot)
+> grav.mom <- imp.moments(grav.tilt.boot, w = grav.w, index = 3)
+> grav.p <- imp.prob(grav.tilt.boot, w = grav.w, index = 3, t0 = grav.z0[3])
+> unlist(grav.p)
+       t0       raw       rat       reg 
+1.8401182 1.0222447 0.9778246 0.9767292 
+> grav.q <- imp.quantile(grav.tilt.boot, w = grav.w, index = 3, 
++                        alpha = c(0.9, 0.95, 0.975, 0.99))
+> as.data.frame(grav.q)
+  alpha      raw      rat      reg
+1 0.900 3.048484 1.170707 5.056004
+2 0.950 3.237935 1.565928 5.056004
+3 0.975 3.629448 1.895876 5.056004
+4 0.990 3.629448 2.258157 5.056004
+> 
+> 
+> 
+> cleanEx()
+> nameEx("abc.ci")
+> ### * abc.ci
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: abc.ci
+> ### Title: Nonparametric ABC Confidence Intervals
+> ### Aliases: abc.ci
+> ### Keywords: nonparametric htest
+> 
+> ### ** Examples
+> 
+> ## Don't show: 
+> op <- options(digits = 5)
+> ## End(Don't show)
+> # 90% and 95% confidence intervals for the correlation 
+> # coefficient between the columns of the bigcity data
+> 
+> abc.ci(bigcity, corr, conf=c(0.90,0.95))
+     conf                
+[1,] 0.90 0.95815 0.99173
+[2,] 0.95 0.94937 0.99307
+> 
+> # A 95% confidence interval for the difference between the means of
+> # the last two samples in gravity
+> mean.diff <- function(y, w)
++ {    gp1 <- 1:table(as.numeric(y$series))[1]
++      sum(y[gp1, 1] * w[gp1]) - sum(y[-gp1, 1] * w[-gp1])
++ }
+> grav1 <- gravity[as.numeric(gravity[, 2]) >= 7, ]
+> abc.ci(grav1, mean.diff, strata = grav1$series)
+[1]  0.95000 -6.70758 -0.39394
+> ## Don't show: 
+> options(op)
+> ## End(Don't show)
+> 
+> 
+> 
+> cleanEx()
+> nameEx("boot")
+> ### * boot
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: boot
+> ### Title: Bootstrap Resampling
+> ### Aliases: boot boot.return c.boot
+> ### Keywords: nonparametric htest
+> 
+> ### ** Examples
+> 
+> ## Don't show: 
+> op <- options(digits = 5)
+> ## End(Don't show)
+> # Usual bootstrap of the ratio of means using the city data
+> ratio <- function(d, w) sum(d$x * w)/sum(d$u * w)
+> boot(city, ratio, R = 999, stype = "w")
+
+ORDINARY NONPARAMETRIC BOOTSTRAP
+
+
+Call:
+boot(data = city, statistic = ratio, R = 999, stype = "w")
+
+
+Bootstrap Statistics :
+    original  bias    std. error
+t1*   1.5203  0.0396     0.21671
+> 
+> 
+> # Stratified resampling for the difference of means.  In this
+> # example we will look at the difference of means between the final
+> # two series in the gravity data.
+> diff.means <- function(d, f)
++ {    n <- nrow(d)
++      gp1 <- 1:table(as.numeric(d$series))[1]
++      m1 <- sum(d[gp1,1] * f[gp1])/sum(f[gp1])
++      m2 <- sum(d[-gp1,1] * f[-gp1])/sum(f[-gp1])
++      ss1 <- sum(d[gp1,1]^2 * f[gp1]) - (m1 *  m1 * sum(f[gp1]))
++      ss2 <- sum(d[-gp1,1]^2 * f[-gp1]) - (m2 *  m2 * sum(f[-gp1]))
++      c(m1 - m2, (ss1 + ss2)/(sum(f) - 2))
++ }
+> grav1 <- gravity[as.numeric(gravity[,2]) >= 7,]
+> boot(grav1, diff.means, R = 999, stype = "f", strata = grav1[,2])
+
+STRATIFIED BOOTSTRAP
+
+
+Call:
+boot(data = grav1, statistic = diff.means, R = 999, stype = "f", 
+    strata = grav1[, 2])
+
+
+Bootstrap Statistics :
+    original    bias    std. error
+t1*  -2.8462  0.002541      1.5467
+t2*  16.8462 -1.457663      6.7591
+> 
+> # In this example we show the use of boot in a prediction from
+> # regression based on the nuclear data.  This example is taken
+> # from Example 6.8 of Davison and Hinkley (1997).  Notice also
+> # that two extra arguments to 'statistic' are passed through boot.
+> nuke <- nuclear[, c(1, 2, 5, 7, 8, 10, 11)]
+> nuke.lm <- glm(log(cost) ~ date+log(cap)+ne+ct+log(cum.n)+pt, data = nuke)
+> nuke.diag <- glm.diag(nuke.lm)
+> nuke.res <- nuke.diag$res * nuke.diag$sd
+> nuke.res <- nuke.res - mean(nuke.res)
+> 
+> # We set up a new data frame with the data, the standardized 
+> # residuals and the fitted values for use in the bootstrap.
+> nuke.data <- data.frame(nuke, resid = nuke.res, fit = fitted(nuke.lm))
+> 
+> # Now we want a prediction of plant number 32 but at date 73.00
+> new.data <- data.frame(cost = 1, date = 73.00, cap = 886, ne = 0,
++                        ct = 0, cum.n = 11, pt = 1)
+> new.fit <- predict(nuke.lm, new.data)
+> 
+> nuke.fun <- function(dat, inds, i.pred, fit.pred, x.pred)
++ {
++      lm.b <- glm(fit+resid[inds] ~ date+log(cap)+ne+ct+log(cum.n)+pt,
++                  data = dat)
++      pred.b <- predict(lm.b, x.pred)
++      c(coef(lm.b), pred.b - (fit.pred + dat$resid[i.pred]))
++ }
+> 
+> nuke.boot <- boot(nuke.data, nuke.fun, R = 999, m = 1, 
++                   fit.pred = new.fit, x.pred = new.data)
+> # The bootstrap prediction squared error would then be found by
+> mean(nuke.boot$t[, 8]^2)
+[1] 0.088157
+> # Basic bootstrap prediction limits would be
+> new.fit - sort(nuke.boot$t[, 8])[c(975, 25)]
+[1] 6.1603 7.2988
+> 
+> 
+> # Finally a parametric bootstrap.  For this example we shall look 
+> # at the air-conditioning data.  In this example our aim is to test 
+> # the hypothesis that the true value of the index is 1 (i.e. that 
+> # the data come from an exponential distribution) against the 
+> # alternative that the data come from a gamma distribution with
+> # index not equal to 1.
+> air.fun <- function(data) {
++      ybar <- mean(data$hours)
++      para <- c(log(ybar), mean(log(data$hours)))
++      ll <- function(k) {
++           if (k <= 0) 1e200 else lgamma(k)-k*(log(k)-1-para[1]+para[2])
++      }
++      khat <- nlm(ll, ybar^2/var(data$hours))$estimate
++      c(ybar, khat)
++ }
+> 
+> air.rg <- function(data, mle) {
++     # Function to generate random exponential variates.
++     # mle will contain the mean of the original data
++     out <- data
++     out$hours <- rexp(nrow(out), 1/mle)
++     out
++ }
+> 
+> air.boot <- boot(aircondit, air.fun, R = 999, sim = "parametric",
++                  ran.gen = air.rg, mle = mean(aircondit$hours))
+> 
+> # The bootstrap p-value can then be approximated by
+> sum(abs(air.boot$t[,2]-1) > abs(air.boot$t0[2]-1))/(1+air.boot$R)
+[1] 0.461
+> ## Don't show: 
+> options(op)
+> ## End(Don't show)
+> 
+> 
+> 
+> cleanEx()
+> nameEx("boot.array")
+> ### * boot.array
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: boot.array
+> ### Title: Bootstrap Resampling Arrays
+> ### Aliases: boot.array
+> ### Keywords: nonparametric
+> 
+> ### ** Examples
+> 
+> #  A frequency array for a nonparametric bootstrap
+> city.boot <- boot(city, corr, R = 40, stype = "w")
+> boot.array(city.boot)
+      [,1] [,2] [,3] [,4] [,5] [,6] [,7] [,8] [,9] [,10]
+ [1,]    1    1    3    1    1    0    1    0    1     1
+ [2,]    0    0    1    3    1    2    1    1    1     0
+ [3,]    0    0    0    1    3    2    0    1    2     1
+ [4,]    0    2    2    2    0    1    0    1    0     2
+ [5,]    1    1    1    0    1    2    0    2    2     0
+ [6,]    0    1    2    0    2    1    0    1    2     1
+ [7,]    3    0    0    1    1    2    0    1    1     1
+ [8,]    0    4    1    1    1    0    1    2    0     0
+ [9,]    0    1    4    0    1    0    2    2    0     0
+[10,]    1    1    1    1    1    1    1    2    0     1
+[11,]    0    0    3    0    2    1    1    1    0     2
+[12,]    2    3    1    0    0    1    0    0    2     1
+[13,]    1    0    0    1    2    0    2    1    1     2
+[14,]    0    0    2    3    0    0    2    0    2     1
+[15,]    2    0    1    1    1    1    0    2    1     1
+[16,]    1    1    0    2    2    1    1    1    1     0
+[17,]    1    0    1    2    2    1    2    1    0     0
+[18,]    0    2    0    0    2    2    0    1    1     2
+[19,]    1    1    0    2    0    1    2    0    1     2
+[20,]    0    0    0    1    2    1    1    1    0     4
+[21,]    0    0    2    0    1    1    3    0    0     3
+[22,]    1    3    2    2    0    1    1    0    0     0
+[23,]    0    0    3    1    2    1    2    0    1     0
+[24,]    0    1    1    2    1    2    0    1    0     2
+[25,]    0    0    2    1    0    0    3    2    1     1
+[26,]    0    2    4    1    1    1    0    0    0     1
+[27,]    2    3    1    0    2    0    0    2    0     0
+[28,]    1    1    0    1    1    0    0    4    2     0
+[29,]    2    2    0    1    1    0    1    0    1     2
+[30,]    0    1    0    1    1    2    0    1    3     1
+[31,]    1    2    0    2    2    0    1    1    0     1
+[32,]    1    4    0    1    0    2    0    1    1     0
+[33,]    0    1    0    5    1    0    0    1    1     1
+[34,]    0    2    0    1    3    1    1    1    0     1
+[35,]    0    2    3    1    1    1    0    0    1     1
+[36,]    1    2    1    1    1    1    2    0    1     0
+[37,]    1    1    1    0    0    1    2    2    2     0
+[38,]    2    3    0    3    0    1    0    0    1     0
+[39,]    0    0    1    2    3    0    0    2    1     1
+[40,]    0    1    1    0    3    0    2    2    0     1
+> 
+> perm.cor <- function(d,i) cor(d$x,d$u[i])
+> city.perm <- boot(city, perm.cor, R = 40, sim = "permutation")
+> boot.array(city.perm, indices = TRUE)
+      [,1] [,2] [,3] [,4] [,5] [,6] [,7] [,8] [,9] [,10]
+ [1,]    7    2    8   10    6    4    9    3    1     5
+ [2,]   10    4    6    8    5    3    2    1    9     7
+ [3,]    5   10    6    2    3    8    1    9    7     4
+ [4,]   10    1    4    8    9    5    3    6    7     2
+ [5,]    1    3    5    8    2    9    6    7   10     4
+ [6,]   10    4    3    2    1    9    8    5    7     6
+ [7,]    2    5    1    4   10    9    3    8    7     6
+ [8,]    5    9    6    3    1    2    4   10    8     7
+ [9,]    8    2    7   10    4    3    1    6    9     5
+[10,]    1    9    3    2    8    6    7    4    5    10
+[11,]    6    7   10    5    3    9    2    8    4     1
+[12,]    9    5    1    6   10    8    3    2    7     4
+[13,]    9    7    3    1    8    5    4    6    2    10
+[14,]    7    1    3    2    9    6   10    4    5     8
+[15,]    4    9    6    3    2    1   10    8    7     5
+[16,]    9    6    1    7    5    2    8    4   10     3
+[17,]    7    2    3    6   10    4    1    9    5     8
+[18,]    2    4    3    1    5    8    6   10    9     7
+[19,]    4    9    6    1   10    3    7    2    5     8
+[20,]    6    3    7    5    8    4    2   10    1     9
+[21,]    9   10    2    6    7    5    8    4    3     1
+[22,]   10    4    5    9    8    3    1    2    6     7
+[23,]    9    2    5    1   10    4    6    8    7     3
+[24,]    9    4    3    6    8    2    1   10    5     7
+[25,]   10    3    8    2    5    7    1    9    6     4
+[26,]    7    8    3    9    4    1    5    2   10     6
+[27,]    4    8    1    5    3    6   10    9    7     2
+[28,]    8    5    7    4   10    3    2    1    9     6
+[29,]    8   10    2    4    7    3    9    6    1     5
+[30,]    1    5    7    9    3    6    4   10    2     8
+[31,]   10    9    7    5    4    1    2    6    3     8
+[32,]    8    5    1    6    3    7   10    4    9     2
+[33,]    1    6    8    5    2    7    9    4   10     3
+[34,]    8    5    7    1    9    2    6    3   10     4
+[35,]    4    5    9    2    7    6    8    3    1    10
+[36,]    5    9   10    1    3    7    2    8    4     6
+[37,]    8    2    7    9   10    1    3    4    6     5
+[38,]    5    8    1    7    4    3    9   10    6     2
+[39,]   10    7    6    4    8    1    3    5    9     2
+[40,]    2    1    8    3    4    6    9   10    7     5
+> 
+> 
+> 
+> cleanEx()
+> nameEx("boot.ci")
+> ### * boot.ci
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: boot.ci
+> ### Title: Nonparametric Bootstrap Confidence Intervals
+> ### Aliases: boot.ci
+> ### Keywords: nonparametric htest
+> 
+> ### ** Examples
+> 
+> # confidence intervals for the city data
+> ratio <- function(d, w) sum(d$x * w)/sum(d$u * w)
+> city.boot <- boot(city, ratio, R = 999, stype = "w", sim = "ordinary")
+> boot.ci(city.boot, conf = c(0.90, 0.95),
++         type = c("norm", "basic", "perc", "bca"))
+BOOTSTRAP CONFIDENCE INTERVAL CALCULATIONS
+Based on 999 bootstrap replicates
+
+CALL : 
+boot.ci(boot.out = city.boot, conf = c(0.9, 0.95), type = c("norm", 
+    "basic", "perc", "bca"))
+
+Intervals : 
+Level      Normal              Basic         
+90%   ( 1.124,  1.837 )   ( 1.059,  1.740 )   
+95%   ( 1.056,  1.905 )   ( 0.932,  1.799 )  
+
+Level     Percentile            BCa          
+90%   ( 1.301,  1.982 )   ( 1.301,  1.984 )   
+95%   ( 1.242,  2.109 )   ( 1.243,  2.110 )  
+Calculations and Intervals on Original Scale
+> 
+> # studentized confidence interval for the two sample 
+> # difference of means problem using the final two series
+> # of the gravity data. 
+> diff.means <- function(d, f)
++ {    n <- nrow(d)
++      gp1 <- 1:table(as.numeric(d$series))[1]
++      m1 <- sum(d[gp1,1] * f[gp1])/sum(f[gp1])
++      m2 <- sum(d[-gp1,1] * f[-gp1])/sum(f[-gp1])
++      ss1 <- sum(d[gp1,1]^2 * f[gp1]) - (m1 *  m1 * sum(f[gp1]))
++      ss2 <- sum(d[-gp1,1]^2 * f[-gp1]) - (m2 *  m2 * sum(f[-gp1]))
++      c(m1 - m2, (ss1 + ss2)/(sum(f) - 2))
++ }
+> grav1 <- gravity[as.numeric(gravity[,2]) >= 7, ]
+> grav1.boot <- boot(grav1, diff.means, R = 999, stype = "f",
++                    strata = grav1[ ,2])
+> boot.ci(grav1.boot, type = c("stud", "norm"))
+BOOTSTRAP CONFIDENCE INTERVAL CALCULATIONS
+Based on 999 bootstrap replicates
+
+CALL : 
+boot.ci(boot.out = grav1.boot, type = c("stud", "norm"))
+
+Intervals : 
+Level      Normal            Studentized     
+95%   (-5.880,  0.183 )   (-7.059, -0.101 )  
+Calculations and Intervals on Original Scale
+> 
+> # Nonparametric confidence intervals for mean failure time 
+> # of the air-conditioning data as in Example 5.4 of Davison
+> # and Hinkley (1997)
+> mean.fun <- function(d, i) 
++ {    m <- mean(d$hours[i])
++      n <- length(i)
++      v <- (n-1)*var(d$hours[i])/n^2
++      c(m, v)
++ }
+> air.boot <- boot(aircondit, mean.fun, R = 999)
+> boot.ci(air.boot, type = c("norm", "basic", "perc", "stud"))
+BOOTSTRAP CONFIDENCE INTERVAL CALCULATIONS
+Based on 999 bootstrap replicates
+
+CALL : 
+boot.ci(boot.out = air.boot, type = c("norm", "basic", "perc", 
+    "stud"))
+
+Intervals : 
+Level      Normal              Basic         
+95%   ( 35.5, 181.9 )   ( 26.0, 170.6 )  
+
+Level    Studentized          Percentile     
+95%   ( 47.9, 294.5 )   ( 45.6, 190.2 )  
+Calculations and Intervals on Original Scale
+> 
+> # Now using the log transformation
+> # There are two ways of doing this and they both give the
+> # same intervals.
+> 
+> # Method 1
+> boot.ci(air.boot, type = c("norm", "basic", "perc", "stud"), 
++         h = log, hdot = function(x) 1/x)
+BOOTSTRAP CONFIDENCE INTERVAL CALCULATIONS
+Based on 999 bootstrap replicates
+
+CALL : 
+boot.ci(boot.out = air.boot, type = c("norm", "basic", "perc", 
+    "stud"), h = log, hdot = function(x) 1/x)
+
+Intervals : 
+Level      Normal              Basic         
+95%   ( 4.035,  5.469 )   ( 4.118,  5.546 )  
+
+Level    Studentized          Percentile     
+95%   ( 3.959,  5.808 )   ( 3.820,  5.248 )  
+Calculations and Intervals on  Transformed Scale
+> 
+> # Method 2
+> vt0 <- air.boot$t0[2]/air.boot$t0[1]^2
+> vt <- air.boot$t[, 2]/air.boot$t[ ,1]^2
+> boot.ci(air.boot, type = c("norm", "basic", "perc", "stud"), 
++         t0 = log(air.boot$t0[1]), t = log(air.boot$t[,1]),
++         var.t0 = vt0, var.t = vt)
+BOOTSTRAP CONFIDENCE INTERVAL CALCULATIONS
+Based on 999 bootstrap replicates
+
+CALL : 
+boot.ci(boot.out = air.boot, type = c("norm", "basic", "perc", 
+    "stud"), var.t0 = vt0, var.t = vt, t0 = log(air.boot$t0[1]), 
+    t = log(air.boot$t[, 1]))
+
+Intervals : 
+Level      Normal              Basic         
+95%   ( 4.069,  5.435 )   ( 4.118,  5.546 )  
+
+Level    Studentized          Percentile     
+95%   ( 3.959,  5.808 )   ( 3.820,  5.248 )  
+Calculations and Intervals on Original Scale
+> 
+> 
+> 
+> cleanEx()
+> nameEx("censboot")
+> ### * censboot
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: censboot
+> ### Title: Bootstrap for Censored Data
+> ### Aliases: censboot cens.return
+> ### Keywords: survival
+> 
+> ### ** Examples
+> 
+> library(survival)
+
+Attaching package: 'survival'
+
+The following object is masked from 'package:boot':
+
+    aml
+
+> # Example 3.9 of Davison and Hinkley (1997) does a bootstrap on some
+> # remission times for patients with a type of leukaemia.  The patients
+> # were divided into those who received maintenance chemotherapy and 
+> # those who did not.  Here we are interested in the median remission 
+> # time for the two groups.
+> data(aml, package = "boot") # not the version in survival.
+> aml.fun <- function(data) {
++      surv <- survfit(Surv(time, cens) ~ group, data = data)
++      out <- NULL
++      st <- 1
++      for (s in 1:length(surv$strata)) {
++           inds <- st:(st + surv$strata[s]-1)
++           md <- min(surv$time[inds[1-surv$surv[inds] >= 0.5]])
++           st <- st + surv$strata[s]
++           out <- c(out, md)
++      }
++      out
++ }
+> aml.case <- censboot(aml, aml.fun, R = 499, strata = aml$group)
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+> 
+> # Now we will look at the same statistic using the conditional 
+> # bootstrap and the weird bootstrap.  For the conditional bootstrap 
+> # the survival distribution is stratified but the censoring 
+> # distribution is not. 
+> 
+> aml.s1 <- survfit(Surv(time, cens) ~ group, data = aml)
+> aml.s2 <- survfit(Surv(time-0.001*cens, 1-cens) ~ 1, data = aml)
+> aml.cond <- censboot(aml, aml.fun, R = 499, strata = aml$group,
++      F.surv = aml.s1, G.surv = aml.s2, sim = "cond")
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+> 
+> 
+> # For the weird bootstrap we must redefine our function slightly since
+> # the data will not contain the group number.
+> aml.fun1 <- function(data, str) {
++      surv <- survfit(Surv(data[, 1], data[, 2]) ~ str)
++      out <- NULL
++      st <- 1
++      for (s in 1:length(surv$strata)) {
++           inds <- st:(st + surv$strata[s] - 1)
++           md <- min(surv$time[inds[1-surv$surv[inds] >= 0.5]])
++           st <- st + surv$strata[s]
++           out <- c(out, md)
++      }
++      out
++ }
+> aml.wei <- censboot(cbind(aml$time, aml$cens), aml.fun1, R = 499,
++      strata = aml$group,  F.surv = aml.s1, sim = "weird")
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+Warning in min(surv$time[inds[1 - surv$surv[inds] >= 0.5]]) :
+  no non-missing arguments to min; returning Inf
+> 
+> # Now for an example where a cox regression model has been fitted
+> # the data we will look at the melanoma data of Example 7.6 from 
+> # Davison and Hinkley (1997).  The fitted model assumes that there
+> # is a different survival distribution for the ulcerated and 
+> # non-ulcerated groups but that the thickness of the tumour has a
+> # common effect.  We will also assume that the censoring distribution
+> # is different in different age groups.  The statistic of interest
+> # is the linear predictor.  This is returned as the values at a
+> # number of equally spaced points in the range of interest.
+> data(melanoma, package = "boot")
+> library(splines)# for ns
+> mel.cox <- coxph(Surv(time, status == 1) ~ ns(thickness, df=4) + strata(ulcer),
++                  data = melanoma)
+> mel.surv <- survfit(mel.cox)
+> agec <- cut(melanoma$age, c(0, 39, 49, 59, 69, 100))
+> mel.cens <- survfit(Surv(time - 0.001*(status == 1), status != 1) ~
++                     strata(agec), data = melanoma)
+> mel.fun <- function(d) { 
++      t1 <- ns(d$thickness, df=4)
++      cox <- coxph(Surv(d$time, d$status == 1) ~ t1+strata(d$ulcer))
++      ind <- !duplicated(d$thickness)
++      u <- d$thickness[!ind]
++      eta <- cox$linear.predictors[!ind]
++      sp <- smooth.spline(u, eta, df=20)
++      th <- seq(from = 0.25, to = 10, by = 0.25)
++      predict(sp, th)$y
++ }
+> mel.str <- cbind(melanoma$ulcer, agec)
+> 
+> # this is slow!
+> mel.mod <- censboot(melanoma, mel.fun, R = 499, F.surv = mel.surv,
++      G.surv = mel.cens, cox = mel.cox, strata = mel.str, sim = "model")
+> # To plot the original predictor and a 95% pointwise envelope for it
+> mel.env <- envelope(mel.mod)$point
+> th <- seq(0.25, 10, by = 0.25)
+> plot(th, mel.env[1, ],  ylim = c(-2, 2),
++      xlab = "thickness (mm)", ylab = "linear predictor", type = "n")
+> lines(th, mel.mod$t0, lty = 1)
+> matlines(th, t(mel.env), lty = 2)
+> 
+> 
+> 
+> cleanEx()
+
+detaching 'package:splines', 'package:survival'
+
+> nameEx("control")
+> ### * control
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: control
+> ### Title: Control Variate Calculations
+> ### Aliases: control
+> ### Keywords: nonparametric
+> 
+> ### ** Examples
+> 
+> # Use of control variates for the variance of the air-conditioning data
+> mean.fun <- function(d, i)
++ {    m <- mean(d$hours[i])
++      n <- nrow(d)
++      v <- (n-1)*var(d$hours[i])/n^2
++      c(m, v)
++ }
+> air.boot <- boot(aircondit, mean.fun, R = 999)
+> control(air.boot, index = 2, bias.adj = TRUE)
+[1] -6.298101
+> air.cont <- control(air.boot, index = 2)
+> # Now let us try the variance on the log scale.
+> air.cont1 <- control(air.boot, t0 = log(air.boot$t0[2]),
++                      t = log(air.boot$t[, 2]))
+> 
+> 
+> 
+> cleanEx()
+> nameEx("cv.glm")
+> ### * cv.glm
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: cv.glm
+> ### Title: Cross-validation for Generalized Linear Models
+> ### Aliases: cv.glm
+> ### Keywords: regression
+> 
+> ### ** Examples
+> 
+> # leave-one-out and 6-fold cross-validation prediction error for 
+> # the mammals data set.
+> data(mammals, package="MASS")
+> mammals.glm <- glm(log(brain) ~ log(body), data = mammals)
+> (cv.err <- cv.glm(mammals, mammals.glm)$delta)
+[1] 0.4918650 0.4916571
+> (cv.err.6 <- cv.glm(mammals, mammals.glm, K = 6)$delta)
+[1] 0.4851491 0.4834641
+> 
+> # As this is a linear model we could calculate the leave-one-out 
+> # cross-validation estimate without any extra model-fitting.
+> muhat <- fitted(mammals.glm)
+> mammals.diag <- glm.diag(mammals.glm)
+> (cv.err <- mean((mammals.glm$y - muhat)^2/(1 - mammals.diag$h)^2))
+[1] 0.491865
+> 
+> 
+> # leave-one-out and 11-fold cross-validation prediction error for 
+> # the nodal data set.  Since the response is a binary variable an
+> # appropriate cost function is
+> cost <- function(r, pi = 0) mean(abs(r-pi) > 0.5)
+> 
+> nodal.glm <- glm(r ~ stage+xray+acid, binomial, data = nodal)
+> (cv.err <- cv.glm(nodal, nodal.glm, cost, K = nrow(nodal))$delta)
+[1] 0.1886792 0.1886792
+> (cv.11.err <- cv.glm(nodal, nodal.glm, cost, K = 11)$delta)
+[1] 0.2264151 0.2217871
+> 
+> 
+> 
+> cleanEx()
+> nameEx("empinf")
+> ### * empinf
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: empinf
+> ### Title: Empirical Influence Values
+> ### Aliases: empinf
+> ### Keywords: nonparametric math
+> 
+> ### ** Examples
+> 
+> # The empirical influence values for the ratio of means in
+> # the city data.
+> ratio <- function(d, w) sum(d$x *w)/sum(d$u*w)
+> empinf(data = city, statistic = ratio)
+ [1] -1.04367815 -0.58417763 -0.37092459 -0.18958996  0.03164142  0.10544878
+ [7]  0.09236345  0.20365074  1.02178280  0.73381132
+> city.boot <- boot(city, ratio, 499, stype="w")
+> empinf(boot.out = city.boot, type = "reg")
+          1           1           1           1           1           1 
+-1.13619987 -0.69728210 -0.45301061 -0.27615882  0.02108999  0.14896336 
+          1           1           1           1 
+ 0.09746429  0.20622340  1.18798956  0.90092079 
+> 
+> # A statistic that may be of interest in the difference of means
+> # problem is the t-statistic for testing equality of means.  In
+> # the bootstrap we get replicates of the difference of means and
+> # the variance of that statistic and then want to use this output
+> # to get the empirical influence values of the t-statistic.
+> grav1 <- gravity[as.numeric(gravity[,2]) >= 7,]
+> grav.fun <- function(dat, w) {
++      strata <- tapply(dat[, 2], as.numeric(dat[, 2]))
++      d <- dat[, 1]
++      ns <- tabulate(strata)
++      w <- w/tapply(w, strata, sum)[strata]
++      mns <- as.vector(tapply(d * w, strata, sum)) # drop names
++      mn2 <- tapply(d * d * w, strata, sum)
++      s2hat <- sum((mn2 - mns^2)/ns)
++      c(mns[2] - mns[1], s2hat)
++ }
+> 
+> grav.boot <- boot(grav1, grav.fun, R = 499, stype = "w",
++                   strata = grav1[, 2])
+> 
+> # Since the statistic of interest is a function of the bootstrap
+> # statistics, we must calculate the bootstrap replicates and pass
+> # them to empinf using the t argument.
+> grav.z <- (grav.boot$t[,1]-grav.boot$t0[1])/sqrt(grav.boot$t[,2])
+> empinf(boot.out = grav.boot, t = grav.z)
+         1          1          1          1          1          1          1 
+-2.9326019 -1.3760327 -2.4400720 -1.2175846  0.2795352 -0.8258764 -0.8156286 
+         1          1          1          1          1          1          2 
+-0.5573332 -1.1275252 -3.1603140  1.2840693  3.5434781  9.3458860  2.6692589 
+         2          2          2          2          2          2          2 
+ 4.4496570  3.6948000  0.9929002 -3.0100985 -3.2237464 -2.5493305 -0.6551745 
+         2          2          2          2          2 
+ 1.9065308  0.4980530 -1.6219628 -1.6980508 -1.4528364 
+> 
+> 
+> 
+> cleanEx()
+> nameEx("envelope")
+> ### * envelope
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: envelope
+> ### Title: Confidence Envelopes for Curves
+> ### Aliases: envelope
+> ### Keywords: dplot htest
+> 
+> ### ** Examples
+> 
+> # Testing whether the final series of measurements of the gravity data
+> # may come from a normal distribution.  This is done in Examples 4.7 
+> # and 4.8 of Davison and Hinkley (1997).
+> grav1 <- gravity$g[gravity$series == 8]
+> grav.z <- (grav1 - mean(grav1))/sqrt(var(grav1))
+> grav.gen <- function(dat, mle) rnorm(length(dat))
+> grav.qqboot <- boot(grav.z, sort, R = 999, sim = "parametric",
++                     ran.gen = grav.gen)
+> grav.qq <- qqnorm(grav.z, plot.it = FALSE)
+> grav.qq <- lapply(grav.qq, sort)
+> plot(grav.qq, ylim = c(-3.5, 3.5), ylab = "Studentized Order Statistics",
++      xlab = "Normal Quantiles")
+> grav.env <- envelope(grav.qqboot, level = 0.9)
+> lines(grav.qq$x, grav.env$point[1, ], lty = 4)
+> lines(grav.qq$x, grav.env$point[2, ], lty = 4)
+> lines(grav.qq$x, grav.env$overall[1, ], lty = 1)
+> lines(grav.qq$x, grav.env$overall[2, ], lty = 1)
+> 
+> 
+> 
+> cleanEx()
+> nameEx("exp.tilt")
+> ### * exp.tilt
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: exp.tilt
+> ### Title: Exponential Tilting
+> ### Aliases: exp.tilt
+> ### Keywords: nonparametric smooth
+> 
+> ### ** Examples
+> 
+> # Example 9.8 of Davison and Hinkley (1997) requires tilting the resampling
+> # distribution of the studentized statistic to be centred at the observed
+> # value of the test statistic 1.84.  This can be achieved as follows.
+> grav1 <- gravity[as.numeric(gravity[,2]) >=7 , ]
+> grav.fun <- function(dat, w, orig) {
++      strata <- tapply(dat[, 2], as.numeric(dat[, 2]))
++      d <- dat[, 1]
++      ns <- tabulate(strata)
++      w <- w/tapply(w, strata, sum)[strata]
++      mns <- as.vector(tapply(d * w, strata, sum)) # drop names
++      mn2 <- tapply(d * d * w, strata, sum)
++      s2hat <- sum((mn2 - mns^2)/ns)
++      c(mns[2]-mns[1], s2hat, (mns[2]-mns[1]-orig)/sqrt(s2hat))
++ }
+> grav.z0 <- grav.fun(grav1, rep(1, 26), 0)
+> grav.L <- empinf(data = grav1, statistic = grav.fun, stype = "w", 
++                  strata = grav1[,2], index = 3, orig = grav.z0[1])
+> grav.tilt <- exp.tilt(grav.L, grav.z0[3], strata = grav1[,2])
+> boot(grav1, grav.fun, R = 499, stype = "w", weights = grav.tilt$p,
++      strata = grav1[,2], orig = grav.z0[1])
+
+STRATIFIED WEIGHTED BOOTSTRAP
+
+
+Call:
+boot(data = grav1, statistic = grav.fun, R = 499, stype = "w", 
+    strata = grav1[, 2], weights = grav.tilt$p, orig = grav.z0[1])
+
+
+Bootstrap Statistics :
+    original     bias    std. error  mean(t*)
+t1* 2.846154 -0.3661063    1.705171  5.702944
+t2* 2.392353 -0.3538294    1.002889  3.444050
+t3* 0.000000 -0.5160619    1.314298  1.473456
+> 
+> 
+> 
+> cleanEx()
+> nameEx("glm.diag.plots")
+> ### * glm.diag.plots
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: glm.diag.plots
+> ### Title: Diagnostics plots for generalized linear models
+> ### Aliases: glm.diag.plots
+> ### Keywords: regression dplot hplot
+> 
+> ### ** Examples
+> 
+> # In this example we look at the leukaemia data which was looked at in 
+> # Example 7.1 of Davison and Hinkley (1997)
+> data(leuk, package = "MASS")
+> leuk.mod <- glm(time ~ ag-1+log10(wbc), family = Gamma(log), data = leuk)
+> leuk.diag <- glm.diag(leuk.mod)
+> glm.diag.plots(leuk.mod, leuk.diag)
+> 
+> 
+> 
+> cleanEx()
+> nameEx("jack.after.boot")
+> ### * jack.after.boot
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: jack.after.boot
+> ### Title: Jackknife-after-Bootstrap Plots
+> ### Aliases: jack.after.boot
+> ### Keywords: hplot nonparametric
+> 
+> ### ** Examples
+> 
+> #  To draw the jackknife-after-bootstrap plot for the head size data as in
+> #  Example 3.24 of Davison and Hinkley (1997)
+> frets.fun <- function(data, i) {
++     pcorr <- function(x) { 
++     #  Function to find the correlations and partial correlations between
++     #  the four measurements.
++          v <- cor(x)
++          v.d <- diag(var(x))
++          iv <- solve(v)
++          iv.d <- sqrt(diag(iv))
++          iv <- - diag(1/iv.d) %*% iv %*% diag(1/iv.d)
++          q <- NULL
++          n <- nrow(v)
++          for (i in 1:(n-1)) 
++               q <- rbind( q, c(v[i, 1:i], iv[i,(i+1):n]) )
++          q <- rbind( q, v[n, ] )
++          diag(q) <- round(diag(q))
++          q
++     }
++     d <- data[i, ]
++     v <- pcorr(d)
++     c(v[1,], v[2,], v[3,], v[4,])
++ }
+> frets.boot <- boot(log(as.matrix(frets)), frets.fun, R = 999)
+> #  we will concentrate on the partial correlation between head breadth
+> #  for the first son and head length for the second.  This is the 7th
+> #  element in the output of frets.fun so we set index = 7
+> jack.after.boot(frets.boot, useJ = FALSE, stinf = FALSE, index = 7)
+> 
+> 
+> 
+> cleanEx()
+> nameEx("k3.linear")
+> ### * k3.linear
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: k3.linear
+> ### Title: Linear Skewness Estimate
+> ### Aliases: k3.linear
+> ### Keywords: nonparametric
+> 
+> ### ** Examples
+> 
+> #  To estimate the skewness of the ratio of means for the city data.
+> ratio <- function(d, w) sum(d$x * w)/sum(d$u * w)
+> k3.linear(empinf(data = city, statistic = ratio))
+[1] 7.831452e-05
+> 
+> 
+> 
+> cleanEx()
+> nameEx("linear.approx")
+> ### * linear.approx
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: linear.approx
+> ### Title: Linear Approximation of Bootstrap Replicates
+> ### Aliases: linear.approx
+> ### Keywords: nonparametric
+> 
+> ### ** Examples
+> 
+> # Using the city data let us look at the linear approximation to the 
+> # ratio statistic and its logarithm. We compare these with the 
+> # corresponding plots for the bigcity data 
+> 
+> ratio <- function(d, w) sum(d$x * w)/sum(d$u * w)
+> city.boot <- boot(city, ratio, R = 499, stype = "w")
+> bigcity.boot <- boot(bigcity, ratio, R = 499, stype = "w")
+> op <- par(pty = "s", mfrow = c(2, 2))
+> 
+> # The first plot is for the city data ratio statistic.
+> city.lin1 <- linear.approx(city.boot)
+> lim <- range(c(city.boot$t,city.lin1))
+> plot(city.boot$t, city.lin1, xlim = lim, ylim = lim, 
++      main = "Ratio; n=10", xlab = "t*", ylab = "tL*")
+> abline(0, 1)
+> 
+> # Now for the log of the ratio statistic for the city data.
+> city.lin2 <- linear.approx(city.boot,t0 = log(city.boot$t0), 
++                            t = log(city.boot$t))
+> lim <- range(c(log(city.boot$t),city.lin2))
+> plot(log(city.boot$t), city.lin2, xlim = lim, ylim = lim, 
++      main = "Log(Ratio); n=10", xlab = "t*", ylab = "tL*")
+> abline(0, 1)
+> 
+> # The ratio statistic for the bigcity data.
+> bigcity.lin1 <- linear.approx(bigcity.boot)
+> lim <- range(c(bigcity.boot$t,bigcity.lin1))
+> plot(bigcity.lin1, bigcity.boot$t, xlim = lim, ylim = lim,
++      main = "Ratio; n=49", xlab = "t*", ylab = "tL*")
+> abline(0, 1)
+> 
+> # Finally the log of the ratio statistic for the bigcity data.
+> bigcity.lin2 <- linear.approx(bigcity.boot,t0 = log(bigcity.boot$t0), 
++                               t = log(bigcity.boot$t))
+> lim <- range(c(log(bigcity.boot$t),bigcity.lin2))
+> plot(bigcity.lin2, log(bigcity.boot$t), xlim = lim, ylim = lim,
++      main = "Log(Ratio); n=49", xlab = "t*", ylab = "tL*")
+> abline(0, 1)
+> 
+> par(op)
+> 
+> 
+> 
+> graphics::par(get("par.postscript", pos = 'CheckExEnv'))
+> cleanEx()
+> nameEx("lines.saddle.distn")
+> ### * lines.saddle.distn
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: lines.saddle.distn
+> ### Title: Add a Saddlepoint Approximation to a Plot
+> ### Aliases: lines.saddle.distn
+> ### Keywords: aplot smooth nonparametric
+> 
+> ### ** Examples
+> 
+> # In this example we show how a plot such as that in Figure 9.9 of
+> # Davison and Hinkley (1997) may be produced.  Note the large number of
+> # bootstrap replicates required in this example.
+> expdata <- rexp(12)
+> vfun <- function(d, i) {
++      n <- length(d)
++      (n-1)/n*var(d[i])
++ }
+> exp.boot <- boot(expdata,vfun, R = 9999)
+> exp.L <- (expdata - mean(expdata))^2 - exp.boot$t0
+> exp.tL <- linear.approx(exp.boot, L = exp.L)
+> hist(exp.tL, nclass = 50, probability = TRUE)
+> exp.t0 <- c(0, sqrt(var(exp.boot$t)))
+> exp.sp <- saddle.distn(A = exp.L/12,wdist = "m", t0 = exp.t0)
+> 
+> # The saddlepoint approximation in this case is to the density of
+> # t-t0 and so t0 must be added for the plot.
+> lines(exp.sp, h = function(u, t0) u+t0, J = function(u, t0) 1,
++       t0 = exp.boot$t0)
+> 
+> 
+> 
+> cleanEx()
+> nameEx("norm.ci")
+> ### * norm.ci
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: norm.ci
+> ### Title: Normal Approximation Confidence Intervals
+> ### Aliases: norm.ci
+> ### Keywords: htest
+> 
+> ### ** Examples
+> 
+> #  In Example 5.1 of Davison and Hinkley (1997), normal approximation 
+> #  confidence intervals are found for the air-conditioning data.
+> air.mean <- mean(aircondit$hours)
+> air.n <- nrow(aircondit)
+> air.v <- air.mean^2/air.n
+> norm.ci(t0 = air.mean, var.t0 = air.v)
+     conf                  
+[1,] 0.95 46.93055 169.2361
+> exp(norm.ci(t0 = log(air.mean), var.t0 = 1/air.n)[2:3])
+[1]  61.38157 190.31782
+> 
+> # Now a more complicated example - the ratio estimate for the city data.
+> ratio <- function(d, w)
++      sum(d$x * w)/sum(d$u *w)
+> city.v <- var.linear(empinf(data = city, statistic = ratio))
+> norm.ci(t0 = ratio(city,rep(0.1,10)), var.t0 = city.v)
+     conf                  
+[1,] 0.95 1.167046 1.873579
+> 
+> 
+> 
+> cleanEx()
+> nameEx("plot.boot")
+> ### * plot.boot
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: plot.boot
+> ### Title: Plots of the Output of a Bootstrap Simulation
+> ### Aliases: plot.boot
+> ### Keywords: hplot nonparametric
+> 
+> ### ** Examples
+> 
+> # We fit an exponential model to the air-conditioning data and use
+> # that for a parametric bootstrap.  Then we look at plots of the
+> # resampled means.
+> air.rg <- function(data, mle) rexp(length(data), 1/mle)
+> 
+> air.boot <- boot(aircondit$hours, mean, R = 999, sim = "parametric",
++                  ran.gen = air.rg, mle = mean(aircondit$hours))
+> plot(air.boot)
+> 
+> # In the difference of means example for the last two series of the 
+> # gravity data
+> grav1 <- gravity[as.numeric(gravity[, 2]) >= 7, ]
+> grav.fun <- function(dat, w) {
++      strata <- tapply(dat[, 2], as.numeric(dat[, 2]))
++      d <- dat[, 1]
++      ns <- tabulate(strata)
++      w <- w/tapply(w, strata, sum)[strata]
++      mns <- as.vector(tapply(d * w, strata, sum)) # drop names
++      mn2 <- tapply(d * d * w, strata, sum)
++      s2hat <- sum((mn2 - mns^2)/ns)
++      c(mns[2] - mns[1], s2hat)
++ }
+> 
+> grav.boot <- boot(grav1, grav.fun, R = 499, stype = "w", strata = grav1[, 2])
+> plot(grav.boot)
+> # now suppose we want to look at the studentized differences.
+> grav.z <- (grav.boot$t[, 1]-grav.boot$t0[1])/sqrt(grav.boot$t[, 2])
+> plot(grav.boot, t = grav.z, t0 = 0)
+> 
+> # In this example we look at the one of the partial correlations for the
+> # head dimensions in the dataset frets.
+> frets.fun <- function(data, i) {
++     pcorr <- function(x) { 
++     #  Function to find the correlations and partial correlations between
++     #  the four measurements.
++          v <- cor(x)
++          v.d <- diag(var(x))
++          iv <- solve(v)
++          iv.d <- sqrt(diag(iv))
++          iv <- - diag(1/iv.d) %*% iv %*% diag(1/iv.d)
++          q <- NULL
++          n <- nrow(v)
++          for (i in 1:(n-1)) 
++               q <- rbind( q, c(v[i, 1:i], iv[i,(i+1):n]) )
++          q <- rbind( q, v[n, ] )
++          diag(q) <- round(diag(q))
++          q
++     }
++     d <- data[i, ]
++     v <- pcorr(d)
++     c(v[1,], v[2,], v[3,], v[4,])
++ }
+> frets.boot <- boot(log(as.matrix(frets)),  frets.fun,  R = 999)
+> plot(frets.boot, index = 7, jack = TRUE, stinf = FALSE, useJ = FALSE)
+> 
+> 
+> 
+> cleanEx()
+> nameEx("saddle")
+> ### * saddle
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: saddle
+> ### Title: Saddlepoint Approximations for Bootstrap Statistics
+> ### Aliases: saddle
+> ### Keywords: smooth nonparametric
+> 
+> ### ** Examples
+> 
+> # To evaluate the bootstrap distribution of the mean failure time of 
+> # air-conditioning equipment at 80 hours
+> saddle(A = aircondit$hours/12, u = 80)
+$spa
+       pdf        cdf 
+0.01005866 0.24446677 
+
+$zeta.hat
+[1] -0.02580078
+
+> 
+> # Alternatively this can be done using a conditional poisson
+> saddle(A = cbind(aircondit$hours/12,1), u = c(80, 12),
++        wdist = "p", type = "cond")
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 10.090909
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 1.909091
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 10.090909
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 1.909091
+$spa
+       pdf        cdf 
+0.01005943 0.24438736 
+
+$zeta.hat
+         A1          A2 
+-0.02580805  0.89261577 
+
+$zeta2.hat
+[1] 0.6931472
+
+> 
+> # To use the Lugananni-Rice approximation to this
+> saddle(A = cbind(aircondit$hours/12,1), u = c(80, 12),
++        wdist = "p", type = "cond", 
++        LR = TRUE)
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 10.090909
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 1.909091
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 10.090909
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 1.909091
+$spa
+       pdf        cdf 
+0.01005943 0.24447362 
+
+$zeta.hat
+         A1          A2 
+-0.02580805  0.89261577 
+
+$zeta2.hat
+[1] 0.6931472
+
+> 
+> # Example 9.16 of Davison and Hinkley (1997) calculates saddlepoint 
+> # approximations to the distribution of the ratio statistic for the
+> # city data. Since the statistic is not in itself a linear combination
+> # of random Variables, its distribution cannot be found directly.  
+> # Instead the statistic is expressed as the solution to a linear 
+> # estimating equation and hence its distribution can be found.  We
+> # get the saddlepoint approximation to the pdf and cdf evaluated at
+> # t = 1.25 as follows.
+> jacobian <- function(dat,t,zeta)
++ {
++      p <- exp(zeta*(dat$x-t*dat$u))
++      abs(sum(dat$u*p)/sum(p))
++ }
+> city.sp1 <- saddle(A = city$x-1.25*city$u, u = 0)
+> city.sp1$spa[1] <- jacobian(city, 1.25, city.sp1$zeta.hat) * city.sp1$spa[1]
+> city.sp1
+$spa
+       pdf        cdf 
+0.05565040 0.02436306 
+
+$zeta.hat
+[1] -0.02435547
+
+> 
+> 
+> 
+> cleanEx()
+> nameEx("saddle.distn")
+> ### * saddle.distn
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: saddle.distn
+> ### Title: Saddlepoint Distribution Approximations for Bootstrap Statistics
+> ### Aliases: saddle.distn
+> ### Keywords: nonparametric smooth dplot
+> 
+> ### ** Examples
+> 
+> #  The bootstrap distribution of the mean of the air-conditioning 
+> #  failure data: fails to find value on R (and probably on S too)
+> air.t0 <- c(mean(aircondit$hours), sqrt(var(aircondit$hours)/12))
+> ## Not run: saddle.distn(A = aircondit$hours/12, t0 = air.t0)
+> 
+> # alternatively using the conditional poisson
+> saddle.distn(A = cbind(aircondit$hours/12, 1), u = 12, wdist = "p",
++              type = "cond", t0 = air.t0)
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 11.344718
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 0.655282
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 11.344718
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 0.655282
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 11.832240
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 0.167760
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 11.832240
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 0.167760
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 7.444538
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 4.555462
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 7.444538
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 4.555462
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 5.494449
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 6.505551
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 5.494449
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 6.505551
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 1.594269
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 10.405731
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 1.594269
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 10.405731
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 3.544359
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 8.455641
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 3.544359
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 8.455641
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 4.519404
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 7.480596
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 4.519404
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 7.480596
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 11.561394
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 0.438606
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 11.561394
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 0.438606
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 11.290549
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 0.709451
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 11.290549
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 0.709451
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 11.019703
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 0.980297
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 11.019703
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 0.980297
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 10.748857
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 1.251143
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 10.748857
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 1.251143
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 10.478011
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 1.521989
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 10.478011
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 1.521989
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 10.207165
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 1.792835
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 10.207165
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 1.792835
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 9.936320
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 2.063680
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 9.936320
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 2.063680
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 9.665474
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 2.334526
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 9.665474
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 2.334526
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 8.785225
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 3.214775
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 8.785225
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 3.214775
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 8.175822
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 3.824178
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 8.175822
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 3.824178
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 7.566419
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 4.433581
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 7.566419
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 4.433581
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 6.957016
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 5.042984
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 6.957016
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 5.042984
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 6.347613
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 5.652387
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 6.347613
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 5.652387
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 5.738210
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 6.261790
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 5.738210
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 6.261790
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 5.128807
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 6.871193
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 5.128807
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 6.871193
+
+Saddlepoint Distribution Approximations
+
+Call : 
+saddle.distn(A = cbind(aircondit$hours/12, 1), u = 12, wdist = "p", 
+    type = "cond", t0 = air.t0)
+
+Quantiles of the Distribution
+
+ 0.1%       27.4 
+ 0.5%       35.4 
+ 1.0%       39.7 
+ 2.5%       46.7 
+ 5.0%       53.5 
+10.0%       62.5 
+20.0%       75.3 
+50.0%      104.5 
+80.0%      139.0 
+90.0%      158.8 
+95.0%      175.9 
+97.5%      191.2 
+99.0%      209.6 
+99.5%      222.4 
+99.9%      249.5
+
+Smoothing spline used 20 points in the range 9.8 to 304.7.
+> 
+> # Distribution of the ratio of a sample of size 10 from the bigcity 
+> # data, taken from Example 9.16 of Davison and Hinkley (1997).
+> ratio <- function(d, w) sum(d$x *w)/sum(d$u * w)
+> city.v <- var.linear(empinf(data = city, statistic = ratio))
+> bigcity.t0 <- c(mean(bigcity$x)/mean(bigcity$u), sqrt(city.v))
+> Afn <- function(t, data) cbind(data$x - t*data$u, 1)
+> ufn <- function(t, data) c(0,10)
+> saddle.distn(A = Afn, u = ufn, wdist = "b", type = "cond",
++              t0 = bigcity.t0, data = bigcity)
+Warning in eval(family$initialize) :
+  non-integer counts in a binomial glm!
+Warning in eval(family$initialize) :
+  non-integer counts in a binomial glm!
+Warning in eval(family$initialize) :
+  non-integer counts in a binomial glm!
+Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred
+Warning in eval(family$initialize) :
+  non-integer counts in a binomial glm!
+Warning in eval(family$initialize) :
+  non-integer counts in a binomial glm!
+Warning in eval(family$initialize) :
+  non-integer counts in a binomial glm!
+Warning in eval(family$initialize) :
+  non-integer counts in a binomial glm!
+Warning in eval(family$initialize) :
+  non-integer counts in a binomial glm!
+Warning in eval(family$initialize) :
+  non-integer counts in a binomial glm!
+Warning in eval(family$initialize) :
+  non-integer counts in a binomial glm!
+Warning in eval(family$initialize) :
+  non-integer counts in a binomial glm!
+Warning in eval(family$initialize) :
+  non-integer counts in a binomial glm!
+Warning in eval(family$initialize) :
+  non-integer counts in a binomial glm!
+Warning in eval(family$initialize) :
+  non-integer counts in a binomial glm!
+Warning in eval(family$initialize) :
+  non-integer counts in a binomial glm!
+Warning in eval(family$initialize) :
+  non-integer counts in a binomial glm!
+Warning in eval(family$initialize) :
+  non-integer counts in a binomial glm!
+Warning in eval(family$initialize) :
+  non-integer counts in a binomial glm!
+Warning in eval(family$initialize) :
+  non-integer counts in a binomial glm!
+Warning in eval(family$initialize) :
+  non-integer counts in a binomial glm!
+Warning in eval(family$initialize) :
+  non-integer counts in a binomial glm!
+Warning in eval(family$initialize) :
+  non-integer counts in a binomial glm!
+Warning in eval(family$initialize) :
+  non-integer counts in a binomial glm!
+Warning in eval(family$initialize) :
+  non-integer counts in a binomial glm!
+Warning in eval(family$initialize) :
+  non-integer counts in a binomial glm!
+Warning in eval(family$initialize) :
+  non-integer counts in a binomial glm!
+Warning in eval(family$initialize) :
+  non-integer counts in a binomial glm!
+Warning in eval(family$initialize) :
+  non-integer counts in a binomial glm!
+Warning in eval(family$initialize) :
+  non-integer counts in a binomial glm!
+Warning in eval(family$initialize) :
+  non-integer counts in a binomial glm!
+Warning in eval(family$initialize) :
+  non-integer counts in a binomial glm!
+Warning in eval(family$initialize) :
+  non-integer counts in a binomial glm!
+Warning in eval(family$initialize) :
+  non-integer counts in a binomial glm!
+Warning in eval(family$initialize) :
+  non-integer counts in a binomial glm!
+Warning in eval(family$initialize) :
+  non-integer counts in a binomial glm!
+Warning in eval(family$initialize) :
+  non-integer counts in a binomial glm!
+Warning in eval(family$initialize) :
+  non-integer counts in a binomial glm!
+Warning in eval(family$initialize) :
+  non-integer counts in a binomial glm!
+Warning in eval(family$initialize) :
+  non-integer counts in a binomial glm!
+Warning in eval(family$initialize) :
+  non-integer counts in a binomial glm!
+
+Saddlepoint Distribution Approximations
+
+Call : 
+saddle.distn(A = Afn, u = ufn, wdist = "b", type = "cond", t0 = bigcity.t0, 
+    data = bigcity)
+
+Quantiles of the Distribution
+
+ 0.1%      1.070 
+ 0.5%      1.092 
+ 1.0%      1.104 
+ 2.5%      1.122 
+ 5.0%      1.139 
+10.0%      1.158 
+20.0%      1.184 
+50.0%      1.237 
+80.0%      1.304 
+90.0%      1.348 
+95.0%      1.392 
+97.5%      1.436 
+99.0%      1.494 
+99.5%      1.537 
+99.9%      1.636
+
+Smoothing spline used 20 points in the range 1.014 to 1.96.
+> 
+> # From Example 9.16 of Davison and Hinkley (1997) again, we find the 
+> # conditional distribution of the ratio given the sum of city$u.
+> Afn <- function(t, data) cbind(data$x-t*data$u, data$u, 1)
+> ufn <- function(t, data) c(0, sum(data$u), 10)
+> city.t0 <- c(mean(city$x)/mean(city$u), sqrt(city.v))
+> saddle.distn(A = Afn, u = ufn, wdist = "p", type = "cond", t0 = city.t0, 
++              data = city)
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 0.866400
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 8.511350
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 0.622251
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 0.866400
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 8.511350
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 0.622251
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 3.210844
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 3.107208
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 3.681949
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 3.210844
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 3.107208
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 3.681949
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 2.038622
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 5.809279
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 2.152100
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 2.038622
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 5.809279
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 2.152100
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 1.452511
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 7.160314
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 1.387175
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 1.452511
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 7.160314
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 1.387175
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 1.159455
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 7.835832
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 1.004713
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 1.159455
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 7.835832
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 1.004713
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 3.155629
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 0.115412
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 6.728960
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 3.155629
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 0.115412
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 6.728960
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 0.205022
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 2.133273
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 7.661705
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 0.205022
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 2.133273
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 7.661705
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 1.722845
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 1.033105
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 7.244049
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 1.722845
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 1.033105
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 7.244049
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 1.787431
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 6.388294
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 1.824275
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 1.787431
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 6.388294
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 1.824275
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 2.415407
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 4.940756
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 2.643837
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 2.415407
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 4.940756
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 2.643837
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 3.043383
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 3.493218
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 3.463399
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 3.043383
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 3.493218
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 3.463399
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 3.671359
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 2.045680
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 4.282961
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 3.671359
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 2.045680
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 4.282961
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 4.299336
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 0.598142
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 5.102523
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 4.299336
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 0.598142
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 5.102523
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 3.433935
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 4.409277
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 2.156788
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 3.433935
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 4.409277
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 2.156788
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 3.360158
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 3.271008
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 3.368834
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 3.360158
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 3.271008
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 3.368834
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 3.319252
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 2.639889
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 4.040859
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 3.319252
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 2.639889
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 4.040859
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 3.278346
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 2.008770
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 4.712884
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 3.278346
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 2.008770
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 4.712884
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 3.237440
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 1.377650
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 5.384909
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 3.237440
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 1.377650
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 5.384909
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 3.196534
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 0.746531
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 6.056935
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 3.196534
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 0.746531
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 6.056935
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 3.155629
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 0.115412
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 6.728960
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 3.155629
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 0.115412
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 6.728960
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 2.734728
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 0.299661
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 6.965612
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 2.734728
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 0.299661
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 6.965612
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 2.228786
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 0.666383
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 7.104831
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 2.228786
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 0.666383
+Warning in dpois(y, mu, log = TRUE) : non-integer x = 7.104831
+
+Saddlepoint Distribution Approximations
+
+Call : 
+saddle.distn(A = Afn, u = ufn, wdist = "p", type = "cond", t0 = city.t0, 
+    data = city)
+
+Quantiles of the Distribution
+
+ 0.1%      1.216 
+ 0.5%      1.236 
+ 1.0%      1.248 
+ 2.5%      1.272 
+ 5.0%      1.301 
+10.0%      1.340 
+20.0%      1.393 
+50.0%      1.502 
+80.0%      1.618 
+90.0%      1.680 
+95.0%      1.732 
+97.5%      1.777 
+99.0%      1.830 
+99.5%      1.866 
+99.9%      1.938
+
+Smoothing spline used 20 points in the range 1.182 to 2.061.
+> 
+> 
+> 
+> cleanEx()
+> nameEx("simplex")
+> ### * simplex
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: simplex
+> ### Title: Simplex Method for Linear Programming Problems
+> ### Aliases: simplex
+> ### Keywords: optimize
+> 
+> ### ** Examples
+> 
+> # This example is taken from Exercise 7.5 of Gill, Murray and Wright (1991).
+> enj <- c(200, 6000, 3000, -200)
+> fat <- c(800, 6000, 1000, 400)
+> vitx <- c(50, 3, 150, 100)
+> vity <- c(10, 10, 75, 100)
+> vitz <- c(150, 35, 75, 5)
+> simplex(a = enj, A1 = fat, b1 = 13800, A2 = rbind(vitx, vity, vitz),
++         b2 = c(600, 300, 550), maxi = TRUE)
+
+Linear Programming Results
+
+Call : simplex(a = enj, A1 = fat, b1 = 13800, A2 = rbind(vitx, vity, 
+    vitz), b2 = c(600, 300, 550), maxi = TRUE)
+
+Maximization Problem with Objective Function Coefficients
+  x1   x2   x3   x4 
+ 200 6000 3000 -200 
+
+
+Optimal solution has the following values
+  x1   x2   x3   x4 
+ 0.0  0.0 13.8  0.0 
+The optimal value of the objective  function is 41400.
+> 
+> 
+> 
+> cleanEx()
+> nameEx("smooth.f")
+> ### * smooth.f
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: smooth.f
+> ### Title: Smooth Distributions on Data Points
+> ### Aliases: smooth.f
+> ### Keywords: smooth nonparametric
+> 
+> ### ** Examples
+> 
+> # Example 9.8 of Davison and Hinkley (1997) requires tilting the resampling
+> # distribution of the studentized statistic to be centred at the observed
+> # value of the test statistic 1.84.  In the book exponential tilting was used
+> # but it is also possible to use smooth.f.
+> grav1 <- gravity[as.numeric(gravity[, 2]) >= 7, ]
+> grav.fun <- function(dat, w, orig) {
++      strata <- tapply(dat[, 2], as.numeric(dat[, 2]))
++      d <- dat[, 1]
++      ns <- tabulate(strata)
++      w <- w/tapply(w, strata, sum)[strata]
++      mns <- as.vector(tapply(d * w, strata, sum)) # drop names
++      mn2 <- tapply(d * d * w, strata, sum)
++      s2hat <- sum((mn2 - mns^2)/ns)
++      c(mns[2] - mns[1], s2hat, (mns[2]-mns[1]-orig)/sqrt(s2hat))
++ }
+> grav.z0 <- grav.fun(grav1, rep(1, 26), 0)
+> grav.boot <- boot(grav1, grav.fun, R = 499, stype = "w", 
++                   strata = grav1[, 2], orig = grav.z0[1])
+> grav.sm <- smooth.f(grav.z0[3], grav.boot, index = 3)
+> 
+> # Now we can run another bootstrap using these weights
+> grav.boot2 <- boot(grav1, grav.fun, R = 499, stype = "w", 
++                    strata = grav1[, 2], orig = grav.z0[1],
++                    weights = grav.sm)
+> 
+> # Estimated p-values can be found from these as follows
+> mean(grav.boot$t[, 3] >= grav.z0[3])
+[1] 0.01402806
+> imp.prob(grav.boot2, t0 = -grav.z0[3], t = -grav.boot2$t[, 3])
+$t0
+[1] -1.840118
+
+$raw
+[1] 0.02163715
+
+$rat
+[1] 0.02099078
+
+$reg
+[1] 0.02174393
+
+> 
+> 
+> # Note that for the importance sampling probability we must 
+> # multiply everything by -1 to ensure that we find the correct
+> # probability.  Raw resampling is not reliable for probabilities
+> # greater than 0.5. Thus
+> 1 - imp.prob(grav.boot2, index = 3, t0 = grav.z0[3])$raw
+[1] -0.009155757
+> # can give very strange results (negative probabilities).
+> 
+> 
+> 
+> cleanEx()
+> nameEx("tilt.boot")
+> ### * tilt.boot
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: tilt.boot
+> ### Title: Non-parametric Tilted Bootstrap
+> ### Aliases: tilt.boot
+> ### Keywords: nonparametric
+> 
+> ### ** Examples
+> 
+> # Note that these examples can take a while to run.
+> 
+> # Example 9.9 of Davison and Hinkley (1997).
+> grav1 <- gravity[as.numeric(gravity[,2]) >= 7, ]
+> grav.fun <- function(dat, w, orig) {
++      strata <- tapply(dat[, 2], as.numeric(dat[, 2]))
++      d <- dat[, 1]
++      ns <- tabulate(strata)
++      w <- w/tapply(w, strata, sum)[strata]
++      mns <- as.vector(tapply(d * w, strata, sum)) # drop names
++      mn2 <- tapply(d * d * w, strata, sum)
++      s2hat <- sum((mn2 - mns^2)/ns)
++      c(mns[2]-mns[1],s2hat,(mns[2]-mns[1]-orig)/sqrt(s2hat))
++ }
+> grav.z0 <- grav.fun(grav1, rep(1, 26), 0)
+> tilt.boot(grav1, grav.fun, R = c(249, 375, 375), stype = "w", 
++           strata = grav1[,2], tilt = TRUE, index = 3, orig = grav.z0[1]) 
+
+TILTED BOOTSTRAP
+
+Exponential tilting used
+First 249 replicates untilted,
+Next 375 replicates tilted to -2.821,
+Next 375 replicates tilted to 1.636.
+
+Call:
+tilt.boot(data = grav1, statistic = grav.fun, R = c(249, 375, 
+    375), stype = "w", strata = grav1[, 2], tilt = TRUE, index = 3, 
+    orig = grav.z0[1])
+
+
+Bootstrap Statistics :
+    original     bias    std. error
+t1* 2.846154 -0.4487564    2.500644
+t2* 2.392353 -0.3221155    1.187574
+t3* 0.000000 -0.8862944    2.208945
+> 
+> 
+> #  Example 9.10 of Davison and Hinkley (1997) requires a balanced 
+> #  importance resampling bootstrap to be run.  In this example we 
+> #  show how this might be run.  
+> acme.fun <- function(data, i, bhat) {
++      d <- data[i,]
++      n <- nrow(d)
++      d.lm <- glm(d$acme~d$market)
++      beta.b <- coef(d.lm)[2]
++      d.diag <- boot::glm.diag(d.lm)
++      SSx <- (n-1)*var(d$market)
++      tmp <- (d$market-mean(d$market))*d.diag$res*d.diag$sd
++      sr <- sqrt(sum(tmp^2))/SSx
++      c(beta.b, sr, (beta.b-bhat)/sr)
++ }
+> acme.b <- acme.fun(acme, 1:nrow(acme), 0)
+> acme.boot1 <- tilt.boot(acme, acme.fun, R = c(499, 250, 250), 
++                         stype = "i", sim = "balanced", alpha = c(0.05, 0.95), 
++                         tilt = TRUE, index = 3, bhat = acme.b[1])
+> 
+> 
+> 
+> cleanEx()
+> nameEx("tsboot")
+> ### * tsboot
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: tsboot
+> ### Title: Bootstrapping of Time Series
+> ### Aliases: tsboot ts.return
+> ### Keywords: nonparametric ts
+> 
+> ### ** Examples
+> 
+> lynx.fun <- function(tsb) {
++      ar.fit <- ar(tsb, order.max = 25)
++      c(ar.fit$order, mean(tsb), tsb)
++ }
+> 
+> # the stationary bootstrap with mean block length 20
+> lynx.1 <- tsboot(log(lynx), lynx.fun, R = 99, l = 20, sim = "geom")
+> 
+> # the fixed block bootstrap with length 20
+> lynx.2 <- tsboot(log(lynx), lynx.fun, R = 99, l = 20, sim = "fixed")
+> 
+> # Now for model based resampling we need the original model
+> # Note that for all of the bootstraps which use the residuals as their
+> # data, we set orig.t to FALSE since the function applied to the residual
+> # time series will be meaningless.
+> lynx.ar <- ar(log(lynx))
+> lynx.model <- list(order = c(lynx.ar$order, 0, 0), ar = lynx.ar$ar)
+> lynx.res <- lynx.ar$resid[!is.na(lynx.ar$resid)]
+> lynx.res <- lynx.res - mean(lynx.res)
+> 
+> lynx.sim <- function(res,n.sim, ran.args) {
++      # random generation of replicate series using arima.sim 
++      rg1 <- function(n, res) sample(res, n, replace = TRUE)
++      ts.orig <- ran.args$ts
++      ts.mod <- ran.args$model
++      mean(ts.orig)+ts(arima.sim(model = ts.mod, n = n.sim,
++                       rand.gen = rg1, res = as.vector(res)))
++ }
+> 
+> lynx.3 <- tsboot(lynx.res, lynx.fun, R = 99, sim = "model", n.sim = 114,
++                  orig.t = FALSE, ran.gen = lynx.sim, 
++                  ran.args = list(ts = log(lynx), model = lynx.model))
+> 
+> #  For "post-blackening" we need to define another function
+> lynx.black <- function(res, n.sim, ran.args) {
++      ts.orig <- ran.args$ts
++      ts.mod <- ran.args$model
++      mean(ts.orig) + ts(arima.sim(model = ts.mod,n = n.sim,innov = res))
++ }
+> 
+> # Now we can run apply the two types of block resampling again but this
+> # time applying post-blackening.
+> lynx.1b <- tsboot(lynx.res, lynx.fun, R = 99, l = 20, sim = "fixed",
++                   n.sim = 114, orig.t = FALSE, ran.gen = lynx.black, 
++                   ran.args = list(ts = log(lynx), model = lynx.model))
+> 
+> lynx.2b <- tsboot(lynx.res, lynx.fun, R = 99, l = 20, sim = "geom",
++                   n.sim = 114, orig.t = FALSE, ran.gen = lynx.black, 
++                   ran.args = list(ts = log(lynx), model = lynx.model))
+> 
+> # To compare the observed order of the bootstrap replicates we
+> # proceed as follows.
+> table(lynx.1$t[, 1])
+
+ 2  3  4  5  7  8 10 11 12 13 14 
+16 19 38  4  6  3  1  9  1  1  1 
+> table(lynx.1b$t[, 1])
+
+ 2  3  4  5  6  7  8 11 12 14 15 
+ 6  2 22  6  4  6  3 40  7  1  2 
+> table(lynx.2$t[, 1])
+
+ 2  3  4  5  6  7  8 10 11 13 
+12 18 51  5  2  3  1  2  4  1 
+> table(lynx.2b$t[, 1])
+
+ 2  3  4  5  6  7  8  9 10 11 12 13 15 21 
+ 2  1 21  4  1 10  4  1  3 45  3  1  2  1 
+> table(lynx.3$t[, 1])
+
+ 2  3  4  5  6  7  8  9 10 11 12 13 14 15 
+ 4  8 11  2  1  4  2  2  2 54  6  1  1  1 
+> # Notice that the post-blackened and model-based bootstraps preserve
+> # the true order of the model (11) in many more cases than the others.
+> 
+> 
+> 
+> cleanEx()
+> nameEx("var.linear")
+> ### * var.linear
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: var.linear
+> ### Title: Linear Variance Estimate
+> ### Aliases: var.linear
+> ### Keywords: nonparametric
+> 
+> ### ** Examples
+> 
+> #  To estimate the variance of the ratio of means for the city data.
+> ratio <- function(d,w) sum(d$x * w)/sum(d$u * w)
+> var.linear(empinf(data = city, statistic = ratio))
+[1] 0.03248701
+> 
+> 
+> 
+> ### * <FOOTER>
+> ###
+> options(digits = 7L)
+> base::cat("Time elapsed: ", proc.time() - base::get("ptime", pos = 'CheckExEnv'),"\n")
+Time elapsed:  29.023 0.078 29.298 0 0 
+> grDevices::dev.off()
+null device 
+          1 
+> ###
+> ### Local variables: ***
+> ### mode: outline-minor ***
+> ### outline-regexp: "\\(> \\)?### [*]+" ***
+> ### End: ***
+> quit('no')

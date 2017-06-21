@@ -1,0 +1,323 @@
+
+R version 3.0.1 (2013-05-16) -- "Good Sport"
+Copyright (C) 2013 The R Foundation for Statistical Computing
+Platform: i686-pc-linux-gnu (32-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> options(na.action=na.exclude) # preserve missings
+> options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
+> library(survival)
+Loading required package: splines
+> 
+> #  Tests of expected survival
+> aeq <- function(x,y) all.equal(as.vector(x), as.vector(y))
+> #
+> # This makes several scripts easier
+> #  Certain tests depended in the now-depreciated date library
+> {if (is.R()) mdy.date <- function(m, d, y) {
++     y <- ifelse(y<100, y+1900, y)
++     as.Date(paste(m,d,y, sep='/'), "%m/%d/%Y")
++     }
++ else mdy.date <- function(m,d,y) {
++     y <- ifelse(y<100, y+1900, y)
++     timeDate(paste(y, m, d, sep='/'), in.format="%Y/%m/%d")
++     }
++  }
+> 
+> # This function takes a single subject and walks down the rate table
+> # Input: the vector of starting points, futime, and a ratetable
+> # Output: the full history of walking through said table. Let n= #unique
+> #   rates that were used
+> #       cell = n by #dims of the table: index of the table cell
+> #       days = time spent in cell
+> #       hazard= accumulated hazard = days * rate
+> # This does not do date or factor conversions -- start has to be numeric
+> #
+> ratewalk <- function(start, futime, ratetable=survexp.us) {
++     if (!is.ratetable(ratetable)) stop("Bad rate table")
++     ratedim <- dim(ratetable)
++     nvar <- length(ratedim)
++     if (length(start) != nvar) stop("Wrong length for start")
++     if (futime <=0) stop("Invalid futime")
++ 
++     attR <- attributes(ratetable)
++     discrete <- (attR$type ==1)  #discrete categories
++ 
++     maxn <- sum(!discrete)*prod(ratedim[!discrete]) #most cells you can hit
++     cell <- matrix(0, nrow=maxn, ncol=nvar)
++     days <- hazard <- double(maxn)
++ 
++     eps <- 1e-8  #Avoid round off error
++     n <- 0
++     while (futime >0) {
++         n <- n+1
++         #what cell am I in?
++         # Note that at the edges of the rate table, we use the edge: if
++         #   it only goes up the the year 2000, year 2000 is used for any
++         #   dates beyond.  This effectively eliminates one boundary
++         cell[n,discrete] <- start[discrete]
++         edge <- futime  #time to nearest edge, or finish
++         for (j in which(!discrete)) {
++             indx <- sum(start[j] >= attR$cutpoints[[j]]-eps)
++             cell[n, j] <- max(1, indx)
++             if (indx < ratedim[j]) 
++                 edge <- min(edge, (attR$cutpoints[[j]])[indx+1] - start[j])
++             }
++         days[n] <- edge  #this many days in the cell
++         # using a matrix as a subscript is so handy sometimes
++         hazard[n] <- edge * (as.matrix(ratetable))[cell[n,,drop=F]]
++         futime <- futime - edge  #amount of time yet to account for
++         start[!discrete] <- start[!discrete] + edge  #walk forward in time
++         }
++     list(cell=cell[1:n,], days=days[1:n], hazard=hazard[1:n])
++     }
+> 
+> # Simple test of ratewalk: 20 years old, start on 7Sep 1960 (day 250)
+> #   116 days at the 1960, 20 year old male rate, through the end of the day
+> #     on 12/31/1960, then 84 days at the 1961 rate.  
+> #   The decennial q for 1960 males is .00169.
+> zz <- ratewalk(c(20.4*365.25, 1, 250), 200)
+> all.equal(zz$hazard[1], -(116/365.25)*log(1-.00169))
+[1] TRUE
+> all.equal(zz$days, c(116,84))
+[1] TRUE
+> 
+>         
+> #
+> # Simple case 1: a single male subject, born 1/1/36 and entered on study 1/2/55
+> #
+> #  Compute the 1, 5, 10 and 12 year expected survival
+> 
+> temp1 <- mdy.date(1,1,36)
+> temp2 <- mdy.date(1,2,55)
+> exp1 <- survexp(~ratetable(year=temp2, age=(temp2-temp1), sex=1, race='white'),
++ 		    ratetable=survexp.usr,times=c(366, 1827, 3653, 4383))
+> 
+> tyear <- as.numeric(temp2 - mdy.date(1,1,1960))
+> h1 <- ratewalk(c(temp2-temp1, 1, 1, tyear), 366,  survexp.usr)
+> h2 <- ratewalk(c(temp2-temp1, 1, 1, tyear), 1827, survexp.usr)
+> h3 <- ratewalk(c(temp2-temp1, 1, 1, tyear), 3653, survexp.usr)
+> h4 <- ratewalk(c(temp2-temp1, 1, 1, tyear), 4383, survexp.usr)
+> 
+> aeq(-log(exp1$surv), c(sum(h1$hazard), sum(h2$hazard), sum(h3$hazard),
++                        sum(h4$hazard)))
+[1] TRUE
+> 
+> 
+> # Just a little harder: 
+> #   Born 3/1/25 and entered the study on 6/10/55.  The code creates shifted
+> #   dates to align with US rate tables - entry is 59 days earlier (days from
+> #   1/1/25 to 3/1/25).
+> #
+> temp1 <- mdy.date(3,1,25)
+> temp2 <- mdy.date(6,10,55)
+> exp1 <- survexp(~ratetable(year=temp2, age=(temp2-temp1), sex=2, race='black'),
++ 		    ratetable=survexp.usr,times=c(366, 1827, 3653, 4383))
+> 
+> tyear <- as.numeric(temp2 - mdy.date(1,1,1960)) - 59
+> h1 <- ratewalk(c(temp2-temp1, 2, 2, tyear), 366,  survexp.usr)
+> h2 <- ratewalk(c(temp2-temp1, 2, 2, tyear), 1827, survexp.usr)
+> h3 <- ratewalk(c(temp2-temp1, 2, 2, tyear), 3653, survexp.usr)
+> h4 <- ratewalk(c(temp2-temp1, 2, 2, tyear), 4383, survexp.usr)
+> 
+> aeq(-log(exp1$surv), c(sum(h1$hazard), sum(h2$hazard), sum(h3$hazard),
++                        sum(h4$hazard)))
+[1] TRUE
+> 
+> #
+> # Simple case 2: make sure that the averages are correct, for Ederer method
+> #
+> #  Compute the 1, 5, 10 and 12 year expected survival
+> 
+> temp1 <- mdy.date(1:6,6:11,1890:1895)
+> temp2 <- mdy.date(6:1,11:6,c(55:50))
+> temp3 <- c(1,2,1,2,1,2)
+> age <- temp2 - temp1
+> 
+> exp1 <- survexp(~ratetable(year=temp2, age=(temp2-temp1), sex=temp3),
++ 		       times=c(366, 1827, 3653, 4383))
+> exp2 <- survexp(~ratetable(year=temp2, age=(temp2-temp1), sex=temp3) + I(1:6),
++ 			times=c(366, 1827, 3653, 4383))
+> exp3 <- exp2$surv
+> for (i in 1:length(temp1)){
++     exp3[,i] <- survexp(~ratetable(year=temp2, age=(temp2-temp1), sex=temp3),
++                         times=c(366, 1827, 3653, 4383), subset=i)$surv
++     }
+> 
+>              
+> print(aeq(exp2$surv, exp3))
+[1] TRUE
+> print(all.equal(exp1$surv, apply(exp2$surv, 1, mean)))
+[1] TRUE
+> 
+> # They agree, but are they right?
+> #
+> for (i in 1:length(temp1)) {
++     offset <- as.numeric(temp1[i] - mdy.date(1,1, 1889+i))
++     tyear = (as.numeric(temp2[i] - mdy.date(1,1,1960))) - offset
++     haz1 <- ratewalk(c((temp2-temp1)[i], temp3[i], tyear), 366)
++     haz2 <- ratewalk(c((temp2-temp1)[i], temp3[i], tyear), 1827)
++     haz3 <- ratewalk(c((temp2-temp1)[i], temp3[i], tyear), 3653)
++     haz4 <- ratewalk(c((temp2-temp1)[i], temp3[i], tyear), 4383)
++     print(aeq(-log(exp2$surv[,i]), c(sum(haz1$hazard), sum(haz2$hazard),
++                                     sum(haz3$hazard), sum(haz4$hazard))))
++     }
+[1] TRUE
+[1] TRUE
+[1] TRUE
+[1] TRUE
+[1] TRUE
+[1] TRUE
+> 
+> #
+> # Check that adding more time points doesn't change things
+> #
+> exp4 <- survexp(~ratetable(year=temp2, age=(temp2-temp1), sex=temp3) + I(1:6),
++ 		times=sort(c(366, 1827, 3653, 4383, 30*(1:100))))
+> aeq(exp4$surv[match(exp2$time, exp4$time),], exp2$surv)
+[1] TRUE
+> 
+> exp4 <- survexp(~ratetable(year=temp2, age=(temp2-temp1), sex=temp3),
++ 		times=sort(c(366, 1827, 3653, 4383, 30*(1:100))))
+> aeq(exp1$surv, exp4$surv[match(exp1$time, exp4$time, nomatch=0)])
+[1] TRUE
+> 
+> 
+> #
+> # Now test Hakulinen's method, assuming an analysis date of 3/1/57
+> #
+> futime <- mdy.date(3,1,57) - temp2
+> xtime  <- sort(c(futime, 30, 60, 185, 365))
+> 
+> exp1 <- survexp(futime ~ ratetable(year=temp2, age=(temp2-temp1), sex=1),
++ 		times=xtime, conditional=F)
+> exp2 <- survexp(~ratetable(year=temp2, age=(temp2-temp1), sex=1) + I(1:6),
++ 			times=futime)
+> 
+> wt <- rep(1,6)
+> con <- double(6)
+> for (i in 1:6) {
++     con[i] <- sum(exp2$surv[i,i:6])/sum(wt[i:6])
++     wt <- exp2$surv[i,]
++     }
+> 
+> exp1$surv[match(futime, xtime)]
+[1] 0.9557362 0.9285840 0.9025661 0.8774220 0.8532489 0.8297416
+> aeq(exp1$surv[match(futime, xtime)], cumprod(con))
+[1] TRUE
+> 
+> 
+> #
+> # Now for the conditional method
+> #
+> exp1 <- survexp(futime ~ ratetable(year=temp2, age=(temp2-temp1), sex=1),
++ 		times=xtime, conditional=T)
+> 
+> cond <- exp2$surv
+> for (i in 6:2) cond[i,] <- (cond[i,]/cond[i-1,])  #conditional survival
+> for (i in 1:6) con[i] <- exp(mean(log(cond[i, i:6])))
+> 
+> all.equal(exp1$surv[match(futime, xtime)], cumprod(con))
+[1] TRUE
+> cumprod(con)
+[1] 0.9556656 0.9284398 0.9023612 0.8771798 0.8529944 0.8294940
+> 
+> #
+> # Test out expected survival, when the parent pop is another Cox model
+> #
+> test1 <- data.frame(time=  c(4, 3,1,1,2,2,3),
++                     status=c(1,NA,1,0,1,1,0),
++                     x=     c(0, 2,1,1,1,0,0))
+> 
+> fit <- coxph(Surv(time, status) ~x, test1, method='breslow')
+> 
+> dummy <- data.frame(time=c(.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5),
++ 		    status=c(1,0,1,0,1,0,1,1,1), x=(-4:4)/2)
+> 
+> efit <- survexp(time ~ ratetable(x=x), dummy, ratetable=fit, cohort=F)
+> 
+> #
+> # Now, compare to the true answer, which is known to us
+> #
+> ss <- exp(fit$coef)
+> haz <- c( 1/(3*ss+3), 2/(ss+3), 1) #truth at time 0,1,2,4+
+> chaz <- cumsum(c(0,haz))
+> chaz2 <- chaz[c(1,2,2,3,3,3,3,4,4)]
+> 
+> risk <- exp(fit$coef*dummy$x)
+> efit2 <- exp(-risk*chaz2)
+> 
+> all.equal(as.vector(efit), as.vector(efit2))  #ignore mismatched name attrib
+[1] TRUE
+> 
+> #
+> # Now test the direct-adjusted curve (Ederer)
+> #
+> efit <- survexp( ~ ratetable(x=x), dummy, ratetable=fit, se=F)
+> direct <- survfit(fit, newdata=dummy, censor=FALSE)$surv
+> 
+> chaz <- chaz[-1]                  #drop time 0
+> d2 <- exp(outer(-chaz, risk))
+> all.equal(as.vector(direct), as.vector(d2))   #this tests survfit
+[1] TRUE
+> 
+> all.equal(as.vector(efit$surv), as.vector(apply(direct,1,mean)))  #direct
+[1] TRUE
+> 
+> # Check out the "times" arg of survexp
+> efit2 <- survexp( ~ ratetable(x=x), dummy, ratetable=fit, se=F,
++                   times=c(.5, 2, 3.5,6))
+> aeq(efit2$surv, c(1, efit$surv[c(2,2,3)]))
+[1] TRUE
+> 
+> #
+> # Now test out the Hakulinen method (Bonsel's method)
+> #  By construction, we have a large correlation between x and censoring
+> #
+> # In theory, hak1 and hak2 would be the same.  In practice, like a KM and
+> #   F-H, they differ when n is small.
+> #
+> efit <- survexp( time ~ ratetable(x=x), dummy, ratetable=fit, se=F)
+> 
+> surv  <- wt <- rep(1,9)
+> tt <- c(1,2,4)
+> hak1 <- hak2 <- NULL
+> for (i in 1:3) {
++     wt[dummy$time < tt[i]]  <- 0
++     hak1 <- c(hak1,  exp(-sum(haz[i]*risk*surv*wt)/sum(surv*wt)))
++     hak2 <- c(hak2,  sum(exp(-haz[i]*risk)*surv*wt)/sum(surv*wt))
++     surv <- surv * exp(-haz[i]*risk)
++     }
+> 
+> all.equal(as.vector(efit$surv), as.vector(cumprod(hak1)))
+[1] TRUE
+> 
+> #
+> #  Now do the conditional estimate
+> #
+> efit <- survexp( time ~ ratetable(x=x), dummy, ratetable=fit, se=F,
++ 			conditional=T)
+> wt <- rep(1,9)
+> cond <- NULL
+> for (i in 1:3) {
++     wt[dummy$time < tt[i]]  <- 0
++     cond <- c(cond,  exp(-sum(haz[i]*risk*wt)/sum(wt)))
++     }
+> 
+> all.equal(as.vector(efit$surv), as.vector(cumprod(cond)))
+[1] TRUE
+> 
+> proc.time()
+   user  system elapsed 
+  0.692   0.076   0.766 

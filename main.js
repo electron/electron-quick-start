@@ -6,6 +6,19 @@ const BrowserWindow = electron.BrowserWindow
 
 const path = require('path')
 const url = require('url')
+const port = "9191"
+const { exec } = require('child_process');
+const cmdStr = ".\\R-Portable\\bin\\RScript.exe -e \"shiny::runApp('shinyApp.R', port="+port+")\"";
+console.log(cmdStr);
+exec(cmdStr, (error, stdout, stderr) => {
+  console.log('running Shiny App');
+  if (error) {
+    console.error(`exec error: ${error}`);
+    return;
+  }
+  console.log(`stdout: ${stdout}`);
+  console.log(`stderr: ${stderr}`);
+});
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
@@ -13,15 +26,18 @@ let mainWindow
 
 function createWindow () {
   // Create the browser window.
-  mainWindow = new BrowserWindow({width: 800, height: 600})
+  mainWindow = new BrowserWindow({webPreferences:{nodeIntegration:false},width: 800, height: 600})
+console.log(process.cwd())
+  mainWindow.loadURL('http://127.0.0.1:'+port)
 
   // and load the index.html of the app.
+/*
   mainWindow.loadURL(url.format({
     pathname: path.join(__dirname, 'index.html'),
     protocol: 'file:',
     slashes: true
   }))
-
+*/
   // Open the DevTools.
   // mainWindow.webContents.openDevTools()
 
@@ -41,6 +57,7 @@ app.on('ready', createWindow)
 
 // Quit when all windows are closed.
 app.on('window-all-closed', function () {
+  console.log('EVENT::window-all-closed')
   // On OS X it is common for applications and their menu bar
   // to stay active until the user quits explicitly with Cmd + Q
   if (process.platform !== 'darwin') {

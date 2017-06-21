@@ -1,0 +1,373 @@
+% !Rnw driver = highlight::HighlightWeaveLatex()
+\documentclass[10pt]{article}
+%\VignetteIndexEntry{Rcpp-extending}
+%\VignetteEngine{highlight::highlight}
+%\VignetteKeywords{Rcpp, package}
+%\VignetteDepends{Rcpp}
+
+\usepackage[USletter]{vmargin}
+\setmargrb{0.75in}{0.75in}{0.75in}{0.75in}
+
+\usepackage{color, alltt}
+\usepackage[authoryear,round,longnamesfirst]{natbib}
+\usepackage[colorlinks]{hyperref}
+\definecolor{link}{rgb}{0,0,0.3}	%% next few lines courtesy of RJournal.sty
+\hypersetup{
+    colorlinks,%
+    citecolor=link,%
+    filecolor=link,%
+    linkcolor=link,%
+    urlcolor=link
+}
+
+\usepackage{microtype}                     %% cf http://www.khirevich.com/latex/microtype/
+\usepackage[T1]{fontenc}		   %% cf http://www.khirevich.com/latex/font/
+\usepackage[bitstream-charter]{mathdesign} %% cf http://www.khirevich.com/latex/font/
+
+\newcommand{\proglang}[1]{\textsf{#1}}
+\newcommand{\pkg}[1]{{\fontseries{b}\selectfont #1}}
+
+%% defined as a stop-gap measure til interaction with highlight is sorted out
+\newcommand{\hlboxlessthan}{   \hlnormalsizeboxlessthan}
+\newcommand{\hlboxgreaterthan}{\hlnormalsizeboxgreaterthan}
+\newcommand{\hlboxopenbrace}{  \hlnormalsizeboxopenbrace}
+\newcommand{\hlboxclosebrace}{ \hlnormalsizeboxclosebrace}
+\newcommand{\hlboxbacktick}{   \hlnormalsizeboxbacktick}
+\newcommand{\hlboxunderscore}{ \hlnormalsizeboxunderscore}
+
+%% This corresponds to setting boxes=TRUE for highlight
+\newsavebox{\hlbox}
+\definecolor{hlBg}{rgb}{0.949019607843137,0.949019607843137,0.949019607843137}
+\definecolor{hlBd}{rgb}{0.9,0.9,0.9} % border
+\renewenvironment{Hchunk}{\vspace{0.5em}\noindent\begin{lrbox}{\hlbox}\begin{minipage}[b]{.9\textwidth}}%
+    {\end{minipage}\end{lrbox}\fcolorbox{hlBd}{hlBg}{\usebox{\hlbox}}\vspace{0.5em}}
+
+<<echo=FALSE,print=FALSE>>=
+prettyVersion <- packageDescription("Rcpp")$Version
+prettyDate <- format(Sys.Date(), "%B %e, %Y")
+require(inline)
+require(highlight)
+require(Rcpp)
+@
+
+\author{Dirk Eddelbuettel \and Romain Fran\c{c}ois}
+\title{Extending \pkg{Rcpp}}
+\date{\pkg{Rcpp} version \Sexpr{prettyVersion} as of \Sexpr{prettyDate}}
+
+\begin{document}
+\maketitle
+
+\abstract{
+  \noindent
+  This note provides an overview of the steps programmers should follow to
+  extend \pkg{Rcpp} \citep{CRAN:Rcpp,JSS:Rcpp} for use with their own classes. This document
+  is based on our experience in extending \pkg{Rcpp} to work with the
+  \pkg{Armadillo} \citep{Sanderson:2010:Armadillo} classes, available in the separate package
+  \pkg{RcppArmadillo} \citep{CRAN:RcppArmadillo}. This document assumes
+  knowledge of \pkg{Rcpp} as well as some knowledge of \proglang{C++}
+  templates \citep{Abrahams+Gurtovoy:2004:TemplateMetaprogramming}.
+}
+
+
+\section{Introduction}
+
+\pkg{Rcpp} facilitates data interchange between \proglang{R} and
+\proglang{C++} through the templated functions \texttt{Rcpp::as} (for
+conversion of objects from \proglang{R} to \proglang{C++}) and
+\texttt{Rcpp::wrap} (for conversion from \proglang{C++} to \proglang{R}).  In
+other words, we convert between the so-called \proglang{S}-expression
+pointers (in type \texttt{SEXP}) to a templated \proglang{C++} type, and vice
+versa.  The corresponding function declarations are as follows:
+
+<<lang=cpp>>=
+// conversion from R to C++
+template <typename T> T as( SEXP x) ;
+
+// conversion from C++ to R
+template <typename T> SEXP wrap(const T& object) ;
+@
+
+These converters are often used implicitly, as in the following code chunk:
+
+<<echo=FALSE>>=
+code <- '
+#include <Rcpp.h>
+using namespace Rcpp;
+
+// [[Rcpp::export]]
+List fx(List input){ // we get a list from R
+
+// pull std::vector<double> from R list
+// this is achieved through an implicit call to Rcpp::as
+std::vector<double> x = input["x"] ;
+
+// return an R list
+// this is achieved through implicit call to Rcpp::wrap
+return List::create(
+    _["front"] = x.front(),
+    _["back"]  = x.back()
+    );
+}
+'
+writeLines( code, "code.cpp" )
+@
+<<echo=FALSE,results=tex>>=
+external_highlight( "code.cpp", type = "LATEX", doc = FALSE )
+@
+
+<<>>=
+Rcpp::sourceCpp(file= "code.cpp")
+input <- list( x = seq(1, 10, by = 0.5) )
+fx( input )
+@
+
+The \pkg{Rcpp} converter function \texttt{Rcpp::as} and \texttt{Rcpp::wrap} have been
+designed to be extensible to user-defined types and third-party types.
+
+\section[Extending Rcpp::wrap]{Extending \texttt{Rcpp::wrap} }
+
+The \pkg{Rcpp::wrap} converter is extensible in essentially two ways : intrusive
+and non-intrusive.
+
+\subsection{Intrusive extension}
+
+When extending \pkg{Rcpp} with your own data type, the recommended way is to
+implement a conversion to \texttt{SEXP}. This lets \texttt{Rcpp::wrap} know
+about the new data type.  The template meta programming (or TMP) dispatch is able to
+recognize that a type is convertible to a \texttt{SEXP} and
+\texttt{Rcpp::wrap} will use that conversion.
+
+The caveat is that the type must be declared before the main header
+file \texttt{Rcpp.h} is included.
+
+<<lang=cpp>>=
+#include <RcppCommon.h>
+
+class Foo {
+    public:
+        Foo() ;
+
+        // this operator enables implicit Rcpp::wrap
+        operator SEXP() ;
+}
+
+#include <Rcpp.h>
+@
+
+This is called \emph{intrusive} because the conversion to \texttt{SEXP}
+operator has to be declared within the class.
+
+\subsection{Non-intrusive extension}
+
+It is often desirable to offer automatic conversion to third-party types, over
+which the developer has no control and can therefore not include a conversion
+to \texttt{SEXP} operator in the class definition.
+
+To provide automatic conversion from \proglang{C++} to \proglang{R}, one must
+declare a specialization of the \texttt{Rcpp::wrap} template between the
+includes of \texttt{RcppCommon.h} and \texttt{Rcpp.h}.
+
+<<lang=cpp>>=
+#include <RcppCommon.h>
+
+// third party library that declares class Bar
+#include <foobar.h>
+
+// declaring the specialization
+namespace Rcpp {
+    template <> SEXP wrap( const Bar& ) ;
+}
+
+// this must appear after the specialization,
+// otherwise the specialization will not be seen by Rcpp types
+#include <Rcpp.h>
+@
+
+It should be noted that only the declaration is required. The implementation
+can appear after the \texttt{Rcpp.h} file is included, and therefore take
+full advantage of the \pkg{Rcpp} type system.
+
+Another non-intrusive option is to expose an external pointer. The macro 
+\texttt{RCPP\_EXPORT\_WRAP} provides an easy way to expose a \proglang{C++} class 
+to \proglang{R} as an external pointer. It can be used instead of specializing
+\texttt{Rcpp::wrap}, and should not be used simultaneously. 
+
+<<lang=cpp>>=
+#include RcppCommon.h
+#include foobar.h
+
+RCPP_EXPORT_WRAP(Bar);
+@
+
+\subsection{Templates and partial specialization}
+
+It is perfectly valid to declare a partial specialization for the
+\texttt{Rcpp::wrap} template. The compiler will identify the appropriate
+overload:
+
+<<lang=cpp>>=
+#include <RcppCommon.h>
+
+// third party library that declares template class Bling<T>
+#include <foobar.h>
+
+// declaring the partial specialization
+namespace Rcpp {
+    namespace traits {
+
+        template <typename T> SEXP wrap( const Bling<T>& ) ;
+
+    }
+}
+
+// this must appear after the specialization,
+// otherwise the specialization will not be seen by Rcpp types
+#include <Rcpp.h>
+
+@
+
+
+\section[Extending Rcpp::as]{Extending \texttt{Rcpp::as}}
+
+Conversion from \proglang{R} to \proglang{C++} is also possible
+in both intrusive and non-intrusive ways.
+
+\subsection{Intrusive extension}
+
+As part of its template meta programming dispatch logic, \pkg{Rcpp::as}
+will attempt to use the constructor of the target class taking a \texttt{SEXP}.
+
+<<lang=cpp>>=
+#include <RcppCommon.h>
+
+class Foo{
+    public:
+        Foo() ;
+
+        // this constructor enables implicit Rcpp::as
+        Foo(SEXP) ;
+}
+
+
+// this must appear after the specialization,
+// otherwise the specialization will not be seen by Rcpp types
+#include <Rcpp.h>
+@
+
+\subsection{Non-intrusive extension}
+
+It is also possible to fully specialize \texttt{Rcpp::as} to enable
+non-intrusive implicit conversion capabilities.
+
+<<lang=cpp>>=
+#include <RcppCommon.h>
+
+// third party library that declares class Bar
+#include <foobar.h>
+
+// declaring the specialization
+namespace Rcpp {
+    template <> Bar as( SEXP ) ;
+}
+
+// this must appear after the specialization,
+// otherwise the specialization will not be seen by Rcpp types
+#include <Rcpp.h>
+@
+
+Furthermore, another non-intrusive option is to opt for sharing an R 
+external pointer. The macro \texttt{RCPP\_EXPORT\_AS} provides an easy way to
+extend \texttt{Rcpp::as} to expose \proglang{R} external pointers to 
+\proglang{C++}. It can be used instead of specializing \texttt{Rcpp::as}, and 
+should not be used simultaneously.
+
+<<lang=cpp>>=
+#include RcppCommon.h
+#include foobar.h
+
+RCPP_EXPORT_AS(Bar);
+@
+
+With this being said, there is one additional macro that can be used to 
+simultaneously define both \texttt{Rcpp::wrap} and \texttt{Rcpp::as}
+specialization for an external pointer. The macro \texttt{RCPP\_EXPOSED\_CLASS} 
+can be use to transparently exchange a class between \proglang{R} and 
+\proglang{C++} as an external pointer. Do not simultaneously use it alongside
+\texttt{RCPP\_EXPOSED\_AS}, \texttt{RCPP\_EXPOSED\_WRAP}, \texttt{Rcpp::wrap}, or
+\texttt{Rcpp::as}.
+
+
+\subsection{Templates and partial specialization}
+
+The signature of \texttt{Rcpp::as} does not allow partial specialization.
+When exposing a templated class to \texttt{Rcpp::as}, the programmer must
+specialize the \pkg{Rcpp::traits::Exporter} template class. The TMP dispatch
+will recognize that a specialization of \texttt{Exporter} is available
+and delegate the conversion to this class. \pkg{Rcpp} defines
+the \texttt{Rcpp::traits::Exporter} template class as follows :
+
+<<lang=cpp>>=
+namespace Rcpp {
+    namespace traits {
+
+        template <typename T> class Exporter{
+        public:
+            Exporter( SEXP x ) : t(x){}
+            inline T get(){ return t ; }
+
+        private:
+            T t ;
+        } ;
+    }
+}
+@
+
+This is the reason why the default behavior of \texttt{Rcpp::as} is to
+invoke the constructor of the type \texttt{T} taking a \texttt{SEXP}.
+
+Since partial specialization of class templates is allowed, we can expose
+a set of classes as follows:
+
+<<lang=cpp>>=
+#include <RcppCommon.h>
+
+// third party library that declares template class Bling<T>
+#include <foobar.h>
+
+// declaring the partial specialization
+namespace Rcpp {
+    namespace traits {
+        template <typename T> class Exporter< Bling<T> >;
+    }
+}
+
+// this must appear after the specialization,
+// otherwise the specialization will not be seen by Rcpp types
+#include <Rcpp.h>
+@
+
+Using this approach, the requirements for the \texttt{Exporter< Bling<T> >}
+class are:
+\begin{itemize}
+\item it should have a constructor taking a \texttt{SEXP}
+\item it should have a methods called \texttt{get} that returns an instance
+of the \texttt{Bling<T>} type.
+\end{itemize}
+
+<<echo=FALSE>>=
+unlink( "code.cpp" )
+@
+
+\section{Summary}
+
+The \pkg{Rcpp} package greatly facilitates the transfer of objects between
+\proglang{R} and \proglang{C++}. This note has shown how to extend \pkg{Rcpp}
+to either user-defined or third-party classes via the \texttt{Rcpp::as} and
+\texttt{Rcpp::wrap} template functions. Both intrusive and non-intrusive
+approaches were discussed.
+
+\bibliographystyle{plainnat}
+\bibliography{\Sexpr{Rcpp:::bib()}}
+
+\end{document}
+

@@ -1,0 +1,283 @@
+
+R version 3.4.0 RC (2017-04-18 r72543) -- "You Stupid Darkness"
+Copyright (C) 2017 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> ##
+> ## RNG tests using DKW inequality for rate of convergence
+> ##
+> ## P(sup | F_n - F | > t) < 2 exp(-2nt^2)
+> ##
+> ## The 2 in front of exp() was derived by Massart. It is the best possible
+> ## constant valid uniformly in t,n,F. For large n*t^2 this agrees with the
+> ## large-sample approximation to the Kolmogorov-Smirnov statistic.
+> ##
+> 
+> 
+> superror <- function(rfoo,pfoo,sample.size,...) {
++     x <- rfoo(sample.size,...)
++     tx <- table(signif(x, 12)) # such that xi will be sort(unique(x))
++     xi <- as.numeric(names(tx))
++     f <- pfoo(xi,...)
++     fhat <- cumsum(tx)/sample.size
++     max(abs(fhat-f))
++ }
+> 
+> pdkwbound <- function(n,t) 2*exp(-2*n*t*t)
+> 
+> qdkwbound <- function(n,p) sqrt(log(p/2)/(-2*n))
+> 
+> dkwtest <- function(stub = "norm", ...,
++                     sample.size = 10000, pthreshold = 0.001,
++                     print.result = TRUE, print.detail = FALSE,
++                     stop.on.failure = TRUE)
++ {
++     rfoo <- eval(as.name(paste("r", stub, sep="")))
++     pfoo <- eval(as.name(paste("p", stub, sep="")))
++     s <- superror(rfoo, pfoo, sample.size, ...)
++     if (print.result || print.detail) {
++         printargs <- substitute(list(...))
++         printargs[[1]] <- as.name(stub)
++         cat(deparse(printargs))
++         if (print.detail)
++             cat("\nsupremum error = ",signif(s,2),
++                 " with p-value=",min(1,round(pdkwbound(sample.size,s),4)),"\n")
++     }
++     rval <- (s < qdkwbound(sample.size,pthreshold))
++     if (print.result)
++         cat(c(" FAILED\n"," PASSED\n")[rval+1])
++     if (stop.on.failure && !rval)
++         stop("dkwtest failed")
++     rval
++ }
+> 
+> .proctime00 <- proc.time() # start timing
+> 
+> 
+> dkwtest("binom",size =   1,prob = 0.2)
+binom(size = 1, prob = 0.2) PASSED
+[1] TRUE
+> dkwtest("binom",size =   2,prob = 0.2)
+binom(size = 2, prob = 0.2) PASSED
+[1] TRUE
+> dkwtest("binom",size = 100,prob = 0.2)
+binom(size = 100, prob = 0.2) PASSED
+[1] TRUE
+> dkwtest("binom",size = 1e4,prob = 0.2)
+binom(size = 10000, prob = 0.2) PASSED
+[1] TRUE
+> dkwtest("binom",size =   1,prob = 0.8)
+binom(size = 1, prob = 0.8) PASSED
+[1] TRUE
+> dkwtest("binom",size = 100,prob = 0.8)
+binom(size = 100, prob = 0.8) PASSED
+[1] TRUE
+> dkwtest("binom",size = 100,prob = 0.999)
+binom(size = 100, prob = 0.999) PASSED
+[1] TRUE
+> 
+> dkwtest("pois",lambda =  0.095)
+pois(lambda = 0.095) PASSED
+[1] TRUE
+> dkwtest("pois",lambda =  0.95)
+pois(lambda = 0.95) PASSED
+[1] TRUE
+> dkwtest("pois",lambda =  9.5)
+pois(lambda = 9.5) PASSED
+[1] TRUE
+> dkwtest("pois",lambda = 95)
+pois(lambda = 95) PASSED
+[1] TRUE
+> 
+> dkwtest("nbinom",size =   1,prob = 0.2)
+nbinom(size = 1, prob = 0.2) PASSED
+[1] TRUE
+> dkwtest("nbinom",size =   2,prob = 0.2)
+nbinom(size = 2, prob = 0.2) PASSED
+[1] TRUE
+> dkwtest("nbinom",size = 100,prob = 0.2)
+nbinom(size = 100, prob = 0.2) PASSED
+[1] TRUE
+> dkwtest("nbinom",size = 1e4,prob = 0.2)
+nbinom(size = 10000, prob = 0.2) PASSED
+[1] TRUE
+> dkwtest("nbinom",size =   1,prob = 0.8)
+nbinom(size = 1, prob = 0.8) PASSED
+[1] TRUE
+> dkwtest("nbinom",size = 100,prob = 0.8)
+nbinom(size = 100, prob = 0.8) PASSED
+[1] TRUE
+> dkwtest("nbinom",size = 100,prob = 0.999)
+nbinom(size = 100, prob = 0.999) PASSED
+[1] TRUE
+> 
+> dkwtest("norm")
+norm() PASSED
+[1] TRUE
+> dkwtest("norm",mean = 5,sd = 3)
+norm(mean = 5, sd = 3) PASSED
+[1] TRUE
+> 
+> dkwtest("gamma",shape =  0.1)
+gamma(shape = 0.1) PASSED
+[1] TRUE
+> dkwtest("gamma",shape =  0.2)
+gamma(shape = 0.2) PASSED
+[1] TRUE
+> dkwtest("gamma",shape = 10)
+gamma(shape = 10) PASSED
+[1] TRUE
+> dkwtest("gamma",shape = 20)
+gamma(shape = 20) PASSED
+[1] TRUE
+> 
+> dkwtest("hyper",m = 40,n = 30,k = 20)
+hyper(m = 40, n = 30, k = 20) PASSED
+[1] TRUE
+> dkwtest("hyper",m = 40,n =  3,k = 20)
+hyper(m = 40, n = 3, k = 20) PASSED
+[1] TRUE
+> dkwtest("hyper",m =  6,n =  3,k =  2)
+hyper(m = 6, n = 3, k = 2) PASSED
+[1] TRUE
+> dkwtest("hyper",m =  5,n =  3,k =  2)
+hyper(m = 5, n = 3, k = 2) PASSED
+[1] TRUE
+> dkwtest("hyper",m =  4,n =  3,k =  2)
+hyper(m = 4, n = 3, k = 2) PASSED
+[1] TRUE
+> 
+> 
+> dkwtest("signrank",n =  1)
+signrank(n = 1) PASSED
+[1] TRUE
+> dkwtest("signrank",n =  2)
+signrank(n = 2) PASSED
+[1] TRUE
+> dkwtest("signrank",n = 10)
+signrank(n = 10) PASSED
+[1] TRUE
+> dkwtest("signrank",n = 30)
+signrank(n = 30) PASSED
+[1] TRUE
+> 
+> dkwtest("wilcox",m = 40,n = 30)
+wilcox(m = 40, n = 30) PASSED
+[1] TRUE
+> dkwtest("wilcox",m = 40,n = 10)
+wilcox(m = 40, n = 10) PASSED
+[1] TRUE
+> dkwtest("wilcox",m =  6,n =  3)
+wilcox(m = 6, n = 3) PASSED
+[1] TRUE
+> dkwtest("wilcox",m =  5,n =  3)
+wilcox(m = 5, n = 3) PASSED
+[1] TRUE
+> dkwtest("wilcox",m =  4,n =  3)
+wilcox(m = 4, n = 3) PASSED
+[1] TRUE
+> 
+> dkwtest("chisq",df =  1)
+chisq(df = 1) PASSED
+[1] TRUE
+> dkwtest("chisq",df = 10)
+chisq(df = 10) PASSED
+[1] TRUE
+> 
+> dkwtest("logis")
+logis() PASSED
+[1] TRUE
+> dkwtest("logis",location = 4,scale = 2)
+logis(location = 4, scale = 2) PASSED
+[1] TRUE
+> 
+> dkwtest("t",df =  1)
+t(df = 1) PASSED
+[1] TRUE
+> dkwtest("t",df = 10)
+t(df = 10) PASSED
+[1] TRUE
+> dkwtest("t",df = 40)
+t(df = 40) PASSED
+[1] TRUE
+> 
+> dkwtest("beta",shape1 = 1, shape2 = 1)
+beta(shape1 = 1, shape2 = 1) PASSED
+[1] TRUE
+> dkwtest("beta",shape1 = 2, shape2 = 1)
+beta(shape1 = 2, shape2 = 1) PASSED
+[1] TRUE
+> dkwtest("beta",shape1 = 1, shape2 = 2)
+beta(shape1 = 1, shape2 = 2) PASSED
+[1] TRUE
+> dkwtest("beta",shape1 = 2, shape2 = 2)
+beta(shape1 = 2, shape2 = 2) PASSED
+[1] TRUE
+> dkwtest("beta",shape1 = .2,shape2 = .2)
+beta(shape1 = 0.2, shape2 = 0.2) PASSED
+[1] TRUE
+> 
+> dkwtest("cauchy")
+cauchy() PASSED
+[1] TRUE
+> dkwtest("cauchy",location = 4,scale = 2)
+cauchy(location = 4, scale = 2) PASSED
+[1] TRUE
+> 
+> dkwtest("f",df1 =  1,df2 =  1)
+f(df1 = 1, df2 = 1) PASSED
+[1] TRUE
+> dkwtest("f",df1 =  1,df2 = 10)
+f(df1 = 1, df2 = 10) PASSED
+[1] TRUE
+> dkwtest("f",df1 = 10,df2 = 10)
+f(df1 = 10, df2 = 10) PASSED
+[1] TRUE
+> dkwtest("f",df1 = 30,df2 =  3)
+f(df1 = 30, df2 = 3) PASSED
+[1] TRUE
+> 
+> dkwtest("weibull",shape = 1)
+weibull(shape = 1) PASSED
+[1] TRUE
+> dkwtest("weibull",shape = 4,scale = 4)
+weibull(shape = 4, scale = 4) PASSED
+[1] TRUE
+> 
+> ## regression test for PR#7314
+> dkwtest("hyper", m=60, n=100, k=50)
+hyper(m = 60, n = 100, k = 50) PASSED
+[1] TRUE
+> dkwtest("hyper", m=6, n=10, k=5)
+hyper(m = 6, n = 10, k = 5) PASSED
+[1] TRUE
+> dkwtest("hyper", m=600, n=1000, k=500)
+hyper(m = 600, n = 1000, k = 500) PASSED
+[1] TRUE
+> 
+> ## regression test for non-central t bug
+> dkwtest("t", df=20, ncp=3)
+t(df = 20, ncp = 3) PASSED
+[1] TRUE
+> ## regression test for non-central F bug
+> dkwtest("f", df1=10, df2=2, ncp=3)
+f(df1 = 10, df2 = 2, ncp = 3) PASSED
+[1] TRUE
+> 
+> 
+> cat('Time elapsed: ', proc.time() - .proctime00,'\n')
+Time elapsed:  1.305 0.004 1.312 0 0 
+> 
+> 
