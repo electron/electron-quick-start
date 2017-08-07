@@ -1,3 +1,12 @@
+#
+# ----------------------------------------------
+
+***This is the first attempt to combine Electron with [R-Portable](https://sourceforge.net/projects/rportable/files/R-Portable/) (version 3.4.0) and [RStudio Shiny](https://cran.r-project.org/web/packages/shiny/index.html) package to deliver Electron Applications that run standalone with R and Shiny.***
+
+# ----------------------------------------------
+
+#
+#
 # electron-quick-start
 
 **Clone and run for a quick way to see Electron in action.**
