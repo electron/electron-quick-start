@@ -1,0 +1,382 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+/******************************************************************************
+ * $Id: gdalvrt.xsd 29326 2015-06-10 20:36:31Z rouault $
+ *
+ * Project:  GDAL/OGR
+ * Purpose:  XML Schema for GDAL VRT files.
+ * Author:   Even Rouault, <even dot rouault at spatialys dot com>
+ *
+ **********************************************************************
+ * Copyright (c) 2015, Even Rouault
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included
+ * in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+ * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
+ ****************************************************************************/
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" version="1.0">
+    <xs:element name="VRTDataset">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:choice minOccurs="0" maxOccurs="unbounded">
+                    <xs:element name="SRS" type="xs:string"/>
+                    <xs:element name="GeoTransform" type="xs:string"/>
+                    <xs:element name="GCPList" type="GCPListType"/>
+                    <xs:element name="BlockXSize" type="nonNegativeInteger32"/>
+                    <xs:element name="BlockYSize" type="nonNegativeInteger32"/>
+                    <xs:element name="Metadata" type="MetadataType"/> <!-- may be repeated -->
+                    <xs:element name="VRTRasterBand" type="VRTRasterBandType"/> <!-- may be repeated -->
+                    <xs:element name="MaskBand" type="MaskBandType"/>
+                    <xs:element name="GDALWarpOptions" type="GDALWarpOptionsType"/> <!-- only if subClass="VRTWarpedDataset" -->
+                </xs:choice>
+            </xs:sequence>
+            <xs:attribute name="subClass" type="xs:string"/>
+            <xs:attribute name="rasterXSize" type="nonNegativeInteger32" use="required"/>
+            <xs:attribute name="rasterYSize" type="nonNegativeInteger32" use="required"/>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:simpleType name="nonNegativeInteger32">
+        <xs:restriction base="xs:nonNegativeInteger">
+            <xs:maxInclusive value="2147483647"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:complexType name="GCPListType">
+        <xs:sequence>
+            <xs:element name="GCP" type="GCPType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="Projection" type="xs:string"/>
+    </xs:complexType>
+
+    <xs:complexType name="GCPType">
+        <xs:attribute name="Id" type="xs:string"/>
+        <xs:attribute name="Info" type="xs:string"/>
+        <xs:attribute name="Pixel" type="xs:double" use="required"/>
+        <xs:attribute name="Line" type="xs:double" use="required"/>
+        <xs:attribute name="X" type="xs:double" use="required"/>
+        <xs:attribute name="Y" type="xs:double" use="required"/>
+        <xs:attribute name="Z" type="xs:double"/>
+        <xs:attribute name="GCPZ" type="xs:double"/> <!-- deprecated -->
+    </xs:complexType>
+
+    <xs:complexType name="MetadataType">
+        <xs:sequence>
+            <!--<xs:choice>-->
+                <!--<xs:element name="MDI" type="MDIType" minOccurs="0" maxOccurs="unbounded"/>-->
+                <xs:any processContents="skip" minOccurs="0" maxOccurs="unbounded"/>
+            <!--</xs:choice>-->
+        </xs:sequence>
+        <xs:attribute name="domain" type="xs:string"/>
+        <xs:attribute name="format" type="xs:string"/>
+    </xs:complexType>
+
+    <xs:complexType name="GDALWarpOptionsType">
+        <xs:sequence>
+            <xs:any processContents="skip" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="MDIType">
+        <xs:simpleContent>
+            <xs:extension base="xs:string">
+                <xs:attribute name="key" type="xs:string" use="required"/>
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+
+    <xs:complexType name="VRTRasterBandType">
+        <xs:sequence>
+            <xs:choice minOccurs="0" maxOccurs="unbounded">
+                <xs:element name="Description" type="xs:string"/>
+                <xs:element name="UnitType" type="xs:string"/>
+                <xs:element name="Offset" type="xs:double"/>
+                <xs:element name="Scale" type="xs:double"/>
+                <xs:element name="CategoryNames" type="CategoryNamesType"/>
+                <xs:element name="ColorTable" type="ColorTableType"/>
+                <xs:element name="NoDataValue" type="DoubleOrNanType"/>
+                <xs:element name="NodataValue" type="xs:double"/> <!-- typo: deprecated -->
+                <xs:element name="HideNoDataValue" type="ZeroOrOne"/>
+                <xs:element name="Metadata" type="MetadataType"/>
+                <xs:element name="ColorInterp" type="ColorInterpType"/>
+                <xs:element name="Overview" type="OverviewType"/>
+                <xs:element name="MaskBand" type="MaskBandType"/>
+                <xs:element name="Histograms" type="HistogramsType"/>
+
+                <!-- for a VRTSourcedRasterBand. Each element may be repeated -->
+                <xs:element name="SimpleSource" type="SimpleSourceType"/> 
+                <xs:element name="ComplexSource" type="ComplexSourceType"/>
+                <xs:element name="AveragedSource" type="SimpleSourceType"/>
+                <xs:element name="KernelFilteredSource" type="KernelFilteredSourceType"/>
+
+                <!-- for a VRTDerivedRasterBand -->
+                <xs:element name="PixelFunctionType" type="xs:string"/>
+                <xs:element name="SourceTransferType" type="DataTypeType"/>
+
+                <!-- for a VRTRawRasterBand -->
+                <xs:element name="SourceFilename" type="SourceFilenameType"/>
+                <xs:element name="ImageOffset" type="xs:integer"/>
+                <xs:element name="PixelOffset" type="xs:integer"/>
+                <xs:element name="LineOffset" type="xs:integer"/>
+                <xs:element name="ByteOrder" type="xs:string"/>
+            </xs:choice>
+        </xs:sequence>
+        <xs:attribute name="dataType" type="DataTypeType"/>
+        <xs:attribute name="band" type="xs:unsignedInt"/>
+        <xs:attribute name="subClass" type="VRTRasterBandSubClassType"/>
+
+        <xs:attribute name="BlockXSize" type="xs:unsignedInt"/> <!-- ignored -->
+        <xs:attribute name="BlockYSize" type="xs:unsignedInt"/> <!-- ignored -->
+    </xs:complexType>
+
+    <xs:simpleType name="ZeroOrOne">
+        <xs:restriction base="xs:integer">
+            <xs:enumeration value="0"/>
+            <xs:enumeration value="1"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="VRTRasterBandSubClassType">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="VRTWarpedRasterBand"/>
+            <xs:enumeration value="VRTDerivedRasterBand"/>
+            <xs:enumeration value="VRTRawRasterBand"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:complexType name="MaskBandType">
+        <xs:sequence minOccurs="1" maxOccurs="1">
+            <xs:element name="VRTRasterBand" type="VRTRasterBandType"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="HistogramsType">
+        <xs:sequence minOccurs="0" maxOccurs="unbounded">
+            <xs:element name="HistItem" type="HistItemType"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="HistItemType">
+        <xs:sequence>
+            <xs:choice minOccurs="0" maxOccurs="unbounded">
+                <xs:element name="HistMin" type="xs:double"/>
+                <xs:element name="HistMax" type="xs:double"/>
+                <xs:element name="BucketCount" type="xs:integer"/>
+                <xs:element name="IncludeOutOfRange" type="ZeroOrOne"/>
+                <xs:element name="Approximate" type="ZeroOrOne"/>
+                <xs:element name="HistCounts" type="xs:string"/>
+            </xs:choice>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="CategoryNamesType">
+        <xs:sequence minOccurs="0" maxOccurs="unbounded">
+            <xs:element name="Category" type="xs:string"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="ColorTableType">
+        <xs:sequence minOccurs="0" maxOccurs="unbounded">
+            <xs:element name="Entry" type="ColorTableEntryType"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="OverviewType">
+        <xs:sequence>
+            <xs:choice minOccurs="0" maxOccurs="unbounded">
+                <xs:element name="SourceFilename" type="SourceFilenameType"/>
+                <xs:element name="SourceBand" type="xs:string"/>  <!-- should be refined into xs:nonNegativeInteger or mask,xs:nonNegativeInteger -->
+            </xs:choice>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="ColorTableEntryType">
+        <xs:attribute name="c1" type="xs:unsignedInt" use="required"/>
+        <xs:attribute name="c2" type="xs:unsignedInt" use="required" />
+        <xs:attribute name="c3" type="xs:unsignedInt" use="required" />
+        <xs:attribute name="c4" type="xs:unsignedInt" />
+    </xs:complexType>
+
+    <xs:simpleType name="DataTypeType">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="Byte"/>
+            <xs:enumeration value="UInt16"/>
+            <xs:enumeration value="Int16"/>
+            <xs:enumeration value="UInt32"/>
+            <xs:enumeration value="Int32"/>
+            <xs:enumeration value="Float32"/>
+            <xs:enumeration value="Float64"/>
+            <xs:enumeration value="CInt16"/>
+            <xs:enumeration value="CInt32"/>
+            <xs:enumeration value="CFloat32"/>
+            <xs:enumeration value="CFloat64"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="ColorInterpType">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="Gray"/>
+            <xs:enumeration value="Palette"/>
+            <xs:enumeration value="Red"/>
+            <xs:enumeration value="Green"/>
+            <xs:enumeration value="Blue"/>
+            <xs:enumeration value="Alpha"/>
+            <xs:enumeration value="Hue"/>
+            <xs:enumeration value="Saturation"/>
+            <xs:enumeration value="Lightness"/>
+            <xs:enumeration value="Cyan"/>
+            <xs:enumeration value="Magenta"/>
+            <xs:enumeration value="Yellow"/>
+            <xs:enumeration value="Black"/>
+            <xs:enumeration value="YCbCr_Y"/>
+            <xs:enumeration value="YCbCr_Cb"/>
+            <xs:enumeration value="YCbCr_Cr"/>
+            <xs:enumeration value="Undefined"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:group name="SimpleSourceElementsGroup">
+        <xs:sequence>
+            <xs:choice minOccurs="0" maxOccurs="unbounded">
+                <xs:element name="SourceFilename" type="SourceFilenameType"/>
+                <xs:element name="OpenOptions" type="OpenOptionsType"/>
+                <xs:element name="SourceBand" type="xs:string"/>  <!-- should be refined into xs:nonNegativeInteger or mask,xs:nonNegativeInteger -->
+                <xs:element name="SourceProperties" type="SourcePropertiesType"/>
+                <xs:element name="SrcRect" type="RectType"/>
+                <xs:element name="DstRect" type="RectType"/>
+            </xs:choice>
+        </xs:sequence>
+    </xs:group>
+
+    <xs:complexType name="OpenOptionsType">
+        <xs:sequence>
+            <xs:element name="OOI" type="OOIType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="OOIType">
+        <xs:simpleContent>
+            <xs:extension base="xs:string">
+                <xs:attribute name="key" type="xs:string" use="required"/>
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+
+    <xs:complexType name="SimpleSourceType">
+        <xs:group ref="SimpleSourceElementsGroup"/>
+        <xs:attribute name="resampling" type="xs:string"/>
+    </xs:complexType>
+
+    <xs:group name="ComplexSourceElementsGroup">
+        <xs:sequence>
+            <xs:choice minOccurs="0" maxOccurs="unbounded">
+                <xs:group ref="SimpleSourceElementsGroup"/>
+                <xs:element name="ScaleOffset" type="xs:double"/>
+                <xs:element name="ScaleRatio" type="xs:double"/>
+                <xs:element name="ColorTableComponent" type="xs:nonNegativeInteger"/>
+                <xs:element name="Exponent" type="xs:double"/>
+                <xs:element name="SrcMin" type="xs:double"/>
+                <xs:element name="SrcMax" type="xs:double"/>
+                <xs:element name="DstMin" type="xs:double"/>
+                <xs:element name="DstMax" type="xs:double"/>
+                <xs:element name="NODATA" type="DoubleOrNanType"/>
+                <xs:element name="LUT" type="xs:string"/>
+            </xs:choice>
+        </xs:sequence>
+    </xs:group>
+
+    <xs:complexType name="ComplexSourceType">
+        <xs:group ref="ComplexSourceElementsGroup"/>
+        <xs:attribute name="resampling" type="xs:string"/>
+    </xs:complexType>
+
+    <xs:complexType name="KernelFilteredSourceType">
+        <xs:sequence>
+            <xs:choice minOccurs="0" maxOccurs="unbounded">
+                <xs:group ref="ComplexSourceElementsGroup"/>
+                <xs:element name="Kernel" type="KernelType"/>
+            </xs:choice>
+        </xs:sequence>
+        <xs:attribute name="resampling" type="xs:string"/>
+    </xs:complexType>
+
+    <xs:complexType name="KernelType">
+        <xs:all>
+            <xs:element name="Size" type="xs:nonNegativeInteger"/>
+            <xs:element name="Coefs" type="xs:string"/>
+        </xs:all>
+
+        <xs:attribute name="normalized" type="ZeroOrOne"/>
+    </xs:complexType>
+
+    <xs:simpleType name="DoubleOrNanType">
+        <xs:union memberTypes="xs:double NANType" />
+    </xs:simpleType>
+
+    <xs:simpleType name="NANType">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="nan"/>
+            <xs:enumeration value="NAN"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:complexType name="SourceFilenameType">
+        <xs:simpleContent>
+            <xs:extension base="xs:string">
+                <xs:attribute name="relativeToVRT" type="ZeroOrOne" />
+                <xs:attribute name="relativetoVRT" type="ZeroOrOne" /> <!-- typo: deprecated -->
+                <xs:attribute name="shared" type="OGRBooleanType"/>
+            </xs:extension>
+        </xs:simpleContent>
+    </xs:complexType>
+
+    <xs:simpleType name="OGRBooleanType">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="1"/>
+            <xs:enumeration value="0"/>
+            <xs:enumeration value="ON"/>
+            <xs:enumeration value="OFF"/>
+            <xs:enumeration value="on"/>
+            <xs:enumeration value="off"/>
+            <xs:enumeration value="YES"/>
+            <xs:enumeration value="NO"/>
+            <xs:enumeration value="yes"/>
+            <xs:enumeration value="no"/>
+            <xs:enumeration value="TRUE"/>
+            <xs:enumeration value="FALSE"/>
+            <xs:enumeration value="true"/>
+            <xs:enumeration value="false"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:complexType name="SourcePropertiesType">
+        <xs:attribute name="RasterXSize" type="nonNegativeInteger32" />
+        <xs:attribute name="RasterYSize" type="nonNegativeInteger32" />
+        <xs:attribute name="DataType" type="DataTypeType" />
+        <xs:attribute name="BlockXSize" type="nonNegativeInteger32" />
+        <xs:attribute name="BlockYSize" type="nonNegativeInteger32" />
+    </xs:complexType>
+
+    <xs:complexType name="RectType">
+        <xs:attribute name="xOff" type="xs:int" />
+        <xs:attribute name="yOff" type="xs:int" />
+        <xs:attribute name="xSize" type="xs:unsignedInt" />
+        <xs:attribute name="ySize" type="xs:unsignedInt" />
+    </xs:complexType>
+
+</xs:schema>

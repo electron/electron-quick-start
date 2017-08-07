@@ -1,0 +1,153 @@
+Summary of rgdal installation and drivers
+
+The CRAN rgdal source package will work with the installed GDAL,
+with all its drivers, where the availability of drivers is the user's
+responsibility. This applies to OSX and Linux where the user installs
+GDAL from source. If the user on OSX or Linux installs a GDAL binary,
+s/he will get the drivers in that binary (and its dependencies), for
+example KyngChaos GDAL frameworks for OSX.
+
+On Windows, building GDAL from source for further linking to rgdal
+involves a choice of compilers too, as FWTools and its newer variant
+OSGeo4W use Visual C++, so the rgdal C/C++ source code also needs to
+be compiled and linked with the same compilers. This is described in
+the README.windows file in rgdal - not necessarily updated, the file
+describes approaches that worked when they were tried.
+
+OSX Frameworks, Debian/ubuntu and Fedora, and FWTools/OSGeo4W binary
+GDAL distributions are all somewhat fragile, because updating them may
+break the rgdal installed package. This happened on CRAN in mid-2011
+for Debian, and happens regularly with Ubuntu. Very few Windows users
+appear to bother to extend their drivers beyond the CRAN binary.
+
+The CRAN Windows and CRAN OSX binaries are built static - all the
+above are dynamically linked and susceptible to trouble if a change in an
+upstream binary dependency isn't reflected downstream. The static builds
+remove the external dependencies, and "freeze" rgdal/GDAL/Proj.4/Expat.
+Expat gives read/write KML and GPX vector drivers for OGR.
+
+Building static means that the subset of drivers will work independently
+of any changes, so are more robust. For a long time, Windows GDAL
+etc. DLLs were copied into the distributed Windows rgdal binary. The
+underlying Windows GDAL etc. libraries are compiled and linked using the
+MinGW compilers used for R itself, avoiding the complication of using
+Visual C++ (which uses different conventions for stack handling).
+
+For additional drivers, users of the CRAN Windows and CRAN OSX
+binaries can either convert to an available GDAL driver externally,
+read using CRAN rgdal binary - here you factor out mismatches,
+especially 32/64-bit questions among others, and can check the stages of
+the workflow. You can script the first step in R through system(). The
+PATH environment variable will need setting correctly to detect the
+external software properly.
+
+Alternatively, on the Windows platform one can use Visual C++ to install
+rgdal linking to OSGeo4W or FWTools, but may trip over R 64-bit not
+matching a 32-bit compiler and/or 32-bit external dependencies. FWTools is
+declared to be 32-bit, I cannot see what OSGeo4W claims to be. The details
+of cases where this has worked are given in the README.windows file.
+
+I belive that the first alternative is much more reliable on the Windows
+platform, and avoids deployment problems, Users can use R either 32-bit
+or 64-bit, because the file conversion is done outside R. Deploying R
+with rgdal/raster is done in the standard way, as is FWTools or OSGeo4W
+(the latter's installer is inconvenient for installing in a lab from a
+platform image).
+
+
+Installing the R source rgdal package
+
+In order to install the R source rgdal package, you should first have
+installed GDAL/OGR with all of their dependencies needed for the data
+you need to access. If you are installing a binary version of GDAL/OGR,
+and will be installing rgdal from source, remember that you will also
+need the GDAL/OGR development binary too). There are many dependencies,
+not all of which need to be met for every user, but which provide the
+flexibility needed by users with special requirements. Note that both
+driver updates and new drivers are made available in successive releases
+of GDAL/OGR, and that, for special purposes, tracking the GDAL/OGR SVN
+changes can be very useful.
+
+The main download source is:
+
+http://trac.osgeo.org/gdal/wiki/DownloadSource
+
+PROJ.4 is available at:
+
+http://trac.osgeo.org/proj/
+
+but installing FWTools is a convenient way to get started (but will
+be limited to the - extensive - range of drivers built into the binary
+package):
+
+http://fwtools.maptools.org/
+
+If installing PROJ.4 from RPM binaries, note that four RPM files are
+required: "proj", "proj-devel", "proj-epsg" and "proj-nad". The third and
+fourth files, "proj-epsg" and "proj-nad", contain all of the support files
+placed in /usr/share/proj, and are required for any use of "proj" itself.
+
+Debian users appear to get the required files (libraries, binaries,
+support files and headers) in the "proj" package, although package
+lists for proj 4.6.* and etch-backports, lenny and sid omit NAD support
+binaries, for example /usr/share/proj/conus, which if missing will
+provoke a warning under ./configure. This only matters if grid datum
+transformation is required (for example in North America), in which
+case, until the Debian packagers re-insert the missing support files,
+the resolution is to install proj (and the NAD files, a separate download)
+from source, or to download just the source NAD files, and run nad2bin on
+each required, placing the output files in /usr/share/proj, as described
+in the nad2bin manual page.
+
+Success has been reported in December 2012 on Ubuntu in installing rgdal 
+from source with:
+
+sudo apt-get install-dev libgdal1
+sudo apt-get install-dev libproj
+
+For OSX users, either install PROJ.4 and GDAL/OGR from source, then
+install the rgdal source package, or use the comprehensive frameworks
+provided by William Kyngesburye:
+
+http://www.kyngchaos.com/
+
+Either simply install the GDAL framework and all of its dependencies,
+then install the rgdal source package from the command line:
+
+R CMD INSTALL --configure-args="" rgdal_*.tar.gz
+
+with the correct configure-args for your platform, or install the GDAL
+framework with dependencies first, then an rgdal binary from the same
+site. A set of configure arguments reported to work by Don McQueen in 
+December 2012 is:
+
+ --with-gdal-config=/Library/Frameworks/GDAL.framework/unix/bin/gdal-config
+ --with-proj-include=/Library/Frameworks/PROJ.framework/unix/include
+ --with-proj-lib=/Library/Frameworks/PROJ.framework/unix/lib
+
+where
+
+ --with-proj-data=/Library/Frameworks/PROJ.framework/unix/share/proj
+
+may be added if:
+
+ --with-data-copy=yes
+
+to make a local copy of the PROJ.4 data files within the R binary package.
+
+A further report from Bill Behrman in March 2015, repeated on:
+
+https://stat.ethz.ch/pipermail/r-sig-mac/2015-March/011317.html
+
+is to set:
+
+install.packages("rgdal", type = "source", configure.args =
+"--with-gdal-config=/Library/Frameworks/GDAL.framework/Versions/Current/unix
+/bin/gdal-config
+--with-proj-include=/Library/Frameworks/PROJ.framework/unix/include
+--with-proj-lib=/Library/Frameworks/PROJ.framework/unix/lib
+--with-proj-share=/Library/Frameworks/PROJ.framework/unix/share/proj”)
+
+indicating that since 2012 the framworks may also need Versions/Current/ 
+added to the relevant path for gdal-config.
+

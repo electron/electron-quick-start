@@ -1,0 +1,1 @@
+This app shows how column filters provided by the **DT** package work in shiny. Different types of columns are presented in the table: character (`name`), numeric (`mpg` and `hp`), factor (`am`), and date (`date`).
