@@ -13,7 +13,9 @@ const child = require('child_process');
 const killStr = "taskkill /im Rscript.exe /f"
 
 var execPath = path.join(app.getAppPath(), "R-Portable", "bin", "RScript.exe" )
-const childProcess = child.spawn(execPath, ["-e", "shiny::runApp('app.R', port="+port+")"])
+var appPath = path.join(app.getAppPath(), "app.R" )
+appPath = appPath.replace(/\\/g, "\\\\");
+const childProcess = child.spawn(execPath, ["-e", "shiny::runApp(file.path('"+appPath+"'), port="+port+")"])
 childProcess.stdout.on('data', (data) => {
   console.log(`stdout:${data}`)
 })
@@ -39,7 +41,7 @@ function createWindow () {
     //loading.toggleDevTools()
     loading.once('show', () => {
       console.log(new Date().toISOString()+'::show loading')
-      mainWindow = new BrowserWindow({webPreferences:{nodeIntegration:false}, show:false, width: 800, height: 600})
+      mainWindow = new BrowserWindow({webPreferences:{nodeIntegration:false}, show:false, width: 800, height: 600, title:""})
 
       mainWindow.webContents.once('dom-ready', () => {
         console.log(new Date().toISOString()+'::mainWindow loaded')
