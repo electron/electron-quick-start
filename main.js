@@ -11,8 +11,9 @@ const child = require('child_process');
 //const cmdStr = ".\\R-Portable\\bin\\RScript.exe -e \"shiny::runApp('shinyApp.R', port="+port+")\"";
 //ShinyProjects\MarketSizing\Market_sizing_Cardinal-master-b823f3aa918475f5d56f01aec9763ed860715158\mrktsiz_no_crosstalk
 const killStr = "taskkill /im Rscript.exe /f"
-console.log(killStr);
-const childProcess = child.spawn("./R-Portable/bin/RScript.exe", ["-e", "shiny::runApp('app.R', port="+port+")"])
+
+var execPath = path.join(app.getAppPath(), "R-Portable", "bin", "RScript.exe" )
+const childProcess = child.spawn(execPath, ["-e", "shiny::runApp('app.R', port="+port+")"])
 childProcess.stdout.on('data', (data) => {
   console.log(`stdout:${data}`)
 })
