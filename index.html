@@ -11,6 +11,8 @@
     Chromium <script>document.write(process.versions.chrome)</script>,
     and Electron <script>document.write(process.versions.electron)</script>.
 
+    <br><br>
+
     <script>
       // You can also require other files to run in this process
       require('./renderer.js')
@@ -48,17 +50,22 @@
 
 <script type="text/javascript">
 
+    var fb_size = {x: 1600, y: 1600};
+
     var gl;
 
     function initGL(canvas) {
-        try {
-            gl = canvas.getContext("webgl2");
+        try 
+        {
+            // Disable default framebuffer's AA because we will do MSAA on a separate framebuffer, 
+            //  then blit it over to default. The 'blit' requires destination to be not multisampled.
+            gl = canvas.getContext("webgl2", {antialias: false});
             gl.viewportWidth = canvas.width;
             gl.viewportHeight = canvas.height;
         } catch (e) {
         }
         if (!gl) {
-            alert("Could not initialise WebGL, sorry :-(");
+            alert("GRBG: could not initialise WebGL2. ");
         }
     }
 
@@ -301,7 +308,8 @@
     var rPyramid = 0;
     var rCube = 0;
 
-    function drawScene() {
+    function drawScene() 
+    {
         gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
@@ -312,13 +320,16 @@
         mat4.translate(mvMatrix, [-1.5, 0.0, -8.0]);
 
         mvPushMatrix();
+        mat4.rotate(mvMatrix, degToRad(20), [1, 0, 0]);
         mat4.rotate(mvMatrix, degToRad(rPyramid), [0, 1, 0]);
 
         gl.bindBuffer(gl.ARRAY_BUFFER, pyramidVertexPositionBuffer);
-        gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, pyramidVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+        gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, pyramidVertexPositionBuffer.itemSize,
+                                     gl.FLOAT, false, 0, 0);
 
         gl.bindBuffer(gl.ARRAY_BUFFER, pyramidVertexColorBuffer);
-        gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, pyramidVertexColorBuffer.itemSize, gl.FLOAT, false, 0, 0);
+        gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, pyramidVertexColorBuffer.itemSize, 
+                        gl.FLOAT, false, 0, 0);
 
         setMatrixUniforms();
         gl.drawArrays(gl.TRIANGLES, 0, pyramidVertexPositionBuffer.numItems);
@@ -332,10 +343,12 @@
         mat4.rotate(mvMatrix, degToRad(rCube), [1, 1, 1]);
 
         gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexPositionBuffer);
-        gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, cubeVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+        gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, cubeVertexPositionBuffer.itemSize, 
+                                             gl.FLOAT, false, 0, 0);
 
         gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexColorBuffer);
-        gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, cubeVertexColorBuffer.itemSize, gl.FLOAT, false, 0, 0);
+        gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, cubeVertexColorBuffer.itemSize, 
+                                             gl.FLOAT, false, 0, 0);
 
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeVertexIndexBuffer);
         setMatrixUniforms();
@@ -352,26 +365,95 @@
         var timeNow = new Date().getTime();
         if (lastTime != 0) {
             var elapsed = timeNow - lastTime;
-
-            rPyramid += (90 * elapsed) / 1000.0;
-            rCube -= (75 * elapsed) / 1000.0;
-        }
-        lastTime = timeNow;
+            if( (1>0) || elapsed % 5000 < 2500) {            
+                rPyramid += 0.5;
+                rCube -= 0.7;
+            }
+        } else
+            lastTime = timeNow;
     }
 
+    var tickCount = 0;
 
-    function tick() {
-        requestAnimFrame(tick);
+    function tick() 
+    {
+
+        gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer_id);
+        gl.enable(gl.DEPTH_TEST);
+
+        gl.clearColor(0.0, 0.0, 0.0, 0.5);
+
+        //gl.clearBufferfv(gl.COLOR, 0, [0.0, 0.3, 0.0, 1.0]);
+
+        gl.enable(gl.SAMPLE_COVERAGE);
+        gl.enable(gl.SAMPLE_ALPHA_TO_COVERAGE);
+        //gl.sampleCoverage(1.0, false);
+        gl.enable(gl.BLEND);
+        gl.blendFunc( gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA );
+
         drawScene();
+        gl.bindFramebuffer(gl.READ_FRAMEBUFFER, framebuffer_id);
+        gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+        gl.blitFramebuffer(
+                0, 0, fb_size.x, fb_size.y,
+                0, 0, fb_size.x, fb_size.y,
+                      gl.COLOR_BUFFER_BIT , gl.LINEAR);
+        gl.blitFramebuffer(
+                0, 0, fb_size.x, fb_size.y,
+                0, 0, fb_size.x, fb_size.y,
+                      gl.DEPTH_BUFFER_BIT , gl.NEAREST);
+
+
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+
         animate();
+
+        tickCount++;
+
+        requestAnimFrame(tick);
     }
 
+
+
+    var framebuffer_id = null;
+
+    function initFramebuffer() 
+    {
+
+        // What factor of MSAA we will use. 
+        var N_msaa = 16;
+
+        // Create new Renderbuffer and tag it as MSAA
+        var colorRenderbuffer = gl.createRenderbuffer();
+        gl.bindRenderbuffer(gl.RENDERBUFFER, colorRenderbuffer);
+        gl.renderbufferStorageMultisample(gl.RENDERBUFFER, N_msaa, gl.RGBA8, fb_size.x, fb_size.y);
+
+        var depthRenderbuffer = gl.createRenderbuffer();
+        gl.bindRenderbuffer(gl.RENDERBUFFER, depthRenderbuffer);
+        gl.renderbufferStorageMultisample(gl.RENDERBUFFER, N_msaa, gl.DEPTH24_STENCIL8, fb_size.x, fb_size.y);
+
+        // Create and bind new Framebuffer
+        framebuffer_id = gl.createFramebuffer();
+        gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer_id);
+
+        // Slap the MSAA'd Renderbuffer onto the just-made Framebuffer
+        gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, colorRenderbuffer);
+        gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT,  gl.RENDERBUFFER, depthRenderbuffer);
+
+        // Restore default Framebuffer to not myrus up the state. 
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    }
 
     function webGLStart() {
         var canvas = document.getElementById("lesson04-canvas");
         initGL(canvas);
         initShaders()
         initBuffers();
+
+        initFramebuffer();
 
         gl.clearColor(0.0, 0.0, 0.0, 1.0);
         gl.enable(gl.DEPTH_TEST);
@@ -389,7 +471,7 @@
 
 <body onload="webGLStart();">
 
-    <canvas id="lesson04-canvas" style="border: none;" width="800" height="800"></canvas>
+    <canvas id="lesson04-canvas" style="border: none;" width="1600" height="1600"></canvas>
     <br/>
 </body>
 
