@@ -22,6 +22,14 @@ function initGL(canvas) {
     }
 }
 
+function checkShaderCompileStatus(shader)
+{
+    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+        alert(gl.getShaderInfoLog(shader));
+        return null;
+    }
+    return shader;
+}
 
 function getShader(gl, id) {
     var shaderScript = document.getElementById(id);
@@ -50,18 +58,53 @@ function getShader(gl, id) {
     gl.shaderSource(shader, str);
     gl.compileShader(shader);
 
-    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-        alert(gl.getShaderInfoLog(shader));
-        return null;
-    }
-
-    return shader;
+    return checkShaderCompileStatus(shader);
 }
 
+var shaderProgram_Floor;
+
+var Shaderz = require('./shaders.js');
+
+function initAdvancedShaders()
+{    
+    var fs = gl.createShader(gl.FRAGMENT_SHADER);
+    var vs = gl.createShader(gl.VERTEX_SHADER);
+
+    var src = Shaderz.floorShaders();
+
+    gl.shaderSource(fs, src.fs);
+    gl.compileShader(fs);
+    checkShaderCompileStatus(fs);
+    
+    gl.shaderSource(vs, src.vs);
+    gl.compileShader(vs);
+    checkShaderCompileStatus(vs);
+    
+    shaderProgram_Floor = gl.createProgram();
+    gl.attachShader(shaderProgram_Floor, vs);
+    gl.attachShader(shaderProgram_Floor, fs);
+    gl.linkProgram(shaderProgram_Floor);
+
+    if (!gl.getProgramParameter(shaderProgram_Floor, gl.LINK_STATUS)) {
+        alert("Could not initialise shaders");
+    }
+    gl.useProgram(shaderProgram_Floor);
+    
+    shaderProgram_Floor.vertexPositionAttribute = gl.getAttribLocation(shaderProgram_Floor, "position");
+    console.log(shaderProgram_Floor.vertexPositionAttribute);
+    gl.enableVertexAttribArray(shaderProgram_Floor.vertexPositionAttribute);
+
+    shaderProgram_Floor.pMatrixUniform = gl.getUniformLocation(shaderProgram_Floor, "uPMatrix");
+    shaderProgram_Floor.mvMatrixUniform = gl.getUniformLocation(shaderProgram_Floor, "uMVMatrix");
+}
 
 var shaderProgram;
 
-function initShaders() {
+function initShaders() 
+{
+    // TODO: separate shaders for 'ground' with just vertex positions as input,
+    // and possibly something with light position.
+
     var fragmentShader = getShader(gl, "shader-fs");
     var vertexShader = getShader(gl, "shader-vs");
 
@@ -81,7 +124,7 @@ function initShaders() {
 
     shaderProgram.vertexColorAttribute = gl.getAttribLocation(shaderProgram, "aVertexColor");
     gl.enableVertexAttribArray(shaderProgram.vertexColorAttribute);
-
+    
     shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
     shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
 }
@@ -116,191 +159,56 @@ function degToRad(degrees) {
 }
 
 
-var pyramidVertexPositionBuffer;
-var pyramidVertexColorBuffer;
-var cubeVertexPositionBuffer;
-var cubeVertexColorBuffer;
-var cubeVertexIndexBuffer;
-
-function initBuffers() {
-    pyramidVertexPositionBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, pyramidVertexPositionBuffer);
-    var vertices = [
-        // Front face
-        0.0, 1.0, 0.0,
-        -1.0, -1.0, 1.0,
-        1.0, -1.0, 1.0,
-
-        // Right face
-        0.0, 1.0, 0.0,
-        1.0, -1.0, 1.0,
-        1.0, -1.0, -1.0,
-
-        // Back face
-        0.0, 1.0, 0.0,
-        1.0, -1.0, -1.0,
-        -1.0, -1.0, -1.0,
-
-        // Left face
-        0.0, 1.0, 0.0,
-        -1.0, -1.0, -1.0,
-        -1.0, -1.0, 1.0
-    ];
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
-    pyramidVertexPositionBuffer.itemSize = 3;
-    pyramidVertexPositionBuffer.numItems = 12;
-
-    pyramidVertexColorBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, pyramidVertexColorBuffer);
-    var colors = [
-        // Front face
-        1.0, 0.0, 0.0, 1.0,
-        0.0, 1.0, 0.0, 1.0,
-        0.0, 0.0, 1.0, 1.0,
-
-        // Right face
-        1.0, 0.0, 0.0, 1.0,
-        0.0, 0.0, 1.0, 1.0,
-        0.0, 1.0, 0.0, 1.0,
-
-        // Back face
-        1.0, 0.0, 0.0, 1.0,
-        0.0, 1.0, 0.0, 1.0,
-        0.0, 0.0, 1.0, 1.0,
-
-        // Left face
-        1.0, 0.0, 0.0, 1.0,
-        0.0, 0.0, 1.0, 1.0,
-        0.0, 1.0, 0.0, 1.0
-    ];
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
-    pyramidVertexColorBuffer.itemSize = 4;
-    pyramidVertexColorBuffer.numItems = 12;
-
-
-    cubeVertexPositionBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexPositionBuffer);
-    vertices = [
-        // Front face
-        -1.0, -1.0, 1.0,
-        1.0, -1.0, 1.0,
-        1.0, 1.0, 1.0,
-        -1.0, 1.0, 1.0,
-
-        // Back face
-        -1.0, -1.0, -1.0,
-        -1.0, 1.0, -1.0,
-        1.0, 1.0, -1.0,
-        1.0, -1.0, -1.0,
-
-        // Top face
-        -1.0, 1.0, -1.0,
-        -1.0, 1.0, 1.0,
-        1.0, 1.0, 1.0,
-        1.0, 1.0, -1.0,
-
-        // Bottom face
-        -1.0, -1.0, -1.0,
-        1.0, -1.0, -1.0,
-        1.0, -1.0, 1.0,
-        -1.0, -1.0, 1.0,
-
-        // Right face
-        1.0, -1.0, -1.0,
-        1.0, 1.0, -1.0,
-        1.0, 1.0, 1.0,
-        1.0, -1.0, 1.0,
-
-        // Left face
-        -1.0, -1.0, -1.0,
-        -1.0, -1.0, 1.0,
-        -1.0, 1.0, 1.0,
-        -1.0, 1.0, -1.0
-    ];
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
-    cubeVertexPositionBuffer.itemSize = 3;
-    cubeVertexPositionBuffer.numItems = 24;
-
-    cubeVertexColorBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexColorBuffer);
-    colors = [
-        [0.5, 0.6, 0.8, 1.0], // Front face
-        [1.0, 1.0, 0.0, 1.0], // Back face
-        [0.0, 1.0, 0.0, 1.0], // Top face
-        [1.0, 0.5, 0.5, 1.0], // Bottom face
-        [1.0, 0.0, 1.0, 1.0], // Right face
-        [0.0, 0.0, 1.0, 1.0]  // Left face
-    ];
-    var unpackedColors = [];
-    for (var i in colors) {
-        var color = colors[i];
-        for (var j = 0; j < 4; j++) {
-            unpackedColors = unpackedColors.concat(color);
-        }
-    }
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(unpackedColors), gl.STATIC_DRAW);
-    cubeVertexColorBuffer.itemSize = 4;
-    cubeVertexColorBuffer.numItems = 24;
-
-    cubeVertexIndexBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeVertexIndexBuffer);
-    var cubeVertexIndices = [
-        0, 1, 2, 0, 2, 3,    // Front face
-        4, 5, 6, 4, 6, 7,    // Back face
-        8, 9, 10, 8, 10, 11,  // Top face
-        12, 13, 14, 12, 14, 15, // Bottom face
-        16, 17, 18, 16, 18, 19, // Right face
-        20, 21, 22, 20, 22, 23  // Left face
-    ];
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(cubeVertexIndices), gl.STATIC_DRAW);
-    cubeVertexIndexBuffer.itemSize = 1;
-    cubeVertexIndexBuffer.numItems = 36;
-}
 
 
 var rPyramid = 0;
 var rCube = 0;
 
+const MD = require('./models.js');
+console.log(MD);
+let mm   = new MD.Models(gl);
+
 function _drawPyramid() {
     mvPushMatrix();
     mat4.rotate(mvMatrix, degToRad(20), [1, 0, 0]);
     mat4.rotate(mvMatrix, degToRad(rPyramid), [0, 1, 0]);
-    gl.bindBuffer(gl.ARRAY_BUFFER, pyramidVertexPositionBuffer);
-    gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, pyramidVertexPositionBuffer.itemSize,
-        gl.FLOAT, false, 0, 0);
-    gl.bindBuffer(gl.ARRAY_BUFFER, pyramidVertexColorBuffer);
-    gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, pyramidVertexColorBuffer.itemSize,
-        gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, mm.pyramidVertexPositionBuffer);
+    gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, mm.pyramidVertexPositionBuffer.itemSize,gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, mm.pyramidVertexColorBuffer);
+    gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, mm.pyramidVertexColorBuffer.itemSize,gl.FLOAT, false, 0, 0);
     setMatrixUniforms();
-    gl.drawArrays(gl.TRIANGLES, 0, pyramidVertexPositionBuffer.numItems);
+    gl.drawArrays(gl.TRIANGLES, 0, mm.pyramidVertexPositionBuffer.numItems);
     mvPopMatrix();
 }
 
-function _drawMetaCube() {
-    gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexPositionBuffer);
-    gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, cubeVertexPositionBuffer.itemSize,
-        gl.FLOAT, false, 0, 0);
-    gl.bindBuffer(gl.ARRAY_BUFFER, cubeVertexColorBuffer);
-    gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, cubeVertexColorBuffer.itemSize,
-        gl.FLOAT, false, 0, 0);
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeVertexIndexBuffer);
-    setMatrixUniforms();
-    gl.drawElements(gl.TRIANGLES, cubeVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);    
-}
+
 function _drawCube() {
     mat4.translate(mvMatrix, [3.0, 0.0, 0.0]);
     mvPushMatrix();
     mat4.rotate(mvMatrix, degToRad(rCube), [1, 1, 1]);
-    _drawMetaCube();
+    gl.bindBuffer(gl.ARRAY_BUFFER, mm.cubeVertexPositionBuffer);
+    gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, mm.cubeVertexPositionBuffer.itemSize,gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, mm.cubeVertexColorBuffer);
+    gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, mm.cubeVertexColorBuffer.itemSize,gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, mm.cubeVertexIndexBuffer);
+    setMatrixUniforms();
+    gl.drawElements(gl.TRIANGLES, mm.cubeVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);    
     mvPopMatrix();
 }
 
 function _drawFloor() {
     mat4.translate(mvMatrix, [0.0, 0.0, -1.0]);
     mvPushMatrix();
-    mat4.scale(mvMatrix, [5.0, 5.0, 0.05] );
-    //console.log(mvMatrix);
-    _drawMetaCube();
+    mat4.scale(mvMatrix, [10.0, 10.0, 1.0] );
+    
+    gl.bindBuffer(gl.ARRAY_BUFFER, mm.floorVertexPositionBuffer);
+    gl.vertexAttribPointer(shaderProgram_Floor.vertexPositionAttribute, mm.floorVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+    //gl.bindBuffer(gl.ARRAY_BUFFER, mm.floorVertexPositionBuffer);
+    gl.vertexAttribPointer(1, mm.floorVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+    gl.uniformMatrix4fv(shaderProgram_Floor.pMatrixUniform, false, pMatrix);
+    gl.uniformMatrix4fv(shaderProgram_Floor.mvMatrixUniform, false, mvMatrix);
+    gl.drawArrays(gl.TRIANGLES, 0, mm.floorVertexPositionBuffer.numItems);
+
     mvPopMatrix();
 }
 
@@ -310,10 +218,12 @@ function drawScene() {
 
     mat4.perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0, pMatrix);
     mat4.identity(mvMatrix);
-    mat4.translate(mvMatrix, [-1.5, 0.0, -8.0]);
+    mat4.translate(mvMatrix, [-0.5, -0.5, -8.0]);
 
+    gl.useProgram(shaderProgram_Floor);
     _drawFloor(); 
 
+    gl.useProgram(shaderProgram);
     _drawPyramid();
 
     _drawCube();
@@ -409,8 +319,9 @@ function initFramebuffer() {
 function webGLStart() {
     var canvas = document.getElementById("lesson04-canvas");
     initGL(canvas);
-    initShaders()
-    initBuffers();
+    initShaders();
+    initAdvancedShaders();
+    mm.initBuffers(gl);
 
     initFramebuffer();
 
