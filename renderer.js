@@ -10,7 +10,7 @@ function initGL(canvas) {
     try {
         // Disable default framebuffer's AA because we will do MSAA on a separate framebuffer, 
         //  then blit it over to default. The 'blit' requires destination to be not multisampled.
-        gl = canvas.getContext("webgl2", { antialias: false });
+        gl = canvas.getContext("webgl2", { antialias: false });        
         gl.viewportWidth = canvas.width;
         gl.viewportHeight = canvas.height;
         fb_size.x = canvas.width;
@@ -64,6 +64,7 @@ function getShader(gl, id) {
 var shaderProgram_Floor;
 
 var Shaderz = require('./shaders.js');
+var LightInfo;
 
 function initAdvancedShaders()
 {    
@@ -71,6 +72,9 @@ function initAdvancedShaders()
     var vs = gl.createShader(gl.VERTEX_SHADER);
 
     var src = Shaderz.floorShaders();
+
+    LightInfo = new Shaderz.lightInfo();
+    LightInfo.initFramebuffer(gl);
 
     gl.shaderSource(fs, src.fs);
     gl.compileShader(fs);

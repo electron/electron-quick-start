@@ -1,3 +1,59 @@
+module.exports.lightInfo = function() {
+    
+    this.lightPosition = [5.0,5.0,5.0];
+    this.depth_tex = {};
+    this.depth_tex_debug = {};
+
+    this.initFramebuffer = function(gl) 
+    {        
+        const targetTextureWidth  = 512;
+        const targetTextureHeight = 512;
+        const targetTexture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, targetTexture);
+        this.depth_tex = targetTexture;
+        
+        // define size and format
+        const level = 3;
+        const internalFormat = gl.R32F;                                
+        gl.texStorage2D(gl.TEXTURE_2D, level, internalFormat,
+                        targetTextureWidth, targetTextureHeight);
+        //api ref: 
+        // void gl.texStorage2D(target, levels, internalformat, width, height);
+        
+        // set the filtering so we don't need mips
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER,   gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER,   gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_COMPARE_MODE, 
+                         gl.COMPARE_REF_TO_TEXTURE);
+        gl.texParameteri(gl.TEXTURE_2D, 
+                         gl.TEXTURE_COMPARE_FUNC, gl.LEQUAL);
+
+        // create a framebuffer for light grbg.
+        this.lightFramebuffer = gl.createFramebuffer();
+        gl.bindFramebuffer(gl.FRAMEBUFFER, this.lightFramebuffer);
+
+        // attach the texture as the first color attachment        
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT,
+                                gl.TEXTURE_2D, this.depth_tex, 0);
+
+        {
+            const debugTexture = gl.createTexture();
+            gl.bindTexture(gl.TEXTURE_2D, debugTexture);
+            this.depth_debug_tex = debugTexture;            
+            gl.texStorage2D(gl.TEXTURE_2D, 1, gl.R32F,
+                            targetTextureWidth, targetTextureHeight);            
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER,   gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER,   gl.LINEAR);            
+            gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, 
+                                    gl.TEXTURE_2D, this.depth_debug_tex, 0);
+        }
+        
+    }
+
+
+    
+}
+
 module.exports.screenQuadShaders = function() {
     return { 
         vs : `#version 300 es
