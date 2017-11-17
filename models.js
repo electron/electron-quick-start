@@ -18,12 +18,12 @@ module.exports = {
             gl.bindBuffer(gl.ARRAY_BUFFER, this.floorVertexPositionBuffer);
             {
                 let vertices = [
-                    -1.0, -1.0, -4.0,
-                     1.0, -1.0, -4.0,
-                    -1.0,  1.0, -4.0, 
-                     1.0,  1.0, -4.0,
-                    -1.0,  1.0, -4.0,
-                     1.0, -1.0, -4.0 
+                    -5.0, -5.0, -4.0,
+                     5.0, -5.0, -4.0,
+                    -5.0,  5.0, -4.0, 
+                     5.0,  5.0, -4.0,
+                    -5.0,  5.0, -4.0,
+                     5.0, -5.0, -4.0 
                 ]
                 gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
             }
