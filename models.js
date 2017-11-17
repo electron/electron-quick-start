@@ -1,16 +1,42 @@
 module.exports = {
     Models: function(gl) {
-
+        
+        this.gl = gl;
         this.pyramidVertexPositionBuffer = 0;
         this.pyramidVertexColorBuffer = 0;
         this.cubeVertexPositionBuffer = 0;
         this.cubeVertexColorBuffer = 0;
         this.cubeVertexIndexBuffer = 0;
-        this.gl = {};
-
+        
         this.floorVertexPositionBuffer = 0;
         this.floorVertexColorBuffer    = 0;
+        
+        this.pyramidModelMatrix        = mat4.create(); 
+        this.cubeModelMatrix           = mat4.create();
+        this.floorModelMatrix          = mat4.create();
 
+        this.resetModelMatrices = function() {
+             mat4.identity(this.pyramidModelMatrix);
+             mat4.identity(this.cubeModelMatrix   );
+             mat4.identity(this.floorModelMatrix  );
+        }
+
+        this.setPyramidModelMatrix = function(rads) {
+            mat4.identity(this.pyramidModelMatrix);
+            mat4.translate(this.pyramidModelMatrix, [-2.0, 0.0, 0.0]);
+            mat4.rotate(this.pyramidModelMatrix, degToRad(20), [1, 0, 0]);
+            mat4.rotate(this.pyramidModelMatrix, rads, [0, 1, 0]);
+        }
+
+        this.setCubeModelMatrix = function(rads) {
+            mat4.identity(this.cubeModelMatrix);
+            mat4.translate(this.cubeModelMatrix, [2.0, 0.0, 0.0]);
+            mat4.rotate(this.cubeModelMatrix, rads, [1, 0, 0]);
+            mat4.rotate(this.cubeModelMatrix, rads, [0, 1, 0]);            
+        }
+        
+        this.resetModelMatrices();
+        
         this.initBuffers = function(gl) {
             this.gl = gl;
             console.log(gl);
@@ -83,7 +109,7 @@ module.exports = {
         
             this.pyramidVertexColorBuffer = gl.createBuffer();
             gl.bindBuffer(gl.ARRAY_BUFFER, this.pyramidVertexColorBuffer);
-            var colors = [
+            let colors = [
                 // Front face
                 1.0, 0.0, 0.0, 1.0,
                 0.0, 1.0, 0.0, 1.0,

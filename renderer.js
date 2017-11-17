@@ -130,7 +130,8 @@ function initShaders()
     gl.enableVertexAttribArray(shaderProgram.vertexColorAttribute);
     
     shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
-    shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
+    shaderProgram.mMatrixUniform = gl.getUniformLocation(shaderProgram, "uMMatrix");
+    shaderProgram.vMatrixUniform = gl.getUniformLocation(shaderProgram, "uVMatrix");
 }
 
 
@@ -152,9 +153,11 @@ function mvPopMatrix() {
 }
 
 
-function setMatrixUniforms() {
-    gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, pMatrix);
-    gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, mvMatrix);
+function setMatrixUniforms(model, view, projection) {
+    gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false,  projection);//pMatrix);    
+    gl.uniformMatrix4fv(shaderProgram.mMatrixUniform, false,  model);
+    gl.uniformMatrix4fv(shaderProgram.vMatrixUniform, false,  view);
+    
 }
 
 
@@ -173,46 +176,35 @@ console.log(MD);
 let mm   = new MD.Models(gl);
 
 function _drawPyramid() {
-    mvPushMatrix();
-    mat4.rotate(mvMatrix, degToRad(20), [1, 0, 0]);
-    mat4.rotate(mvMatrix, degToRad(rPyramid), [0, 1, 0]);
+    
+    setMatrixUniforms(mm.pyramidModelMatrix, mvMatrix, pMatrix);
     gl.bindBuffer(gl.ARRAY_BUFFER, mm.pyramidVertexPositionBuffer);
     gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, mm.pyramidVertexPositionBuffer.itemSize,gl.FLOAT, false, 0, 0);
     gl.bindBuffer(gl.ARRAY_BUFFER, mm.pyramidVertexColorBuffer);
     gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, mm.pyramidVertexColorBuffer.itemSize,gl.FLOAT, false, 0, 0);
-    setMatrixUniforms();
+    
     gl.drawArrays(gl.TRIANGLES, 0, mm.pyramidVertexPositionBuffer.numItems);
-    mvPopMatrix();
+    
 }
 
 
-function _drawCube() {
-    mat4.translate(mvMatrix, [3.0, 0.0, 0.0]);
-    mvPushMatrix();
-    mat4.rotate(mvMatrix, degToRad(rCube), [1, 1, 1]);
+function _drawCube() {    
+    setMatrixUniforms(mm.cubeModelMatrix, mvMatrix, pMatrix);
     gl.bindBuffer(gl.ARRAY_BUFFER, mm.cubeVertexPositionBuffer);
     gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, mm.cubeVertexPositionBuffer.itemSize,gl.FLOAT, false, 0, 0);
     gl.bindBuffer(gl.ARRAY_BUFFER, mm.cubeVertexColorBuffer);
     gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, mm.cubeVertexColorBuffer.itemSize,gl.FLOAT, false, 0, 0);
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, mm.cubeVertexIndexBuffer);
-    setMatrixUniforms();
-    gl.drawElements(gl.TRIANGLES, mm.cubeVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);    
-    mvPopMatrix();
+    gl.drawElements(gl.TRIANGLES, mm.cubeVertexIndexBuffer.numItems, gl.UNSIGNED_SHORT, 0);        
 }
 
-function _drawFloor() {
-    mat4.translate(mvMatrix, [0.0, 0.0, -1.0]);
-    mvPushMatrix();
-    //mat4.scale(mvMatrix, [10.0, 10.0, 1.0] );
-    
+function _drawFloor() {    
     gl.bindBuffer(gl.ARRAY_BUFFER, mm.floorVertexPositionBuffer);
     gl.vertexAttribPointer(shaderProgram_Floor.vertexPositionAttribute, mm.floorVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
     gl.bindBuffer(gl.ARRAY_BUFFER, mm.floorVertexColorBuffer);
     gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, mm.floorVertexColorBuffer.itemSize,gl.FLOAT, false, 0, 0);
-    setMatrixUniforms();
+    setMatrixUniforms(mm.floorModelMatrix, mvMatrix, pMatrix);
     gl.drawArrays(gl.TRIANGLES, 0, mm.floorVertexPositionBuffer.numItems);
-
-    mvPopMatrix();
 }
 
 function drawScene() {
@@ -220,8 +212,13 @@ function drawScene() {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     mat4.perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0, pMatrix);
-    mat4.identity(mvMatrix);
-    mat4.translate(mvMatrix, [-0.5, -0.5, -8.0]);
+    
+    mvMatrix = mat4.lookAt([-0.0, -0.0, 8.0],
+                           [0.0,0.0,0.0], [0.0,1.0,0.0]);
+    
+    mm.resetModelMatrices();
+    mm.setPyramidModelMatrix(degToRad(rPyramid));                           
+    mm.setCubeModelMatrix(degToRad(rCube));
 
     //gl.useProgram(shaderProgram_Floor);
     gl.useProgram(shaderProgram);

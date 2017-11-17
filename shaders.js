@@ -3,11 +3,15 @@ module.exports.lightInfo = function() {
     this.lightPosition = [5.0,5.0,5.0];
     this.depth_tex = {};
     this.depth_tex_debug = {};
+    this.light_proj_matrix = {};
+    this.light_view_matrix = {};
+    this.viewFrameBuffer = 0; // the non-"light" framebuffer
+    this.texSize = 512;
 
     this.initFramebuffer = function(gl) 
     {        
-        const targetTextureWidth  = 512;
-        const targetTextureHeight = 512;
+        const targetTextureWidth  = this.texSize;
+        const targetTextureHeight = this.texSize;
         const targetTexture = gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, targetTexture);
         this.depth_tex = targetTexture;
@@ -46,6 +50,15 @@ module.exports.lightInfo = function() {
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER,   gl.LINEAR);            
             gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, 
                                     gl.TEXTURE_2D, this.depth_debug_tex, 0);
+        }
+
+        {
+            this.light_proj_matrix = mat4.frustum(-1.0,1.0,-1.0,1.0,1.0,200.0);
+            this.light_view_matrix = mat4.lookAt(this.lightPosition,
+                                                 [0.0,0.0,0.0], [0.0,1.0,0.0]);         
+            this.light_vp_matrix   = mat4.multiply(this.light_proj_matrix,this.light_view_matrix);
+            this.shadow_vp_matrix  = mat4.multiply(this.light_proj_matrix,this.light_view_matrix);
+            console.log(this.light_vp_matrix);
         }
         
     }

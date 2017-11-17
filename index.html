@@ -18,28 +18,46 @@
 <script type="text/javascript" src="glMatrix-0.9.5.min.js"></script>
 <script type="text/javascript" src="webgl-utils.js"></script>
 
-<script id="shader-fs" type="x-shader/x-fragment">
+<script id="shader-fs" type="x-shader/x-fragment">#version 300 es    
     precision mediump float;
 
-    varying vec4 vColor;
+    in vec4 vColor;
+    in vec4 shadow_coord;
 
-    void main(void) {
-        gl_FragColor = vColor;
+    uniform mediump sampler2DShadow shadow_tex;
+    
+    out vec4 fragColor;
+
+    void main() {
+        fragColor = vColor;
+        
+        vec4 shadow_color = textureProj(shadow_tex, shadow_coord)
+                                * vec4(1.0,1.0,1.0,1.0);     
     }
 </script>
 
-<script id="shader-vs" type="x-shader/x-vertex">
-    attribute vec3 aVertexPosition;
-    attribute vec4 aVertexColor;
+<script id="shader-vs" type="x-shader/x-vertex">#version 300 es    
+    precision mediump float;
 
-    uniform mat4 uMVMatrix;
-    uniform mat4 uPMatrix;
+    layout(location = 0) in vec3 aVertexPosition;
+    layout(location = 1) in vec4 aVertexColor;
     
-    varying vec4 vColor;
+    uniform mat4 uMMatrix;
+    uniform mat4 uVMatrix;
+    uniform mat4 uPMatrix;
+    uniform mat4 shadow_matrix;
 
-    void main(void) {
-        gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+    out vec4 shadow_coord; 
+    out vec4 vColor;
+
+    void main() 
+    {
+        vec4 posfull = vec4(aVertexPosition, 1.0);
+        gl_Position  = uPMatrix * uVMatrix * uMMatrix * posfull;
+        
         vColor = aVertexColor;
+        
+        shadow_coord = shadow_matrix * posfull;
     }
 </script>
 
