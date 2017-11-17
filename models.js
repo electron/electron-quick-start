@@ -9,6 +9,7 @@ module.exports = {
         this.gl = {};
 
         this.floorVertexPositionBuffer = 0;
+        this.floorVertexColorBuffer    = 0;
 
         this.initBuffers = function(gl) {
             this.gl = gl;
@@ -30,6 +31,26 @@ module.exports = {
             
             this.floorVertexPositionBuffer.itemSize = 3;
             this.floorVertexPositionBuffer.numItems = 6;
+
+            {
+                this.floorVertexColorBuffer = gl.createBuffer();
+                gl.bindBuffer(gl.ARRAY_BUFFER, this.floorVertexColorBuffer);
+                let colors = [
+                    //  face 1
+                    0.0, 0.5, 0.5, 1.0,
+                    0.0, 1.0, 0.0, 1.0,
+                    0.0, 0.0, 1.0, 1.0,
+            
+                    //  face 2
+                    1.0, 1.0, 1.0, 1.0,
+                    0.0, 0.0, 1.0, 1.0,
+                    0.0, 1.0, 0.0, 1.0,            
+                ];
+                gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
+                this.floorVertexColorBuffer.itemSize = 4;
+                this.floorVertexColorBuffer.numItems = 6;
+            }
+        
 
             this.pyramidVertexPositionBuffer = gl.createBuffer();
             gl.bindBuffer(gl.ARRAY_BUFFER, this.pyramidVertexPositionBuffer);

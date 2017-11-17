@@ -203,14 +203,13 @@ function _drawCube() {
 function _drawFloor() {
     mat4.translate(mvMatrix, [0.0, 0.0, -1.0]);
     mvPushMatrix();
-    mat4.scale(mvMatrix, [10.0, 10.0, 1.0] );
+    //mat4.scale(mvMatrix, [10.0, 10.0, 1.0] );
     
     gl.bindBuffer(gl.ARRAY_BUFFER, mm.floorVertexPositionBuffer);
     gl.vertexAttribPointer(shaderProgram_Floor.vertexPositionAttribute, mm.floorVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
-    //gl.bindBuffer(gl.ARRAY_BUFFER, mm.floorVertexPositionBuffer);
-    gl.vertexAttribPointer(1, mm.floorVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
-    gl.uniformMatrix4fv(shaderProgram_Floor.pMatrixUniform, false, pMatrix);
-    gl.uniformMatrix4fv(shaderProgram_Floor.mvMatrixUniform, false, mvMatrix);
+    gl.bindBuffer(gl.ARRAY_BUFFER, mm.floorVertexColorBuffer);
+    gl.vertexAttribPointer(shaderProgram.vertexColorAttribute, mm.floorVertexColorBuffer.itemSize,gl.FLOAT, false, 0, 0);
+    setMatrixUniforms();
     gl.drawArrays(gl.TRIANGLES, 0, mm.floorVertexPositionBuffer.numItems);
 
     mvPopMatrix();
@@ -224,10 +223,11 @@ function drawScene() {
     mat4.identity(mvMatrix);
     mat4.translate(mvMatrix, [-0.5, -0.5, -8.0]);
 
-    gl.useProgram(shaderProgram_Floor);
-    _drawFloor(); 
-
+    //gl.useProgram(shaderProgram_Floor);
     gl.useProgram(shaderProgram);
+
+    _drawFloor(); 
+    
     _drawPyramid();
 
     _drawCube();
