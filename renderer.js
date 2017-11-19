@@ -210,15 +210,13 @@ function drawScene(options) {
     mm.setPyramidModelMatrix(degToRad(rPyramid));                           
     mm.setCubeModelMatrix(degToRad(rCube));
 
-    if(options.fromLight === true) { // Draw from light's point of view, into a depth buffer. 
-        //console.log("LIGHT stage ... fb = " + LightInfo.lightFramebuffer);
+    if(options.fromLight === true) { // Draw from light's point of view, into a depth buffer.         
         gl.bindFramebuffer(gl.FRAMEBUFFER, LightInfo.lightFramebuffer);
         gl.viewport(0, 0, LightInfo.texSize, LightInfo.texSize);        
         gl.useProgram(shaderProgram_Light);        
         gl.uniformMatrix4fv(shaderProgram_Light.pMatrixUniform, false, LightInfo.light_vp_matrix);
-    } else {        
-        //console.log("VIEW stage ... fb = " + LightInfo.viewFrameBuffer);
-        //Wtf, bind FB here doesn't work !? gl.bindFramebuffer(gl.FRAMEBUFFER, LightInfo.viewFramebuffer);
+    } else {                
+        gl.bindFramebuffer(gl.FRAMEBUFFER, LightInfo.viewFramebuffer);
         gl.useProgram(shaderProgram);        
         gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
         pMatrix  = mat4.perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0);
@@ -258,20 +256,22 @@ var tickCount = 0;
 function tick() {
 
     {
-        gl.bindFramebuffer(gl.FRAMEBUFFER, LightInfo.lightFrameBuffer);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, LightInfo.lightFramebuffer);
         gl.enable(gl.DEPTH_TEST);
         gl.clearDepth(1.0);
         gl.clearColor(0.0, 0.0, 0.0, 0.5);
         drawScene({fromLight: true});
     }
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, LightInfo.viewFrameBuffer);
-    if(LightInfo.viewFrameBuffer !== framebuffer_id) {
+    gl.bindFramebuffer(gl.FRAMEBUFFER, LightInfo.viewFramebuffer);
+    if(LightInfo.viewFramebuffer !== framebuffer_id) {
         alert('invalid framebuffer state!?'); }
         
     gl.enable(gl.DEPTH_TEST);
     gl.clearColor(0.0, 0.0, 0.0, 0.5);
     drawScene({fromLight: false});
+
+    const fb_id_source = LightInfo.lightFramebuffer;
 
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, framebuffer_id);
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
@@ -326,7 +326,7 @@ function initFramebuffer() {
     // Restore default Framebuffer to not myrus up the state. 
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
-    LightInfo.viewFrameBuffer = framebuffer_id;
+    LightInfo.viewFramebuffer = framebuffer_id;
 }
 
 function webGLStart() {

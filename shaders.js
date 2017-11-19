@@ -16,7 +16,7 @@ module.exports.lightInfo = function() {
     this.light_proj_matrix = {};
     this.light_view_matrix = {};
     this.viewFrameBuffer = {}; // the non-"light" framebuffer
-    this.texSize = 512;
+    this.texSize = 1000;
 
     this.initFramebuffer = function(gl) 
     {        
