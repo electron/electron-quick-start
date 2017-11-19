@@ -258,7 +258,7 @@ function tick() {
     {
         gl.bindFramebuffer(gl.FRAMEBUFFER, LightInfo.lightFramebuffer);
         gl.enable(gl.DEPTH_TEST);
-        gl.clearDepth(1.0);
+        gl.clearDepth(100.0);
         gl.clearColor(0.0, 0.0, 0.0, 0.5);
         drawScene({fromLight: true});
     }
@@ -269,11 +269,14 @@ function tick() {
         
     gl.enable(gl.DEPTH_TEST);
     gl.clearColor(0.0, 0.0, 0.0, 0.5);
+    gl.clearDepth(100.0);
     drawScene({fromLight: false});
 
-    const fb_id_source = LightInfo.lightFramebuffer;
-
-    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, framebuffer_id);
+    let fb_id_source = framebuffer_id;
+    if(tickCount % 200 < 100) {
+        fb_id_source = LightInfo.lightFramebuffer; }
+    
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fb_id_source);
     gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
@@ -281,11 +284,12 @@ function tick() {
         0, 0, fb_size.x, fb_size.y,
         0, 0, fb_size.x, fb_size.y,
         gl.COLOR_BUFFER_BIT, gl.LINEAR);
-    gl.blitFramebuffer(
-        0, 0, fb_size.x, fb_size.y,
-        0, 0, fb_size.x, fb_size.y,
-        gl.DEPTH_BUFFER_BIT, gl.NEAREST);
-
+    
+    if(framebuffer_id === fb_id_source)
+        gl.blitFramebuffer(
+            0, 0, fb_size.x, fb_size.y,
+            0, 0, fb_size.x, fb_size.y,
+            gl.DEPTH_BUFFER_BIT, gl.NEAREST);
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 

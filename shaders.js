@@ -10,12 +10,13 @@ let checkStatus = function()
     
 module.exports.lightInfo = function() {
     
-    this.lightPosition = [5.0,5.0,5.0];
+    this.lightPosition = [1.0,1.0,4.0];
     this.depth_tex = {};
     this.depth_tex_debug = {};
     this.light_proj_matrix = {};
     this.light_view_matrix = {};
-    this.viewFrameBuffer = {}; // the non-"light" framebuffer
+    this.viewFramebuffer = {}; // the non-"light" framebuffer
+    this.lightFramebuffer = {}; // the non-"light" framebuffer
     this.texSize = 1000;
 
     this.initFramebuffer = function(gl) 
@@ -160,7 +161,9 @@ module.exports.lightShaders = function() {
         {
             // note: for debug purposes, we have also mapped 
             // colorattachment0 to the framebuffer now assumed to be bound.
-            color = vec4(gl_FragCoord.z);
+            float zval = gl_FragCoord.z;
+            color = vec4(zval, gl_FragCoord.x,gl_FragCoord.y,1.0);
+            
         }`
     };
 }
