@@ -31,15 +31,35 @@
 
     void main() {
         
-        float shz  = textureProj(shadow_tex, shadow_coord);
-    //                                     * vec4(1.0,1.0,1.0,1.0);     
+        float stepx     = 0.01;
+        float stepy     = 0.01;
+        float window_sz = 5.0;
+        float count     = 0.0;
+        float shz_max   = 0.0;
+        float shz_avg   = 0.0;
+        for(float dx=-stepx*window_sz; dx <= stepx*window_sz; dx+=stepx) {
+        for(float dy=-stepy*window_sz; dy <= stepy*window_sz; dy+=stepy) {
+            float shz_sub  = textureProj(shadow_tex, shadow_coord + vec4(dx,dy,0.0,0.0));
+            count += 1.0;
+            shz_max = max(shz_max, shz_sub);
+            shz_avg += shz_sub;
+        } }
+        float shz = shz_max * 0.00001 + shz_avg / count; 
         
+    //                                     * vec4(1.0,1.0,1.0,1.0);     
+    
+        //float shz    = texture(shadow_tex, shadow_coord);
+
         //vec4 shadow_color   = texture(shadow_tex, shadow_coord.xy);
         //float shz           = shadow_color.z;
-        float visibility = 1.0;
-        if(shz < shadow_coord.z * 0.1)
-            visibility = 0.25;
+                
+        if(shz < 0.005)
+            shz = 0.0;
+        if(shz > 0.1)
+            shz = 1.0;
         
+        //    else
+          //  shz = 100.0*shz;
         
         fragColor = vec4( shz*vColor.xyz, 1.0);
 

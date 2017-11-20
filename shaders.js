@@ -10,14 +10,14 @@ let checkStatus = function()
     
 module.exports.lightInfo = function() {
     
-    this.lightPosition = [1.0/1,1.0/2,3.0];
+    this.lightPosition = [1.2/1,1.0/2,3.5];
     this.depth_tex = {};
     this.depth_tex_debug = {};
     this.light_proj_matrix = {};
     this.light_view_matrix = {};
     this.viewFramebuffer = {}; // the non-"light" framebuffer
     this.lightFramebuffer = {}; // the non-"light" framebuffer
-    this.texSize = 1000;
+    this.texSize = 2048;
     this.biasMatrix        = mat4.create();
 
     this.initFramebuffer = function(gl) 

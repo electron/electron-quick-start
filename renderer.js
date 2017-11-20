@@ -215,9 +215,12 @@ function drawScene(options) {
         gl.viewport(0, 0, LightInfo.texSize, LightInfo.texSize);        
         gl.useProgram(shaderProgram_Light);        
         gl.uniformMatrix4fv(shaderProgram_Light.pMatrixUniform, false, LightInfo.light_vp_matrix);
+        gl.enable(gl.POLYGON_OFFSET_FILL);
+        gl.polygonOffset(0.0, 0.0);
     } else {                
         gl.bindFramebuffer(gl.FRAMEBUFFER, LightInfo.viewFramebuffer);
-        gl.useProgram(shaderProgram);        
+        gl.useProgram(shaderProgram);     
+        gl.disable(gl.POLYGON_OFFSET_FILL);   
         gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
         pMatrix  = mat4.perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0);
         viewMatrix = mat4.lookAt([-0.5, -0.5, 11.0],
@@ -258,7 +261,7 @@ function tick() {
     {
         gl.bindFramebuffer(gl.FRAMEBUFFER, LightInfo.lightFramebuffer);
         gl.enable(gl.DEPTH_TEST);
-        gl.clearDepth(1.0);
+        //gl.clearDepth(1.0);
         gl.clearColor(0.0, 0.0, 0.0, 0.5);
         drawScene({fromLight: true});
     }
@@ -269,11 +272,11 @@ function tick() {
         
     gl.enable(gl.DEPTH_TEST);
     gl.clearColor(0.0, 0.0, 0.0, 0.5);
-    gl.clearDepth(100.0);
+    //gl.clearDepth(100.0);
     drawScene({fromLight: false});
 
     let fb_id_source = framebuffer_id;
-    if(tickCount % 200 < 100) {
+    if(false && (tickCount % 200 < 100)) {
         fb_id_source = LightInfo.lightFramebuffer; }
     
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, fb_id_source);
