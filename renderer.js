@@ -2,7 +2,7 @@
 // be executed in the renderer process for that window.
 // All of the Node.js APIs are available in this process.
 
-var fb_size = { x: 1000, y: 1000 };
+var fb_size = { x: 1024, y: 1024 };
 
 var gl;
 
@@ -220,9 +220,9 @@ function drawScene(options) {
         gl.useProgram(shaderProgram);        
         gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
         pMatrix  = mat4.perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0);
-        viewMatrix = mat4.lookAt([-0.0, -0.0, 8.0],
+        viewMatrix = mat4.lookAt([-0.5, -0.5, 11.0],
                                [0.0,0.0,0.0], [0.0,1.0,0.0]);
-        gl.uniformMatrix4fv(shaderProgram.shadowMatrixUniform, false, LightInfo.light_vp_matrix);
+        gl.uniformMatrix4fv(shaderProgram.shadowMatrixUniform, false, LightInfo.shadow_vp_matrix);
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, LightInfo.depth_tex);
     }
@@ -258,7 +258,7 @@ function tick() {
     {
         gl.bindFramebuffer(gl.FRAMEBUFFER, LightInfo.lightFramebuffer);
         gl.enable(gl.DEPTH_TEST);
-        gl.clearDepth(100.0);
+        gl.clearDepth(1.0);
         gl.clearColor(0.0, 0.0, 0.0, 0.5);
         drawScene({fromLight: true});
     }

@@ -10,7 +10,7 @@ let checkStatus = function()
     
 module.exports.lightInfo = function() {
     
-    this.lightPosition = [1.0,1.0,4.0];
+    this.lightPosition = [1.0/1,1.0/2,3.0];
     this.depth_tex = {};
     this.depth_tex_debug = {};
     this.light_proj_matrix = {};
@@ -18,6 +18,7 @@ module.exports.lightInfo = function() {
     this.viewFramebuffer = {}; // the non-"light" framebuffer
     this.lightFramebuffer = {}; // the non-"light" framebuffer
     this.texSize = 1000;
+    this.biasMatrix        = mat4.create();
 
     this.initFramebuffer = function(gl) 
     {        
@@ -92,12 +93,19 @@ module.exports.lightInfo = function() {
         }
 
         {
+            mat4.identity(this.biasMatrix);
+            mat4.translate(this.biasMatrix, [0.5,0.5,0.5]);
+            mat4.scale(this.biasMatrix, [0.5,0.5,0.5]);            
+            console.log(this.biasMatrix);
+            console.log( mat4.multiplyVec4(this.biasMatrix, [-1.0,-1.0,1.0,1.0]));
             this.light_proj_matrix = mat4.frustum(-1.0,1.0,-1.0,1.0,1.0,200.0);
             this.light_view_matrix = mat4.lookAt(this.lightPosition,
                                                  [0.0,0.0,0.0], [0.0,1.0,0.0]);         
             this.light_vp_matrix   = mat4.multiply(this.light_proj_matrix,this.light_view_matrix);
             this.shadow_vp_matrix  = mat4.multiply(this.light_proj_matrix,this.light_view_matrix);
+            this.shadow_vp_matrix  = mat4.multiply(this.biasMatrix,this.shadow_vp_matrix);
             console.log(this.light_vp_matrix);
+            console.log(this.shadow_vp_matrix);
         }
         
     }
@@ -162,7 +170,11 @@ module.exports.lightShaders = function() {
             // note: for debug purposes, we have also mapped 
             // colorattachment0 to the framebuffer now assumed to be bound.
             float zval = gl_FragCoord.z;
-            color = vec4(zval, gl_FragCoord.x,gl_FragCoord.y,1.0);
+            float xval = gl_FragCoord.x;
+            if(zval < 0.9)
+                xval = 0.0;
+            //color = vec4(zval, xval ,gl_FragCoord.y,1.0);
+            color = vec4(gl_FragCoord.z);
             
         }`
     };
