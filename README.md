@@ -16,7 +16,7 @@ You can learn more about each of these components within the [Quick Start Guide]
 
 ## To Use
 
-To clone and run this repository you'll need [Git](https://git-scm.com) and [Node.js](https://nodejs.org/en/download/) (which comes with [npm](http://npmjs.com)) installed on your computer. From your command line:
+To clone and run this repository you'll need [Git](https://git-scm.com) and [Node.js](https://nodejs.org/en/download/) (which comes with [npm](http://npmjs.com)) installed on your computer. Please fork this repository to your own GitHub account then from your command line:
 
 ```bash
 # Clone this repository
