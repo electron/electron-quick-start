@@ -13,9 +13,10 @@ const child = require('child_process');
 const killStr = "taskkill /im Rscript.exe /f"
 
 var execPath = "RScript"
-if(process.patform == "win32"){
+if(process.platform == "win32"){
   execPath = path.join(app.getAppPath(), "R-Portable", "bin", "RScript.exe" )
 }
+
 var appPath = path.join(app.getAppPath(), "app.R" )
 appPath = appPath.replace(/\\/g, "\\\\");
 const childProcess = child.spawn(execPath, ["-e", "shiny::runApp(file.path('"+appPath+"'), port="+port+")"])
