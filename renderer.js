@@ -11,17 +11,16 @@ var SENSOR_IDS = {
   'suspension': 7,
   'transmission_temperature': 8,
   'rpm': 9,
+  'sos': 10,
 }
 
 function updateSensors(data) {
   for (var key in data) {
     if (data.hasOwnProperty(key)) {
-      console.log(key);
       let { type, value, ts, triggers } = data[key];
       if (!SENSOR_IDS[key]) {
         console.log('Invalid sensor id');
       } else {
-        console.log(SENSOR_IDS[key]);
         var sensorElementId = 'sensor-' + SENSOR_IDS[key];
         var sensorReadingElementId = 'sensor-' + SENSOR_IDS[key] + '-reading';
         var sensorTimeElementId = 'sensor-' + SENSOR_IDS[key] + '-reading-time';
@@ -33,7 +32,7 @@ function updateSensors(data) {
             changeColor = true;
             document.getElementById(sensorElementId).style.border = "3px solid #FF0054";
             break;
-          } else if (value < triggers[i].value) {
+          } else if (key !== 'sos' && (value < triggers[i].value)) {
             changeColor = true;
             switch (triggers[i].name) {
               case("danger"):
@@ -44,6 +43,11 @@ function updateSensors(data) {
                 break;
             }
             break;
+          } else if (key === 'sos') {
+            if (value === '1') {
+              changeColor = true;
+              document.getElementById(sensorElementId).style.border = "3px solid #FF0054";
+            }
           }
         }
 
@@ -100,8 +104,6 @@ ws.onmessage = function (message) {
   if (data['heartbeat']) {
     return registerHeartBeat();
   }
-
-  console.log(data);
 
   updateSensors(data);
 };
