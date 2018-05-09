@@ -1,56 +1,53 @@
 const electron = require('electron')
-// Module to control application life.
+// 控制应用生命周期的模块
 const app = electron.app
-// Module to create native browser window.
+// 创建原生浏览器窗口的模块
 const BrowserWindow = electron.BrowserWindow
 
 const path = require('path')
 const url = require('url')
 
-// Keep a global reference of the window object, if you don't, the window will
-// be closed automatically when the JavaScript object is garbage collected.
+// 保持一个对于window对象的全局引用， 不然， 当JavaScript被GC
+// window会自动关闭
 let mainWindow
 
 function createWindow () {
-  // Create the browser window.
+  // 创建一个浏览器窗口
   mainWindow = new BrowserWindow({width: 800, height: 600})
 
-  // and load the index.html of the app.
+  // 加载应用的index.html
   mainWindow.loadURL(url.format({
     pathname: path.join(__dirname, 'index.html'),
     protocol: 'file:',
     slashes: true
   }))
 
-  // Open the DevTools.
-  // mainWindow.webContents.openDevTools()
+  // 打开开发工具
+  mainWindow.webContents.openDevTools()
 
-  // Emitted when the window is closed.
+  // 当window被关闭， 这个事件会被发出
   mainWindow.on('closed', function () {
-    // Dereference the window object, usually you would store windows
-    // in an array if your app supports multi windows, this is the time
-    // when you should delete the corresponding element.
+    // 取消应用window对象，如果你的应用和支持多窗口的话
+    // 通常会把多个window对象存放在一个数组里面
+    // 但这次不是
     mainWindow = null
   })
 }
 
-// This method will be called when Electron has finished
-// initialization and is ready to create browser windows.
-// Some APIs can only be used after this event occurs.
+// 当Electron完成了初始化并且准备创建浏览器窗口的时候，这个方法被调用
 app.on('ready', createWindow)
 
-// Quit when all windows are closed.
+// 当所有窗口被关闭了， 退出
 app.on('window-all-closed', function () {
-  // On OS X it is common for applications and their menu bar
-  // to stay active until the user quits explicitly with Cmd + Q
+  // 在OS X上， 通常用户在明确地按下cmd + Q 之前
+  // 应用会保持活动状态
   if (process.platform !== 'darwin') {
     app.quit()
   }
 })
 
 app.on('activate', function () {
-  // On OS X it's common to re-create a window in the app when the
-  // dock icon is clicked and there are no other windows open.
+  // 重新创建一个窗口
   if (mainWindow === null) {
     createWindow()
   }
