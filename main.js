@@ -1,11 +1,15 @@
-const electron = require('electron')
-// Module to control application life.
-const app = electron.app
-// Module to create native browser window.
-const BrowserWindow = electron.BrowserWindow
+const {
+  app,
+  BrowserWindow,
+  Menu
+} = require('electron')
 
 const path = require('path')
 const url = require('url')
+
+const pjson = require('./package.json');
+
+const PRODUCT_NAME = pjson.productName || 'App';
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
@@ -34,10 +38,38 @@ function createWindow () {
   })
 }
 
+function createMenu() {
+  if (process.platform === 'darwin') {
+    Menu.setApplicationMenu(Menu.buildFromTemplate([{
+      label: PRODUCT_NAME,
+      submenu: [
+        { label: 'About ' + PRODUCT_NAME, selector: 'orderFrontStandardAboutPanel:' },
+        { type: 'separator' },
+        { label: 'Hide', accelerator: 'Command+H', selector: 'hide:' },
+        { type: 'separator' },
+        { label: 'Quit', accelerator: 'Command+Q', click: () => app.quit() }
+      ]}, {
+        label: 'Edit',
+        submenu: [
+          { label: 'Undo', accelerator: 'CmdOrCtrl+Z', selector: 'undo:' },
+          { label: 'Redo', accelerator: 'Shift+CmdOrCtrl+Z', selector: 'redo:' },
+          { type: 'separator' },
+          { label: 'Cut', accelerator: 'CmdOrCtrl+X', selector: 'cut:' },
+          { label: 'Copy', accelerator: 'CmdOrCtrl+C', selector: 'copy:' },
+          { label: 'Paste', accelerator: 'CmdOrCtrl+V', selector: 'paste:' },
+          { label: 'Select All', accelerator: 'CmdOrCtrl+A', selector: 'selectAll:' }
+        ]}
+    ]))
+  }
+}
+
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.on('ready', createWindow)
+app.on('ready', () => {
+  createWindow()
+  createMenu()
+})
 
 // Quit when all windows are closed.
 app.on('window-all-closed', function () {
@@ -53,6 +85,7 @@ app.on('activate', function () {
   // dock icon is clicked and there are no other windows open.
   if (mainWindow === null) {
     createWindow()
+    createMenu()
   }
 })
 
