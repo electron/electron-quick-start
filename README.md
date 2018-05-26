@@ -1,6 +1,6 @@
-# electron-quick-start
+# mast-navigator-express
 
-**Clone and run for a quick way to see Electron in action.**
+
 
 This is a minimal Electron application based on the [Quick Start Guide](https://electronjs.org/docs/tutorial/quick-start) within the Electron documentation.
 
