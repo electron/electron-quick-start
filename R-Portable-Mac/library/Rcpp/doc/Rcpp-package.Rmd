@@ -1,0 +1,491 @@
+---
+title: Writing a package that uses \pkg{Rcpp} 
+
+# Use letters for affiliations
+author:
+  - name: Dirk Eddelbuettel
+    affiliation: a
+  - name: Romain François
+    affiliation: b
+
+address:
+  - code: a
+    address: \url{http://dirk.eddelbuettel.com}
+  - code: b
+    address: \url{https://romain.rbind.io/}
+
+# For footer text
+lead_author_surname: Eddelbuettel and François
+
+# Place DOI URL or CRAN Package URL here
+doi: "https://cran.r-project.org/package=Rcpp"
+
+# Abstract
+abstract: |
+  This document provides a short overview of how to use
+  \pkg{Rcpp} \citep{CRAN:Rcpp,JSS:Rcpp,Eddelbuettel:2013:Rcpp} when writing
+  an \proglang{R} package.  It shows how usage of the function
+  \rdoc{Rcpp}{Rcpp.package.skeleton} which creates a complete and
+  self-sufficient example package using \pkg{Rcpp}. All components of the
+  directory tree created by \rdoc{Rcpp}{Rcpp.package.skeleton} are discussed
+  in detail.  This document thereby complements the \textsl{Writing R
+    Extensions} manual \citep{R:Extensions} which is the authoritative source
+  on how to extend \proglang{R} in general.
+
+# Optional: Acknowledgements
+# acknowledgements: |
+
+# Optional: One or more keywords
+keywords:
+  - Rcpp
+  - package
+  - R
+  - C++
+
+# Font size of the document, values of 9pt (default), 10pt, 11pt and 12pt
+fontsize: 9pt
+
+# Optional: Force one-column layout, default is two-column
+#one_column: true
+
+# Optional: Enables lineo mode, but only if one_column mode is also true
+#lineno: true
+
+# Optional: Enable one-sided layout, default is two-sided
+#one_sided: true
+
+# Optional: Enable section numbering, default is unnumbered
+numbersections: true
+
+# Optional: Specify the depth of section number, default is 5
+#secnumdepth: 5
+
+# Optional: Bibliography
+bibliography: Rcpp
+
+# Optional: Enable a 'Draft' watermark on the document
+#watermark: false
+
+# Customize footer, eg by referencing the vignette
+footer_contents: "Rcpp Vignette"
+
+# Produce a pinp document
+output: pinp::pinp
+
+header-includes: >
+  \newcommand{\proglang}[1]{\textsf{#1}}
+  \newcommand{\pkg}[1]{\textbf{#1}}
+  \newcommand{\faq}[1]{FAQ~\ref{#1}}
+  \newcommand{\rdoc}[2]{\href{http://www.rdocumentation.org/packages/#1/functions/#2}{\code{#2}}}
+  \newcommand{\sugar}{\textsl{Rcpp sugar}~}
+
+vignette: >
+  %\VignetteIndexEntry{Rcpp-package}
+  %\VignetteKeywords{Rcpp, package, R, Cpp}
+  %\VignettePackage{Rcpp}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+
+# Introduction
+
+\pkg{Rcpp} \citep{CRAN:Rcpp,JSS:Rcpp,Eddelbuettel:2013:Rcpp} is an extension
+package for \proglang{R} which offers an easy-to-use yet featureful interface
+between \proglang{C++} and \proglang{R}.  However, it is somewhat different
+from a traditional \proglang{R} package because its key component is a
+\proglang{C++} library. A client package that wants to make use of the
+\pkg{Rcpp} features must link against the library provided by \pkg{Rcpp}.
+
+It should be noted that \proglang{R} has only limited support for
+\proglang{C(++)}-level dependencies between packages \citep{R:Extensions}. The
+`LinkingTo` declaration in the package `DESCRIPTION` file
+allows the client package to retrieve the headers of the target package (here
+\pkg{Rcpp}), but support for linking against a library is not provided by
+\proglang{R} and has to be added manually.
+
+This document follows the steps of the \rdoc{Rcpp}{Rcpp.package.skeleton}
+function to illustrate a recommended way of using \pkg{Rcpp} from a client
+package. We illustrate this using a simple \proglang{C++} function
+which will be called by an \proglang{R} function.
+
+We strongly encourage the reader to become familiar with the material in the
+\textsl{Writing R Extensions} manual \citep{R:Extensions}, as well as with other
+documents on \proglang{R} package creation such as \cite{Leisch:2008:Tutorial}. Given
+a basic understanding of how to create \proglang{R} package, the present
+document aims to provide the additional information on how to use \pkg{Rcpp}
+in such add-on packages.
+
+# Using `Rcpp.package.skeleton`
+
+## Overview
+
+\pkg{Rcpp} provides a function \rdoc{Rcpp}{Rcpp.package.skeleton}, modeled
+after the base \proglang{R} function \rdoc{utils}{package.skeleton}, which
+facilitates creation of a skeleton package using \pkg{Rcpp}.
+
+\rdoc{Rcpp}{Rcpp.package.skeleton} has a number of arguments documented on
+its help page (and similar to those of \rdoc{utils}{package.skeleton}). The
+main argument is the first one which provides the name of the package one
+aims to create by invoking the function.  An illustration of a call using an
+argument `mypackage` is provided below.
+
+```r
+Rcpp.package.skeleton("mypackage")
+```
+
+\begin{ShadedResult}
+\begin{verbatim}
+$ ls -1R mypackage/
+DESCRIPTION
+NAMESPACE
+R
+Read-and-delete-me
+man
+src
+
+mypackage/R:
+RcppExports.R
+
+mypackage/man:
+mypackage-package.Rd
+rcpp_hello_world.Rd
+
+mypackage/src:
+Makevars            # until Rcpp 0.10.6, see below
+Makevars.win        # until Rcpp 0.10.6, see below
+RcppExports.cpp
+rcpp_hello_world.cpp
+$
+\end{verbatim}
+\end{ShadedResult}
+
+Using \rdoc{Rcpp}{Rcpp.package.skeleton} is by far the simplest approach
+as it fulfills two roles. It creates the complete set of files needed for a
+package, and it also includes the different components needed for using
+\pkg{Rcpp} that we discuss in the following sections.
+
+## \proglang{C++} code
+
+If the `attributes` argument is set to `TRUE`[^1], the 
+following \proglang{C++} file is included in the `src/` directory:
+
+```cpp
+#include <Rcpp.h>
+using namespace Rcpp;
+
+// [[Rcpp::export]]
+List rcpp_hello_world() {
+
+    CharacterVector x = 
+        CharacterVector::create("foo", "bar");
+    NumericVector y   = 
+        NumericVector::create( 0.0, 1.0 ) ;
+    List z            = List::create( x, y ) ;
+
+    return z ;
+}
+```
+
+The file defines the simple `rcpp_hello_world` function that
+uses a few \pkg{Rcpp} classes and returns a `List`.
+
+This function is preceded by the `Rcpp::export` attribute to automatically
+handle argument conversion because \proglang{R} has to be taught how to
+e.g. handle the `List` class.
+
+\rdoc{Rcpp}{Rcpp.package.skeleton} then invokes \rdoc{Rcpp}{compileAttributes}
+on the package, which generates the `RcppExports.cpp` file (where we indented
+the first two lines for the more compact display here):
+
+```rcpp
+// Generated by using Rcpp::compileAttributes() \
+//        -> do not edit by hand
+// Generator token: \
+//        10BE3573-1514-4C36-9D1C-5A225CD40393
+
+#include <Rcpp.h>
+
+using namespace Rcpp;
+
+// rcpp_hello_world
+List rcpp_hello_world();
+RcppExport SEXP mypackage_rcpp_hello_world() {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    rcpp_result_gen =
+           Rcpp::wrap(rcpp_hello_world());
+    return rcpp_result_gen;
+END_RCPP
+}
+```
+
+This file defines a function with the appropriate calling convention, suitable for
+\rdoc{base}{.Call}. It needs to be regenerated each time functions
+exposed by attributes are modified. This is the task of the
+\rdoc{Rcpp}{compileAttributes} function. A discussion on attributes is
+beyond the scope of this document and more information is available
+in the attributes vignette \citep{CRAN:Rcpp:Attributes}.
+
+## \proglang{R} code
+
+The \rdoc{Rcpp}{compileAttributes} also generates \proglang{R} code
+that uses the \proglang{C++} function.
+
+```r
+# Generated by using Rcpp::compileAttributes() \
+#        -> do not edit by hand
+# Generator token: \
+#        10BE3573-1514-4C36-9D1C-5A225CD40393
+
+rcpp_hello_world <- function() {
+    .Call('mypackage_rcpp_hello_world', 
+          PACKAGE = 'mypackage')
+}
+```
+
+This is also a generated file so it should not be modified manually, rather
+regenerated as needed by \rdoc{Rcpp}{compileAttributes}.
+
+## `DESCRIPTION`
+
+The skeleton generates an appropriate `DESCRIPTION` file, using
+both `Imports:` and `LinkingTo` for \pkg{Rcpp}:
+
+\begin{ShadedResult}
+\begin{verbatim}
+Package: mypackage
+Type: Package
+Title: What the package does (short line)
+Version: 1.0
+Date: 2013-09-17
+Author: Who wrote it
+Maintainer: Who <yourfault@somewhere.net>
+Description: More about what it does (maybe
+  more than one line)
+License: What Licence is it under ?
+Imports: Rcpp (>= 0.11.0)
+LinkingTo: Rcpp
+\end{verbatim}
+\end{ShadedResult}
+
+
+\rdoc{Rcpp}{Rcpp.package.skeleton} adds the three last lines to the
+`DESCRIPTION` file generated by \rdoc{utils}{package.skeleton}.
+
+The `Imports` declaration indicates \proglang{R}-level dependency
+between the client package and \pkg{Rcpp}; code from the latter is being
+imported into the package described here. The `LinkingTo` declaration
+indicates that the client package needs to use header files exposed by
+\pkg{Rcpp}.
+
+## Now optional: `Makevars` and `Makevars.win`
+
+This behaviour changed with \pkg{Rcpp} release 0.11.0. These files used to be
+mandatory, now they are merely optional. 
+
+We will describe the old setting first as it was in use for a few years. The
+new standard, however, is much easier and is described below.
+
+## Releases up until 0.10.6
+
+Unfortunately, the `LinkingTo` declaration in itself was not
+enough to link to the user \proglang{C++} library of \pkg{Rcpp}. Until more
+explicit support for libraries is added to \proglang{R}, ones needes to manually
+add the \pkg{Rcpp} library to the `PKG_LIBS` variable in the
+`Makevars` and `Makevars.win` files. (This has now changed with
+release 0.11.0; see below).
+\pkg{Rcpp} provides the unexported function `Rcpp:::LdFlags()` to ease the process:
+
+```sh
+## Use the R_HOME indirection to support
+## installations of multiple R version
+##
+## NB: No longer needed, see below
+PKG_LIBS = `$(R_HOME)/bin/Rscript -e \
+                      "Rcpp:::LdFlags()"`
+
+```
+
+The `Makevars.win` is the equivalent, targeting windows.
+
+```sh
+## Use the R_HOME indirection to support
+## installations of multiple R version
+##
+## NB: No longer needed, see below
+PKG_LIBS = $(shell \
+   "${R_HOME}/bin${R_ARCH_BIN}/Rscript.exe" \
+   -e "Rcpp:::LdFlags()")
+```
+
+## Releases since 0.11.0
+
+As of release 0.11.0, this is no longer needed as client packages obtain the
+required code from \pkg{Rcpp} via explicit function registration. The user
+does not have to do anything.  
+
+This means that `PKG_LIBS` can now be empty---unless some client
+libraries are needed.  For example, \pkg{RcppCNPy} needs compression support
+and hence uses `PKG_LIBS= -lz`. Similarly, when a third-party library is
+required, it can and should be set here.
+
+## `NAMESPACE`
+
+The \rdoc{Rcpp}{Rcpp.package.skeleton} function also creates a file
+`NAMESPACE`.
+
+```sh
+useDynLib(mypackage)
+exportPattern("^[[:alpha:]]+")
+importFrom(Rcpp, evalCpp)
+```
+
+This file serves three purposes. First, it ensure that the dynamic library
+contained in the package we are creating via
+\rdoc{Rcpp}{Rcpp.package.skeleton} will be loaded and thereby made
+available to the newly created \proglang{R} package. 
+
+Second, it declares which functions should be globally visible from the
+namespace of this package. As a reasonable default, we export all functions.
+
+Third, it instructs R to import a symbol from \pkg{Rcpp}. This sets up the
+import of all registered function and, together with the `Imports:`
+statement in `DESCRIPTION`, provides what is needed for client packages
+to access \pkg{Rcpp} functionality.
+
+## Help files
+
+Also created is a directory `man` containing two help files. One is
+for the package itself, the other for the (single) \proglang{R} function
+being provided and exported.
+
+The \textsl{Writing R Extensions} manual \citep{R:Extensions} provides the complete
+documentation on how to create suitable content for help files.
+
+## `mypackage-package.Rd`
+
+The help file `mypackage-package.Rd` can be used to describe
+the new package (and we once again indented some lines):
+
+```sh
+\name{mypackage-package}
+\alias{mypackage-package}
+\alias{mypackage}
+\docType{package}
+\title{
+What the package does (short line)
+}
+\description{
+More about what it does (maybe more than one line)
+~~ A concise (1-5 lines) description of the
+package ~~
+}
+\details{
+\tabular{ll}{
+Package: \tab mypackage\cr
+Type: \tab Package\cr
+Version: \tab 1.0\cr
+Date: \tab 2013-09-17\cr
+License: \tab What license is it under?\cr
+}
+~~ An overview of how to use the package,
+including the most important functions ~~
+}
+\author{
+Who wrote it
+
+Maintainer: Who <yourfault@somewhere.net>
+}
+\references{
+~~ Literature or other references for
+background information ~~
+}
+~~ Optionally other standard keywords, one per
+line, from file KEYWORDS in the R
+documentation directory ~~
+\keyword{ package }
+\seealso{
+~~ Optional links to other man pages, e.g. ~~
+~~ \code{\link[<pkg>:<pkg>-package]{<pkg>}} ~~
+}
+\examples{
+%% ~~ simple examples of the most important
+%% functions ~~
+}
+```
+
+## `rcpp_hello_world.Rd`
+
+The help file `rcpp_hello_world.Rd` serves as documentation for the
+example \proglang{R} function.
+
+```sh
+\name{rcpp_hello_world}
+\alias{rcpp_hello_world}
+\docType{package}
+\title{
+Simple function using Rcpp
+}
+\description{
+Simple function using Rcpp
+}
+\usage{
+rcpp_hello_world()
+}
+\examples{
+\dontrun{
+rcpp_hello_world()
+}
+}
+```
+
+# Using modules
+
+This document does not cover the use of the `module` argument
+of \rdoc{Rcpp}{Rcpp.package.skeleton}. It is covered
+in the modules vignette \citep{CRAN:Rcpp:Modules}.
+
+# Further examples
+
+The canonical example of a package that uses \pkg{Rcpp} is the
+\pkg{RcppExamples} \citep{CRAN:RcppExamples} package. \pkg{RcppExamples}
+contains various examples of using \pkg{Rcpp}. Hence, the \pkg{RcppExamples}
+package is provided as a template for employing \pkg{Rcpp} in packages.
+
+Other CRAN packages using the \pkg{Rcpp} package are \pkg{RcppArmadillo}
+\citep{CRAN:RcppArmadillo},
+and \pkg{minqa} \citep{CRAN:minqa}. Several other packages follow older (but still supported
+and appropriate) instructions. They can serve examples on how to get data to
+and from \proglang{C++} routines, but should not be considered templates for
+how to connect to \pkg{Rcpp}. The full list of packages using \pkg{Rcpp} can
+be found at the [CRAN page](http://CRAN.R-project.org/package=Rcpp) of
+\pkg{Rcpp}.
+
+# Other compilers
+
+Less experienced \proglang{R} users on the Windows platform frequently ask
+about using \pkg{Rcpp} with the Visual Studio toolchain.  That is simply not
+possible as \proglang{R} is built with the \pkg{gcc} compiler. Different
+compilers have different linking conventions. These conventions are
+particularly hairy when it comes to using \proglang{C++}.  In short, it is
+not possible to simply drop sources (or header files) from \pkg{Rcpp} into a
+\proglang{C++} project built with Visual Studio, and this note makes no
+attempt at claiming otherwise.
+
+\pkg{Rcpp} is fully usable on Windows provided the standard Windows
+toolchain for \proglang{R} is used. See the \textsl{Writing R Extensions}
+manual \citep{R:Extensions} for details.
+
+# Summary
+
+This document described how to use the \pkg{Rcpp} package for \proglang{R}
+and \proglang{C++} integration when writing an \proglang{R} extension
+package. The use of the \rdoc{Rcpp}{Rcpp.package.skeleton} was shown in
+detail, and references to further examples were provided.
+
+[^1]: Setting `attributes` to `TRUE` is the default. This document
+    does not cover the behavior of `Rcpp.package.skeleton` when `attributes` is set
+    to `FALSE` as we try to encourage package developpers to use
+    attributes. 

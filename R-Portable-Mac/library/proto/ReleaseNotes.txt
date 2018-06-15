@@ -1,0 +1,178 @@
+
+Guide to version 0.4-0 of proto
+
+1. Lazy Evaluation
+
+The proto function now evaluates its ... argument lazily.
+This together with a lazy cloning routine, clone, allows the
+user to use a proto object as a template for other objects.
+
+For example, in the code below 
+- gwindow is the gWidgets function to create a new window and 
+- gbutton is the function to create a button in indicated container.
+
+We create a proto object p which defines 
+- a container, container, embodying a new window and 
+- a method, go, which places a button in it.  
+
+We clone p to create q before we run p$go() so that q
+gets its own promise and that will result in p$go()
+and q$go() creating different windows.
+
+	library(proto)
+	library(gWidgets)
+
+	p <- proto(go = function(.) gbutton(.$msg, cont = .$container),
+	       msg = "Hello", container = gwindow())  # now its lazy
+	q <- p$clone()  # promises copied, not forced
+	p$go()
+	q$go()
+
+Had the statements been run in the following order, i.e. q
+is defined after p$go is run, then clone would have copied
+the actual container and not a promise to it so q would try
+to place its button in the same container as p giving an
+error.
+
+	p <- proto(go = function(.) gbutton(.$msg, cont = .$container),
+	       msg = "Hello", container = gwindow())  # now its lazy
+	p$go()
+	q <- p$clone()  # promises copied, not forced
+	q$go()  # ERROR !!!
+
+Here is an example that does not make use of any additional
+R packages.  It also appears in example(proto) .  Note the
+difference between the following two code snippets which
+differ only in the order of the statements:
+
+	# q is cloned before promises in p are forced
+	p <- proto(append = function(., x) .$L[[x]] <- x, L = proto())
+	q <- p$clone()
+	p$append("A")
+	as.list(p$L)
+	q$append("B")
+	as.list(q$L)
+
+	# promises in p are forced before q is cloned
+	p <- proto(append = function(., x) .$L[[x]] <- x, L = proto())
+	p$append("C")
+	as.list(p$L)
+	q <- p$clone()
+	q$append("D")
+	as.list(q$L)
+
+2. as.list.environment
+
+This is a workaround to handle the a bug in R's version of
+this command.  R will not evaluate promises when converting
+an environment to a list and this can cause subsequent
+problems.  The implementation in proto works around this
+problem in R.
+
+3. $.proto
+
+If p is a proto object and meth is a method in it then
+p$meth(myArg) first runs p$meth creating an instantiated
+proto object.  Previously this was a call to meth with p
+inserted as its first argument.  This has been changed so
+that the keyword receiver is inserted as its first argument
+and reciever is given a default value of p so that by
+default it works the same as before; however, it is possible
+to specify a different value for receiver like this:
+
+	p$meth(receiver = q, myArg)
+
+in which case the meth found in p (or an ancestor) is run
+using q as the receiver object and myArg as an argument.
+Note that
+
+	p$meth(myArg)
+	p$meth(receiver = p, myArg)
+
+are the same.
+
+4. super() and that()
+
+Previously .that and .super were built in variables that
+could be used in methods to refer to the object the method
+is defined in and its parent respectively.  These variables
+were stored in every proto object and if a method had that
+object as its environment then it could access them to find
+out what object it belongs to and to easily refer to its
+object's parent.
+
+Unfortunately this polluted every proto object with .that and
+.super variables.  To clean this up we have defined that()
+and super() functions which simply return the environment of
+the method they are defined in and its parent respectively
+so that .that and .super are no longer needed.
+
+Also there were special rules in $.proto so .that$meth would
+not automatically insert .that into the resulting function
+and similarly for .super.   For compatibility .that and
+.super continue to exist and the special rule continues to
+be supported; however, for that() and super() no special
+processing is done.  Given the existence of receiver its not
+needed.  Thus:
+
+	.that$meth(p, myArgs)
+	that()$meth(receiver = p, myArgs)
+
+are the same.  Both .that/.super and that()/super()
+currently exist but in an upcoming version of proto
+.that/.super will be eliminated so users should take the
+time to switch over.
+
+Note that .that and .super would continue to work within a
+function within a method but that() and super() do not.  On
+the other hand its quite easy to work around it:
+
+	p <- function(.) {
+		f <- function() .that
+		x <- f()
+	}
+
+is the same as (we just added the first line and changed
+.that to that):
+
+	p <- function(.) {
+		that <- that()
+		f <- function() that
+		x <- f()
+	}
+
+Looking over a large amount of proto code we found very
+little of it uses .that or .super so the elimination of
+these variables in every proto object seems like a
+worthwhile benefit compared to the minor change in syntax
+required in a small number of routines.
+
+5. There are several new demos.  To see them try this:
+
+	demo(package = proto)
+
+One of these demos is from John Verzani who developed the
+gWidgets package.  For more proto examples with gWidgets see
+the links on the proto home page to his other examples.
+
+6. instantiatedProtoMethod
+
+This feature has been in proto for a while.  It was
+developed based on the original by Tom Short.  p$meth
+creates an object of class "instantiatedProtoMethod" which
+has its own print method.
+
+7. Examples
+
+There are some gWidget examples from John Verzani that specifically take 
+advantage of proto 0.4-0 features here:
+http://wiener.math.csi.cuny.edu/pmg/gWidgets/Examples/ProtoExample-II-ex.pdf
+
+8. DESCRIPTION
+
+Packages that have proto objects at the top level should use  
+"LazyLoad: false" in their DESCRIPTION file.  (Alternately 
+"SaveImage: true" works although it has been deprecated in R. Also
+note that omitting the LazyLoad: line means that R will choose
+a default action and so is NOT equivalent to "LazyLoad: false".)
+

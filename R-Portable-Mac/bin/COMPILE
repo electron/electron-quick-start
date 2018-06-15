@@ -1,0 +1,73 @@
+#
+# ${R_HOME}/bin/COMPILE
+
+# @configure_input@
+
+revision='$Rev: 74001 $'
+version=`set - ${revision}; echo ${2}`
+version="R compilation front end: ${R_VERSION} (r${version})
+
+Copyright (C) 2000-2018 The R Core Team.
+This is free software; see the GNU General Public License version 2 or
+later for copying conditions.  There is NO warranty."
+
+usage="Usage: R CMD COMPILE [options] files
+
+Compile the specified files for subsequent collection into a shared
+library using 'R CMD SHLIB' or an executable program using 'R CMD
+LINK'.  Currently, the following languages with associated source file
+extensions are supported (provided that the respective compilers are
+available and R was configured to use these): C ('.c'), C++ ('.cc' or
+'.cpp'), FORTRAN 77 ('.f'), FORTRAN 90 ('.f90'), FORTRAN 95 ('.f95'),
+Objective C ('.m'), and Objective C++ ('.M' or '.mm').
+
+Options:
+  -h, --help		print short help message and exit
+  -v, --version		print version info and exit
+
+Other options of the form '-DMACRO' or 'VAR=VALUE' are passed on to the
+compilation.
+
+Report bugs at <https://bugs.R-project.org>."
+
+makefiles="-f \"${R_HOME}/etc${R_ARCH}/Makeconf\""
+if test -r "${HOME}/.R/Makevars-${R_PLATFORM}"; then
+  makefiles="${makefiles} -f \"${HOME}/.R/Makevars-${R_PLATFORM}\""
+elif test -r "${HOME}/.R/Makevars"; then
+  makefiles="${makefiles} -f \"${HOME}/.R/Makevars\""
+fi
+if test -r Makevars; then
+  makefiles="-f Makevars ${makefiles}"
+fi
+
+objs=
+while test -n "${1}"; do
+  case ${1} in
+    -h|--help)
+      echo "${usage}"; exit 0 ;;
+    -v|--version)
+      echo "${version}"; exit 0 ;;
+    *.[cfmM]|*.cc|*.cpp|*.f90|*.f95|*.mm)
+      objs="${objs} `echo ${1} | sed 's/\.[^\.][^\.]*$/.o/'`" ;;
+    -D*)
+      MAKEFLAGS="${MAKEFLAGS} ${1}" ;;
+    *=*)
+      argn=`echo "${1}" | sed -e 's/=.*//'`
+      argv=`echo "${1}" | \
+	sed -e 's/[^=]*=//; s/^\\"//; s/\\"$//; s/\\"/\\\\"/g'`
+      MAKEFLAGS="${MAKEFLAGS} ${argn}=\"${argv}\""
+      ;;
+    *)
+      echo "ERROR: don't know how to compile '${1}'"
+      exit 1
+      ;;
+  esac
+  shift
+done
+
+eval "${MAKE} ${makefiles} ${MAKEFLAGS} ${objs}"
+
+### Local Variables: ***
+### mode: sh ***
+### sh-indentation: 2 ***
+### End: ***

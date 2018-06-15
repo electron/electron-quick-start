@@ -1,0 +1,162 @@
+---
+title: "Using miniCRAN to create a local CRAN repository"
+author: "Andrie de Vries and Alex Chubaty"
+date:   "`r as.character(format(Sys.Date(), format='%B %d, %Y'))`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Using miniCRAN to create and maintain a local CRAN repository}
+  %\VignettePackage{miniCRAN}
+  %\VignetteKeyword{miniCRAN}
+  %\usepackage[utf8]{inputenc}
+  %\VignetteEngine{knitr::rmarkdown}
+editor_options: 
+  chunk_output_type: console
+---
+
+Start by creating the recursive dependency tree for your target packages.
+
+For example, imagine a scenario where you want to create a repository that consists of the package `foreach` and its dependencies.
+ 
+Start by creating the dependency list:
+
+```{r make-repo-1}
+library("miniCRAN")
+
+# use Revolution Analytics CRAN mirror
+revolution <- c(CRAN = "http://cran.microsoft.com")
+
+# Specify list of packages to download
+pkgs <- c("foreach")
+pkgList <- pkgDep(pkgs, repos = revolution, type = "source", suggests = FALSE, 
+                  availPkgs = cranJuly2014)
+pkgList
+```
+
+Next, create a repository with the function `makeRepo()`.  In this example, get the required files for `source` packages as well as windows binaries:
+
+```{r make-repo-2, eval=FALSE}
+# Create temporary folder for miniCRAN
+dir.create(pth <- file.path(tempdir(), "miniCRAN"))
+
+# Make repo for source and win.binary
+makeRepo(pkgList, path = pth, repos = revolution, type = c("source", "win.binary"))
+```
+
+
+Investigate the repository file structure:
+
+```{r make-repo-3, eval=FALSE}
+# List all files in miniCRAN
+list.files(pth, recursive = TRUE, full.names = FALSE)
+```
+
+
+Use `pkgAvail` to list available packages in your repository:
+
+```{r make-repo-4, eval=FALSE}
+# Check for available packages
+pkgAvail(repos = pth, type = "win.binary")[, c(1:3, 5)]
+```
+
+# Install packages from your local repository
+
+To install packages from a local repository, you need to use the URI convention `file:///` to point to your file lcoation.
+
+```{r make-repo-5, eval=FALSE}
+install.packages(pkgs, 
+                 repos = paste0("file:///", pth),
+                 type = "source")
+```
+
+
+# Adding packages to an existing miniCRAN repository
+
+## Adding new packages from CRAN
+
+After creating a local miniCRAN repository, additional packages and their dependencies can easily be added. This mechanism can also be used to re-add an existing package to the miniCRAN repo.
+
+```{r addto-repo-new-1, eval=FALSE}
+# Add new packages (from CRAN) to the miniCRAN repo
+addPackage("Matrix", path = pth, repos = revolution, type = c("source", "win.binary"))
+pkgAvail(repos = pth, type = "win.binary")[, c(1:3, 5)]
+```
+
+The value that is returned (invisibly) via `addPackage` is the number of packages written to the index file, *i.e.*, the total number of packages in the repo of that type.
+
+## Adding an older version of a package from CRAN
+
+To add a specific version of a package from CRAN (or another CRAN-like repository), we can easily download the source packages from the CRAN archives. Dependencies for old package versions cannot be determined automatically and must be specified by the user.
+
+*Note:* in order to to add binaries of older packages, you will need to download the source and build the binaries on the intended platform yourself. You will need the appropriate R development tools installed in order to build package binaries from source.
+
+```{r addto-repo-old-1, eval=FALSE}
+# create a data frame with the package and version info
+oldVers <- data.frame(
+  package = c("foreach", "codetools", "iterators"),
+  version = c("1.4.0", "0.2-7", "1.0.5"),
+  stringsAsFactors = FALSE
+)
+
+# download old source package version and create repo index
+addOldPackage(pkgList, path = pth, vers = oldVers$version, repos = revolution, type = "source")
+```
+
+You will get a warning whenever there are multiple versions of a package saved in the repository. Currently, you need to manually remove duplicate versions before rebuilding the repository's package index.
+
+Note: This last step is important, otherwise you may end up with a repo in an inconsistent state.
+
+```{r addto-repo-old-2, eval=FALSE}
+# List package versions in the miniCRAN repo (produces warning about duplicates)
+pkgVersionsSrc <- checkVersions(pkgList, path = pth, type = "source")
+pkgVersionsBin <- checkVersions(pkgList, path = pth, type = "win.binary")
+
+# After inspecting package versions, remove old versions
+basename(pkgVersionsSrc) # duplicate versions
+basename(pkgVersionsBin)
+
+file.remove(pkgVersionsSrc[c(2,4,6)])
+
+# rebuild the package index after removing duplicate package versions
+updateRepoIndex(pth, type = c("source", "win.binary"))
+```
+
+To see the updated list of packages available in the miniCRAN repo:
+
+```{r addto-repo-old-3, eval=FALSE}
+pkgAvail(pth, type = "source")[, c(1:3, 5)] # contains the old versions
+pkgAvail(pth, type = "win.binary")[, c(1:3, 5)] # contains the current versions
+```
+
+
+
+## Adding packages from other sources
+
+This feature will be implemented in a future release.
+
+
+# Updating the packages in a miniCRAN repository
+
+Checking for updated versions of the packages currently stored in the miniCRAN repository:
+
+```{r update-repo-1, eval=FALSE}
+# Check if updated packages are available
+oldPackages(path = pth, repos = revolution, type = "source")[, 1:3] # should need update
+oldPackages(path = pth, repos = revolution, type = "win.binary")[, 1:3] # should be current
+```
+
+
+Update the versions of the packages currently stored in the miniCRAN repository. By default, a prompt is given to confirm the update for each package. This prompt can be suppressed using `ask = FALSE`, which will update all packages. Be careful using this option if you want to keep certain packages at an older version.
+
+```{r update-repo-2, eval=FALSE}
+# Update available packages
+updatePackages(path = pth, repos = revolution, type = "source", ask = FALSE) # should need update
+updatePackages(path = pth, repos = revolution, type = "win.binary", ask = FALSE) # should be current
+```
+
+
+
+
+```{r cleanup, include=FALSE, eval=FALSE}
+# Delete temporary folder
+unlink(pth, recursive = TRUE)
+```

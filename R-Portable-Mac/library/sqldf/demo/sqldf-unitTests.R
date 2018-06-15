@@ -1,0 +1,8 @@
+library(sqldf)
+library(svUnit)
+sqldf.tests <- system.file("unitTests", "runit.all.R", package = "sqldf")
+cat("Running:", sqldf.tests, "\n")
+source(sqldf.tests)
+clearLog()
+test.all()
+Log()

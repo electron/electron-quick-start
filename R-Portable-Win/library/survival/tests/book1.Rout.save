@@ -1,0 +1,228 @@
+
+R Under development (unstable) (2014-05-11 r65563) -- "Unsuffered Consequences"
+Copyright (C) 2014 The R Foundation for Statistical Computing
+Platform: i686-pc-linux-gnu (32-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> library(survival)
+Loading required package: splines
+> options(na.action=na.exclude) # preserve missings
+> options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
+> 
+> #
+> # Tests from the appendix of Therneau and Grambsch
+> #  a. Data set 1 and Breslow estimate
+> #  The data below is not in time order, to also test sorting, and has 1 NA
+> #
+> test1 <- data.frame(time=  c(9, 3,1,1,6,6,8),
++                     status=c(1,NA,1,0,1,1,0),
++                     x=     c(0, 2,1,1,1,0,0))
+> 
+> # Breslow estimate
+> byhand1 <- function(beta, newx=0) {
++     r <- exp(beta)
++     loglik <- 2*beta - (log(3*r+3) + 2*log(r+3))
++     u <- (6 + 3*r - r^2) / ((r+1)*(r+3))
++     imat <- r/(r+1)^2 + 6*r/(r+3)^2
++ 
++     x <- c(1,1,1,0,0,0)
++     status <- c(1,0,1,1,0,1)
++     xbar <- c(r/(r+1), r/(r+3), 0, 0)  # at times 1, 6, 8 and 9
++     haz <- c(1/(3*r+3), 2/(r+3), 0, 1 )
++     ties <- c(1,1,2,2,3,4)
++     wt <- c(r,r,r,1,1,1)
++     mart <- c(1,0,1,1,0,1) -  wt* (cumsum(haz))[ties]  #martingale residual
++ 
++     a <- 3*(r+1)^2; b<- (r+3)^2
++     score <- c((2*r+3)/a, -r/a, -r/a + 3*(3-r)/b,  r/a - r*(r+1)/b,
++                r/a + 2*r/b, r/a + 2*r/b)
++ 
++     # Schoenfeld residual
++     scho <- c(1/(r+1), 1- (r/(3+r)), 0-(r/(3+r)) , 0)
++ 
++     surv  <- exp(-cumsum(haz)* exp(beta*newx))
++     varhaz.g <- cumsum(c(1/(3*r+3)^2, 2/(r+3)^2, 0, 1 ))
++ 
++     varhaz.d <- cumsum((newx-xbar) * haz)
++ 
++     varhaz <- (varhaz.g + varhaz.d^2/ imat) * exp(2*beta*newx)
++ 
++     names(xbar) <- names(haz) <- 1:4
++     names(surv) <- names(varhaz) <- 1:4
++     list(loglik=loglik, u=u, imat=imat, xbar=xbar, haz=haz,
++ 	     mart=mart,  score=score,
++ 		scho=scho, surv=surv, var=varhaz,
++ 		varhaz.g=varhaz.g, varhaz.d=varhaz.d)
++     }
+> 
+> 
+> aeq <- function(x,y) all.equal(as.vector(x), as.vector(y))
+> 
+> fit0 <-coxph(Surv(time, status) ~x, test1, iter=0, method='breslow')
+> truth0 <- byhand1(0,0)
+> aeq(truth0$loglik, fit0$loglik[1])
+[1] TRUE
+> aeq(1/truth0$imat, fit0$var)
+[1] TRUE
+> aeq(truth0$mart, fit0$resid[c(2:6,1)])
+[1] TRUE
+> aeq(truth0$scho, resid(fit0, 'schoen'))
+[1] TRUE
+> aeq(truth0$score, resid(fit0, 'score')[c(3:7,1)])
+[1] TRUE
+> sfit <- survfit(fit0, list(x=0))
+> aeq(sfit$std.err^2, c(7/180, 2/9, 2/9, 11/9))
+[1] TRUE
+> aeq(resid(fit0, 'score'), c(5/24, NA, 5/12, -1/12, 7/24, -1/24, 5/24))
+[1] TRUE
+> 
+> fit1 <- coxph(Surv(time, status) ~x, test1, iter=1, method='breslow')
+> aeq(fit1$coef, 8/5)
+[1] TRUE
+> 
+> # This next gives an ignorable warning message
+> fit2 <- coxph(Surv(time, status) ~x, test1, method='breslow', iter=2)
+Warning message:
+In fitter(X, Y, strats, offset, init, control, weights = weights,  :
+  Ran out of iterations and did not converge
+> aeq(round(fit2$coef, 6), 1.472724)
+[1] TRUE
+> 
+> fit <- coxph(Surv(time, status) ~x, test1, method='breslow', eps=1e-8)
+> aeq(round(fit$coef,7), 1.4752849)
+[1] TRUE
+> truth <- byhand1(fit$coef, 0)
+> aeq(truth$loglik, fit$loglik[2])
+[1] TRUE
+> aeq(1/truth$imat, fit$var)
+[1] TRUE
+> aeq(truth$mart, fit$resid[c(2:6,1)])
+[1] TRUE
+> aeq(truth$scho, resid(fit, 'schoen'))
+[1] TRUE
+> aeq(truth$score, resid(fit, 'score')[c(3:7,1)])
+[1] TRUE
+> expect <- predict(fit, type='expected', newdata=test1) #force recalc
+> aeq(test1$status[-2] -fit$resid, expect[-2]) #tests the predict function
+[1] TRUE
+> 
+> sfit <- survfit(fit, list(x=0), censor=FALSE)
+> aeq(sfit$std.err^2, truth$var[c(1,2,4)]) # sfit skips time 8 (no events there)
+[1] TRUE
+> aeq(-log(sfit$surv), (cumsum(truth$haz))[c(1,2,4)])
+[1] TRUE
+> sfit <- survfit(fit, list(x=0), censor=TRUE)
+> aeq(sfit$std.err^2, truth$var) 
+[1] TRUE
+> aeq(-log(sfit$surv), (cumsum(truth$haz)))
+[1] TRUE
+> 
+> 
+> # 
+> # Done with the formal test, now print out lots of bits
+> #
+> resid(fit)
+         1          2          3          4          5          6          7 
+-0.3333333         NA  0.7287136 -0.2712864 -0.4574271  0.6666667 -0.3333333 
+> resid(fit, 'scor')
+          1           2           3           4           5           6 
+ 0.21138938          NA  0.13564322 -0.05049744 -0.12624360 -0.38168095 
+          7 
+ 0.21138938 
+> resid(fit, 'scho')
+         1          6          6          9 
+ 0.1861407  0.4069297 -0.5930703  0.0000000 
+> 
+> predict(fit, type='lp')
+[1] -0.7376425         NA  0.7376425  0.7376425  0.7376425 -0.7376425 -0.7376425
+> predict(fit, type='risk')
+[1] 0.4782401        NA 2.0910001 2.0910001 2.0910001 0.4782401 0.4782401
+> predict(fit, type='expected')
+        1         2         3         4         5         6         7 
+1.3333333        NA 0.2712864 0.2712864 1.4574271 0.3333333 0.3333333 
+> predict(fit, type='terms')
+           x
+1 -0.7376425
+2         NA
+3  0.7376425
+4  0.7376425
+5  0.7376425
+6 -0.7376425
+7 -0.7376425
+> predict(fit, type='lp', se.fit=T)
+$fit
+         1          2          3          4          5          6          7 
+-0.7376425         NA  0.7376425  0.7376425  0.7376425 -0.7376425 -0.7376425 
+
+$se.fit
+        1         2         3         4         5         6         7 
+0.6278672        NA 0.6278672 0.6278672 0.6278672 0.6278672 0.6278672 
+
+> predict(fit, type='risk', se.fit=T)
+$fit
+        1         2         3         4         5         6         7 
+0.4782401        NA 2.0910001 2.0910001 2.0910001 0.4782401 0.4782401 
+
+$se.fit
+        1         2         3         4         5         6         7 
+0.4342009        NA 0.9079142 0.9079142 0.9079142 0.4342009 0.4342009 
+
+> predict(fit, type='expected', se.fit=T)
+$fit
+        1         2         3         4         5         6         7 
+1.3333333        NA 0.2712864 0.2712864 1.4574271 0.3333333 0.3333333 
+
+$se.fit
+[1] 1.0540926        NA 0.2785989 0.2785989 1.1069433 0.3333333 0.3333333
+
+> predict(fit, type='terms', se.fit=T)
+$fit
+           x
+1 -0.7376425
+2         NA
+3  0.7376425
+4  0.7376425
+5  0.7376425
+6 -0.7376425
+7 -0.7376425
+
+$se.fit
+          x
+1 0.6278672
+2        NA
+3 0.6278672
+4 0.6278672
+5 0.6278672
+6 0.6278672
+7 0.6278672
+
+> 
+> summary(survfit(fit))
+Call: survfit(formula = fit)
+
+ time n.risk n.event survival std.err lower 95% CI upper 95% CI
+    1      6       1   0.8783   0.122      0.66827            1
+    6      4       2   0.4981   0.218      0.21125            1
+    9      1       1   0.0615   0.150      0.00051            1
+> summary(survfit(fit, list(x=2)))
+Call: survfit(formula = fit, newdata = list(x = 2))
+
+ time n.risk n.event survival  std.err lower 95% CI upper 95% CI
+    1      6       1 3.05e-01 6.50e-01     4.72e-03            1
+    6      4       2 1.71e-03 1.98e-02     2.33e-13            1
+    9      1       1 8.52e-12 5.29e-10     1.22e-64            1
+> 
+> proc.time()
+   user  system elapsed 
+  0.240   0.028   0.265 

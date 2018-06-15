@@ -1,0 +1,493 @@
+#-*- Makefile -*-
+#
+# ${R_HOME}/tests/Makefile.common
+
+## If you add test scripts here, review  ../src/library/tools/R/testing.R
+
+test-src-gct = \
+	eval-etc.R \
+	simple-true.R \
+	arith-true.R \
+	arith.R \
+	lm-tests.R \
+	ok-errors.R \
+	method-dispatch.R \
+	any-all.R
+test-src-strict-1 = \
+	$(test-src-gct) \
+	d-p-q-r-tests.R
+test-src-strict-auto =
+test-src-sloppy-1 = \
+	complex.R \
+	print-tests.R \
+	lapack.R \
+	datasets.R \
+	datetime.R \
+	iec60559.R
+test-src-sloppy-auto =
+
+test-src-1 = $(test-src-strict-1) $(test-src-sloppy-1)
+test-src-auto = $(test-src-strict-auto) $(test-src-sloppy-auto) \
+  ${test-src-isas} ${test-src-segfault}
+test-src-sloppy = $(test-src-sloppy-1) $(test-src-sloppy-auto)
+test-src-strict = $(test-src-strict-1) $(test-src-strict-auto)
+test-src = $(test-src-strict) $(test-src-sloppy)
+
+test-src-dt = datetime2.R
+test-src-demo = demos.R demos2.R
+test-src-internet = internet.R
+test-src-internet2 = internet2.R libcurl.R
+test-src-CRANtools = CRANtools.R
+test-src-large = reg-large.R
+test-src-isas = isas-tests.R
+test-src-primitive = primitives.R
+test-src-random = p-r-random-tests.R
+test-src-regexp = utf8-regex.R PCRE.R
+test-src-segfault = no-segfault.R
+test-src-tz = timezone.R
+
+test-src-reg-1 = array-subset.R \
+  reg-tests-1a.R reg-tests-1b.R reg-tests-1c.R reg-tests-1d.R reg-tests-2.R \
+  reg-examples1.R reg-examples2.R reg-packages.R p-qbeta-strict-tst.R \
+  r-strict-tst.R \
+  reg-IO.R reg-IO2.R reg-plot.R reg-S4-examples.R reg-BLAS.R
+## added to in Makefile.win
+test-src-reg-1e =
+test-src-reg = $(test-src-reg-1) $(test-src-reg-1e)
+## overridden in Makefile if recommended packages are not installed.
+## reg-S4 has to be a sloppy test, as output differs if Matrix is absent.
+test-src-reg3 = reg-tests-3.R reg-examples3.R reg-plot-latin1.R reg-S4.R
+
+test-out-strict = $(test-src-strict:.R=.Rout)
+test-out-sloppy = $(test-src-sloppy:.R=.Rout)
+
+test-out-gct = $(test-src-gct:.R=.Rout-gct)
+test-out-valgct = $(test-src-gct:.R=.Rout-valgct)
+
+test-out-CRANtools = $(test-src-CRANtools:.R=.Rout)
+test-out-dt = $(test-src-dt:.R=.Rout)
+test-out-demo = $(test-src-demo:.R=.Rout)
+test-out-internet = $(test-src-internet:.R=.Rout)
+test-out-internet2 = $(test-src-internet2:.R=.Rout)
+test-out-isas = $(test-src-isas:.R=.Rout)
+test-out-primitive = $(test-src-primitive:.R=.Rout)
+test-out-large = $(test-src-large:.R=.Rout)
+test-out-random = $(test-src-random:.R=.Rout)
+test-out-reg = $(test-src-reg:.R=.Rout)
+test-out-regexp = $(test-src-regexp:.R=.Rout)
+test-out-reg3 = $(test-src-reg3:.R=.Rout)
+test-out-segfault = $(test-src-segfault:.R=.Rout)
+test-out-tz = $(test-src-tz:.R=.Rout)
+
+## This macro is used only for dependencies and for distclean
+test-out = $(test-src:.R=.Rout) $(test-out-demo) $(test-out-gct) \
+	$(test-out-internet) \
+	$(test-out-random) $(test-out-reg) $(test-out-reg3) \
+	$(test-out-segfault) $(test-out-isas) $(test-out-internet2) \
+	$(test-out-CRANtools) $(test-out-large) $(test-out-primitive) $(test-out-dt) \
+	utf8-regex.Rout PCRE.Rout utf8.Rout
+
+.SUFFIXES:
+.SUFFIXES: .R .Rin .Rout .Rout-gct .Rout-valgct .trin .tsin .log
+
+$(test-out): FORCE
+
+FORCE:
+
+.Rin.R:
+	@$(ECHO) "creating '$@'"
+	@$(R) < $< > /dev/null
+
+.R.Rout:
+	@rm -f $@ $@.fail $@.log
+	@$(ECHO) $(ECHO_N) "running code in '$<' ...$(ECHO_C)" > $@.log
+	@$(R) < $< > $@.fail 2>&1 || (cat $@.log && rm $@.log && exit 1)
+	@$(ECHO) "$(ECHO_T) OK" >> $@.log
+	@if test -f $(srcdir)/$@.save ; then \
+	  $(ECHO) $(ECHO_N) \
+	    "  comparing '$@' to '$(srcdir)/$@.save' ...$(ECHO_C)" >> $@.log; \
+	  $(RDIFF) $@.fail $(srcdir)/$@.save $(RVAL_IF_DIFF) >> $@.log \
+	    || (cat $@.log && rm $@.log && exit 1) || exit 1; \
+	  mv $@.fail $@; \
+	  $(ECHO) "$(ECHO_T) OK" >> $@.log; \
+	else \
+	  mv $@.fail $@; \
+	fi
+	@cat $@.log; rm $@.log
+
+reg-plot.Rout: reg-plot.R
+	@rm -f $@ $@.fail $@.log
+	@$(ECHO) $(ECHO_N) "running code in '$<' ...$(ECHO_C)" > $@.log
+	@$(R) < $< > $@ 2>&1 || (mv $@ $@.fail && cat $@.log && rm $@.log && exit 1)
+	@$(ECHO) "$(ECHO_T) OK" >> $@.log
+	@$(ECHO) $(ECHO_N) \
+	  "  comparing 'reg-plot.pdf' to '$(srcdir)/reg-plot.pdf.save' ...$(ECHO_C)" >> $@.log
+	@$(RDIFF) reg-plot.pdf $(srcdir)/reg-plot.pdf.save >> $@.log
+	@$(ECHO) "$(ECHO_T) OK" >> $@.log
+	@cat $@.log; rm $@.log
+
+## allow this to fail, as it may if the locale does not support Latin-1 chars
+reg-plot-latin1.Rout: reg-plot-latin1.R
+	@rm -f $@ $@.fail
+	@$(ECHO) "running tests of plotting Latin-1"
+	@$(ECHO) "  expect failure or some differences if not in a Latin-1 or UTF-8 locale"
+	@$(ECHO) $(ECHO_N) "running code in '$<' ...$(ECHO_C)"
+	@$(R2) < $< > $@ 2>&1 || mv $@ $@.fail
+	@if test -f $@.fail; then \
+	  $(ECHO) "$(ECHO_T) FAILED"; \
+	else \
+	  $(ECHO) "$(ECHO_T) OK"; \
+	  $(ECHO) $(ECHO_N) \
+	  "  comparing 'reg-plot-latin1.pdf' to '$(srcdir)/reg-plot-latin1.pdf.save' ...$(ECHO_C)"; \
+	  $(RDIFF) reg-plot-latin1.pdf $(srcdir)/reg-plot-latin1.pdf.save; \
+	  $(ECHO) "$(ECHO_T) OK"; \
+	fi
+
+.R.Rout-gct:
+	@$(ECHO) "running gctorture() + '$<'"
+	@($(ECHO) '.ptime <- proc.time(); gctorture()' ; \
+	  cat $< $(srcdir)/gct-foot.R) | $(R) > $@ 2>&1
+	@mv $@ $@.fail; Ro=`basename $@ .Rout-gct`.Rout; \
+	  if test ! -r $${Ro}; then $(MK) $${Ro}; fi; \
+	  $(ECHO) $(ECHO_N) "  comparing '$@' to '$${Ro}' ...$(ECHO_C)"; \
+	  grep -v 'gctorture()' $@.fail | $(RDIFF) - $${Ro} 1 || exit 1; \
+	  mv $@.fail $@; \
+	  $(ECHO) "$(ECHO_T) OK"
+
+R-valgrind = $(R) --debugger="valgrind --tool=memcheck"
+
+.R.Rout-valgct:
+	@$(ECHO) "running gctorture() + valgrind + '$<'"
+	@($(ECHO) '.ptime <- proc.time(); gctorture()' ; \
+	  cat $< $(srcdir)/gct-foot.R) | $(R-valgrind) > $@ 2>&1
+	grep "==[0-9]*==" $@
+
+## The definitions for Internet are in Makefile.{in,win}.
+## (That's historical: they are currently the same.)
+all-basic-tests = Examples Specific Reg Internet
+test-all-basics:
+	@for name in $(all-basic-tests); do \
+	  $(MK) test-$${name} || exit 1; \
+	done
+
+## if you change this, also edit Makefile.install
+## The definitions for Standalone are in Makefile.{in,win}.
+all-devel-tests = DateTime Docs IsAs Random Demo Primitive Regexp \
+    Internet2 CRANtools Segfault Standalone Packages
+test-all-devel:
+	@for name in $(all-devel-tests); do \
+	  $(MK) test-$${name} || exit 1; \
+	done
+
+test-Examples:
+	@(cd Examples && $(MK) $@)
+test-Examples-Recommended:
+	@(cd Examples && $(MK) $@)
+
+test-Specific-strict: $(test-out-strict)
+test-Specific-sloppy: $(test-out-sloppy)
+test-Specific:
+	@$(ECHO) "running strict specific tests"
+	@$(MK) test-Specific-strict RVAL_IF_DIFF=1
+	@$(ECHO) "running sloppy specific tests"
+	@$(MK) test-Specific-sloppy RVAL_IF_DIFF=0
+	@$(MK) test-TimeZone
+
+test-Packages:
+	@if test -n "${TEST_MC_CORES}"; then \
+	  $(ECHO) "Using ${TEST_MC_CORES} cores to check packages"; \
+	  $(MK) -j ${TEST_MC_CORES} test-Packages2; \
+	else \
+	  $(MK) test-Packages1; \
+	fi
+
+## R_PKGS_BASE is from ../share/make/vars.mk
+test-Packages1:
+	@for p in $(R_PKGS_BASE); do \
+	  $(ECHO) "checking package '$${p}'"; \
+	  _R_CHECK_FF_CALLS_=registration \
+	  _R_CHECK_CODE_USAGE_WITH_ONLY_BASE_ATTACHED_=true \
+	  $(top_builddir)/bin/R CMD check --install=skip --no-build-vignettes \
+	    $(top_srcdir)/src/library/$${p} || $(ECHO); \
+	done
+
+PKG_OBJECTS = $(R_PKGS_BASE:=.log)
+
+test-Packages2:
+	@for p in $(R_PKGS_BASE); do \
+	  touch $${p}.tsin; \
+	done
+	+@$(MK) stamp-Packages
+	@rm -f *.tsin
+stamp-Packages: $(PKG_OBJECTS)
+
+.tsin.log:
+	@$(ECHO) "begin checking package '`basename $@ .log`'"
+	@rm -f $@
+	@_R_CHECK_FF_CALLS_=registration \
+	  _R_CHECK_CODE_USAGE_WITH_ONLY_BASE_ATTACHED_=true \
+	  $(top_builddir)/bin/R CMD check --install=skip --no-build-vignettes \
+	  $(top_srcdir)/src/library/`basename $@ .log` > $@ 2>&1
+	@cat $@
+
+test-Gct: $(test-out-gct)
+
+test-Vgct: $(test-out-valgct)
+
+test-DateTime:
+	@$(ECHO) "running tests of date-time printing"
+	@$(ECHO) "  expect platform-specific differences"
+	@$(RM) -f $(test-out-dt)
+	@$(MK) $(test-out-dt) RVAL_IF_DIFF=0
+
+## This should be allowed to fail, visibly.
+test-TimeZone:
+	@$(ECHO) "checking Sys.timezone ..."
+	@$(RM) -f $(test-out-tz)
+	@$(MK) $(test-out-tz) || $(ECHO) "  Sys.timezone() appears unknown"
+
+test-Docs:
+	@$(ECHO) "running tests of documentation examples"
+	@cp ${top_srcdir}/doc/manual/*.R .
+	@$(MK) R-intro.Rout RVAL_IF_DIFF=0
+	@cp ${top_srcdir}/doc/manual/R-exts.c .
+	@$(top_builddir)/bin/R CMD SHLIB R-exts.c
+	@$(MK) R-exts.Rout
+	@rm R-exts.*
+
+test-Demo:
+	@$(ECHO) "running demos from base and stats"
+	@$(MK) $(test-out-demo) RVAL_IF_DIFF=0
+
+test-IsAs:
+	@$(ECHO) "running tests of consistency of as/is.*"
+	@$(MK) $(test-out-isas) RVAL_IF_DIFF=1
+
+## As for test-Internet, allow to fail, possibly slowly
+test-Internet2:
+	@$(ECHO) "running more Internet and socket tests"
+	-@$(MK) $(test-out-internet2) RVAL_IF_DIFF=0
+
+test-CRANtools:
+	@$(ECHO) "running tests of CRAN tools"
+	@$(ECHO) "  (can be slow unless mirror is local)"
+	@$(MK) $(test-out-CRANtools) RVAL_IF_DIFF=0
+
+test-Large:
+	@$(ECHO) "running tests needing large amounts of processor memory"
+	@$(MK) $(test-out-large) RVAL_IF_DIFF=0
+
+test-Primitive:
+	@$(ECHO) "running tests of primitives"
+	@$(MK) $(test-out-primitive) RVAL_IF_DIFF=0
+
+test-Random:
+	@$(ECHO) "running tests of random deviate generation"
+	@$(MK) $(test-out-random) RVAL_IF_DIFF=1
+
+test-Reg:
+	@$(ECHO) "running regression tests ..."
+	@if test -n "${TEST_MC_CORES}"; then \
+	  $(MK) -j ${TEST_MC_CORES} $(test-out-reg) RVAL_IF_DIFF=1; \
+	else \
+	  $(MK) $(test-out-reg) RVAL_IF_DIFF=1; \
+	fi
+	@$(MK) $(test-out-reg3) RVAL_IF_DIFF=0
+
+test-Regexp:
+	@$(ECHO) "running regexp regression tests"
+	@$(R2) < $(srcdir)/utf8-regex.R > utf8-regex.Rout 2>&1 || (mv utf8-regex.Rout utf8-regex.Rout.fail && exit 1)
+	@$(R2) < $(srcdir)/PCRE.R > PCRE.Rout 2>&1 || (mv PCRE.Rout PCRE.Rout.fail && exit 1)
+
+test-Segfault:
+	@$(ECHO) "running tests to possibly trigger segfaults"
+	@$(MK) $(test-out-segfault) RVAL_IF_DIFF=0
+	-@rm -Rf data dumpdata.R F.Rd c0.Rd df0.Rd l0.Rd m0.Rd Rprof.out Rplots* PACKAGES PACKAGES.gz FALSE-package.Rd FALSE.* ./-Ex.R
+
+## Not run by any other target
+test-UTF-8:
+	@$(ECHO) "running regression tests for UTF-8 <--> int conversion (slow)"
+	@$(R2) < $(srcdir)/utf8.R > utf8.Rout 2>&1 || (mv utf8.Rout utf8.Rout.fail && exit 1)
+
+## Avoid site library, which could be very large
+no-segfault.Rout: no-segfault.R
+	@rm -f $@ $@.fail
+	@$(ECHO) $(ECHO_N) "running code in '$<' ...$(ECHO_C)"
+	@R_LIBS_SITE=no-such-dir $(R) < $< > $@ 2>&1 || (mv $@ $@.fail && exit 1)
+	@$(ECHO) "$(ECHO_T) OK"
+
+test-Rd: $(srcdir)/testit.Rd $(srcdir)/ver20.Rd
+	@$(ECHO) "testing Rd conversion"
+	@$(RDCONV) -t txt $(srcdir)/testit.Rd > testit.txt
+	@$(RDCONV) -t html $(srcdir)/testit.Rd > testit.html 2> /dev/null
+	@$(RDCONV) -t latex $(srcdir)/testit.Rd > testit.tex
+	@$(RDCONV) -t example $(srcdir)/testit.Rd > testit-Ex.R
+	@diff -bw testit.txt $(srcdir)/testit.txt.save
+	@diff -bw testit.html $(srcdir)/testit.html.save
+	@diff -bw testit.tex $(srcdir)/testit.tex.save
+	@diff -bw testit-Ex.R $(srcdir)/testit-Ex.R.save
+	@$(RDCONV) -t txt $(srcdir)/ver20.Rd > ver20.txt
+	@$(RDCONV) -t html $(srcdir)/ver20.Rd > ver20.html
+	@$(RDCONV) -t latex $(srcdir)/ver20.Rd > ver20.tex
+	@$(RDCONV) -t example $(srcdir)/ver20.Rd > ver20-Ex.R
+	@diff -bw ver20.txt $(srcdir)/ver20.txt.save
+	@diff -bw ver20.html $(srcdir)/ver20.html.save
+	@diff -bw ver20.tex $(srcdir)/ver20.tex.save
+	@diff -bw ver20-Ex.R $(srcdir)/ver20-Ex.R.save
+
+test-DocFiles:
+	@$(ECHO) "checking Rd usage sections"
+	@for p in $(R_PKGS_BASE); do \
+	  $(ECHO) $(ECHO_N) "package '$${p}' ...$(ECHO_C)"; \
+	  out=`($(ECHO) "library(\"tools\")"; \
+	         $(ECHO) "checkDocFiles(package = \"$${p}\")") | \
+	       $(R) -q | sed '/^>/d'`; \
+	  if test -n "$${out}"; then \
+	    $(ECHO) "$(ECHO_T) WARNING"; \
+	    $(ECHO); \
+	    $(ECHO) "$${out}"; \
+	    $(ECHO); \
+	  else \
+	    $(ECHO) "$(ECHO_T) OK"; \
+	  fi; \
+	done
+
+test-DocStyle:
+	@$(ECHO) "checking S3 method documentation style"
+	@for p in $(R_PKGS_BASE); do \
+	  $(ECHO) $(ECHO_N) "package '$${p}' ...$(ECHO_C)"; \
+	  out=`($(ECHO) "library(\"tools\")"; \
+	         $(ECHO) "checkDocStyle(package = \"$${p}\")") | \
+	       $(R) -q | sed '/^>/d'`; \
+	  if test -n "$${out}"; then \
+	    $(ECHO) "$(ECHO_T) WARNING"; \
+	    $(ECHO); \
+	    $(ECHO) "$${out}"; \
+	    $(ECHO); \
+	  else \
+	    $(ECHO) "$(ECHO_T) OK"; \
+	  fi; \
+	done
+
+test-FF:
+	@$(ECHO) "checking foreign function calls"
+	@for p in $(R_PKGS_BASE); do \
+	  $(ECHO) $(ECHO_N) "package '$${p}' ...$(ECHO_C)"; \
+	  out=`($(ECHO) "library(\"tools\")"; \
+	         $(ECHO) "checkFF(package = \"$${p}\")") | \
+	       $(R) -q | sed '/^>/d'`; \
+	  if test -n "$${out}"; then \
+	    $(ECHO) "$(ECHO_T) WARNING"; \
+	    $(ECHO) "$${out}"; \
+	  else \
+	    $(ECHO) "$(ECHO_T) OK"; \
+	  fi; \
+	done
+
+test-S3methods:
+	@$(ECHO) "checking for S3 generic/method consistency"
+	@for p in $(R_PKGS_BASE); do \
+	  $(ECHO) $(ECHO_N) "package '$${p}' ...$(ECHO_C)"; \
+	  out=`($(ECHO) "library(\"tools\")"; \
+	         $(ECHO) "checkS3methods(package = \"$${p}\")") | \
+	       $(R) -q | sed '/^>/d'`; \
+	  if test -n "$${out}"; then \
+	    $(ECHO) "$(ECHO_T) WARNING"; \
+	    $(ECHO); \
+	    $(ECHO) "$${out}"; \
+	    $(ECHO); \
+	  else \
+	    $(ECHO) "$(ECHO_T) OK"; \
+	  fi; \
+	done
+test-codoc:
+	@$(ECHO) "checking for code/documentation mismatches in functions"
+	@for p in $(R_PKGS_BASE); do \
+	  $(ECHO) $(ECHO_N) "package '$${p}' ...$(ECHO_C)"; \
+	  out=`($(ECHO) "library(\"tools\")"; \
+	         $(ECHO) "codoc(package = \"$${p}\")") | \
+	       $(R) -q | sed '/^>/d'`; \
+	  if test -n "$${out}"; then \
+	    $(ECHO) "$(ECHO_T) WARNING"; \
+	    $(ECHO); \
+	    $(ECHO) "$${out}"; \
+	    $(ECHO); \
+	  else \
+	    $(ECHO) "$(ECHO_T) OK"; \
+	  fi; \
+	done
+
+test-undoc:
+	@$(ECHO) "checking for missing documentation entries"
+	@for p in $(R_PKGS_BASE); do \
+	  $(ECHO) $(ECHO_N) "package '$${p}' ...$(ECHO_C)"; \
+	  out=`($(ECHO) "library(\"tools\")"; \
+	         $(ECHO) "undoc(package = \"$${p}\")") | \
+	       $(R) -q | sed '/^>/d'`; \
+	  if test -n "$${out}"; then \
+	    $(ECHO) "$(ECHO_T) WARNING"; \
+	    $(ECHO) "$${out}"; \
+	  else \
+	    $(ECHO) "$(ECHO_T) OK"; \
+	  fi; \
+	done
+
+test-Packages-Recommended:
+	@if test -n "${TEST_MC_CORES}"; then \
+	  $(ECHO) "Using ${TEST_MC_CORES} cores to check packages"; \
+	  $(MK) -j ${TEST_MC_CORES} test-Packages2-Recommended; \
+	else \
+	  $(MK) test-Packages1-Recommended; \
+	fi
+
+test-Packages1-Recommended:
+	@test -d RecPackages || mkdir RecPackages
+	@for p in $(R_PKGS_RECOMMENDED); do \
+	  rm -Rf RecPackages/$${p}; \
+	  gzip -dc "$(top_srcdir)/src/library/Recommended/$${p}.tgz" | \
+	    (cd RecPackages && $(TAR) xf -) ; \
+	  $(ECHO) "checking package '$${p}'"; \
+	  R_LIBS="$(top_builddir)/library:$${R_LIBS}" \
+	    _R_CHECK_FORCE_SUGGESTS_=FALSE $(R3) --install=skip \
+	    --library="$(top_builddir)/library" RecPackages/$${p} || $(ECHO); \
+	done
+
+PKG_ROBJECTS = $(R_PKGS_RECOMMENDED:=.log)
+
+test-Packages2-Recommended:
+	@test -d RecPackages || mkdir RecPackages
+	@for p in $(R_PKGS_RECOMMENDED); do \
+	  touch $${p}.trin; \
+	done
+	+@$(MK) stamp-Packages2
+	@rm -f *.trin
+stamp-Packages2: $(PKG_ROBJECTS)
+
+.trin.log:
+	@p=`basename $@ .log`; \
+	rm -Rf RecPackages/$${p}; \
+	gzip -dc "$(top_srcdir)/src/library/Recommended/$${p}.tgz" | \
+	    (cd RecPackages && $(TAR) xf -) ; \
+	  $(ECHO) "begin checking package '$${p}'"; \
+	  R_LIBS="$(top_builddir)/library:$${R_LIBS}" \
+	 _R_CHECK_FORCE_SUGGESTS_=FALSE $(R3) --install=skip \
+	    --library="$(top_builddir)/library" RecPackages/$${p}  > $@ 2>&1
+	@cat $@
+
+INSTFILES = README \
+	$(test-src-strict-1) $(test-src-strict-1:.R=.Rout.save) \
+	$(test-src-sloppy-1) $(test-src-sloppy-1:.R=.Rout.save) \
+	$(test-src-auto:.R=.Rin) isas-tests.Rout.save \
+	$(test-src-dt) datetime2.Rout.save \
+	$(test-src-demo) demos.Rout.save \
+	$(test-src-internet) $(test-src-internet2) internet.Rout.save \
+	$(test-src-primitive) \
+	$(test-src-random) p-r-random-tests.Rout.save \
+	$(test-src-reg) $(test-src-reg3) \
+	  reg-S4.Rout.save \
+	  reg-IO.Rout.save reg-IO2.Rout.save \
+	  reg-plot.pdf.save reg-tests-2.Rout.save reg-tests-3.Rout.save \
+	  reg-examples3.Rout.save reg-plot-latin1.pdf.save \
+	  encodings.R utf8-regex.R PCRE.R CRANtools.R \
+	  timezone.R \
+	  nanbug.rda WinUnicode.dat arima.rda EmbeddedNuls.csv

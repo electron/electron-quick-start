@@ -1,0 +1,440 @@
+\documentclass[11pt, a4paper]{article}
+\usepackage[a4paper, text={16cm,25cm}]{geometry}
+
+%\VignetteIndexEntry{Definitions of Psi-Functions Available in Robustbase}
+%\VignetteDepends{robustbase}
+\SweaveOpts{prefix.string=psi, eps=FALSE, pdf=TRUE, strip.white=true}
+\SweaveOpts{width=6, height=4.1, echo=FALSE, fig=TRUE}
+%%                               --------------------- !!
+
+\usepackage{amsmath}
+\usepackage{amsfonts}% \mathbb
+\usepackage{natbib}
+\usepackage[utf8]{inputenc}
+\newcommand{\abs}[1]{\left| #1 \right|}
+\DeclareMathOperator{\sign}{sign}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand*{\pkg}[1]{\texttt{#1}}
+\newtheorem{definition}{Definition}
+%% The following is R's share/texmf/Rd.sty
+\usepackage{color}
+\usepackage{hyperref}
+\definecolor{Blue}{rgb}{0,0,0.8}
+\definecolor{Red}{rgb}{0.7,0,0}
+\hypersetup{%
+  hyperindex,%
+  colorlinks={true},%
+  pagebackref,%
+  linktocpage,%
+  plainpages={false},%
+  linkcolor={Blue},%
+  citecolor={Blue},%
+  urlcolor={Red},%
+  pdfstartview={Fit},%
+  pdfview={XYZ null null null}%
+}
+
+
+<<init, fig=FALSE>>=
+# set margins for plots
+options(SweaveHooks=list(fig=function() par(mar=c(3,3,1.4,0.7),
+                         mgp=c(1.5, 0.5, 0))))
+## x axis for plots:
+x. <- seq(-5, 10, length=1501)
+require(robustbase)
+<<source-p-psiFun, fig=FALSE>>=
+source(system.file("xtraR/plot-psiFun.R", package = "robustbase", mustWork=TRUE))
+@%        = ../inst/xtraR/plot-psiFun.R --> p.psiFun() --> robustbase:::matPlotPsi() {for nice legends; lines ..}
+
+
+\begin{document}
+\setkeys{Gin}{width=0.9\textwidth}
+\setlength{\abovecaptionskip}{-5pt}
+
+\title{Definitions of $\psi$-Functions Available in Robustbase}
+\author{Manuel Koller and Martin M\"achler}
+\maketitle
+\tableofcontents
+
+\section*{Preamble}
+Unless otherwise stated, the following definitions of functions are
+given by \citet[p. 31]{MarRMY06}, however our definitions differ sometimes slightly
+from theirs, as we prefer a different way of \emph{standardizing} the
+functions. To avoid confusion, we first define
+$\psi$- and $\rho$-functions.
+
+\begin{definition}\label{def.psi}
+A \emph{$\psi$-function} is a piecewise continuous function $\psi: \R \to \R$ such that
+\begin{enumerate}
+\item $\psi$ is odd, i.e., \ $\psi(-x) = -\psi(x) \: \forall x$,
+\item $\psi(x) \ge 0$ for $x \ge 0$, and $\psi(x) > 0$ for $0 < x < x_r :=
+  \sup\{\tilde x : \psi(\tilde x) > 0\}$ \ \ ($x_r > 0$, possibly $x_r = \infty$).
+\item[3*] Its slope is $1$ at $0$, i.e., $\displaystyle \psi'(0) = 1$.
+\end{enumerate}
+Note that `3*' is not strictly required mathematically, but
+we use it for standardization in those cases where $\psi$ is continuous
+at 0.  Then, it also follows (from 1.) that $\psi(0) = 0$, and we require
+$\psi(0)=0$ also for the case where $\psi$ is discontinuous in 0, as it is,
+e.g., for the M-estimator defining the median.
+\end{definition}
+
+\begin{definition}
+A \emph{$\rho$-function} can be represented by the following % definite
+integral of a $\psi$-function,
+\begin{equation}\label{def.rho}
+  \rho(x) = \int_0^x \psi(u) du\;,
+\end{equation}
+which entails that $\rho(0) = 0$ and $\rho$ is an even function.
+\end{definition}
+
+A $\psi$-function is called \emph{redescending} if $\psi(x) = 0$ for
+all $x \ge x_r$ for $x_r < \infty$, and $x_r$ is often called
+\emph{rejection point}.  Corresponding to a redescending
+$\psi$-function, we define the function $\tilde\rho$, a version of $\rho$
+standardized such as to attain maximum value one.  Formally,
+\begin{equation}
+  \label{eq:tilde-rho}
+  \tilde\rho(x) = \rho(x)/\rho(\infty).
+\end{equation}
+Note that $\rho(\infty) = \rho(x_r) \equiv \rho(x) \ \forall \abs{x} >= x_r$.
+$\tilde\rho$ is a $\rho$-function as defined in
+\citet{MarRMY06} and has been called $\chi$ function in other contexts. For
+example, in package \pkg{robustbase}, \code{Mchi(x, *)} computes
+$\tilde\rho(x)$, whereas \code{Mpsi(x, *, deriv=-1)} (``(-1)-st
+derivative'' is the primitive or antiderivative)) computes $\rho(x)$,
+both according to the above definitions.
+
+\textbf{Note:} An alternative slightly more general definition of
+\emph{redescending} would only require $\rho(\infty) :=
+\lim_{x\to\infty}\rho(x)$ to be finite. E.g., \texttt{"Welsh"} does \emph{not} have a finite
+rejection point, but \emph{does} have bounded $\rho$, and hence well defined
+$\rho(\infty)$, and we \emph{can} use it in
+\texttt{lmrob()}.\footnote{E-mail Oct.~18, 2014 to Manuel and Werner,
+  proposing to change the definition of ``redescending''.}
+
+%% \section{Weak Redescenders}
+%% \subsection{t_nu score functions}
+%% t_1 (=Cauchy) has been propagated as "Lorentzian merit function"
+%% regression for outlier detection
+
+\paragraph{Weakly redescending $\psi$ functions.}\
+Note that the above definition does require a finite rejection point $x_r$. Consequently,
+e.g., the score function $s(x) = -f'(x)/f(x)$ for the Cauchy ($= t_1$)
+distribution, which is $s(x) = 2x/(1+x^2)$ and hence non-monotone and ``re
+descends'' to 0 for $x\to \pm\infty$, and $\psi_C(x) := s(x)/2$ also
+fulfills ${\psi_C}'(0) = 1$, but it has $x_r=\infty$ and hence $\psi_C()$
+is \emph{not} a redescending $\psi$-function in our sense.
+As they appear e.g. in the MLE for $t_\nu$, we call $\psi$-functions fulfulling
+$\lim_{x\to\infty}\psi(x) = 0$  \emph{weakly redescending}.
+Note that they'd naturally fall into two sub categories, namely the one
+with a \emph{finite} $\rho$-limit, i.e. $\rho(\infty) :=
+\lim_{x\to\infty}\rho(x)$, and those, as e.g., the $t_\nu$ score functions
+above, for which $\rho(x)$ is unbounded even though $\rho' = \psi$ tends to zero.
+
+%% --> ../../TODO  section  'Psi/Rho/Chi/Wgt Functions'
+%%     ~~~~~~~~~~
+%%
+%% FIXME: where??  MM: can no longer find it in Hampel et al(1986) \citet{hamfrrs86}.
+
+%% FIXME: 0)  Mention our  psi_func  class // and the  C interface for "the other" functions
+%% -----      i.e., we currently have *both*  and in addition there is all
+%% the (to be *deprecated* !)  ../R/biweight-funs.R (& ../man/tukeyChi.Rd & ../man/tukeyPsi1.Rd)
+%%
+%% FIXME: 1)  explain   plot(<psiFun>)  {the plot method of psi_func}
+
+%% FIXME: 2)  Show how to compute asymptotic efficiency  and  breakdown point:
+%% -------
+%%  a) end of ../../tests/psi-rho-etc.R has aeff.P() and bp.P() and chkP()
+%%     which now uses the psi_func class to compute these *analytically*
+%%  b) Of course, Manuel had used the numeric integration only,
+%%     in ../../R/lmrob.MM.R,  lmrob.efficiency(psi, cc, ...) and  lmrob.bp(psi, cc, ...)
+%%        ~~~~~~~~~~~~~~~~~~
+%%  c) *REALLY* nice general solution is via  PhiI() in ../../R/psi-rho-funs.R
+%%     for all piecewise polynomial  psi()/rho()        ~~~~~~~~~~~~~~~~~~~~~~
+
+%%\clearpage
+\section{Monotone $\psi$-Functions}
+
+Montone $\psi$-functions lead to convex $\rho$-functions such that the
+corresponding M-estimators are defined uniquely.
+
+Historically, the ``Huber function'' has been the first $\psi$-function,
+proposed by Peter Huber in \citet{HubP64}.
+
+\clearpage
+\subsection{Huber}
+The family of Huber functions is defined as,
+\begin{align*}
+  \rho_k(x) = {}& \left\{ \begin{array}{ll}
+              \frac{1}{2} x^2 & \mbox{ if } \abs{x} \leq k \\
+      k(\abs{x} - \frac{k}{2})& \mbox{ if } \abs{x} > k
+    \end{array} \right. \;,\\
+  \psi_k(x) = {}  & \left\{ \begin{array}{ll}
+       x           & \mbox{ if } \abs{x} \leq k \\
+       k \ \sign(x)& \mbox{ if } \abs{x} > k
+      %% -k & \mbox{ if } x < -k \\
+      %%  k & \mbox{ if } x > k
+    \end{array} \right. \;.
+\end{align*}
+The constant $k$ for $95\%$ efficiency of the regression estimator is
+$1.345$.
+
+\begin{figure}[h]
+  \centering
+<<Huber, echo=TRUE>>=
+plot(huberPsi, x., ylim=c(-1.4, 5), leg.loc="topright", main=FALSE)
+@
+  \caption{Huber family of functions using tuning parameter $k = 1.345$.}
+\end{figure}
+
+\bigskip
+
+\section{Redescenders}
+For the MM-estimators and their generalizations available via
+\texttt{lmrob()} (and for some methods of \texttt{nlrob()}),
+the $\psi$-functions are all redescending, i.e., with finite ``rejection point''
+$x_r = \sup\{t; \psi(t) > 0\} < \infty$.
+From \texttt{lmrob}, the psi functions are available via
+\texttt{lmrob.control}, or more directly, \texttt{.Mpsi.tuning.defaults},
+<<lmrob-psi, echo=TRUE,fig=FALSE>>=
+names(.Mpsi.tuning.defaults)
+@ %$
+and their $\psi$, $\rho$, $\psi'$, and weight function $w(x) := \psi(x)/x$,
+are all computed efficiently via C code, and are defined and visualized in
+the following subsections.
+
+\clearpage
+\subsection{Bisquare}
+Tukey's bisquare (aka ``biweight'') family of functions is defined as,
+\begin{equation*}
+  \tilde\rho_k(x) = \left\{ \begin{array}{cl}
+      1 - \bigl(1 - (x/k)^2 \bigr)^3 & \mbox{ if } \abs{x} \leq k \\
+      1 & \mbox{ if } \abs{x} > k
+    \end{array} \right.\;,
+\end{equation*}
+with derivative ${\tilde\rho_k}'(x) = 6\psi_k(x) / k^2$ where,
+\begin{equation*}
+  \psi_k(x) = x \left( 1 - \left(\frac{x}{k}\right)^2\right)^2 \cdot I_{\{\abs{x} \leq k\}}\;.
+\end{equation*}
+The constant $k$ for $95\%$ efficiency of the regression estimator is
+$4.685$ and the constant for a breakdown point of $0.5$ of the
+S-estimator is $1.548$.  Note that the \emph{exact} default tuning constants
+for M- and MM- estimation in \pkg{robustbase} are available via \code{.Mpsi.tuning.default()}
+and \code{.Mchi.tuning.default()}, respectively, e.g., here,
+% \begin{small}
+<<tuning-defaults, echo=TRUE,fig=FALSE>>=
+print(c(k.M = .Mpsi.tuning.default("bisquare"),
+        k.S = .Mchi.tuning.default("bisquare")), digits = 10)
+@
+% \end{small}
+and that the \code{p.psiFun(.)} utility is available via
+%\begin{small}
+<<note-p-psiFun, echo=TRUE, eval=FALSE>>=
+<<source-p-psiFun>>
+@
+%\end{small}
+%\enlargethispage{3ex}
+\begin{figure}[h]
+  \centering
+<<bisquare, echo=TRUE>>=
+p.psiFun(x., "biweight", par = 4.685)
+@
+  \caption{Bisquare family functions using tuning parameter $k = 4.685$.}
+\end{figure}
+
+\clearpage
+\subsection{Hampel}
+The Hampel family of functions \citep{hamfrrs86} is defined as,
+\begin{align*}
+  \tilde\rho_{a, b, r}(x) ={}& \left\{ \begin{array}{ll}
+        \frac{1}{2} x^2 / C & \abs{x} \leq a \\
+        \left( \frac{1}{2}a^2 + a(\abs{x}-a)\right) / C  & a < \abs{x} \leq b \\
+        \frac{a}{2}\left( 2b - a + (\abs{x} - b)
+          \left(1 + \frac{r - \abs{x}}{r-b}\right) \right) / C
+                                                         & b < \abs{x} \leq r \\
+        1 & r < \abs{x}
+      \end{array} \right. \;, \\
+    \psi_{a, b, r}(x) ={}& \left\{ \begin{array}{ll}
+          x & \abs{x} \leq a \\
+          a \ \sign(x) & a < \abs{x} \leq b \\
+          a \ \sign(x) \frac{r - \abs{x}}{r - b}& b < \abs{x} \leq r \\
+          0  & r < \abs{x}
+        \end{array} \right.\;,
+\end{align*}
+where $ C := \rho(\infty) = \rho(r)
+ = \frac{a}{2}\left( 2b - a + (r - b) \right)
+ = \frac{a}{2}(b-a + r)$.
+
+As per our standardization, $\psi$ has slope $1$ in the center.
+The slope of the redescending part ($x\in[b,r]$) is $-a/(r-b)$.
+If it is set to $-\frac 1 2$, as recommended sometimes, one has
+\begin{equation*}
+  r = 2a + b\;.
+\end{equation*}
+
+Here however, we restrict ourselves to $a = 1.5 k$, $b = 3.5 k$, and $r = 8k$,
+hence a redescending slope of $-\frac 1 3$, and vary $k$ to get the desired
+efficiency or breakdown point.
+
+The constant $k$ for $95\%$ efficiency of the regression estimator is
+$0.902$ (0.9016085, to be exact) and the one for a breakdown point of $0.5$
+of the S-estimator is $0.212$ (i.e., 0.2119163).
+%% --> ../R/lmrob.MM.R,  .Mpsi.tuning.defaults .Mchi.tuning.defaults
+
+\begin{figure}[h]
+  \centering
+<<Hampel>>=
+## see also hampelPsi
+p.psiFun(x., "Hampel", par = ## Default, but rounded:
+                             round(c(1.5, 3.5, 8) * 0.9016085, 1))
+@
+\caption{Hampel family of functions using tuning parameters $0.902 \cdot (1.5, 3.5, 8)$.}
+\end{figure}
+
+\clearpage
+\subsection{GGW}\label{ssec:ggw}
+The Generalized Gauss-Weight function, or \emph{ggw} for short, is a
+generalization of the Welsh $\psi$-function (subsection
+\ref{ssec:Welsh}). In \citet{ks2011} it is defined as,
+\begin{equation*}
+  %% \label{eq:ggw}
+  \psi_{a, b, c}(x) = \left\{
+    \begin{array}{ll}
+                      x                                       & \abs{x} \leq c \\
+      \exp\left(-\frac{1}{2}\frac{(\abs{x} - c)^b}{a}\right)x & \abs{x} > c
+    \end{array} \right. \;.
+\end{equation*}
+Our constants, fixing $b=1.5$, and minimial slope at $- \frac 1 2$,
+for $95\%$ efficiency of the regression estimator
+are $a = 1.387$, $b = 1.5$ and $c = 1.063$, and those for a breakdown point of $0.5$ of the S-estimator
+are $a = 0.204$, $b = 1.5$ and $c = 0.296$:
+<<GGW-const, echo=TRUE, fig=FALSE>>=
+cT <- rbind(cc1 = .psi.ggw.findc(ms = -0.5, b = 1.5, eff = 0.95        ),
+            cc2 = .psi.ggw.findc(ms = -0.5, b = 1.5,          bp = 0.50)); cT
+@
+Note that above, \code{cc*[1]}$= 0$, \code{cc*[5]}$ = \rho(\infty)$, and
+\code{cc*[2:4]}$ = (a, b, c)$.  To get this from $(a,b,c)$, you could use
+<<rhoInf-ggw, echo=TRUE, fig=FALSE>>=
+ipsi.ggw <- .psi2ipsi("GGW") # = 5
+ccc <- c(0, cT[1, 2:4], 1)
+integrate(.Mpsi, 0, Inf, ccc=ccc, ipsi=ipsi.ggw)$value # = rho(Inf)
+@
+\begin{figure}[h]
+  \centering
+<<GGW, echo=TRUE>>=
+p.psiFun(x., "GGW", par = c(-.5, 1, .95, NA))
+@
+\caption{GGW family of functions using tuning parameters $a=1.387$, $b=1.5$
+  and $c=1.063$.}
+\end{figure}
+
+\clearpage
+\subsection{LQQ}
+The ``linear quadratic quadratic'' $\psi$-function, or \emph{lqq} for short,
+was proposed by \citet{ks2011}. It is defined as,
+\begin{equation*}
+  \psi_{b,c,s}(x) = \left\{
+    \begin{array}{ll}
+      x & \abs{x} \leq c \\
+      \sign(x)\left(\abs{x} - \frac{s}{2b}\left(\abs{x} - c\right)^2
+      \right)
+      & c < \abs{x} \leq b + c \\
+      \sign(x)\left(c+b-\frac{bs}{2} + \frac{s-1}{a}
+        \left(\frac{1}{2}\tilde x^2 - a\tilde x\right)
+      \right) &
+      b + c < \abs{x} \leq a + b + c \\
+      0 & \mbox{otherwise,}
+    \end{array} \right.
+\end{equation*}
+where
+\begin{equation}
+\tilde x := \abs{x} - b - c \ \ \mathrm{and}\ \  a := (2c + 2b - bs)/(s-1).\label{lqq.a}
+\end{equation}
+The parameter $c$ determines the width of the central identity part. The
+sharpness of the bend is adjusted by $b$ while the maximal rate of descent
+is controlled by $s$ ($s = 1 - \min_x\psi'(x) > 1$).  From (\ref{lqq.a}),
+the length $a$ of the final descent to $0$ is a function of $b$, $c$ and $s$.
+
+<<lqq-const, echo=TRUE, fig=FALSE>>=
+cT <- rbind(cc1 = .psi.lqq.findc(ms= -0.5, b.c = 1.5, eff=0.95, bp=NA ),
+            cc2 = .psi.lqq.findc(ms= -0.5, b.c = 1.5, eff=NA , bp=0.50))
+colnames(cT) <- c("b", "c", "s"); cT
+@
+
+If the minimal slope is set to $-\frac 1 2$, i.e., $s = 1.5$, and $b/c = 3/2 = 1.5$,
+the constants for $95\%$ efficiency of the regression estimator are
+$b=1.473$, $c=0.982$ and $s=1.5$, and those for a breakdown point of $0.5$ of the S-estimator are
+$b=0.402$, $c=0.268$ and $s=1.5$.
+
+\begin{figure}[h]
+  \centering
+<<LQQ, echo=TRUE>>=
+p.psiFun(x., "LQQ", par = c(-.5,1.5,.95,NA))
+@
+\caption{LQQ family of functions using tuning parameters $b=1.473$,
+  $c=0.982$ and $s=1.5$.}
+\end{figure}
+
+\clearpage
+\subsection{Optimal}
+The optimal $\psi$ function as given by \citet[Section~5.9.1]{MarRMY06},
+\begin{equation*}
+  \psi_c(x) = \sign(x)\left(-\frac{\varphi'(\abs{x}) + c}
+    {\varphi(\abs{x})}\right)_+\;,
+\end{equation*}
+where $\varphi$ is the standard normal density, $c$ is a constant and $t_+ :=
+\max(t, 0)$ denotes the positive part of $t$.
+
+Note that the \pkg{robustbase} implementation uses rational approximations
+originating from the \pkg{robust} package's implementation.
+That approximation also avoids an anomaly for small $x$ and has a very
+different meaning of $c$.
+
+The constant for $95\%$ efficiency of the regression estimator is $1.060$ and
+the constant for a breakdown point of $0.5$ of the S-estimator is $0.405$.
+
+\begin{figure}[h]
+  \centering
+<<optimal>>=
+p.psiFun(x., "optimal", par = 1.06, leg.loc="bottomright")
+@
+  \caption{`Optimal' family of functions using tuning parameter $c = 1.06$.}
+\end{figure}
+
+\clearpage
+\subsection{Welsh}\label{ssec:Welsh}
+The Welsh $\psi$ function is defined as, %% FIXME: REFERENCE MISSING
+%\def\xk{\frac{x}{k}}
+\def\xk{x/k}
+%\def\xkdt{-\frac{1}{2}\left(\xk\right)^2}
+\def\xkdt{- \left(\xk\right)^2 / 2}
+\begin{align*}
+  \tilde\rho_k(x) ={}& 1 - \exp\bigl(\xkdt\bigr) \\
+        \psi_k(x) ={}& k^2\tilde\rho'_k(x) = x\exp\bigl(\xkdt\bigr) \\
+       \psi'_k(x) ={}& \bigl(1 - \bigl(\xk\bigr)^2\bigr) \exp\bigl(\xkdt\bigr)
+\end{align*}
+
+The constant $k$ for $95\%$ efficiency of the regression estimator is $2.11$ and
+the constant for a breakdown point of $0.5$ of the S-estimator is $0.577$.
+
+Note that GGW (subsection \ref{ssec:ggw}) is a 3-parameter generalization
+of Welsh, matching for $ b = 2 $, $ c = 0 $, and $ a = k^2$ (see R code there):
+<<Welsh-GGW, echo=TRUE, fig=FALSE>>=
+ccc <- c(0, a = 2.11^2, b = 2, c = 0, 1)
+(ccc[5] <- integrate(.Mpsi, 0, Inf, ccc=ccc, ipsi = 5)$value) # = rho(Inf)
+stopifnot(all.equal(Mpsi(x., ccc,  "GGW"),   ## psi[ GGW ](x; a=k^2, b=2, c=0) ==
+                    Mpsi(x., 2.11, "Welsh")))## psi[Welsh](x; k)
+@
+\begin{figure}[h]
+  \centering
+<<Welsh>>=
+p.psiFun(x., "Welsh", par = 2.11)
+@
+  \caption{Welsh family of functions using tuning parameter $k = 2.11$.}
+\end{figure}
+
+\bibliographystyle{chicago}
+\bibliography{robustbase}
+
+\end{document}

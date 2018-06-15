@@ -1,0 +1,45 @@
+<?xml version="1.0" ?>
+<!DOCTYPE foo [
+  <!ENTITY % bar "for R and S">
+  <!ENTITY % foo "for Omegahat">
+
+  <!ENTITY testEnt "test entity bar">
+  <!ENTITY logo SYSTEM "images/logo.gif" NDATA gif>
+  <!ENTITY % extEnt SYSTEM "http://www.omegahat.net">   <!-- include the contents of the README file in the same directory as this one. -->
+
+  <!ELEMENT x  (#PCDATA) >
+  <!ELEMENT y  (x)* >
+]>
+<!-- A comment -->
+<foo x="1">
+ <element attrib1="my value" />
+ &testEnt;
+ <?R sum(rnorm(100)) ?>
+ <a>
+  <!-- A comment -->
+  <b> 
+    %extEnt;
+  </b>
+ </a>
+<![CDATA[
+ This is escaped data
+ containing < and &.
+]]>
+
+Note that this caused a segmentation fault if replaceEntities was 
+not TRUE.
+That is,
+<code>
+xmlTreeParse("test.xml", replaceEntities = TRUE)
+</code>
+works, but 
+<code>
+xmlTreeParse("test.xml")
+</code>
+does not if this is called before the one above.
+This is now fixed and was caused by
+treating an xmlNodePtr in the C code 
+that had type XML_ELEMENT_DECL
+and so was in fact an xmlElementPtr.
+Aaah, C and casting!
+</foo>

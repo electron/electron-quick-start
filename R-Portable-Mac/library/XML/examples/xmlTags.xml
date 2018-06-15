@@ -1,0 +1,225 @@
+<article xmlns:r="http://www.r-project.org"
+         xmlns:omg="http://www.omegahat.net">
+
+<section id="intro">
+<title>Introduction</title>
+<para>
+This is a short document that does a quick empirical study of the use
+of Docbook and XSL elements and attribute in some actual uses of
+these.  The idea is to give a sense of what are the most common
+elements in use and help people who are new to those technologies get
+a sense of what to focus on.
+</para>
+<para>
+This also illustrates how we can use the XML package in R to extract
+this information relatively easily and efficiently using the SAX
+parser.
+</para>
+</section>
+<section id="svn-book">
+<title>Subversion Book</title>
+<para>
+This part finds the Docbook elements used in the collection of chapters of the SVN book.
+The SVN book can be downloaded from 
+<ulink url="http://svnbook.red-bean.com/trac/changeset/3082/tags/en-1.4-final/src/en/book?old_path=%2F&amp;format=zip"/>
+Unzip this and find the XML files in tags/en-1.4-final/src/en/book.
+(Before being able to process the files, you will have to make them readable
+as for some reason the permissions on all the files are all removed.)
+<r:code><![CDATA[
+   # Find the nodes and attributes used in the SVN book.
+ files = list.files("tags/en-1.4-final/src/en/book", "\\.xml$", full.names = TRUE)
+ svn.book = xmlElementSummary(files)
+ svn.book
+]]></r:code>
+</para>
+
+</section>
+
+<section id="kde">
+We can look at one of the documents from the KDE  documentation project
+and get the same information:
+<r:code>
+xmlElementSummary("http://l10n.kde.org/docs/translation-howto//translation-howto.docbook")
+</r:code>
+
+
+If we check out the documentation from the KDE SVN repository, we
+can examine those also.
+<r:code r:test="file.exists('~/Downloads/KDE-doc')">
+kde.files = list.files("~/Downloads/KDE-doc", "\\.docbook$", recursive = TRUE, full.names = TRUE)
+i = grep("/entities/|dolphin|man-template", kde.files)
+if(length(i))
+ kde.files = kde.files[ - i ]
+kde = xmlElementSummary(kde.files)
+</r:code>
+</section>
+
+<section id="esr">
+<r:code>
+bazaar = xmlElementSummary("http://www.catb.org/~esr/writings/cathedral-bazaar/cathedral-bazaar.xml")
+</r:code>
+</section>
+
+<section id="diving">
+<para>
+The book <ulink url="http://www.diveintopython.org/">Dive into Python</ulink>
+by  Mark Pilgrim was written in Docbook and the Docbook files are available for
+download.  You have to slightly change the file
+<filename>diveintopython.xml</filename> to define entities
+before you parse the file. 
+</para>
+<para>
+Also, the author uses external entities to perform
+the includes and many of the XML files have more than one top-level node.
+This means that our SAX-based XML parser raises errors and so we cannot use the
+the <r:func>xmlEventParse</r:func> function that is key to our 
+<r:func>xmlElementSummary</r:func> function. Instead, we what we do is
+to read the entire document into memory as a regular DOM.
+Then, we use a very general XPath query to get <emphasis>all</emphasis>
+nodes. And then we extract the names and attributes as we want.
+</para>
+<para>
+The code to do this is relatively straightforward:
+<r:code>
+dive = xmlInternalTreeParse("~/Downloads/diveintopython-5.4/xml/diveintopython-orig.xml", replaceEntities = TRUE)
+nodes = getNodeSet(dive, "//*")
+nodeNames = sapply(nodes, xmlName, full = TRUE)
+nodeCounts = sort(table(nodeNames), decreasing = TRUE)
+attributes = tapply(nodes, nodeNames, 
+                      function(nodes)  
+                            table(unlist(lapply(nodes, function(node) {
+                                                          attrs = xmlAttrs(node)
+							  if(length(attrs))
+							    names(attrs)
+                                                          else
+                                                            character()
+                                                       }))))
+list(nodeCounts = nodeCounts, attributes = attributes)
+</r:code>
+Note that this code is also quite general and can be used on an single
+XML document.  It does not use handlers and cannot be run across
+multiple separate XML documents with the built-in effect of cumulating
+the results.  But it can be run separately on each file and the
+results aggregated quite easily.
+</para>
+</section>
+
+<section id="xsl">
+<title>XSL and Docbook</title>
+
+<para>
+In this part, we look at the XSL files in the 
+<ulink url="http://www.omegahat.net/IDynDocs">IDynDocs package</ulink>.
+These include our own XSL files for generating HTML, FO, LaTeX from
+our extended Docbook elements, as well as the docbook source 
+for HTML, XHTML and FO.
+Instead of using <r:func>xmlElementSummary</r:func>,
+we use our own instance of the SAX handlers to collect the results.
+<r:code><![CDATA[
+   # Process the XSL files in IDynDocs, OmegahatXSL and docbook-xsl
+ h = xmlElementSummaryHandlers()
+ dir = system.file("XSL", package = "IDynDocs")
+ dir = "~/Classes/StatComputing/IDynDocs/inst/XSL"
+ invisible(
+  lapply(c("", "OmegahatXSL", "docbook-xsl-1.73.2/html", "docbook-xsl-1.73.2/fo"),
+        function(sub) {
+          files = list.files(paste(dir, sub, sep = .Platform$file.sep), "\\.xsl$", full.names = TRUE)
+          invisible(sapply(files, xmlEventParse, handlers = h, replaceEntities = FALSE))          
+        }))
+ h$result() 
+]]></r:code>
+This could also be done by finding all the files first and then
+using <r:func>xmlElementSummary</r:func>.
+Or we could also perform the summaries on each directory
+to see how the usage change.
+</para>
+</section>
+
+<section id="xpath">
+<title>XPath</title>
+<para>
+What do we need to know about XPath?
+There are lots of good features of XPath,
+but the commonly used ones can be found perhaps by
+looking at the use in XSL documents.
+So again, we will look at those XSL files in
+<omg:pkg>XDynDocs</omg:pkg>, including the Docbook XSL files
+it contains.
+</para>
+<para>
+We define a function to collect all the XPath attributes
+we can easily identify within the nodes in the XSL document.
+These are mainly the test and select attributes.
+So all we need is a handler for the start of a generic element
+in the SAX parser and extract the test and select attributes.
+We may end up with non-XPath attributes, but for the moment,
+this is fine.
+<r:function id="xpathExprCollector"><![CDATA[
+xpathExprCollector =
+function(targetAttributes = c("test", "select"))
+{
+    # Collect a list of attributes for each element.
+  tags = list()
+    # frequency table for the element names
+  counts = integer()
+  
+  start =
+    function(name, attrs, ...) {
+
+      attrs = attrs[ names(attrs) %in% targetAttributes ]
+      if(length(attrs) == 0)
+        return(TRUE)
+
+      tags[names(attrs)] <<-
+           lapply(names(attrs),
+             function(id)
+                   c(tags[[id]] , attrs[id]))
+    }
+
+  list(.startElement = start, 
+       .getEntity = function(x, ...) "xxx",
+       .getParameterEntity = function(x, ...) "xxx",
+       result = function() lapply(tags, function(x) sort(table(x), decreasing = TRUE)))
+}
+]]></r:function>
+</para>
+
+<para>
+Now we can use this function and extract the XPath expressions
+from the XSL files in <omg:pkg>XDynDocs</omg:pkg>.
+<r:code>
+dir = "~/Classes/StatComputing/XDynDocs/inst/XSL"
+all.files = lapply(c(dir, paste(dir, c("OmegahatXSL", "docbook-xsl-1.73.2/html", "docbook-xsl-1.73.2/fo"), 
+                           sep = .Platform$file.sep)),
+                    list.files, pattern = "\\.xsl$", full.names = TRUE)
+h = xpathExprCollector()
+invisible(lapply(unlist(all.files), xmlEventParse, h))
+summary(h$result())
+</r:code>
+</para>
+<para>
+Now we have all the expressions, but there are too many of them.
+Somewhat remarkably, we can take a look at the top 40 in each
+and see the common patterns: the values of variables (e.g. $content)
+and XPath paths (e.g. info/subtitle) in select,
+and function calls and variable references in test.
+<r:code>
+lapply(h$result(), "[", 1:40)
+</r:code>
+To undertand these further, we have to parse the expressions and
+look at the types of expressions rather than the actual values.
+But this is more complex.
+</para>
+
+<para>
+We can find all XPath expressions that count for more than 1%, say, of
+all the XPath expressions in that group as simply as 
+<r:code>
+top = lapply(h$result(), function(x) x[x/sum(x) >= .01])
+</r:code>
+</para>
+</section>
+
+</article>
+
+

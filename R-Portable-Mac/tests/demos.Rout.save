@@ -1,0 +1,1514 @@
+
+R version 3.5.0 RC (2018-04-15 r74605) -- "Joy in Playing"
+Copyright (C) 2018 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> #### Run all demos that do not depend on tcl and other specials.
+> .ptime <- proc.time()
+> set.seed(123)
+> options(keep.source=TRUE, useFancyQuotes=FALSE, warn = 1)
+> 
+> ## Drop these for strict testing {and add them to demos2.R)
+> ## lm.glm is in ../src/library/utils/man/demo.Rd }:
+> dont <- list(graphics = c("Hershey", "Japanese", "plotmath"),
++              stats = c("lm.glm", "nlm")
++              )
+> ## don't take tcltk here
+> for(pkg in c("base", "graphics", "stats")) {
++ 
++     demos <- list.files(file.path(system.file(package = pkg), "demo"),
++                         pattern = "\\.R$")
++     demos <- demos[is.na(match(demos, paste(dont[[pkg]], "R",sep=".")))]
++ 
++     if(length(demos)) {
++         if(need <- pkg != "base" &&
++            !any((fpkg <- paste("package", pkg, sep=":")) == search()))
++             library(pkg, character.only = TRUE)
++ 
++         for(nam in sub("\\.R$", "", demos))
++             demo(nam, character.only = TRUE)
++ 
++         if(need) detach(pos = which(fpkg == search()))
++     }
++ }
+
+
+	demo(error.catching)
+	---- ~~~~~~~~~~~~~~
+
+> 	##================================================================##
+> 	###  In longer simulations, aka computer experiments,		 ###
+> 	###  you may want to						 ###
+> 	###  1) catch all errors and warnings (and continue)		 ###
+> 	###  2) store the error or warning messages			 ###
+> 	###								 ###
+> 	###  Here's a solution	(see R-help mailing list, Dec 9, 2010):	 ###
+> 	##================================================================##
+> 
+> ##' Catch *and* save both errors and warnings, and in the case of
+> ##' a warning, also keep the computed result.
+> ##'
+> ##' @title tryCatch both warnings (with value) and errors
+> ##' @param expr an \R expression to evaluate
+> ##' @return a list with 'value' and 'warning', where
+> ##'   'value' may be an error caught.
+> ##' @author Martin Maechler;
+> ##' Copyright (C) 2010-2012  The R Core Team
+> tryCatch.W.E <- function(expr)
++ {
++     W <- NULL
++     w.handler <- function(w){ # warning handler
++ 	W <<- w
++ 	invokeRestart("muffleWarning")
++     }
++     list(value = withCallingHandlers(tryCatch(expr, error = function(e) e),
++ 				     warning = w.handler),
++ 	 warning = W)
++ }
+
+> str( tryCatch.W.E( log( 2 ) ) )
+List of 2
+ $ value  : num 0.693
+ $ warning: NULL
+
+> str( tryCatch.W.E( log( -1) ) )
+List of 2
+ $ value  : num NaN
+ $ warning:List of 2
+  ..$ message: chr "NaNs produced"
+  ..$ call   : language log(-1)
+  ..- attr(*, "class")= chr [1:3] "simpleWarning" "warning" "condition"
+
+> str( tryCatch.W.E( log("a") ) )
+List of 2
+ $ value  :List of 2
+  ..$ message: chr "non-numeric argument to mathematical function"
+  ..$ call   : language log("a")
+  ..- attr(*, "class")= chr [1:3] "simpleError" "error" "condition"
+ $ warning: NULL
+
+
+	demo(is.things)
+	---- ~~~~~~~~~
+
+> #  Copyright (C) 1997-2013 The R Core Team
+> 
+> ## being a 'builtin' function is not the same as being in base
+> ls.base <- ls("package:base", all=TRUE)
+
+> base.is.f <- sapply(ls.base, function(x) is.function(get(x)))
+
+> cat("\nNumber of base objects:\t\t", length(ls.base),
++     "\nNumber of functions in base:\t", sum(base.is.f),
++     "\n\t starting with 'is.' :\t  ",
++     sum(grepl("^is\\.", ls.base[base.is.f])), "\n", sep = "")
+
+Number of base objects:		1338
+Number of functions in base:	1294
+	 starting with 'is.' :	  50
+
+> ## 0.14  : 31
+> ## 0.50  : 33
+> ## 0.60  : 34
+> ## 0.63  : 37
+> ## 1.0.0 : 38
+> ## 1.3.0 : 41
+> ## 1.6.0 : 45
+> ## 2.0.0 : 45
+> 
+> ## Do we have a method (probably)?
+> is.method <- function(fname) {
++     isFun <- function(name) (exists(name, mode="function") &&
++                              is.na(match(name, c("is", "as"))))
++     np <- length(sp <- strsplit(fname, split = "\\.")[[1]])
++     if(np <= 1 )
++         FALSE
++     else
++         (isFun(paste(sp[1:(np-1)], collapse = '.')) ||
++          (np >= 3 &&
++           isFun(paste(sp[1:(np-2)], collapse = '.'))))
++ }
+
+> is.ALL <- function(obj, func.names = ls(pos=length(search())),
++ 		   not.using = c("is.single", "is.real", "is.loaded",
++                      "is.empty.model", "is.R", "is.element", "is.unsorted"),
++ 		   true.only = FALSE, debug = FALSE)
++ {
++     ## Purpose: show many 'attributes' of  R object __obj__
++     ## -------------------------------------------------------------------------
++     ## Arguments: obj: any R object
++     ## -------------------------------------------------------------------------
++     ## Author: Martin Maechler, Date: 6 Dec 1996
++ 
++     is.fn <- func.names[substring(func.names,1,3) == "is."]
++     is.fn <- is.fn[substring(is.fn,1,7) != "is.na<-"]
++     use.fn <- is.fn[ is.na(match(is.fn, not.using))
++                     & ! sapply(is.fn, is.method) ]
++ 
++     r <- if(true.only) character(0)
++     else structure(vector("list", length= length(use.fn)), names= use.fn)
++     for(f in use.fn) {
++ 	if(any(f == c("is.na", "is.finite"))) {
++ 	    if(!is.list(obj) && !is.vector(obj) && !is.array(obj)) {
++ 		if(!true.only) r[[f]] <- NA
++ 		next
++ 	    }
++ 	}
++ 	if(any(f == c("is.nan", "is.finite", "is.infinite"))) {
++ 	    if(!is.atomic(obj)) {
++ 	    	if(!true.only) r[[f]] <- NA
++ 	    	next
++ 	    }
++ 	}
++ 	if(debug) cat(f,"")
++ 	fn <- get(f)
++ 	rr <- if(is.primitive(fn) || length(formals(fn))>0)  fn(obj) else fn()
++ 	if(!is.logical(rr)) cat("f=",f," --- rr	 is NOT logical	 = ",rr,"\n")
++ 	##if(1!=length(rr))   cat("f=",f," --- rr NOT of length 1; = ",rr,"\n")
++ 	if(true.only && length(rr)==1 && !is.na(rr) && rr) r <- c(r, f)
++ 	else if(!true.only) r[[f]] <- rr
++     }
++     if(debug)cat("\n")
++     if(is.list(r)) structure(r, class = "isList") else r
++ }
+
+> print.isList <- function(x, ..., verbose = getOption("verbose"))
++ {
++     ## Purpose:	 print METHOD  for `isList' objects
++     ## ------------------------------------------------
++     ## Author: Martin Maechler, Date: 12 Mar 1997
++     if(is.list(x)) {
++         if(verbose) cat("print.isList(): list case (length=",length(x),")\n")
++ 	nm <- format(names(x))
++ 	rr <- lapply(x, stats::symnum, na = "NA")
++ 	for(i in seq_along(x)) cat(nm[i],":",rr[[i]],"\n", ...)
++     } else NextMethod("print", ...)
++ }
+
+> is.ALL(NULL)
+is.array           : . 
+is.atomic          : | 
+is.call            : . 
+is.character       : . 
+is.complex         : . 
+is.data.frame      : . 
+is.double          : . 
+is.environment     : . 
+is.expression      : . 
+is.factor          : . 
+is.finite          : NA 
+is.function        : . 
+is.infinite        :  
+is.integer         : . 
+is.language        : . 
+is.list            : . 
+is.logical         : . 
+is.matrix          : . 
+is.na              : NA 
+is.name            : . 
+is.nan             :  
+is.null            : | 
+is.numeric         : . 
+is.numeric_version : . 
+is.object          : . 
+is.ordered         : . 
+is.package_version : . 
+is.pairlist        : | 
+is.primitive       : . 
+is.qr              : . 
+is.raw             : . 
+is.recursive       : . 
+is.symbol          : . 
+is.table           : . 
+is.vector          : . 
+
+> ##fails: is.ALL(NULL, not.using = c("is.single", "is.loaded"))
+> is.ALL(NULL,   true.only = TRUE)
+[1] "is.atomic"   "is.null"     "is.pairlist"
+
+> all.equal(NULL, pairlist())
+[1] TRUE
+
+> ## list() != NULL == pairlist() :
+> is.ALL(list(), true.only = TRUE)
+[1] "is.list"      "is.recursive" "is.vector"   
+
+> (pl <- is.ALL(pairlist(1,    list(3,"A")), true.only = TRUE))
+[1] "is.list"      "is.pairlist"  "is.recursive"
+
+> (ll <- is.ALL(    list(1,pairlist(3,"A")), true.only = TRUE))
+[1] "is.list"      "is.recursive" "is.vector"   
+
+> all.equal(pl[pl != "is.pairlist"],
++           ll[ll != "is.vector"])## TRUE
+[1] TRUE
+
+> is.ALL(1:5)
+is.array           : . 
+is.atomic          : | 
+is.call            : . 
+is.character       : . 
+is.complex         : . 
+is.data.frame      : . 
+is.double          : . 
+is.environment     : . 
+is.expression      : . 
+is.factor          : . 
+is.finite          : | | | | | 
+is.function        : . 
+is.infinite        : . . . . . 
+is.integer         : | 
+is.language        : . 
+is.list            : . 
+is.logical         : . 
+is.matrix          : . 
+is.na              : . . . . . 
+is.name            : . 
+is.nan             : . . . . . 
+is.null            : . 
+is.numeric         : | 
+is.numeric_version : . 
+is.object          : . 
+is.ordered         : . 
+is.package_version : . 
+is.pairlist        : . 
+is.primitive       : . 
+is.qr              : . 
+is.raw             : . 
+is.recursive       : . 
+is.symbol          : . 
+is.table           : . 
+is.vector          : | 
+
+> is.ALL(array(1:24, 2:4))
+is.array           : | 
+is.atomic          : | 
+is.call            : . 
+is.character       : . 
+is.complex         : . 
+is.data.frame      : . 
+is.double          : . 
+is.environment     : . 
+is.expression      : . 
+is.factor          : . 
+is.finite          : | | | | | | | | | | | | | | | | | | | | | | | | 
+is.function        : . 
+is.infinite        : . . . . . . . . . . . . . . . . . . . . . . . . 
+is.integer         : | 
+is.language        : . 
+is.list            : . 
+is.logical         : . 
+is.matrix          : . 
+is.na              : . . . . . . . . . . . . . . . . . . . . . . . . 
+is.name            : . 
+is.nan             : . . . . . . . . . . . . . . . . . . . . . . . . 
+is.null            : . 
+is.numeric         : | 
+is.numeric_version : . 
+is.object          : . 
+is.ordered         : . 
+is.package_version : . 
+is.pairlist        : . 
+is.primitive       : . 
+is.qr              : . 
+is.raw             : . 
+is.recursive       : . 
+is.symbol          : . 
+is.table           : . 
+is.vector          : . 
+
+> is.ALL(1 + 3)
+is.array           : . 
+is.atomic          : | 
+is.call            : . 
+is.character       : . 
+is.complex         : . 
+is.data.frame      : . 
+is.double          : | 
+is.environment     : . 
+is.expression      : . 
+is.factor          : . 
+is.finite          : | 
+is.function        : . 
+is.infinite        : . 
+is.integer         : . 
+is.language        : . 
+is.list            : . 
+is.logical         : . 
+is.matrix          : . 
+is.na              : . 
+is.name            : . 
+is.nan             : . 
+is.null            : . 
+is.numeric         : | 
+is.numeric_version : . 
+is.object          : . 
+is.ordered         : . 
+is.package_version : . 
+is.pairlist        : . 
+is.primitive       : . 
+is.qr              : . 
+is.raw             : . 
+is.recursive       : . 
+is.symbol          : . 
+is.table           : . 
+is.vector          : | 
+
+> e13 <- expression(1 + 3)
+
+> is.ALL(e13)
+Warning in fn(obj) :
+  is.na() applied to non-(list or vector) of type 'expression'
+is.array           : . 
+is.atomic          : . 
+is.call            : . 
+is.character       : . 
+is.complex         : . 
+is.data.frame      : . 
+is.double          : . 
+is.environment     : . 
+is.expression      : | 
+is.factor          : . 
+is.finite          : NA 
+is.function        : . 
+is.infinite        : NA 
+is.integer         : . 
+is.language        : | 
+is.list            : . 
+is.logical         : . 
+is.matrix          : . 
+is.na              : . 
+is.name            : . 
+is.nan             : NA 
+is.null            : . 
+is.numeric         : . 
+is.numeric_version : . 
+is.object          : . 
+is.ordered         : . 
+is.package_version : . 
+is.pairlist        : . 
+is.primitive       : . 
+is.qr              : . 
+is.raw             : . 
+is.recursive       : | 
+is.symbol          : . 
+is.table           : . 
+is.vector          : | 
+
+> is.ALL(substitute(expression(a + 3), list(a=1)), true.only = TRUE)
+[1] "is.call"      "is.language"  "is.recursive"
+
+> is.ALL(y ~ x) #--> NA	 for is.na & is.finite
+is.array           : . 
+is.atomic          : . 
+is.call            : | 
+is.character       : . 
+is.complex         : . 
+is.data.frame      : . 
+is.double          : . 
+is.environment     : . 
+is.expression      : . 
+is.factor          : . 
+is.finite          : NA 
+is.function        : . 
+is.infinite        : NA 
+is.integer         : . 
+is.language        : | 
+is.list            : . 
+is.logical         : . 
+is.matrix          : . 
+is.na              : NA 
+is.name            : . 
+is.nan             : NA 
+is.null            : . 
+is.numeric         : . 
+is.numeric_version : . 
+is.object          : | 
+is.ordered         : . 
+is.package_version : . 
+is.pairlist        : . 
+is.primitive       : . 
+is.qr              : . 
+is.raw             : . 
+is.recursive       : | 
+is.symbol          : . 
+is.table           : . 
+is.vector          : . 
+
+> is0 <- is.ALL(numeric(0))
+
+> is0.ok <- 1 == (lis0 <- sapply(is0, length))
+
+> is0[!is0.ok]
+$is.finite
+logical(0)
+
+$is.infinite
+logical(0)
+
+$is.na
+logical(0)
+
+$is.nan
+logical(0)
+
+
+> is0 <- unlist(is0)
+
+> is0
+          is.array          is.atomic            is.call       is.character 
+             FALSE               TRUE              FALSE              FALSE 
+        is.complex      is.data.frame          is.double     is.environment 
+             FALSE              FALSE               TRUE              FALSE 
+     is.expression          is.factor        is.function         is.integer 
+             FALSE              FALSE              FALSE              FALSE 
+       is.language            is.list         is.logical          is.matrix 
+             FALSE              FALSE              FALSE              FALSE 
+           is.name            is.null         is.numeric is.numeric_version 
+             FALSE              FALSE               TRUE              FALSE 
+         is.object         is.ordered is.package_version        is.pairlist 
+             FALSE              FALSE              FALSE              FALSE 
+      is.primitive              is.qr             is.raw       is.recursive 
+             FALSE              FALSE              FALSE              FALSE 
+         is.symbol           is.table          is.vector 
+             FALSE              FALSE               TRUE 
+
+> ispi <- unlist(is.ALL(pi))
+
+> all(ispi[is0.ok] == is0)
+[1] TRUE
+
+> is.ALL(numeric(0), true=TRUE)
+[1] "is.atomic"  "is.double"  "is.numeric" "is.vector" 
+
+> is.ALL(array(1,1:3), true=TRUE)
+[1] "is.array"   "is.atomic"  "is.double"  "is.numeric"
+
+> is.ALL(cbind(1:3), true=TRUE)
+[1] "is.array"   "is.atomic"  "is.integer" "is.matrix"  "is.numeric"
+
+> is.ALL(structure(1:7, names = paste("a",1:7,sep="")))
+is.array           : . 
+is.atomic          : | 
+is.call            : . 
+is.character       : . 
+is.complex         : . 
+is.data.frame      : . 
+is.double          : . 
+is.environment     : . 
+is.expression      : . 
+is.factor          : . 
+is.finite          : | | | | | | | 
+is.function        : . 
+is.infinite        : . . . . . . . 
+is.integer         : | 
+is.language        : . 
+is.list            : . 
+is.logical         : . 
+is.matrix          : . 
+is.na              : . . . . . . . 
+is.name            : . 
+is.nan             : . . . . . . . 
+is.null            : . 
+is.numeric         : | 
+is.numeric_version : . 
+is.object          : . 
+is.ordered         : . 
+is.package_version : . 
+is.pairlist        : . 
+is.primitive       : . 
+is.qr              : . 
+is.raw             : . 
+is.recursive       : . 
+is.symbol          : . 
+is.table           : . 
+is.vector          : | 
+
+> is.ALL(structure(1:7, names = paste("a",1:7,sep="")), true.only = TRUE)
+[1] "is.atomic"  "is.integer" "is.numeric" "is.vector" 
+
+> x <- 1:20 ; y <- 5 + 6*x + rnorm(20)
+
+> lm.xy <- lm(y ~ x)
+
+> is.ALL(lm.xy)
+is.array           : . 
+is.atomic          : . 
+is.call            : . 
+is.character       : . 
+is.complex         : . 
+is.data.frame      : . 
+is.double          : . 
+is.environment     : . 
+is.expression      : . 
+is.factor          : . 
+is.finite          : NA 
+is.function        : . 
+is.infinite        : NA 
+is.integer         : . 
+is.language        : . 
+is.list            : | 
+is.logical         : . 
+is.matrix          : . 
+is.na              : . . . . . . . . . . . . 
+is.name            : . 
+is.nan             : NA 
+is.null            : . 
+is.numeric         : . 
+is.numeric_version : . 
+is.object          : | 
+is.ordered         : . 
+is.package_version : . 
+is.pairlist        : . 
+is.primitive       : . 
+is.qr              : . 
+is.raw             : . 
+is.recursive       : | 
+is.symbol          : . 
+is.table           : . 
+is.vector          : . 
+
+> is.ALL(structure(1:7, names = paste("a",1:7,sep="")))
+is.array           : . 
+is.atomic          : | 
+is.call            : . 
+is.character       : . 
+is.complex         : . 
+is.data.frame      : . 
+is.double          : . 
+is.environment     : . 
+is.expression      : . 
+is.factor          : . 
+is.finite          : | | | | | | | 
+is.function        : . 
+is.infinite        : . . . . . . . 
+is.integer         : | 
+is.language        : . 
+is.list            : . 
+is.logical         : . 
+is.matrix          : . 
+is.na              : . . . . . . . 
+is.name            : . 
+is.nan             : . . . . . . . 
+is.null            : . 
+is.numeric         : | 
+is.numeric_version : . 
+is.object          : . 
+is.ordered         : . 
+is.package_version : . 
+is.pairlist        : . 
+is.primitive       : . 
+is.qr              : . 
+is.raw             : . 
+is.recursive       : . 
+is.symbol          : . 
+is.table           : . 
+is.vector          : | 
+
+> is.ALL(structure(1:7, names = paste("a",1:7,sep="")), true.only = TRUE)
+[1] "is.atomic"  "is.integer" "is.numeric" "is.vector" 
+
+
+	demo(recursion)
+	---- ~~~~~~~~~
+
+> #  Copyright (C) 1997-2005 The R Core Team
+> 
+> ## Adaptive integration:	 Venables and Ripley pp. 105-110
+> ## This is the basic integrator.
+> 
+> area <- function(f, a, b, ..., fa = f(a, ...), fb = f(b, ...), limit
++ 		 = 10, eps = 1.e-5)
++ {
++     h <- b - a
++     d <- (a + b)/2
++     fd <- f(d, ...)
++     a1 <- ((fa + fb) * h)/2
++     a2 <- ((fa + 4 * fd + fb) * h)/6
++     if(abs(a1 - a2) < eps)
++ 	return(a2)
++     if(limit == 0) {
++ 	warning(paste("iteration limit reached near x = ",
++ 		      d))
++ 	return(a2)
++     }
++     area(f, a, d, ..., fa = fa, fb = fd, limit = limit - 1,
++ 	 eps = eps) + area(f, d, b, ..., fa = fd, fb =
++ 	 fb, limit = limit - 1, eps = eps)
++ }
+
+> ## The function to be integrated
+> 
+> fbeta <- function(x, alpha, beta)
++ {
++     x^(alpha - 1) * (1 - x)^(beta - 1)
++ }
+
+> ## Compute the approximate integral, the exact integral and the error
+> 
+> b0 <- area(fbeta, 0, 1, alpha=3.5, beta=1.5)
+
+> b1 <- exp(lgamma(3.5) + lgamma(1.5) - lgamma(5))
+
+> c(b0, b1, b0-b1)
+[1]  1.227170e-01  1.227185e-01 -1.443996e-06
+
+> ## Modify the function so that it records where it was evaluated
+> 
+> fbeta.tmp <- function (x, alpha, beta)
++ {
++     val <<- c(val, x)
++     x^(alpha - 1) * (1 - x)^(beta - 1)
++ }
+
+> ## Recompute and plot the evaluation points.
+> 
+> val <- NULL
+
+> b0 <- area(fbeta.tmp, 0, 1, alpha=3.5, beta=1.5)
+
+> plot(val, fbeta(val, 3.5, 1.5), pch=0)
+
+> ## Better programming style -- renaming the function will have no effect.
+> ## The use of "Recall" as in V+R is VERY black magic.  You can get the
+> ## same effect transparently by supplying a wrapper function.
+> ## This is the approved Abelson+Sussman method.
+> 
+> area <- function(f, a, b, ..., limit=10, eps=1e-5) {
++     area2 <- function(f, a, b, ..., fa = f(a, ...), fb = f(b, ...),
++ 		      limit = limit, eps = eps) {
++ 	h <- b - a
++ 	d <- (a + b)/2
++ 	fd <- f(d, ...)
++ 	a1 <- ((fa + fb) * h)/2
++ 	a2 <- ((fa + 4 * fd + fb) * h)/6
++ 	if(abs(a1 - a2) < eps)
++ 	    return(a2)
++ 	if(limit == 0) {
++ 	    warning(paste("iteration limit reached near x =", d))
++ 	    return(a2)
++ 	}
++ 	area2(f, a, d, ..., fa = fa, fb = fd, limit = limit - 1,
++ 	      eps = eps) + area2(f, d, b, ..., fa = fd, fb =
++ 	      fb, limit = limit - 1, eps = eps)
++     }
++     area2(f, a, b, ..., limit=limit, eps=eps)
++ }
+
+
+	demo(scoping)
+	---- ~~~~~~~
+
+> ## Here is a little example which shows a fundamental difference between
+> ## R and S.  It is a little example from Abelson and Sussman which models
+> ## the way in which bank accounts work.	It shows how R functions can
+> ## encapsulate state information.
+> ##
+> ## When invoked, "open.account" defines and returns three functions
+> ## in a list.  Because the variable "total" exists in the environment
+> ## where these functions are defined they have access to its value.
+> ## This is even true when "open.account" has returned.  The only way
+> ## to access the value of "total" is through the accessor functions
+> ## withdraw, deposit and balance.  Separate accounts maintain their
+> ## own balances.
+> ##
+> ## This is a very nifty way of creating "closures" and a little thought
+> ## will show you that there are many ways of using this in statistics.
+> 
+> #  Copyright (C) 1997-8 The R Core Team
+> 
+> open.account <- function(total) {
++ 
++     list(
++ 	 deposit = function(amount) {
++ 	     if(amount <= 0)
++ 		 stop("Deposits must be positive!\n")
++ 	     total <<- total + amount
++ 	     cat(amount,"deposited. Your balance is", total, "\n\n")
++ 	 },
++ 	 withdraw = function(amount) {
++ 	     if(amount > total)
++ 		 stop("You don't have that much money!\n")
++ 	     total <<- total - amount
++ 	     cat(amount,"withdrawn.  Your balance is", total, "\n\n")
++ 	 },
++ 	 balance = function() {
++ 	     cat("Your balance is", total, "\n\n")
++ 	 }
++ 	 )
++ }
+
+> ross <- open.account(100)
+
+> robert <- open.account(200)
+
+> ross$withdraw(30)
+30 withdrawn.  Your balance is 70 
+
+
+> ross$balance()
+Your balance is 70 
+
+
+> robert$balance()
+Your balance is 200 
+
+
+> ross$deposit(50)
+50 deposited. Your balance is 120 
+
+
+> ross$balance()
+Your balance is 120 
+
+
+> try(ross$withdraw(500)) # no way..
+Error in ross$withdraw(500) : You don't have that much money!
+
+
+
+	demo(graphics)
+	---- ~~~~~~~~
+
+> #  Copyright (C) 1997-2009 The R Core Team
+> 
+> require(datasets)
+
+> require(grDevices); require(graphics)
+
+> ## Here is some code which illustrates some of the differences between
+> ## R and S graphics capabilities.  Note that colors are generally specified
+> ## by a character string name (taken from the X11 rgb.txt file) and that line
+> ## textures are given similarly.  The parameter "bg" sets the background
+> ## parameter for the plot and there is also an "fg" parameter which sets
+> ## the foreground color.
+> 
+> 
+> x <- stats::rnorm(50)
+
+> opar <- par(bg = "white")
+
+> plot(x, ann = FALSE, type = "n")
+
+> abline(h = 0, col = gray(.90))
+
+> lines(x, col = "green4", lty = "dotted")
+
+> points(x, bg = "limegreen", pch = 21)
+
+> title(main = "Simple Use of Color In a Plot",
++       xlab = "Just a Whisper of a Label",
++       col.main = "blue", col.lab = gray(.8),
++       cex.main = 1.2, cex.lab = 1.0, font.main = 4, font.lab = 3)
+
+> ## A little color wheel.	 This code just plots equally spaced hues in
+> ## a pie chart.	If you have a cheap SVGA monitor (like me) you will
+> ## probably find that numerically equispaced does not mean visually
+> ## equispaced.  On my display at home, these colors tend to cluster at
+> ## the RGB primaries.  On the other hand on the SGI Indy at work the
+> ## effect is near perfect.
+> 
+> par(bg = "gray")
+
+> pie(rep(1,24), col = rainbow(24), radius = 0.9)
+
+> title(main = "A Sample Color Wheel", cex.main = 1.4, font.main = 3)
+
+> title(xlab = "(Use this as a test of monitor linearity)",
++       cex.lab = 0.8, font.lab = 3)
+
+> ## We have already confessed to having these.  This is just showing off X11
+> ## color names (and the example (from the postscript manual) is pretty "cute".
+> 
+> pie.sales <- c(0.12, 0.3, 0.26, 0.16, 0.04, 0.12)
+
+> names(pie.sales) <- c("Blueberry", "Cherry",
++ 		      "Apple", "Boston Cream", "Other", "Vanilla Cream")
+
+> pie(pie.sales,
++     col = c("purple","violetred1","green3","cornsilk","cyan","white"))
+
+> title(main = "January Pie Sales", cex.main = 1.8, font.main = 1)
+
+> title(xlab = "(Don't try this at home kids)", cex.lab = 0.8, font.lab = 3)
+
+> ## Boxplots:  I couldn't resist the capability for filling the "box".
+> ## The use of color seems like a useful addition, it focuses attention
+> ## on the central bulk of the data.
+> 
+> par(bg="cornsilk")
+
+> n <- 10
+
+> g <- gl(n, 100, n*100)
+
+> x <- rnorm(n*100) + sqrt(as.numeric(g))
+
+> boxplot(split(x,g), col="lavender", notch=TRUE)
+
+> title(main="Notched Boxplots", xlab="Group", font.main=4, font.lab=1)
+
+> ## An example showing how to fill between curves.
+> 
+> par(bg="white")
+
+> n <- 100
+
+> x <- c(0,cumsum(rnorm(n)))
+
+> y <- c(0,cumsum(rnorm(n)))
+
+> xx <- c(0:n, n:0)
+
+> yy <- c(x, rev(y))
+
+> plot(xx, yy, type="n", xlab="Time", ylab="Distance")
+
+> polygon(xx, yy, col="gray")
+
+> title("Distance Between Brownian Motions")
+
+> ## Colored plot margins, axis labels and titles.	 You do need to be
+> ## careful with these kinds of effects.	It's easy to go completely
+> ## over the top and you can end up with your lunch all over the keyboard.
+> ## On the other hand, my market research clients love it.
+> 
+> x <- c(0.00, 0.40, 0.86, 0.85, 0.69, 0.48, 0.54, 1.09, 1.11, 1.73, 2.05, 2.02)
+
+> par(bg="lightgray")
+
+> plot(x, type="n", axes=FALSE, ann=FALSE)
+
+> usr <- par("usr")
+
+> rect(usr[1], usr[3], usr[2], usr[4], col="cornsilk", border="black")
+
+> lines(x, col="blue")
+
+> points(x, pch=21, bg="lightcyan", cex=1.25)
+
+> axis(2, col.axis="blue", las=1)
+
+> axis(1, at=1:12, lab=month.abb, col.axis="blue")
+
+> box()
+
+> title(main= "The Level of Interest in R", font.main=4, col.main="red")
+
+> title(xlab= "1996", col.lab="red")
+
+> ## A filled histogram, showing how to change the font used for the
+> ## main title without changing the other annotation.
+> 
+> par(bg="cornsilk")
+
+> x <- rnorm(1000)
+
+> hist(x, xlim=range(-4, 4, x), col="lavender", main="")
+
+> title(main="1000 Normal Random Variates", font.main=3)
+
+> ## A scatterplot matrix
+> ## The good old Iris data (yet again)
+> 
+> pairs(iris[1:4], main="Edgar Anderson's Iris Data", font.main=4, pch=19)
+
+> pairs(iris[1:4], main="Edgar Anderson's Iris Data", pch=21,
++       bg = c("red", "green3", "blue")[unclass(iris$Species)])
+
+> ## Contour plotting
+> ## This produces a topographic map of one of Auckland's many volcanic "peaks".
+> 
+> x <- 10*1:nrow(volcano)
+
+> y <- 10*1:ncol(volcano)
+
+> lev <- pretty(range(volcano), 10)
+
+> par(bg = "lightcyan")
+
+> pin <- par("pin")
+
+> xdelta <- diff(range(x))
+
+> ydelta <- diff(range(y))
+
+> xscale <- pin[1]/xdelta
+
+> yscale <- pin[2]/ydelta
+
+> scale <- min(xscale, yscale)
+
+> xadd <- 0.5*(pin[1]/scale - xdelta)
+
+> yadd <- 0.5*(pin[2]/scale - ydelta)
+
+> plot(numeric(0), numeric(0),
++      xlim = range(x)+c(-1,1)*xadd, ylim = range(y)+c(-1,1)*yadd,
++      type = "n", ann = FALSE)
+
+> usr <- par("usr")
+
+> rect(usr[1], usr[3], usr[2], usr[4], col="green3")
+
+> contour(x, y, volcano, levels = lev, col="yellow", lty="solid", add=TRUE)
+
+> box()
+
+> title("A Topographic Map of Maunga Whau", font= 4)
+
+> title(xlab = "Meters North", ylab = "Meters West", font= 3)
+
+> mtext("10 Meter Contour Spacing", side=3, line=0.35, outer=FALSE,
++       at = mean(par("usr")[1:2]), cex=0.7, font=3)
+
+> ## Conditioning plots
+> 
+> par(bg="cornsilk")
+
+> coplot(lat ~ long | depth, data = quakes, pch = 21, bg = "green3")
+
+> par(opar)
+
+
+	demo(image)
+	---- ~~~~~
+
+> #  Copyright (C) 1997-2009 The R Core Team
+> 
+> require(datasets)
+
+> require(grDevices); require(graphics)
+
+> x <- 10*(1:nrow(volcano)); x.at <- seq(100, 800, by=100)
+
+> y <- 10*(1:ncol(volcano)); y.at <- seq(100, 600, by=100)
+
+> 					# Using Terrain Colors
+> 
+> image(x, y, volcano, col=terrain.colors(100),axes=FALSE)
+
+> contour(x, y, volcano, levels=seq(90, 200, by=5), add=TRUE, col="brown")
+
+> axis(1, at=x.at)
+
+> axis(2, at=y.at)
+
+> box()
+
+> title(main="Maunga Whau Volcano", sub = "col=terrain.colors(100)", font.main=4)
+
+> 					# Using Heat Colors
+> 
+> image(x, y, volcano, col=heat.colors(100), axes=FALSE)
+
+> contour(x, y, volcano, levels=seq(90, 200, by=5), add=TRUE, col="brown")
+
+> axis(1, at=x.at)
+
+> axis(2, at=y.at)
+
+> box()
+
+> title(main="Maunga Whau Volcano", sub = "col=heat.colors(100)", font.main=4)
+
+> 					# Using Gray Scale
+> 
+> image(x, y, volcano, col=gray(100:200/200), axes=FALSE)
+
+> contour(x, y, volcano, levels=seq(90, 200, by=5), add=TRUE, col="black")
+
+> axis(1, at=x.at)
+
+> axis(2, at=y.at)
+
+> box()
+
+> title(main="Maunga Whau Volcano \n col=gray(100:200/200)", font.main=4)
+
+> ## Filled Contours are even nicer sometimes :
+> example(filled.contour)
+
+flld.c> require(grDevices) # for colours
+
+flld.c> filled.contour(volcano, color = terrain.colors, asp = 1) # simple
+
+flld.c> x <- 10*1:nrow(volcano)
+
+flld.c> y <- 10*1:ncol(volcano)
+
+flld.c> filled.contour(x, y, volcano, color = terrain.colors,
+flld.c+     plot.title = title(main = "The Topography of Maunga Whau",
+flld.c+     xlab = "Meters North", ylab = "Meters West"),
+flld.c+     plot.axes = { axis(1, seq(100, 800, by = 100))
+flld.c+                   axis(2, seq(100, 600, by = 100)) },
+flld.c+     key.title = title(main = "Height\n(meters)"),
+flld.c+     key.axes = axis(4, seq(90, 190, by = 10)))  # maybe also asp = 1
+
+flld.c> mtext(paste("filled.contour(.) from", R.version.string),
+flld.c+       side = 1, line = 4, adj = 1, cex = .66)
+
+flld.c> # Annotating a filled contour plot
+flld.c> a <- expand.grid(1:20, 1:20)
+
+flld.c> b <- matrix(a[,1] + a[,2], 20)
+
+flld.c> filled.contour(x = 1:20, y = 1:20, z = b,
+flld.c+                plot.axes = { axis(1); axis(2); points(10, 10) })
+
+flld.c> ## Persian Rug Art:
+flld.c> x <- y <- seq(-4*pi, 4*pi, len = 27)
+
+flld.c> r <- sqrt(outer(x^2, y^2, "+"))
+
+flld.c> filled.contour(cos(r^2)*exp(-r/(2*pi)), axes = FALSE)
+
+flld.c> ## rather, the key *should* be labeled:
+flld.c> filled.contour(cos(r^2)*exp(-r/(2*pi)), frame.plot = FALSE,
+flld.c+                plot.axes = {})
+
+
+	demo(persp)
+	---- ~~~~~
+
+> ### Demos for  persp()  plots   -- things not in  example(persp)
+> ### -------------------------
+> 
+> require(datasets)
+
+> require(grDevices); require(graphics)
+
+> ## (1) The Obligatory Mathematical surface.
+> ##     Rotated sinc function.
+> 
+> x <- seq(-10, 10, length.out = 50)
+
+> y <- x
+
+> rotsinc <- function(x,y)
++ {
++     sinc <- function(x) { y <- sin(x)/x ; y[is.na(y)] <- 1; y }
++     10 * sinc( sqrt(x^2+y^2) )
++ }
+
+> sinc.exp <- expression(z == Sinc(sqrt(x^2 + y^2)))
+
+> z <- outer(x, y, rotsinc)
+
+> oldpar <- par(bg = "white")
+
+> persp(x, y, z, theta = 30, phi = 30, expand = 0.5, col = "lightblue")
+
+> title(sub=".")## work around persp+plotmath bug
+
+> title(main = sinc.exp)
+
+> persp(x, y, z, theta = 30, phi = 30, expand = 0.5, col = "lightblue",
++       ltheta = 120, shade = 0.75, ticktype = "detailed",
++       xlab = "X", ylab = "Y", zlab = "Z")
+
+> title(sub=".")## work around persp+plotmath bug
+
+> title(main = sinc.exp)
+
+> ## (2) Visualizing a simple DEM model
+> 
+> z <- 2 * volcano        # Exaggerate the relief
+
+> x <- 10 * (1:nrow(z))   # 10 meter spacing (S to N)
+
+> y <- 10 * (1:ncol(z))   # 10 meter spacing (E to W)
+
+> persp(x, y, z, theta = 120, phi = 15, scale = FALSE, axes = FALSE)
+
+> ## (3) Now something more complex
+> ##     We border the surface, to make it more "slice like"
+> ##     and color the top and sides of the surface differently.
+> 
+> z0 <- min(z) - 20
+
+> z <- rbind(z0, cbind(z0, z, z0), z0)
+
+> x <- c(min(x) - 1e-10, x, max(x) + 1e-10)
+
+> y <- c(min(y) - 1e-10, y, max(y) + 1e-10)
+
+> fill <- matrix("green3", nrow = nrow(z)-1, ncol = ncol(z)-1)
+
+> fill[ , i2 <- c(1,ncol(fill))] <- "gray"
+
+> fill[i1 <- c(1,nrow(fill)) , ] <- "gray"
+
+> par(bg = "lightblue")
+
+> persp(x, y, z, theta = 120, phi = 15, col = fill, scale = FALSE, axes = FALSE)
+
+> title(main = "Maunga Whau\nOne of 50 Volcanoes in the Auckland Region.",
++       font.main = 4)
+
+> par(bg = "slategray")
+
+> persp(x, y, z, theta = 135, phi = 30, col = fill, scale = FALSE,
++       ltheta = -120, lphi = 15, shade = 0.65, axes = FALSE)
+
+> ## Don't draw the grid lines :  border = NA
+> persp(x, y, z, theta = 135, phi = 30, col = "green3", scale = FALSE,
++       ltheta = -120, shade = 0.75, border = NA, box = FALSE)
+
+> ## `color gradient in the soil' :
+> fcol <- fill ; fcol[] <- terrain.colors(nrow(fcol))
+
+> persp(x, y, z, theta = 135, phi = 30, col = fcol, scale = FALSE,
++       ltheta = -120, shade = 0.3, border = NA, box = FALSE)
+
+> ## `image like' colors on top :
+> fcol <- fill
+
+> zi <- volcano[ -1,-1] + volcano[ -1,-61] +
++            volcano[-87,-1] + volcano[-87,-61]  ## / 4
+
+> fcol[-i1,-i2] <-
++     terrain.colors(20)[cut(zi,
++                            stats::quantile(zi, seq(0,1, length.out = 21)),
++                            include.lowest = TRUE)]
+
+> persp(x, y, 2*z, theta = 110, phi = 40, col = fcol, scale = FALSE,
++       ltheta = -120, shade = 0.4, border = NA, box = FALSE)
+
+> ## reset par():
+> par(oldpar)
+
+
+	demo(glm.vr)
+	---- ~~~~~~
+
+> #  Copyright (C) 1997-2009 The R Core Team
+> 
+> #### -*- R -*-
+> require(stats)
+
+> Fr <- c(68,42,42,30, 37,52,24,43,
++ 	66,50,33,23, 47,55,23,47,
++ 	63,53,29,27, 57,49,19,29)
+
+> Temp <- gl(2, 2, 24, labels = c("Low", "High"))
+
+> Soft <- gl(3, 8, 24, labels = c("Hard","Medium","Soft"))
+
+> M.user <- gl(2, 4, 24, labels = c("N", "Y"))
+
+> Brand <- gl(2, 1, 24, labels = c("X", "M"))
+
+> detg <- data.frame(Fr,Temp, Soft,M.user, Brand)
+
+> detg.m0 <- glm(Fr ~ M.user*Temp*Soft + Brand, family = poisson, data = detg)
+
+> summary(detg.m0)
+
+Call:
+glm(formula = Fr ~ M.user * Temp * Soft + Brand, family = poisson, 
+    data = detg)
+
+Deviance Residuals: 
+     Min        1Q    Median        3Q       Max  
+-2.20876  -0.99190  -0.00126   0.93542   1.97601  
+
+Coefficients:
+                            Estimate Std. Error z value Pr(>|z|)    
+(Intercept)                  4.01524    0.10034  40.018  < 2e-16 ***
+M.userY                     -0.21184    0.14257  -1.486  0.13731    
+TempHigh                    -0.42381    0.15159  -2.796  0.00518 ** 
+SoftMedium                   0.05311    0.13308   0.399  0.68984    
+SoftSoft                     0.05311    0.13308   0.399  0.68984    
+BrandM                      -0.01587    0.06300  -0.252  0.80106    
+M.userY:TempHigh             0.13987    0.22168   0.631  0.52806    
+M.userY:SoftMedium           0.08323    0.19685   0.423  0.67245    
+M.userY:SoftSoft             0.12169    0.19591   0.621  0.53449    
+TempHigh:SoftMedium         -0.30442    0.22239  -1.369  0.17104    
+TempHigh:SoftSoft           -0.30442    0.22239  -1.369  0.17104    
+M.userY:TempHigh:SoftMedium  0.21189    0.31577   0.671  0.50220    
+M.userY:TempHigh:SoftSoft   -0.20387    0.32540  -0.627  0.53098    
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+(Dispersion parameter for poisson family taken to be 1)
+
+    Null deviance: 118.627  on 23  degrees of freedom
+Residual deviance:  32.826  on 11  degrees of freedom
+AIC: 191.24
+
+Number of Fisher Scoring iterations: 4
+
+
+> detg.mod <- glm(terms(Fr ~ M.user*Temp*Soft + Brand*M.user*Temp,
++                       keep.order = TRUE),
++ 		family = poisson, data = detg)
+
+> summary(detg.mod)
+
+Call:
+glm(formula = terms(Fr ~ M.user * Temp * Soft + Brand * M.user * 
+    Temp, keep.order = TRUE), family = poisson, data = detg)
+
+Deviance Residuals: 
+     Min        1Q    Median        3Q       Max  
+-0.91365  -0.35585   0.00253   0.33027   0.92146  
+
+Coefficients:
+                            Estimate Std. Error z value Pr(>|z|)    
+(Intercept)                  4.14887    0.10603  39.128  < 2e-16 ***
+M.userY                     -0.40521    0.16188  -2.503  0.01231 *  
+TempHigh                    -0.44275    0.17121  -2.586  0.00971 ** 
+M.userY:TempHigh            -0.12692    0.26257  -0.483  0.62883    
+SoftMedium                   0.05311    0.13308   0.399  0.68984    
+SoftSoft                     0.05311    0.13308   0.399  0.68984    
+M.userY:SoftMedium           0.08323    0.19685   0.423  0.67245    
+M.userY:SoftSoft             0.12169    0.19591   0.621  0.53449    
+TempHigh:SoftMedium         -0.30442    0.22239  -1.369  0.17104    
+TempHigh:SoftSoft           -0.30442    0.22239  -1.369  0.17104    
+M.userY:TempHigh:SoftMedium  0.21189    0.31577   0.671  0.50220    
+M.userY:TempHigh:SoftSoft   -0.20387    0.32540  -0.627  0.53098    
+BrandM                      -0.30647    0.10942  -2.801  0.00510 ** 
+M.userY:BrandM               0.40757    0.15961   2.554  0.01066 *  
+TempHigh:BrandM              0.04411    0.18463   0.239  0.81119    
+M.userY:TempHigh:BrandM      0.44427    0.26673   1.666  0.09579 .  
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+(Dispersion parameter for poisson family taken to be 1)
+
+    Null deviance: 118.627  on 23  degrees of freedom
+Residual deviance:   5.656  on  8  degrees of freedom
+AIC: 170.07
+
+Number of Fisher Scoring iterations: 4
+
+
+> summary(detg.mod, correlation = TRUE, symbolic.cor = TRUE)
+
+Call:
+glm(formula = terms(Fr ~ M.user * Temp * Soft + Brand * M.user * 
+    Temp, keep.order = TRUE), family = poisson, data = detg)
+
+Deviance Residuals: 
+     Min        1Q    Median        3Q       Max  
+-0.91365  -0.35585   0.00253   0.33027   0.92146  
+
+Coefficients:
+                            Estimate Std. Error z value Pr(>|z|)    
+(Intercept)                  4.14887    0.10603  39.128  < 2e-16 ***
+M.userY                     -0.40521    0.16188  -2.503  0.01231 *  
+TempHigh                    -0.44275    0.17121  -2.586  0.00971 ** 
+M.userY:TempHigh            -0.12692    0.26257  -0.483  0.62883    
+SoftMedium                   0.05311    0.13308   0.399  0.68984    
+SoftSoft                     0.05311    0.13308   0.399  0.68984    
+M.userY:SoftMedium           0.08323    0.19685   0.423  0.67245    
+M.userY:SoftSoft             0.12169    0.19591   0.621  0.53449    
+TempHigh:SoftMedium         -0.30442    0.22239  -1.369  0.17104    
+TempHigh:SoftSoft           -0.30442    0.22239  -1.369  0.17104    
+M.userY:TempHigh:SoftMedium  0.21189    0.31577   0.671  0.50220    
+M.userY:TempHigh:SoftSoft   -0.20387    0.32540  -0.627  0.53098    
+BrandM                      -0.30647    0.10942  -2.801  0.00510 ** 
+M.userY:BrandM               0.40757    0.15961   2.554  0.01066 *  
+TempHigh:BrandM              0.04411    0.18463   0.239  0.81119    
+M.userY:TempHigh:BrandM      0.44427    0.26673   1.666  0.09579 .  
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+(Dispersion parameter for poisson family taken to be 1)
+
+    Null deviance: 118.627  on 23  degrees of freedom
+Residual deviance:   5.656  on  8  degrees of freedom
+AIC: 170.07
+
+Number of Fisher Scoring iterations: 4
+
+Correlation of Coefficients:
+                                                           
+(Intercept)                 1                              
+M.userY                     , 1                            
+TempHigh                    , . 1                          
+M.userY:TempHigh            . , , 1                        
+SoftMedium                  , . .   1                      
+SoftSoft                    , . .   . 1                    
+M.userY:SoftMedium          . ,   . , . 1                  
+M.userY:SoftSoft            . ,   . . , . 1                
+TempHigh:SoftMedium         .   , . . . .   1              
+TempHigh:SoftSoft           .   , . . .   . . 1            
+M.userY:TempHigh:SoftMedium   . . . .   , . , . 1          
+M.userY:TempHigh:SoftSoft     . . .   . . , . , . 1        
+BrandM                      .                       1      
+M.userY:BrandM                .                     , 1    
+TempHigh:BrandM                 . .                 . . 1  
+M.userY:TempHigh:BrandM         . .                 . . , 1
+attr(,"legend")
+[1] 0 ' ' 0.3 '.' 0.6 ',' 0.8 '+' 0.9 '*' 0.95 'B' 1
+
+
+> anova(detg.m0, detg.mod)
+Analysis of Deviance Table
+
+Model 1: Fr ~ M.user * Temp * Soft + Brand
+Model 2: Fr ~ M.user * Temp * Soft + Brand * M.user * Temp
+  Resid. Df Resid. Dev Df Deviance
+1        11     32.826            
+2         8      5.656  3    27.17
+
+
+	demo(smooth)
+	---- ~~~~~~
+
+> ### This used to be in   example(smooth) before we had package-specific demos
+> #  Copyright (C) 1997-2009 The R Core Team
+> 
+> require(stats); require(graphics); require(datasets)
+
+> op <- par(mfrow = c(1,1))
+
+> ## The help(smooth) examples:
+> example(smooth, package="stats")
+
+smooth> require(graphics)
+
+smooth> ## see also   demo(smooth) !
+smooth> 
+smooth> x1 <- c(4, 1, 3, 6, 6, 4, 1, 6, 2, 4, 2) # very artificial
+
+smooth> (x3R <- smooth(x1, "3R")) # 2 iterations of "3"
+3R Tukey smoother resulting from  smooth(x = x1, kind = "3R") 
+ used 2 iterations
+ [1] 3 3 3 6 6 4 4 4 2 2 2
+
+smooth> smooth(x3R, kind = "S")
+S Tukey smoother resulting from  smooth(x = x3R, kind = "S") 
+ changed
+ [1] 3 3 3 3 4 4 4 4 2 2 2
+
+smooth> sm.3RS <- function(x, ...)
+smooth+    smooth(smooth(x, "3R", ...), "S", ...)
+
+smooth> y <- c(1, 1, 19:1)
+
+smooth> plot(y, main = "misbehaviour of \"3RSR\"", col.main = 3)
+
+smooth> lines(sm.3RS(y))
+
+smooth> lines(smooth(y))
+
+smooth> lines(smooth(y, "3RSR"), col = 3, lwd = 2)  # the horror
+
+smooth> x <- c(8:10, 10, 0, 0, 9, 9)
+
+smooth> plot(x, main = "breakdown of  3R  and  S  and hence  3RSS")
+
+smooth> matlines(cbind(smooth(x, "3R"), smooth(x, "S"), smooth(x, "3RSS"), smooth(x)))
+
+smooth> presidents[is.na(presidents)] <- 0 # silly
+
+smooth> summary(sm3 <- smooth(presidents, "3R"))
+3R Tukey smoother resulting from
+ smooth(x = presidents, kind = "3R") ;  n = 120 
+ used 4 iterations
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+    0.0    44.0    57.0    54.2    71.0    82.0 
+
+smooth> summary(sm2 <- smooth(presidents,"3RSS"))
+3RSS Tukey smoother resulting from
+ smooth(x = presidents, kind = "3RSS") ;  n = 120 
+ used 5 iterations
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+   0.00   44.00   57.00   55.45   69.00   82.00 
+
+smooth> summary(sm  <- smooth(presidents))
+3RS3R Tukey smoother resulting from
+ smooth(x = presidents) ;  n = 120 
+ used 7 iterations
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+  24.00   44.00   57.00   55.88   69.00   82.00 
+
+smooth> all.equal(c(sm2), c(smooth(smooth(sm3, "S"), "S")))  # 3RSS  === 3R S S
+[1] TRUE
+
+smooth> all.equal(c(sm),  c(smooth(smooth(sm3, "S"), "3R"))) # 3RS3R === 3R S 3R
+[1] TRUE
+
+smooth> plot(presidents, main = "smooth(presidents0, *) :  3R and default 3RS3R")
+
+smooth> lines(sm3, col = 3, lwd = 1.5)
+
+smooth> lines(sm, col = 2, lwd = 1.25)
+
+> ## Didactical investigation:
+> 
+> showSmooth <- function(x, leg.x = 1, leg.y = max(x)) {
++   ss <- cbind(x, "3c"  = smooth(x, "3", end="copy"),
++                  "3"   = smooth(x, "3"),
++                  "3Rc" = smooth(x, "3R", end="copy"),
++                  "3R"  = smooth(x, "3R"),
++               sm = smooth(x))
++   k <- ncol(ss) - 1
++   n <- length(x)
++   slwd <- c(1,1,4,1,3,2)
++   slty <- c(0, 2:(k+1))
++   matplot(ss, main = "Tukey Smoothers", ylab = "y ;  sm(y)",
++           type= c("p",rep("l",k)), pch= par("pch"), lwd= slwd, lty= slty)
++   legend(leg.x, leg.y,
++          c("Data",       "3   (copy)", "3  (Tukey)",
++                  "3R  (copy)", "3R (Tukey)", "smooth()"),
++          pch= c(par("pch"),rep(-1,k)), col=1:(k+1), lwd= slwd, lty= slty)
++   ss
++ }
+
+> ## 4 simple didactical examples, showing different steps in smooth():
+> 
+> for(x in list(c(4, 6, 2, 2, 6, 3, 6, 6, 5, 2),
++               c(3, 2, 1, 4, 5, 1, 3, 2, 4, 5, 2),
++               c(2, 4, 2, 6, 1, 1, 2, 6, 3, 1, 6),
++               x1))
++     print(t(showSmooth(x)))
+    [,1] [,2] [,3] [,4] [,5] [,6] [,7] [,8] [,9] [,10]
+x      4    6    2    2    6    3    6    6    5     2
+3c     4    4    2    2    3    6    6    6    5     2
+3      4    4    2    2    3    6    6    6    5     3
+3Rc    4    4    2    2    3    6    6    6    5     2
+3R     4    4    2    2    3    6    6    6    5     3
+sm     4    4    4    3    3    6    6    6    5     3
+    [,1] [,2] [,3] [,4] [,5] [,6] [,7] [,8] [,9] [,10] [,11]
+x      3    2    1    4    5    1    3    2    4     5     2
+3c     3    2    2    4    4    3    2    3    4     4     2
+3      2    2    2    4    4    3    2    3    4     4     4
+3Rc    3    2    2    4    4    3    3    3    4     4     2
+3R     2    2    2    4    4    3    3    3    4     4     4
+sm     2    2    2    2    3    3    3    3    4     4     4
+    [,1] [,2] [,3] [,4] [,5] [,6] [,7] [,8] [,9] [,10] [,11]
+x      2    4    2    6    1    1    2    6    3     1     6
+3c     2    2    4    2    1    1    2    3    3     3     6
+3      2    2    4    2    1    1    2    3    3     3     3
+3Rc    2    2    2    2    1    1    2    3    3     3     6
+3R     2    2    2    2    1    1    2    3    3     3     3
+sm     2    2    2    2    2    2    2    3    3     3     3
+    [,1] [,2] [,3] [,4] [,5] [,6] [,7] [,8] [,9] [,10] [,11]
+x      4    1    3    6    6    4    1    6    2     4     2
+3c     4    3    3    6    6    4    4    2    4     2     2
+3      3    3    3    6    6    4    4    2    4     2     2
+3Rc    4    3    3    6    6    4    4    4    2     2     2
+3R     3    3    3    6    6    4    4    4    2     2     2
+sm     3    3    3    3    4    4    4    4    2     2     2
+
+> par(op)
+> 
+> cat("Time elapsed: ", proc.time() - .ptime, "\n")
+Time elapsed:  1.498 0.057 1.56 0 0 
+> 

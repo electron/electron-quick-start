@@ -1,0 +1,361 @@
+\documentclass[nojss]{jss}  
+\usepackage{amssymb}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% declarations for jss.cls %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%% just as usual
+\author{Robin K. S. Hankin}
+\title{Recreational mathematics with \proglang{R}:
+introducing the \pkg{magic} package}
+
+%\VignetteIndexEntry{A vignette for the magic package}
+%% for pretty printing and a nice hypersummary also set:
+%% \Plainauthor{Achim Zeileis, Second Author} %% comma-separated
+\Plaintitle{Recreational mathematics with R:
+introducing the magic package}
+\Shorttitle{Magic squares in R}
+
+%% an abstract and keywords
+\Abstract{
+The \proglang{R} computer language~\citep{R} has been applied with a great deal
+of success to a wide variety of statistical, physical, and medical
+applications.  Here, I show that \proglang{R} is an equally superb research
+tool in the field of recreational mathematics.
+
+
+An earlier version of this vignette was published as~\citet{hankin2005}. 
+}
+
+\Keywords{Magic squares}
+% -*- mode: noweb; noweb-default-code-mode: R-mode; -*-
+
+\Address{
+Robin K. S. Hankin\\
+AUT University\\
+Auckland\\
+New Zealand\\
+E-mail: \email{hankin.robin@gmail.com}
+
+}
+
+
+%% need no \usepackage{Sweave.sty}
+
+\begin{document}
+
+\section{Overview}
+Recreational mathematics is easier to recognize than define, but seems
+to be characterized by requiring a bare minimum of ``raw material'':
+complex notation is not needed, and problems are readily communicated
+to the general public.  
+
+This is not to say that all problems of recreational mathematics are
+trivial: one could argue that much number theory is recreational in
+nature; yet attempts to prove Fermat's Last Theorem, or the search for
+ever higher perfect numbers, have been the catalyst for the
+development of many fruitful new areas of mathematics.  
+
+The study of magic squares is also an example of nontrivial
+recreational mathematics as the basic concept is simple to grasp---yet
+there remain unsolved problems in the field whose study has revealed
+deep mathematical truths.
+
+Here, I introduce the ``magic'' package, and show that \proglang{R} is an
+excellent environment for the creation and investigation of magic
+squares.  I also show that one's appreciation of magic squares may be
+enhanced through computer tools such as \proglang{R}, and that the act of
+translating `paper' algorithms of the literature into \proglang{R} idiom can
+lead to new insight.
+
+
+\section{Introduction}
+Magic squares have essentially zero practical use; their
+fascination---like much of pure mathematics---lies in the appeal of
+\ae sthetics and structure rather than immediate usefulness.
+
+The following definitions are almost universal:
+\begin{itemize}
+\item A {\em semimagic square} is one all of whose row sums equal all its
+columnwise sums (i.e. the magic constant).
+
+\item A {\em magic square} is a semimagic square with the sum of both
+unbroken diagonals equal to the magic constant.
+
+\item A {\em panmagic square} is a magic square all of whose broken
+diagonals sum to the magic constant.
+
+\end{itemize}
+(all squares are understood to be $n\times n$ and to be {\em
+normal\/}, that is, to comprise $n^2$ consecutive
+integers\footnote{Most workers require the entries to start at 1,
+which is the convention here; but there are several instances where
+starting at~0 is far more convenient.  In any case, if \code{x} is
+magic, then \code{x+n} is magic for any integer \code{n}.}).  Functions
+\code{is.semimagic()}, \code{is.magic()}, and \code{is.panmagic()}
+test for these properties.
+
+<<echo=FALSE,print=FALSE>>=
+<<results=hide>>=
+require(magic)
+@ 
+
+A good place to start is the simplest---and by far the most commonly
+encountered---magic square, {\em lo zhu}:
+
+<<echo=TRUE,print=TRUE>>=
+ magic(3) 
+@ 
+
+This magic square has been known since antiquity (legend has it that
+the square was revealed to humanity inscribed upon the shell of a
+divine turtle).  More generally, if consecutive numbers of a magic
+square are joined by lines, a pleasing image is often obtained
+(figure~\ref{magic7}, for example, shows a magic square of order~7;
+when viewed in this way, the algorithm for creating such a square
+should be immediately obvious).
+
+\begin{figure}[htbp]
+  \begin{center}
+<<fig=TRUE>>=
+magicplot(magic.2np1(3))
+@
+    \caption{Magic square of order~7\label{magic7} in graphical form
+(obtained by \texttt{magicplot(magic.2np1(3))}) }
+  \end{center}
+\end{figure}
+
+Function \code{magic()} takes an integer argument~$n$ and returns a
+normal magic square of size $n\times n$.  There are eight equivalent
+forms for {\em lo zhu\/} or indeed any magic square, achieved by
+rotating and reflecting the matrix~\citep{benson1976}; such equivalence
+is tested by \code{eq()} or \code{\%eq\%}.  Of these eight forms, a
+magic square \code{a} is said to be in {\em Fr\'{e}nicle's standard
+form} if \code{a[1,1]}$\leq$\code{b[1,1]} whenever \code{a \%eq\% b},
+and \code{a[1,2]<a[2,1]}.  Function \code{is.standard()} tests for
+this, and function \code{as.standard()} places a magic square in
+standard form.  Magic squares returned by \code{magic()} are always in
+standard form.
+
+A typical (paper) algorithm for placing magic square \code{a} in
+standard form would be ``rotate \code{a} until
+\code{a[1,1]<min(a[1,n],a[n,1],a[n,n])} then, if \code{a[1,2]>a[2,1]},
+take the transpose''.  I shall show later that expressing such an
+algorithm in \proglang{R} leads to new insight when considering magic
+hypercubes.
+
+A wide variety of algorithms exists for calculating magic squares.
+For a given order $n$, these algorithms generally depend on $n$
+modulo~4.
+
+A typical paper algorithm for magic squares of order~$n=4m$ would go as
+follows.
+\begin{quote}
+Algorithm 1:
+in a square of order~$4m$, shade the long major diagonal.  Then shade
+all major diagonals distant by a multiple of~4 cells from the long
+diagonal.  Do the same with the minor diagonals.  Then, starting with
+``1'' at the top left corner and proceeding from left to right and top
+to bottom, count from~1 to $n^2$, filling in the shaded squares
+with the appropriate number and omitting  the unshaded ones
+[figure~\ref{magicsquare8.halfdone}].  Fill in the remaining
+(unshaded) squares in the same way, starting at the lower right
+corner, moving leftwards and upwards [figure~\ref{magicsquare8}].
+\end{quote}
+
+Such paper algorithms are common in the literature but translating
+this one into code that uses \proglang{R}'s vectorized tools effectively can
+lead to new insight.  The magicness of such squares may be proved by
+considering the increasing and decreasing sequences separately.
+
+\begin{figure}[htb]
+  \begin{center}
+<<fig=TRUE,echo=FALSE>>=
+shadedsquare <- function(m=2){
+  n <- 4*m
+  jj.1 <- kronecker(diag(2), matrix(1, 2, 2))
+  jj <- kronecker(matrix(1, m + 1, m + 1), jj.1)[2:(n + 1), 2:(n + 1)]
+  par(xaxt="n",yaxt="n")
+  image(1:n,1:n,jj,xlab="",ylab="",asp=1,frame=FALSE,col=c(gray(0.9),gray(0.4)))
+  abline(v=0.5+(0:n))
+  segments(x0=rep(0.5,n),y0=0.5+(0:n),x1=rep(n+0.5,n),y1=0.5+(0:n))
+  return(invisible(jj))
+}
+
+jj <- shadedsquare()
+#a <- magic(8)
+#text(row(a),col(a),as.character(a),col="white")
+
+for(i in 1:8){
+  for(j in 1:8){
+    if(jj[i,j]==1){
+      text(i,j,magic(8)[i,9-j],col="white")
+    }
+  }
+}
+@
+    \caption{Half-completed magic square of
+        order\label{magicsquare8.halfdone} 8}
+  \end{center}
+\end{figure}
+
+\begin{figure}[htb]
+  \begin{center}
+<<fig=TRUE,echo=FALSE>>=
+shadedsquare()
+for(i in 1:8){
+  for(j in 1:8){
+    if(jj[i,j]==1){
+      text(i,j,magic(8)[i,9-j],col="white")
+         } else {
+                 text(i,j,magic(8)[i,9-j],col="black")
+               }
+  }
+}
+@
+    \caption{Magic square of order\label{magicsquare8} 8}
+  \end{center}
+\end{figure}
+
+The interesting part of the above paper algorithm lies in determining
+the pattern of shaded and unshaded squares\footnote{If \code{a <-
+matrix(1:(n*n),n,n)}, with \code{jj} a Boolean vector of length~$n^2$
+with \code{TRUE} corresponding to shaded squares, then with it is
+clear that \code{a[jj] <- rev(a[jj])} will return the above magic
+square.}.  As the reader may care to verify, parsing the algorithm
+into \proglang{R} idiom is not straightforward.  An alternative, readily
+computed in \proglang{R}, would be to recognize that the repeating $4\times 4$
+cell \code{a[2:5,2:5]} is \code{kronecker(diag(2),matrix(1,2,2)) -> b}
+say, replicate it with \code{kronecker(matrix(1,3,3),b) -> g}; then
+trim off the border by selecting only the middle elements, in this
+case \code{g[2:9,2:9]}.  Function \code{magic.4n()} implements the
+algorithm for general $m$.
+
+\section{Magic hypercubes}
+
+One of the great strengths of \proglang{R} is its ability to handle arbitrary
+dimensioned arrays in an efficient and elegant manner.
+
+Generalizing magic squares to magic hypercubes~\citep{hendricks1973} is
+thus natural when working in \proglang{R}.  The following definitions represent
+a general consensus, but are far from universal:
+
+\begin{itemize}
+\item A {\em semimagic hypercube} has all ``rook's move'' sums equal
+to the magic constant (that is, each~$\sum_{i_r=1}^n
+a[i_1,i_2,\ldots,i_{r-1},i_r,i_{r+1},\ldots,i_d]$ with $1\leqslant
+r\leqslant d$ is equal to the magic constant for all values of the
+other i's).
+\item A {\em magic hypercube} is a semimagic hypercube with the
+ additional requirement that all $2^{d-1}$ long (ie extreme
+ point-to-extreme point) diagonals sum correctly.
+\item A {\em perfect magic hypercube} is a magic
+hypercube with all nonbroken diagonals summing correctly\footnote{This
+  condition is quite restrictive; in the case
+of a tesseract, this would include subsets such
+as $\sum_{i=1}^na[1,i,n-i+1,n]$ summing correctly.}.
+\item A {\em pandiagonal hypercube} is a perfect magic hypercube with
+all broken diagonals summing correctly.
+\end{itemize}
+(a magic hypercube is understood to be of dimension \code{rep(n,d)}
+and normal).  Functions \code{is.semimagichypercube()},
+\code{is.magichypercube()} and \code{is.perfect(a)} test for the first
+three properties; the fourth is not yet implemented.  Function
+\code{is.diagonally.correct()} tests for correct summation of the
+$2^d$ (sic) long diagonals.
+
+\subsection[Magic hypercubes of order 4n]{Magic hypercubes of
+  order~{\boldmath $4n$}}
+
+Consider algorithm 1 generalized to a $d$-dimensional hypercube.  The
+appropriate generalization of the repeating cell of the $8\times 8$
+magic square discussed above is not immediately obvious when
+considering figure~\ref{magicsquare8.halfdone}, but the \proglang{R} formalism
+(viz \code{kronecker(diag(2),matrix(1,2,2))}) makes it clear that
+the appropriate generalization is to replace \code{matrix(1,2,2)} with
+\code{array(1,rep(2,d))}.
+
+The appropriate generalization for \code{diag(2)} (call it \code{g})
+is not so straightforward, but one might be guided by the following
+requirements:
+\begin{itemize}
+\item The dimension of \code{g} must match the first argument to
+  \code{kronecker()}, viz \code{rep(2,d)}
+\item The number of 0s must be equal to the number of 1s:
+\code{sum(g==1)==sum(g==0)}
+\item The observation that \code{diag(2)} is equal to its transpose
+would generalize to requiring that \code{aperm(g,K)} be
+identical to \code{g} for any permutation \code{K}.
+\end{itemize}
+These lead to specifying that \code{g[i1,...,id]} should be zero if
+$(i_1,\ldots,i_d)$ contains an odd number of 2s and one otherwise.
+
+One appropriate \proglang{R} idiom would be to define a function
+\code{dimension(a,p)} to be an integer matrix with the same dimensions
+as \code{a}, with element $(n_1,n_2, ..., n_d)$ being $n_p$, then if
+$\mbox{\code{jj}}=\sum_{i=1}^d\mbox{\code{dimension(a,i)}}$, we can specify
+\code{g=jj*0} and then \code{g[jj\%\%2==1] <- 1}.
+
+Another application of \code{kronecker()} gives a hypercube that is of
+extent $4m+2$ in each of its \code{d} dimensions, and this may be
+trimmed off as above to give an array of dimensions \code{rep(4m,d)}
+using \code{do.call()} and \code{[<-}.  The numbers may be filled in
+exactly as for the 2d case.
+
+The resulting hypercube is magic, in the sense defined
+above\footnote{If I had a rigorous proof of this, the margin might be
+too narrow for it.}, although it is not perfect; function
+\code{magichypercube.4n()} implements the algorithm.  The ability to
+generate magic hypercubes of arbitrary dimension greater than one is
+apparently novel.
+
+\subsubsection{Standard form for hypercubes}
+Consider again the paper definition for Fr\'{e}nicle's standard form
+of a magic square \code{a}: it is rotated so that the smallest number
+appears at the top left; then if \code{a[1,2]<a[2,1]}, the transpose
+is taken.
+
+When coding up such an algorithm in \proglang{R} with an eye to generalizing it
+to arbitrarily high dimensional hypercubes, it becomes apparent that
+``rotation'' is not a natural operation.  The generalization used in
+the package is directly suggested by \proglang{R}'s array capabilities: it is
+a two-step process in which the first step is to maneuver the smallest
+possible element to position \code{[1,1,...,1]} using only operations
+that reverse the index of some (or all) dimensions.  An example would
+be \code{a <- a[1:n,n:1,1:n,n:1]}.
+
+The second step is to use function \code{aperm()} to ensure that the
+appropriate generalization of \code{a[1,2]<a[2,1]}, which would be
+\begin{eqnarray*}
+\mbox{\code{a[1,1,...,1,2]}}<\mbox{\code{a[1,...,2,1]}}<\ldots\nonumber\\
+\ldots<\mbox{\code{a[1,2,...,1]}}<\mbox{\code{a[2,1,...,1]}}
+\end{eqnarray*}
+holds; the appropriate \proglang{R} idiom is
+\code{a <- aperm(a,order(-a[1+diag(d)])))}.
+
+This generalization of Fr\'{e}nicle's standard form to arbitrary
+dimensional hypercubes appears to be new; it arises directly from the
+power and elegance of \proglang{R}'s array handling techniques.
+
+\section{Conclusions}
+
+The \proglang{R} language is a natural environment for the investigation of
+magic squares and hypercubes; and the discipline of translating
+published algorithms into \proglang{R} idiom can yield new insight.  These
+insights include a new generalization of Fr\'{e}nicle's standard form
+to hypercubes, and also what appears to be the first algorithm for
+generating magic hypercubes of any dimension,
+
+Insofar as magic squares and hypercubes are worthy of attention, it is
+worth creating fast, efficient routines to carry out the ``paper''
+algorithms of the literature.  I hope that the \code{magic} package
+will continue to facilitate the study of these fascinating objects.
+
+\subsubsection*{Acknowledgements}
+I would like to acknowledge the many stimulating and helpful comments
+made by the \proglang{R}-help list over the years.
+
+\bibliography{magic}
+\end{document}

@@ -1,0 +1,1463 @@
+\documentclass[11pt, a4paper]{article}
+\usepackage[a4paper, text={16cm,25cm}]{geometry}
+
+%\VignetteIndexEntry{Simulations for Robust Regression Inference in Small Samples}
+%\VignetteDepends{robustbase, xtable, ggplot2,GGally, RColorBrewer, grid, reshape2}
+
+\usepackage{amsmath}
+\usepackage{natbib}
+\usepackage[utf8]{inputenc}
+
+\newcommand{\makeright}[2]{\ifx#1\left\right#2\else#1#2\fi}
+\newcommand{\Norm}[2][\left]{\mathcal N   #1( #2 \makeright{#1}{)}}
+\newcommand{\norm}[1]   {\| #1 \|}
+\newcommand{\bld}[1]{\boldsymbol{#1}} % shortcut for bold symbol
+\newcommand{\T}[1]      {\texttt{#1}}
+\DeclareMathOperator{\wgt}{w}
+\DeclareMathOperator{\var}{var}
+\DeclareMathOperator{\diag}{diag}
+\DeclareMathOperator{\median}{median}
+\DeclareMathOperator{\mad}{mad}
+\DeclareMathOperator{\Erw}{\mathbf{E}}
+
+
+\SweaveOpts{prefix.string=plot, eps = FALSE, pdf = TRUE, strip.white=true}
+\SweaveOpts{width=6, height=4}
+
+\usepackage[noae]{Sweave}
+\begin{document}
+\setkeys{Gin}{width=\textwidth}
+\setlength{\abovecaptionskip}{-5pt}
+
+<<initial-setup, echo=FALSE, results=hide>>=
+## set options
+options(width=60,
+        warn=1) # see warnings where they happen (should eliminate)
+
+## number of workers to start
+if(FALSE) {## good for pkg developers
+    options(cores=  max(1, parallel::detectCores() - 2))
+} else { ## CRAN allows maximum of 2:
+    options(cores= min(2, parallel::detectCores()))
+}
+
+## Number of Repetitions:
+N <- 1000
+
+## get path (= ../inst/doc/ in source pkg)
+robustDoc <- system.file('doc', package='robustbase')
+robustDta <- robustDoc
+
+## initialize (packages, data, ...):
+source(file.path(robustDoc, 'simulation.init.R')) # 'xtable'
+
+## set the amount of trimming used in calculation of average results
+trim <- 0.1
+
+<<graphics-setup,echo=FALSE,results=hide>>=
+## load required packages for graphics
+stopifnot(require(ggplot2),
+          require(GGally),# for ggpairs() which replaces ggplot2::plotmatrix()
+          require(grid),
+          require(reshape2))
+source(file.path(robustDoc, 'graphics.functions.R'))
+
+## set ggplot theme
+theme <- theme_bw(base_size = 10)
+theme$legend.key.size <- unit(1, "lines")# was 0.9 in pre-v.3 ggplot2
+theme$plot.margin <- unit(c(1/2, 1/8, 1/8, 1/8), "lines")# was (1/2, 0,0,0)
+theme_set(theme)
+## set default sizes for lines and points
+update_geom_defaults("point",  list(size = 4/3))
+update_geom_defaults("line",   list(size = 1/4))
+update_geom_defaults("hline",  list(size = 1/4))
+update_geom_defaults("smooth", list(size = 1/4))
+## alpha value for plots with many points
+alpha.error <- 0.3
+alpha.n <- 0.4
+
+## set truncation limits used by f.truncate() & g.truncate.*:
+trunc <- c(0.02, 0.14)
+trunc.plot <- c(0.0185, 0.155)
+
+f.truncate <- function(x, up = trunc.plot[2], low = trunc.plot[1]) {
+  x[x > up] <- up
+  x[x < low] <- low
+  x
+}
+
+g.truncate.lines <- geom_hline(yintercept = trunc,
+                               color = theme$panel.border$colour)
+g.truncate.line <- geom_hline(yintercept = trunc[2],
+                              color = theme$panel.border$colour)
+g.truncate.areas <- annotate("rect", xmin=rep(-Inf,2), xmax=rep(Inf,2),
+                             ymin=c(0,Inf), ymax=trunc,
+                             fill = theme$panel.grid.major$colour)
+g.truncate.area <- annotate("rect", xmin=-Inf, xmax=Inf,
+                            ymin=trunc[2], ymax=Inf,
+                            fill = theme$panel.grid.major$colour)
+
+legend.mod <- list(`SMD.Wtau` = quote('SMD.W'~tau),
+                   `SMDM.Wtau` = quote('SMDM.W'~tau),
+                   `MM.Avar1` = quote('MM.'~Avar[1]),
+                   `MMqT` = quote('MM'~~q[T]),
+                   `MMqT.Wssc` = quote('MM'~~q[T]*'.Wssc'),
+                   `MMqE` = quote('MM'~~q[E]),
+                   `MMqE.Wssc` = quote('MM'~~q[E]*'.Wssc'),
+                   `sigma_S` = quote(hat(sigma)[S]),
+                   `sigma_D` = quote(hat(sigma)[D]),
+                   `sigma_S*qE` = quote(q[E]*hat(sigma)[S]),
+                   `sigma_S*qT` = quote(q[T]*hat(sigma)[S]),
+                   `sigma_robust` = quote(hat(sigma)[robust]),
+                   `sigma_OLS` = quote(hat(sigma)[OLS]),
+                   `t1` = quote(t[1]),
+                   `t3` = quote(t[3]),
+                   `t5` = quote(t[5]),
+                   `cskt(Inf,2)` = quote(cskt(infinity,2))
+                   )
+@% end{graphics-setup}
+
+
+\title{Simulations for Sharpening Wald-type Inference in Robust Regression
+  for Small Samples}
+\author{Manuel Koller}
+\maketitle
+\tableofcontents
+
+\section{Introduction}
+In this vignette, we recreate the simulation study of \citet{KS2011}. This
+vignette is supposed to complement the results presented in the above cited
+reference and render its results reproducible. Another goal is to provide
+simulation functions, that, with small changes, could also be used for other
+simulation studies.
+
+Additionally, in Section~\ref{sec:maximum-asymptotic-bias}, we calculate
+the maximum asymptotic bias curves of the $\psi$-functions used in the
+simulation.
+
+\section{Setting}
+The simulation setting used here is similar to the one in
+\citet{maronna2009correcting}. We simulate $N = \Sexpr{N}$ repetitions. To
+repeat the simulation, we recommend using a small value of $N$ here, since
+for large $n$ and $p$, computing all the replicates will take days.
+
+\subsection{Methods}
+We compare the methods
+\begin{itemize}
+\item MM, SMD, SMDM as described in \citet{KS2011}. These methods are
+  available in the package \T{robustbase} (\T{lmrob}).
+\item MM as implemented in the package \T{robust}  (\T{lmRob}). This method
+  will be denoted as \emph{MMrobust} later on.
+\item MM using S-scale correction by $q_{\rm T}$ and $q_{\rm E}$ as
+  proposed by \citet{maronna2009correcting}.
+
+  $q_{\rm T}$ and $q_{\rm E}$ are defined as follows.
+  \begin{equation*}
+    q_{\rm E} = \frac{1}{1 - (1.29 - 6.02/n)p/n},
+  \end{equation*}
+  \begin{equation*}
+    \hat q_{\rm T} = 1 + \frac{p}{2n}\frac{\hat a}{\hat b\hat c},
+  \end{equation*}
+  where
+  \begin{equation*}
+    \hat a = \frac{1}{n}\sum_{i=1}^n
+    \psi\left(\frac{r_i}{\hat\sigma_{\rm S}}\right)^2,
+    \hat b = \frac{1}{n}
+    \sum_{i=1}^n\psi'\left(\frac{r_i}{\hat\sigma_{\rm S}}\right),%'
+    \hat c = \frac{1}{n}\sum_{i=1}^n
+    \psi\left(\frac{r_i}{\hat\sigma_{\rm S}}\right)
+    \frac{r_i}{\hat\sigma_{\rm S}},
+  \end{equation*}
+  with $\psi = \rho'$,%'
+  $n$ the number of observations, $p$ the number of
+  predictor variables, $\hat\sigma_{\rm S}$ is the S-scale estimate and
+  $r_i$ is the residual of the $i$-th observation.
+
+  When using $q_{\rm E}$ it is necessary to adjust the tuning constants of
+  $\chi$ to account for the dependence of $\kappa$ on $p$. For $q_{\rm T}$
+  no change is required.
+
+  This method is implemented as \T{lmrob.mar()} in the source file
+  \T{estimating.functions.R}.
+\end{itemize}
+
+\subsection{$\psi$-functions}
+We compare \emph{bisquare}, \emph{optimal}, \emph{lqq} and \emph{Hampel}
+$\psi$-functions. They are illustrated in Fig.~\ref{fig:psi.functions}. The
+tuning constants used in the simulation are compiled in
+Table~\ref{tab:psi-functions}. Note that the \emph{Hampel} $\psi$-function
+is tuned to have a downward slope of $-1/3$ instead of the originally
+proposed $-1/2$. This was set to allow for a comparison to an even slower
+descending $\psi$-function.
+
+%% generate table of tuning constants used for \psi functions
+\begin{table}[ht]
+\begin{center}
+<<tab-psi-functions, results=tex, echo=FALSE>>=
+## get list of psi functions
+lst <- lapply(estlist$procedures, function(x) {
+  if (is.null(x$args)) return(list(NULL, NULL, NULL))
+  if (!is.null(x$args$weight))
+    return(list(x$args$weight[2],
+                round(f.psi2c.chi(x$args$weight[1]),3),
+                round(f.eff2c.psi(x$args$efficiency, x$args$weight[2]),3)))
+  return(list(x$args$psi,
+              round(if (is.null(x$args$tuning.chi))
+                    lmrob.control(psi=x$args$psi)$tuning.chi else
+                    x$args$tuning.chi,3),
+              round(if (is.null(x$args$tuning.psi))
+                    lmrob.control(psi=x$args$psi)$tuning.psi else
+                    x$args$tuning.psi,3)))
+})
+lst <- unique(lst) ## because of rounding, down from 21 to 5 !
+lst <- lst[sapply(lst, function(x) !is.null(x[[1]]))] # 5 --> 4
+## convert to table
+tbl <- do.call(rbind, lst)
+tbl[,2:3] <- apply(tbl[,2:3], 1:2, function(x) {
+  gsub('\\$NA\\$', '\\\\texttt{NA}',
+       paste('$', unlist(x), collapse=', ', '$', sep='')) })
+tbl[,1] <- paste('\\texttt{', tbl[,1], '}', sep='')
+colnames(tbl) <- paste('\\texttt{', c('psi', 'tuning.chi', 'tuning.psi'),
+                       '}', sep='')
+print(xtable(tbl), sanitize.text.function=identity,
+      include.rownames = FALSE, floating=FALSE)
+@ %def
+\vspace{15pt}
+\caption{Tuning constants of $\psi$-functions used in the simulation.}
+\label{tab:psi-functions}
+\end{center}
+\end{table}
+
+
+\begin{figure}
+\begin{center}
+<<fig-psi-functions, fig=TRUE, echo=FALSE>>=
+d.x_psi <- function(x, psi) {
+  cc <- lmrob.control(psi = psi)$tuning.psi
+  data.frame(x=x, value=Mpsi(x, cc, psi), psi = psi)
+}
+x <- seq(0, 10, length.out = 1000)
+tmp <- rbind(d.x_psi(x, 'optimal'),
+             d.x_psi(x, 'bisquare'),
+             d.x_psi(x, 'lqq'),
+             d.x_psi(x, 'hampel'))
+print( ggplot(tmp, aes(x, value, color = psi)) +
+       geom_line(lwd=1.25) + ylab(quote(psi(x))) +
+       scale_color_discrete(name = quote(psi ~ '-function')))
+@
+\end{center}
+\caption{$\psi$-functions used in the simulation.}
+\label{fig:psi.functions}
+\end{figure}
+
+\subsection{Designs}
+Two types of designs are used in the simulation: fixed and random designs.
+One design with $n=20$ observations, $p=1+3$ predictors and strong leverage
+points. This design also includes an intercept column. It is shown in
+Fig.~\ref{fig:design-predict}. The other designs are random, i.e.,
+regenerated for every repetition, and the models are fitted without an
+intercept. We use the same distribution to generate the designs as for the
+errors. The number of observations simulated are $n = 25, 50, 100, 400$ and
+the ratio to the number of parameters are $p/n = 1/20, 1/10, 1/5, 1/3,
+1/2$. We round $p$ to the nearest smaller integer if necessary.
+
+The random datasets are generated using the following code.
+<<fgen, results=hide, keep.source=TRUE>>=
+
+f.gen <- function(n, p, rep, err) {
+  ## get function name and parameters
+  lerrfun <- f.errname(err$err)
+  lerrpar <- err$args
+  ## generate random predictors
+  ret <- replicate(rep, matrix(do.call(lerrfun, c(n = n*p, lerrpar)),
+                               n, p), simplify=FALSE)
+  attr(ret[[1]], 'gen') <- f.gen
+  ret
+}
+
+ratios <- c(1/20, 1/10, 1/5, 1/3, 1/2)## p/n
+lsit <- expand.grid(n = c(25, 50, 100, 400), p = ratios)
+lsit <- within(lsit, p <- as.integer(n*p))
+.errs.normal.1 <- list(err = 'normal',
+                       args = list(mean = 0, sd = 1))
+for (i in 1:NROW(lsit))
+  assign(paste('rand',lsit[i,1],lsit[i,2],sep='_'),
+         f.gen(lsit[i,1], lsit[i,2], rep = 1, err = .errs.normal.1)[[1]])
+@
+An example design is shown in Fig.~\ref{fig:example.design}.
+
+\begin{figure}
+\begin{center}
+<<fig-example-design, fig=TRUE, echo=FALSE>>=
+require(GGally)
+colnames(rand_25_5) <- paste0("X", 1:5) # workaround new (2014-12) change in GGally
+## and the 2016-11-* change needs data frames:
+df.r_25_5 <- as.data.frame(rand_25_5)
+print(ggpairs(df.r_25_5, axisLabels="show", title = "rand_25_5: n=25, p=5"))
+@
+\end{center}
+\caption{Example random design.}
+\label{fig:example.design}
+\end{figure}
+
+\subsection{Error Distributions}
+We simulate the following error distributions
+\begin{itemize}
+\item standard normal distribution,
+\item $t_5$, $t_3$, $t_1$,
+\item centered skewed t with $df = \infty, 5$ and $\gamma = 2$ (denoted by
+  \emph{cskt$(\infty,2)$} and \emph{cskt}$(5,2)$, respectively); as
+  introduced by \citet{fernandez1998bayesian} using the \T{R} package
+  \T{skewt},
+\item contaminated normal, $\Norm{0,1}$ contaminated with $10\%$
+  $\Norm{0, 10}$ (symmetric, \emph{cnorm}$(0.1,0,3.16)$) or
+  $\Norm{4, 1}$ (asymmetric, \emph{cnorm}$(0.1,4,1)$).
+\end{itemize}
+
+\subsection{Covariance Matrix Estimators}
+For the standard MM estimator, we compare ${\rm Avar}_1$ of \citet{croux03}
+and the empirical weighted covariance matrix estimate corrected by Huber's
+small sample correction as described in \citet{HubPR09} (denoted by
+\emph{Wssc}). The latter is also used for the variation of the MM estimate
+proposed by \citet{maronna2009correcting}. For the SMD and SMDM variants we
+use the covariance matrix estimate as described in \citet{KS2011}
+(\emph{W$\tau$}).
+
+The covariance matrix estimate consists of three parts:
+\begin{equation*}
+  {\rm cov}(\hat\beta) = \sigma^2\gamma\bld V_{\bld X}^{-1}.
+\end{equation*}
+
+The SMD and SMDM methods of \T{lmrob} use the following defaults.
+\begin{equation}
+  \label{eq:gammatau}
+  \hat\gamma =
+  \frac{\frac{1}{n}\sum_{i=1}^n\tau_i^2
+    \psi\left(\frac{r_i}{\tau_i\hat\sigma}\right)^2}
+  {\frac{1}{n}\sum_{i=1}^n\psi'\left(\frac{r_i}{\tau_i\hat\sigma}\right)}
+\end{equation}
+where $\tau_i$ is the rescaling factor used for the D-scale estimate (see
+\citet{KS2011}).
+
+\noindent\textbf{Remark: } Equation \eqref{eq:gammatau} is a corrected
+version of $\gamma$. It was changed in \texttt{robustbase} version
+\texttt{0.91} (April 2014) to ensure that the equation reduces to $1$ in
+the classical case ($\psi(x) = x$). If the former (incorrect) version is
+needed for compatibility reasons, it can be obtained by adding the argument
+\texttt{cov.corrfact = "tauold"}.
+
+\begin{equation*}
+  \bld{\widehat V}_{\bld X} =
+  \frac{1}{\frac{1}{n}\sum_{i=1}^n\wgt_{ii}}\bld X^T\bld W\bld X
+\end{equation*}
+where $\bld W = \diag\left(\wgt\left(\frac{r_1}{\hat\sigma}\right), \dots,
+  \wgt\left(\frac{r_n}{\hat\sigma}\right)\right)$. The function $\wgt(r) =
+\psi(r)/r$ produces the robustness weights.
+
+\section{Simulation}
+The main loop of the simulation is fairly simple. (This code is only run if
+there are no aggregate results available.)
+%% set eval to TRUE for chunks simulation-run and simulation-aggr
+%% if you really want to run the simulations again.
+%% (better fail with an error than run for weeks)
+<<results=hide>>=
+aggrResultsFile <- file.path(robustDta, "aggr_results.Rdata")
+<<simulation-run,results=hide>>=
+if (!file.exists(aggrResultsFile)) {
+  ## load packages required only for simulation
+  stopifnot(require(robust),
+            require(skewt),
+            require(foreach))
+  if (!is.null(getOption("cores"))) {
+      if (getOption("cores") == 1)
+          registerDoSEQ() ## no not use parallel processing
+      else {
+          stopifnot(require(doParallel))
+          if (.Platform$OS.type == "windows") {
+              cl <- makeCluster(getOption("cores"))
+              clusterExport(cl, c("N", "robustDoc"))
+              clusterEvalQ(cl, slave <- TRUE)
+              clusterEvalQ(cl, source(file.path(robustDoc, 'simulation.init.R')))
+              registerDoParallel(cl)
+          } else registerDoParallel()
+      }
+  } else registerDoSEQ() ## no not use parallel processing
+  for (design in c("dd", ls(pattern = 'rand_\\d+_\\d+'))) {
+    print(design)
+    ## set design
+    estlist$design <- get(design)
+    estlist$use.intercept <- !grepl('^rand', design)
+    ## add design.predict: pc
+    estlist$design.predict <-
+      if (is.null(attr(estlist$design, 'gen')))
+        f.prediction.points(estlist$design) else
+      f.prediction.points(estlist$design, max.pc = 2)
+
+    filename <- file.path(robustDta,
+                          sprintf('r.test.final.%s.Rdata',design))
+    if (!file.exists(filename)) {
+      ## run
+      print(system.time(r.test <- f.sim(estlist, silent = TRUE)))
+      ## save
+      save(r.test, file=filename)
+      ## delete output
+      rm(r.test)
+      ## run garbage collection
+      gc()
+    }
+  }
+}
+@
+
+The variable \T{estlist} is a list containing all the necessary
+settings required to run the simulation as outlined above.  Most of its
+elements are self-explanatory.
+<<str-estlist>>=
+str(estlist, 1)
+@
+
+\T{errs} is a list containing all the error distributions to be
+simulated. The entry for the standard normal looks as follows.
+<<estl-errs>>=
+estlist$errs[[1]]
+@
+\T{err} is translated internally to the corresponding random generation or
+quantile function, e.g., in this case \T{rnorm} or \T{qnorm}. \T{args}
+is a list containing all the required arguments to call the
+function. The errors are then generated internally with the following call.
+<<show-errs,eval=FALSE>>=
+set.seed(estlist$seed)
+errs <- c(sapply(1:nrep, function(x) do.call(fun, c(n = nobs, args))))
+@
+All required random numbers are generated at once instead of during the
+simulation. Like this, it is certain, that all the compared methods run on
+exactly the same data.
+
+The entry \T{procedures} follows a similar convention. \T{design.predict}
+contains the design used for the prediction of observations and calculation
+of confidence or prediction intervals. The objects returned by the
+procedures are processed by the functions contained in the
+\T{estlist\$output} list.
+<<>>=
+str(estlist$output[1:3], 2)
+@
+The results are stored in a 4-dimensional array. The dimensions are:
+repetition number, type of value, procedure id, error id. Using \T{apply}
+it is very easy and fast to generate summary statistics. The raw results
+are stored on the hard disk, because typically it takes much longer to
+execute all the procedures than to calculate the summary statistics. The
+variables saved take up a lot of space quite quickly, so only the necessary
+data is stored. These are $\sigma$, $\bld\beta$ as well as the
+corresponding standard errors.
+
+To speed up the simulation routine \T{f.sim}, the simulations are carried
+out in parallel, as long as this is possible. This is accomplished with the
+help of the \T{R}-package \T{foreach}. This is most easily done on a
+machine with multiple processors or cores. The \T{multicore} package
+provides the methods to do so easily. The worker processes are just forked
+from the main \T{R} process.
+
+After all the methods have been simulated, the simulation output is
+processed. The code is quite lengthy and thus not displayed here (check the
+Sweave source file \T{lmrob\_simulation.Rnw}). The
+residuals, robustness weights, leverages and $\tau$ values have to be
+recalculated. Using vectorized operations and some specialized \T{C} code,
+this is quite cheap. The summary statistics generated are discussed in the
+next section.
+
+<<simulation-aggr, results=hide, echo=FALSE>>=
+if (!file.exists(aggrResultsFile)) {
+  files <- list.files(robustDta, pattern = 'r.test.final\\.')
+  res <- foreach(file = files) %dopar% {
+    ## get design, load r.test, initialize other stuff
+    design <- substr(basename(file), 14, nchar(basename(file)) - 6)
+    cat(design, ' ')
+    load(file.path(robustDta, file))
+    estlist <- attr(r.test, 'estlist')
+    use.intercept <-
+      if (!is.null(estlist$use.intercept)) estlist$use.intercept else TRUE
+    sel <- dimnames(r.test)[[3]] ## [dimnames(r.test)[[3]] != "estname=lm"]
+    n.betas <- paste('beta',1:(NCOL(estlist$design)+use.intercept),sep='_')
+    ## get design
+    lX <- if (use.intercept)
+      as.matrix(cbind(1, get(design))) else as.matrix(get(design))
+    n <- NROW(lX)
+    p <- NCOL(lX)
+    ## prepare arrays for variable designs and leverages
+    if (is.function(attr(estlist$design, 'gen'))) {
+      lXs <- array(NA, c(n, NCOL(lX), dim(r.test)[c(1, 4)]),
+                   list(Obs = NULL, Pred = colnames(lX), Data = NULL,
+                        Errstr = dimnames(r.test)[[4]]))
+    }
+    ## generate errors
+    lerrs <- array(NA, c(n, dim(r.test)[c(1,4)]) ,
+                   list(Obs = NULL, Data = NULL, Errstr = dimnames(r.test)[[4]]))
+    for (i in 1:dim(lerrs)[3]) {
+      lerrstr <- f.list2str(estlist$errs[[i]])
+      lerr <- f.errs(estlist, estlist$errs[[i]],
+                     gen = attr(estlist$design, 'gen'),
+                     nobs = n, npar = NCOL(lX))
+      lerrs[,,lerrstr] <- lerr
+      if (!is.null(attr(lerr, 'designs'))) {
+        ## retrieve generated designs: this returns a list of designs
+        lXs[,,,i] <- unlist(attr(lerr, 'designs'))
+        if (use.intercept)
+          stop('intercept not implemented for random desings')
+      }
+      rm(lerr)
+    }
+    if (is.function(attr(estlist$design, 'gen'))) {
+      ## calculate leverages
+      lXlevs <- apply(lXs, 3:4, .lmrob.hat)
+    }
+    ## calculate fitted values from betas
+    if (!is.function(attr(estlist$design, 'gen'))) { ## fixed design case
+      lfitted <- apply(r.test[,n.betas,sel,,drop=FALSE],c(3:4),
+                       function(bhat) { lX %*% t(bhat) } )
+    } else { ## variable design case
+      lfitted <- array(NA, n*prod(dim(r.test)[c(1,4)])*length(sel))
+      lfitted <- .C('R_calc_fitted',
+                    as.double(lXs), ## designs
+                    as.double(r.test[,n.betas,sel,,drop=FALSE]), ## betas
+                    as.double(lfitted), ## result
+                    as.integer(n), ## n
+                    as.integer(p), ## p
+                    as.integer(dim(r.test)[1]), ## nrep
+                    as.integer(length(sel)), ## n procstr
+                    as.integer(dim(r.test)[4]), ## n errstr
+                    DUP=FALSE, NAOK=TRUE, PACKAGE="robustbase")[[3]]
+    }
+    tdim <- dim(lfitted) <-
+      c(n, dim(r.test)[1], length(sel),dim(r.test)[4])
+    lfitted <- aperm(lfitted, c(1,2,4,3))
+    ## calculate residuals = y - fitted.values
+    lfitted <- as.vector(lerrs) - as.vector(lfitted)
+    dim(lfitted) <- tdim[c(1,2,4,3)]
+    lfitted <- aperm(lfitted, c(1,2,4,3))
+    dimnames(lfitted) <-
+      c(list(Obs = NULL), dimnames(r.test[,,sel,,drop=FALSE])[c(1,3,4)])
+    lresids <- lfitted
+    rm(lfitted)
+    ## calculate lm MSE and trim trimmed MSE of betas
+    tf.MSE <- function(lbetas) {
+      lnrm <- rowSums(lbetas^2)
+      c(MSE=mean(lnrm,na.rm=TRUE),MSE.1=mean(lnrm,trim=trim,na.rm=TRUE))
+    }
+    MSEs <- apply(r.test[,n.betas,,,drop=FALSE],3:4,tf.MSE)
+    li <- 1 ## so we can reconstruct where we are
+    lres <- apply(lresids,3:4,f.aggregate.results <- {
+      function(lresid) {
+        ## the counter li tells us, where we are
+        ## we walk dimensions from left to right
+        lcdn <- f.get.current.dimnames(li, dimnames(lresids), 3:4)
+        lr <- r.test[,,lcdn[1],lcdn[2]]
+        ## update counter
+        li <<- li + 1
+        ## transpose and normalize residuals with sigma
+        lresid <- t(lresid) / lr[,'sigma']
+        if (lcdn[1] != 'estname=lm') {
+          ## convert procstr to proclst and get control list
+          largs <- f.str2list(lcdn[1])[[1]]$args
+          if (grepl('lm.robust', lcdn[1])) {
+            lctrl <- list()
+            lctrl$psi <- toupper(largs$weight2)
+            lctrl$tuning.psi <-
+              f.eff2c.psi(largs$efficiency, lctrl$psi)
+            lctrl$method <- 'MM'
+          } else {
+            lctrl <- do.call('lmrob.control',largs)
+          }
+          ## calculate correction factors
+          ## A
+          lsp2 <- rowSums(Mpsi(lresid,lctrl$tuning.psi, lctrl$psi)^2)
+          ## B
+          lspp <- rowSums(lpp <- Mpsi(lresid,lctrl$tuning.psi, lctrl$psi,1))
+          ## calculate Huber\'s small sample correction factor
+          lK <- 1 + rowSums((lpp - lspp/n)^2)*NCOL(lX)/lspp^2 ## 1/n cancels
+        } else {
+          lK <- lspp <- lsp2 <- NA
+        }
+        ## only calculate tau variants if possible
+        if (grepl('args.method=\\w*(D|T)\\w*\\b', lcdn[1])) { ## SMD or SMDM
+          ## calculate robustness weights
+          lwgts <- Mwgt(lresid, lctrl$tuning.psi, lctrl$psi)
+          ## function to calculate robustified leverages
+          tfun <-
+            if (is.function(attr(estlist$design, 'gen')))
+              function(i) {
+                if (all(is.na(wi <- lwgts[i,]))) wi
+                else .lmrob.hat(lXs[,,i,lcdn[2]],wi)
+              }
+            else
+              function(i) {
+                if (all(is.na(wi <- lwgts[i,]))) wi else .lmrob.hat(lX, wi)
+              }
+          llev <- sapply(1:dim(r.test)[1], tfun)
+          ## calculate unique leverages
+          lt <- robustbase:::lmrob.tau(list(),h=llev,control=lctrl)
+          ## normalize residuals with tau (transpose lresid)
+          lresid <- t(lresid) / lt
+          ## A
+          lsp2t <- colSums(Mpsi(lresid,lctrl$tuning.psi,
+                                lctrl$psi)^2)
+          ## B
+          lsppt <- colSums(Mpsi(lresid,lctrl$tuning.psi,
+                                                     lctrl$psi,1))
+        } else {
+          lsp2t <- lsppt <- NA
+        }
+
+        ## calculate raw scales based on the errors
+        lproc <- f.str2list(lcdn[1])[[1]]
+        q <- NA
+        M <- NA
+        if (lproc$estname == 'lmrob.mar' && lproc$args$type == 'qE') {
+          ## for lmrob_mar, qE variant
+          lctrl <- lmrob.control(psi = 'bisquare',
+                                 tuning.chi=uniroot(function(c)
+                                   robustbase:::lmrob.bp('bisquare', c) - (1-p/n)/2,
+                                   c(1, 3))$root)
+          se <- apply(lerrs[,,lcdn[2]],2,lmrob.mscale,control=lctrl,p=p)
+          ltmp <- se/lr[,'sigma']
+          q <- median(ltmp, na.rm = TRUE)
+          M <- mad(ltmp, na.rm = TRUE)
+        } else if (!is.null(lproc$args$method) && lproc$args$method == 'SMD') {
+          ## for D-scales
+          se <- apply(lerrs[,,lcdn[2]],2,lmrob.dscale,control=lctrl,
+                      kappa=robustbase:::lmrob.kappa(control=lctrl))
+          ltmp <- se/lr[,'sigma']
+          q <- median(ltmp, na.rm = TRUE)
+          M <- mad(ltmp, na.rm = TRUE)
+        }
+
+        ## calculate empirical correct test value (to yield 5% level)
+        t.val_2 <- t.val_1 <- quantile(abs(lr[,'beta_1']/lr[,'se_1']), 0.95,
+                                       na.rm = TRUE)
+        if (p > 1) t.val_2 <- quantile(abs(lr[,'beta_2']/lr[,'se_2']), 0.95,
+                                       na.rm = TRUE)
+
+        ## return output: summary statistics:
+        c(## gamma
+          AdB2.1 = mean(lsp2/lspp^2,trim=trim,na.rm=TRUE)*n,
+          K2AdB2.1 = mean(lK^2*lsp2/lspp^2,trim=trim,na.rm=TRUE)*n,
+          AdB2t.1 = mean(lsp2t/lsppt^2,trim=trim,na.rm=TRUE)*n,
+          sdAdB2.1 = sd.trim(lsp2/lspp^2*n,trim=trim,na.rm=TRUE),
+          sdK2AdB2.1 = sd.trim(lK^2*lsp2/lspp^2*n,trim=trim,na.rm=TRUE),
+          sdAdB2t.1 = sd.trim(lsp2t/lsppt^2*n,trim=trim,na.rm=TRUE),
+          ## sigma
+          medsigma = median(lr[,'sigma'],na.rm=TRUE),
+          madsigma = mad(lr[,'sigma'],na.rm=TRUE),
+          meansigma.1 = mean(lr[,'sigma'],trim=trim,na.rm=TRUE),
+          sdsigma.1 = sd.trim(lr[,'sigma'],trim=trim,na.rm=TRUE),
+          meanlogsigma = mean(log(lr[,'sigma']),na.rm=TRUE),
+          meanlogsigma.1 = mean(log(lr[,'sigma']),trim=trim,na.rm=TRUE),
+          sdlogsigma = sd(log(lr[,'sigma']),na.rm=TRUE),
+          sdlogsigma.1 = sd.trim(log(lr[,'sigma']),trim=trim,na.rm=TRUE),
+          q = q,
+          M = M,
+          ## beta
+          efficiency.1 = MSEs['MSE.1','estname=lm',lcdn[2]] /
+          MSEs['MSE.1',lcdn[1],lcdn[2]],
+          ## t-value: level
+          emplev_1 = mean(abs(lr[,'beta_1']/lr[,'se_1']) > qt(0.975, n - p),
+            na.rm = TRUE),
+          emplev_2 = if (p>1) {
+            mean(abs(lr[,'beta_2']/lr[,'se_2']) > qt(0.975, n - p), na.rm = TRUE)
+          } else NA,
+          ## t-value: power
+          power_1_0.2 = mean(abs(lr[,'beta_1']-0.2)/lr[,'se_1'] > t.val_1,
+            na.rm = TRUE),
+          power_2_0.2 = if (p>1) {
+            mean(abs(lr[,'beta_2']-0.2)/lr[,'se_2'] > t.val_2, na.rm = TRUE)
+          } else NA,
+          power_1_0.4 = mean(abs(lr[,'beta_1']-0.4)/lr[,'se_1'] > t.val_1,
+            na.rm = TRUE),
+          power_2_0.4 = if (p>1) {
+            mean(abs(lr[,'beta_2']-0.4)/lr[,'se_2'] > t.val_2, na.rm = TRUE)
+          } else NA,
+          power_1_0.6 = mean(abs(lr[,'beta_1']-0.6)/lr[,'se_1'] > t.val_1,
+            na.rm = TRUE),
+          power_2_0.6 = if (p>1) {
+            mean(abs(lr[,'beta_2']-0.6)/lr[,'se_2'] > t.val_2, na.rm = TRUE)
+          } else NA,
+          power_1_0.8 = mean(abs(lr[,'beta_1']-0.8)/lr[,'se_1'] > t.val_1,
+            na.rm = TRUE),
+          power_2_0.8 = if (p>1) {
+            mean(abs(lr[,'beta_2']-0.8)/lr[,'se_2'] > t.val_2, na.rm = TRUE)
+          } else NA,
+          power_1_1 = mean(abs(lr[,'beta_1']-1)/lr[,'se_1'] > t.val_1,
+            na.rm = TRUE),
+          power_2_1 = if (p>1) {
+            mean(abs(lr[,'beta_2']-1)/lr[,'se_2'] > t.val_2, na.rm = TRUE)
+          } else NA,
+          ## coverage probability: calculate empirically
+          ## the evaluation points are constant, but the designs change
+          ## therefore this makes only sense for fixed designs
+          cpr_1 = mean(lr[,'upr_1'] < 0 | lr[,'lwr_1'] > 0, na.rm = TRUE),
+          cpr_2 = mean(lr[,'upr_2'] < 0 | lr[,'lwr_2'] > 0, na.rm = TRUE),
+          cpr_3 = mean(lr[,'upr_3'] < 0 | lr[,'lwr_3'] > 0, na.rm = TRUE),
+          cpr_4 = mean(lr[,'upr_4'] < 0 | lr[,'lwr_4'] > 0, na.rm = TRUE),
+          cpr_5 = if (any(colnames(lr) == 'upr_5')) {
+            mean(lr[,'upr_5'] < 0 | lr[,'lwr_5'] > 0, na.rm = TRUE) } else NA,
+          cpr_6 = if (any(colnames(lr) == 'upr_6')) {
+            mean(lr[,'upr_6'] < 0 | lr[,'lwr_6'] > 0, na.rm = TRUE) } else NA,
+          cpr_7 = if (any(colnames(lr) == 'upr_7')) {
+            mean(lr[,'upr_7'] < 0 | lr[,'lwr_7'] > 0, na.rm = TRUE) } else NA
+          )
+      }})
+
+    ## convert to data.frame
+    lres <- f.a2df.2(lres, split = '___NO___')
+    ## add additional info
+    lres$n <- NROW(lX)
+    lres$p <- NCOL(lX)
+    lres$nmpdn <- with(lres, (n-p)/n)
+    lres$Design <- design
+
+    ## clean up
+    rm(r.test, lXs, lXlevs, lresids, lerrs)
+    gc()
+    ## return lres
+    lres
+  }
+  save(res, trim, file = aggrResultsFile)
+  ## stop cluster
+  if (exists("cl")) stopCluster(cl)
+}
+<<simulation-aggr2,results=hide,echo=FALSE>>=
+load(aggrResultsFile)
+## this will fail if the file is not found (for a reason)
+## set eval to TRUE for chunks simulation-run and simulation-aggr
+## if you really want to run the simulations again.
+## (better fail with an error than run for weeks)
+
+## combine list elements to data.frame
+test.1 <- do.call('rbind', res)
+test.1 <- within(test.1, {
+  Method[Method == "SM"] <- "MM"
+  Method <- Method[, drop = TRUE]
+  Estimator <- interaction(Method, D.type, drop = TRUE)
+  Estimator <- f.rename.level(Estimator, 'MM.S', 'MM')
+  Estimator <- f.rename.level(Estimator, 'SMD.D', 'SMD')
+  Estimator <- f.rename.level(Estimator, 'SMDM.D', 'SMDM')
+  Estimator <- f.rename.level(Estimator, 'MM.qT', 'MMqT')
+  Estimator <- f.rename.level(Estimator, 'MM.qE', 'MMqE')
+  Estimator <- f.rename.level(Estimator, 'MM.rob', 'MMrobust')
+  Estimator <- f.rename.level(Estimator, 'lsq.lm', 'OLS')
+  Est.Scale <- f.rename.level(Estimator, 'MM', 'sigma_S')
+  Est.Scale <- f.rename.level(Est.Scale, 'MMrobust', 'sigma_robust')
+  Est.Scale <- f.rename.level(Est.Scale, 'MMqE', 'sigma_S*qE')
+  Est.Scale <- f.rename.level(Est.Scale, 'MMqT', 'sigma_S*qT')
+  Est.Scale <- f.rename.level(Est.Scale, 'SMDM', 'sigma_D')
+  Est.Scale <- f.rename.level(Est.Scale, 'SMD', 'sigma_D')
+  Est.Scale <- f.rename.level(Est.Scale, 'OLS', 'sigma_OLS')
+  Psi <- f.rename.level(Psi, 'hampel', 'Hampel')
+})
+## add interaction of Method and Cov
+test.1 <- within(test.1, {
+  method.cov <- interaction(Estimator, Cov, drop=TRUE)
+  levels(method.cov) <-
+    sub('\\.+vcov\\.(a?)[wacrv1]*', '\\1', levels(method.cov))
+  method.cov <- f.rename.level(method.cov, "MMa", "MM.Avar1")
+  method.cov <- f.rename.level(method.cov, "MMrobust.Default", "MMrobust.Wssc")
+  method.cov <- f.rename.level(method.cov, "MM", "MM.Wssc")
+  method.cov <- f.rename.level(method.cov, "SMD", "SMD.Wtau")
+  method.cov <- f.rename.level(method.cov, "SMDM", "SMDM.Wtau")
+  method.cov <- f.rename.level(method.cov, "MMqT", "MMqT.Wssc")
+  method.cov <- f.rename.level(method.cov, "MMqE", "MMqE.Wssc")
+  method.cov <- f.rename.level(method.cov, "OLS.Default", "OLS")
+  ## ratio: the closest 'desired ratios' instead of exact p/n;
+  ##        needed in plots only for stat_*(): median over "close" p/n's:
+  ratio <- ratios[apply(abs(as.matrix(1/ratios) %*% t(as.matrix(p / n)) - 1),
+                        2, which.min)]
+})
+
+## calculate expected values of psi^2 and psi'
+test.1$Ep2 <- test.1$Epp <- NA
+for(Procstr in levels(test.1$Procstr)) {
+  args <- f.str2list(Procstr)[[1]]$args
+  if (is.null(args)) next
+  lctrl <- do.call('lmrob.control',args)
+  test.1$Ep2[test.1$Procstr == Procstr] <-
+    robustbase:::lmrob.E(psi(r)^2, lctrl, use.integrate = TRUE)
+  test.1$Epp[test.1$Procstr == Procstr] <-
+    robustbase:::lmrob.E(psi(r,1), lctrl, use.integrate = TRUE)
+}
+## drop some observations, separate fixed and random designs
+test.fixed <- droplevels(subset(test.1, n == 20)) ## n = 20 -- fixed  design
+test.1     <- droplevels(subset(test.1, n != 20)) ## n !=20 -- random designs
+test.lm <- droplevels(subset(test.1, Function == 'lm')) # lm = OLS
+test.1  <- droplevels(subset(test.1, Function != 'lm')) # Rob := all "robust"
+test.lm$Psi <- NULL
+test.lm.2 <- droplevels(subset(test.lm, Error == 'N(0,1)'))                   # OLS for N(*)
+test.2    <- droplevels(subset(test.1,  Error == 'N(0,1)' & Function != 'lm'))# Rob for N(*)
+## subsets
+test.3 <- droplevels(subset(test.2, Method != 'SMDM'))# Rob, not SMDM  for N(*)
+test.4 <- droplevels(subset(test.1, Method != 'SMDM'))# Rob, not SMDM  for all
+@
+
+\section{Simulation Results}
+\subsection{Criteria}
+The simulated methods are compared using the following criteria.
+
+\textbf{Scale estimates.} The criteria for scale estimates are all
+calculated on the log-scale. The bias of the estimators is measured by
+the $\Sexpr{trim*100}\%$ trimmed mean. To recover a meaningful scale, the
+results are exponentiated before plotting. It is easy to see that this is
+equivalent to calculating geometric means. Since the methods are all
+tuned at the central model, ${\mathcal N}(0,1)$, a meaningful comparison
+of biases can only be made for ${\mathcal N}(0,1)$ distributed errors.
+
+The variability of the estimators, on the other hand, can be compared
+over all simulated error distributions. It is measured by the
+$\Sexpr{trim*100}\%$ trimmed standard deviation, rescaled by the square
+root of the number of observations.
+
+For completeness, the statistics used to compare scale estimates in
+\citet{maronna2009correcting} are also calculated. They are defined as
+\begin{equation}
+  \label{eq:def.q.and.M}
+  q = \median\left(\frac{S(\bld e)}{\hat\sigma_S}\right), \quad
+  M = \mad\left(\frac{S(\bld e)}{\hat\sigma_S}\right),
+\end{equation}
+where $S(e)$ stands for the S-scale estimate evaluated for the actual
+errors $\bld e$. For the D-scale estimate, the definition is
+analogue. Since there is no design to correct for, we set $\tau_i = 1\
+\forall i$.
+
+\textbf{Coefficients.}  The efficiency of estimated regression
+coefficients $\bld{\hat\beta}$ is characterized by their mean squared
+error (\emph{MSE}).  Since we simulate under $H_0: \bld\beta = 0$, this
+is determined by the covariance matrix of $\bld{\hat\beta}$. We use
+$\Erw\left[\norm{\bld{\hat\beta}}_2^2\right] = \sum_{j=1}^p
+\var(\hat\beta_j)$ as a summary. When comparing to the MSE of the
+ordinary least squares estimate (\emph{OLS}), this gives the efficiency,
+which, by the choice of tuning constants of $\psi$, should yield
+\begin{equation*}
+  \frac{{\rm MSE}(\bld{\hat\beta}_{\rm OLS})}{{\rm MSE}(\bld{\hat\beta})}
+  \approx 0.95
+\end{equation*}
+for standard normally distributed errors. The simulation mean of
+$\sum_{j=1}^p \var(\hat\beta_j)$ is calculated with $\Sexpr{trim*100}\%$
+trimming. For other error distributions, this ratio should be larger than
+$1$, since by using robust procedures we expect to gain efficiency at
+other error distributions (relative to the least squares estimate).
+
+$\bld\gamma$\textbf{.} We compare the behavior of the various estimators of
+$\gamma$ by calculating the trimmed mean and the trimmed standard
+deviation for standard normal distributed errors.
+
+\textbf{Covariance matrix estimate.} The covariance matrix estimates
+are compared indirectly over the performance of the resulting test
+statistics. We compare the empirical level of the hypothesis tests $H_0:
+\beta_j = 0$ for some $j \in \{1,\dots, p\}$. The power of the tests is
+compared by testing for $H_0: \beta_j = b$ for several values of
+$b>0$. The formal power of a more liberal test is generally
+higher. Therefore, in order for this comparison to be meaningful, the
+critical value for each test statistic was corrected such that all tests
+have the same simulated level of $5\%$.
+
+The simple hypothesis tests give only limited insights. To investigate
+the effects of other error distributions, e.g., asymmetric error
+distributions, we compare the confidence intervals for the prediction of
+some fixed points. Since it was not clear how to assess the quality
+prediction intervals, either at the central or the simulated model, we do
+not calculate them here.
+
+A small number of prediction points is already enough, if they  are
+chosen properly. We chose to use seven points lying on the first two
+principal components, spaced evenly from the center of the design used to
+the extended range of the design. The principal components were
+calculated robustly (using \T{covMcd} of the \T{robustbase} package) and
+the range was extended by a fraction of $0.5$. An example is shown in
+Figure~\ref{fig:design-predict}.
+
+
+\subsection{Results}
+The results are given here as plots (Fig.~\ref{fig:meanscale-1} to
+Fig.~\ref{fig:cpr}). For a complete discussion of the results, we refer to
+\citet{KS2011}.
+
+The different $\psi$-functions are each plotted in a different facet,
+except for Fig.~\ref{fig:qscale-all}, Fig.~\ref{fig:Mscale-all} and
+Fig.~\ref{fig:lqq-level}, where the facets show the results for various
+error distributions. The plots are augmented with auxiliary lines to ease
+the comparison of the methods. The lines connect the median values over the
+values of $n$ for each simulated ratio $p/n$. In many plots the y-axis has
+been truncated. Points in the grey shaded area represent truncated values
+using a different scale.
+
+\begin{figure}
+\begin{center}
+<<fig-meanscale, fig=TRUE, echo=FALSE>>=
+## ## exp(mean(log(sigma))): this looks almost identical to mean(sigma)
+print(ggplot(test.3, aes(p/n, exp(meanlogsigma.1), color = Est.Scale)) +
+      stat_summary(aes(x=ratio), # <- "rounded p/n": --> median over "neighborhood"
+                   fun.y=median, geom='line') +
+      geom_point(aes(shape = factor(n)), alpha = alpha.n) +
+      geom_hline(yintercept = 1) +
+      g.scale_y_log10_1() +
+      facet_wrap(~ Psi) +
+      ylab(quote('geometric ' ~ mean(hat(sigma)))) +
+      scale_shape_discrete(quote(n)) +
+      scale_colour_discrete("Scale Est.", labels=lab(test.3$Est.Scale)))
+@
+\end{center}
+\caption{Mean of scale estimates for normal errors. The mean is calculated
+  with $\Sexpr{trim*100}\%$ trimming. The lines connect the median values
+  for each simulated ratio $p/n$. Results for random designs only. }
+\label{fig:meanscale-1}
+\end{figure}
+
+\begin{figure}
+\begin{center}
+<<fig-sdscale-1, fig=TRUE, echo=FALSE>>=
+print(ggplot(test.3, aes(p/n, sdlogsigma.1*sqrt(n), color = Est.Scale)) +
+      stat_summary(aes(x=ratio), fun.y=median, geom='line') +
+      geom_point(aes(shape = factor(n)), alpha = alpha.n) +
+      ylab(quote(sd(log(hat(sigma)))*sqrt(n))) +
+      facet_wrap(~ Psi) +
+      geom_point  (data=test.lm.2, alpha=alpha.n, aes(color = Est.Scale)) +
+      stat_summary(data=test.lm.2, aes(x=ratio, color = Est.Scale),
+                   fun.y=median, geom='line') +
+      scale_shape_discrete(quote(n)) +
+      scale_colour_discrete("Scale Est.",
+                            labels= lab(test.3   $Est.Scale,
+                                        test.lm.2$Est.Scale)))
+@
+\end{center}
+\caption{Variability of the scale estimates for normal errors. The standard
+  deviation is calculated with $\Sexpr{trim*100}\%$ trimming.
+}
+\label{fig:sdscale-1}
+\end{figure}
+
+\begin{figure}
+\begin{center}
+<<fig-sdscale-all, fig=TRUE, echo=FALSE>>=
+print(ggplot(test.4,
+             aes(p/n, sdlogsigma.1*sqrt(n), color = Est.Scale)) +
+      ylim(with(test.4, range(sdlogsigma.1*sqrt(n)))) +
+      ylab(quote(sd(log(hat(sigma)))*sqrt(n))) +
+      stat_summary(aes(x=ratio), fun.y=median, geom='line') +
+      geom_point(aes(shape = Error), alpha = alpha.error) +
+      facet_wrap(~ Psi) +
+      ## "FIXME" (?): the next 'test.lm' one  give warnings
+      geom_point  (data=test.lm, aes(color = Est.Scale), alpha=alpha.n) +
+      ##-> Warning: Removed 108 rows containing missing values    (geom_point).
+      stat_summary(data=test.lm, aes(x = ratio, color = Est.Scale),
+                   fun.y=median, geom='line') +
+      ##-> Warning: Removed 108 rows containing non-finite values (stat_summary).
+      g.scale_shape(labels=lab(test.4$Error)) +
+      scale_colour_discrete("Scale Est.",
+                            labels=lab(test.4 $Est.Scale,
+                                       test.lm$Est.Scale)))
+@
+\end{center}
+\caption{Variability of the scale estimates for all simulated error distributions.}
+\label{fig:sdscale-all}
+\end{figure}
+
+\begin{figure}
+\begin{center}
+<<fig-qscale, fig=TRUE, echo=FALSE>>=
+t3est2 <- droplevels(subset(test.3, Estimator %in% c("SMD", "MMqE")))
+print(ggplot(t3est2,
+             aes(p/n, q, color = Est.Scale)) + ylab(quote(q)) +
+      stat_summary(aes(x=ratio), fun.y=median, geom='line') +
+      geom_point(aes(shape = factor(n)), alpha = alpha.n) +
+      geom_hline(yintercept = 1) +
+      g.scale_y_log10_1() +
+      facet_wrap(~ Psi) +
+      scale_shape_discrete(quote(n)) +
+      scale_colour_discrete("Scale Est.", labels=lab(t3est2$Est.Scale)))
+@
+\end{center}
+\caption{$q$ statistic for normal errors. $q$ is defined in \eqref{eq:def.q.and.M}.}
+\label{fig:qscale-1}
+\end{figure}
+
+\begin{figure}
+\begin{center}
+<<fig-Mscale, fig=TRUE, echo=FALSE>>=
+print(ggplot(t3est2,
+             aes(p/n, M/q, color = Est.Scale)) +
+      stat_summary(aes(x=ratio), fun.y=median, geom='line') +
+      geom_point(aes(shape = factor(n)), alpha = alpha.n) +
+      g.scale_y_log10_0.05() +
+      facet_wrap(~ Psi) +
+      ylab(quote(M/q)) +
+      scale_shape_discrete(quote(n)) +
+      scale_colour_discrete("Scale Est.", labels=lab(t3est2$Est.Scale)))
+@
+\end{center}
+\caption{$M/q$ statistic for normal errors. $M$ and $q$ are defined in
+  \eqref{eq:def.q.and.M}.}
+\label{fig:Mscale-1}
+\end{figure}
+
+\begin{figure}
+\begin{center}
+<<fig-qscale-all, fig=TRUE, echo=FALSE>>=
+t1.bi <- droplevels(subset(test.1, Estimator %in% c("SMD", "MMqE") &
+                                   Psi == 'bisquare'))
+print(ggplot(t1.bi,
+             aes(p/n, q, color = Est.Scale)) +
+      stat_summary(aes(x=ratio), fun.y=median, geom='line') +
+      geom_point(aes(shape = factor(n)), alpha = alpha.n) +
+      geom_hline(yintercept = 1) +
+      g.scale_y_log10_1() +
+      facet_wrap(~ Error) + ## labeller missing!
+      ylab(quote(q)) +
+      scale_shape_discrete(quote(n)) +
+      scale_colour_discrete("Scale Est.", labels=lab(tmp$Est.Scale)),
+      legend.mod = legend.mod)
+@
+\end{center}
+\caption{$q$ statistic for \emph{bisquare} $\psi$.
+}
+\label{fig:qscale-all}
+\end{figure}
+
+
+\begin{figure}
+\begin{center}
+<<fig-Mscale-all, fig=TRUE, echo=FALSE>>=
+print(ggplot(t1.bi,
+             aes(p/n, M/q, color = Est.Scale)) +
+      stat_summary(aes(x=ratio), fun.y=median, geom='line') +
+      geom_point(aes(shape = factor(n)), alpha = alpha.n) +
+      g.scale_y_log10_0.05() +
+      facet_wrap(~ Error) +
+      ylab(quote(M/q)) +
+      scale_shape_discrete(quote(n)) +
+      scale_colour_discrete("Scale Est.", labels=lab(tmp$Est.Scale)),
+      legend.mod = legend.mod)
+@
+\end{center}
+\caption{$M/q$ statistic for \emph{bisquare} $\psi$.
+}
+\label{fig:Mscale-all}
+\end{figure}
+
+\clearpage% not nice, but needed against  LaTeX Error: Too many unprocessed floats.
+
+\begin{figure}
+\begin{center}
+<<fig-efficiency, fig=TRUE, echo=FALSE>>=
+print(ggplot(test.2, aes(p/n, efficiency.1, color = Estimator)) +
+      geom_point(aes(shape = factor(n)), alpha = alpha.n) +
+      geom_hline(yintercept = 0.95) +
+      stat_summary(aes(x=ratio), fun.y=median, geom='line') +
+      facet_wrap(~ Psi) +
+      ylab(quote('efficiency of' ~~ hat(beta))) +
+      g.scale_shape(quote(n)) +
+      scale_colour_discrete(name = "Estimator",
+                            labels = lab(test.2$Estimator)))
+@
+\end{center}
+\caption{Efficiency for normal errors. The efficiency
+  is calculated by comparing to an OLS estimate and averaging with
+  $\Sexpr{trim*100}\%$ trimming.
+}
+\label{fig:efficiency}
+\end{figure}
+
+\begin{figure}
+\begin{center}
+<<fig-efficiency-all, fig=TRUE, echo=FALSE>>=
+t.1xt1 <- droplevels(subset(test.1, Error != 't1'))
+print(ggplot(t.1xt1,
+             aes(p/n, efficiency.1, color = Estimator)) +
+      ylab(quote('efficiency of '~hat(beta))) +
+      geom_point(aes(shape = Error), alpha = alpha.error) +
+      geom_hline(yintercept = 0.95) +
+      stat_summary(aes(x=ratio), fun.y=median, geom='line') +
+      g.scale_shape(values=c(16,17,15,3,7,8,9,1,2,4)[-4],
+                    labels=lab(t.1xt1$Error)) +
+      facet_wrap(~ Psi) +
+      scale_colour_discrete(name = "Estimator",
+                            labels = lab(t.1xt1$Estimator)))
+@
+\end{center}
+\caption{Efficiency for all simulated error distributions except $t_1$.
+}
+\label{fig:efficiency-all}
+\end{figure}
+
+\begin{figure}
+\begin{center}
+<<fig-AdB2-1, fig=TRUE, echo=FALSE>>=
+t.2o. <- droplevels(subset(test.2, !is.na(AdB2t.1)))
+print(ggplot(t.2o., aes(p/n, AdB2.1/(1-p/n), color = Estimator)) +
+      geom_point(aes(shape=factor(n)),    alpha = alpha.n) +
+      geom_point(aes(y=K2AdB2.1/(1-p/n)), alpha = alpha.n) +
+      geom_point(aes(y=AdB2t.1),          alpha = alpha.n) +
+      stat_summary(aes(x=ratio),                     fun.y=median, geom='line') +
+      stat_summary(aes(x=ratio, y=K2AdB2.1/(1-p/n)), fun.y=median, geom='line', linetype=2) +
+      stat_summary(aes(x=ratio, y=AdB2t.1),          fun.y=median, geom='line', linetype=3) +
+      geom_hline(yintercept = 1/0.95) +
+      g.scale_y_log10_1() +
+      scale_shape_discrete(quote(n)) +
+      scale_colour_discrete(name = "Estimator", labels = lab(t.2o.$Estimator)) +
+      ylab(quote(mean(hat(gamma)))) +
+      facet_wrap(~ Psi))
+@
+\end{center}
+\caption{Comparing the estimates of $\gamma$. The solid line connects the
+  uncorrected estimate, dotted the $\tau$ corrected estimate and
+  dashed Huber's small sample correction.
+}
+\label{fig:AdB2-1}
+\end{figure}
+
+\begin{figure}
+\begin{center}
+<<fig-sdAdB2-1, fig=TRUE, echo=FALSE>>=
+t.2ok <- droplevels(subset(test.2, !is.na(sdAdB2t.1)))
+print(ggplot(t.2ok,
+             aes(p/n, sdAdB2.1/(1-p/n), color = Estimator)) +
+      geom_point(aes(shape=factor(n)),      alpha = alpha.n) +
+      geom_point(aes(y=sdK2AdB2.1/(1-p/n)), alpha = alpha.n) +
+      geom_point(aes(y=sdAdB2t.1),          alpha = alpha.n) +
+      stat_summary(aes(x=ratio),                       fun.y=median, geom='line') +
+      stat_summary(aes(x=ratio, y=sdK2AdB2.1/(1-p/n)), fun.y=median, geom='line', linetype= 2) +
+      stat_summary(aes(x=ratio, y=sdAdB2t.1),          fun.y=median, geom='line', linetype= 3) +
+      g.scale_y_log10_0.05() +
+      scale_shape_discrete(quote(n)) +
+      scale_colour_discrete(name = "Estimator", labels=lab(t.2ok$Estimator))  +
+      ylab(quote(sd(hat(gamma)))) +
+      facet_wrap(~ Psi))
+@
+\end{center}
+\caption{Comparing the estimates of $\gamma$. The solid line connects the
+  uncorrected estimate, dotted the $\tau$ corrected estimate and
+  dashed Huber's small sample correction.
+}
+\label{fig:sdAdB2-1}
+\end{figure}
+
+\begin{figure}
+\begin{center}
+<<fig-emp-level,fig=TRUE,echo=FALSE>>=
+t.2en0 <- droplevels(subset(test.2, emplev_1 != 0))
+print(ggplot(t.2en0,
+             aes(p/n, f.truncate(emplev_1), color = method.cov)) +
+      g.truncate.lines + g.truncate.areas +
+      geom_point(aes(shape = factor(n)), alpha = alpha.n) +
+      scale_shape_discrete(quote(n)) +
+      stat_summary(aes(x=ratio), fun.y=median, geom='line') +
+      geom_hline(yintercept = 0.05) +
+      g.scale_y_log10_0.05() +
+      scale_colour_discrete(name = "Estimator", labels=lab(t.2en0$method.cov))  +
+      ylab(quote("empirical level "~ list (H[0] : beta[1] == 0) )) +
+      facet_wrap(~ Psi))
+@
+\end{center}
+\caption{Empirical levels of test $H_0: \beta_1 = 0$ for normal errors. The
+  y-values are truncated at $\Sexpr{trunc[1]}$ and $\Sexpr{trunc[2]}$.
+}
+\label{fig:emp-level}
+\end{figure}
+
+\begin{figure}
+\begin{center}
+<<fig-lqq-level, fig=TRUE, echo=FALSE>>=
+tmp <- droplevels(subset(test.1, Psi == 'lqq' & emplev_1 != 0))
+print(ggplot(tmp, aes(p/n, f.truncate(emplev_1), color = method.cov)) +
+      ylab(quote("empirical level "~ list (H[0] : beta[1] == 0) )) +
+      g.truncate.line + g.truncate.area +
+      geom_point(aes(shape = factor(n)), alpha = alpha.n) +
+      stat_summary(aes(x=ratio), fun.y=median, geom='line') +
+      geom_hline(yintercept = 0.05) +
+      g.scale_y_log10_0.05() +
+      g.scale_shape(quote(n)) +
+      scale_colour_discrete(name = "Estimator", labels=lab(tmp$method.cov)) +
+      facet_wrap(~ Error)
+     ,
+      legend.mod = legend.mod
+      )
+@
+\end{center}
+\caption{Empirical levels of test $H_0: \beta_1 = 0$ for \emph{lqq}
+  $\psi$-function and different error distributions.
+}
+\label{fig:lqq-level}
+\end{figure}
+
+
+\begin{figure}
+\begin{center}
+<<fig-power-1-0_2, fig=TRUE, echo=FALSE>>=
+t2.25  <- droplevels(subset(test.2,    n == 25))# <-- fixed n ==> no need for 'ratio'
+tL2.25 <- droplevels(subset(test.lm.2, n == 25))
+scale_col_D2.25 <- scale_colour_discrete(name = "Estimator (Cov. Est.)",
+                                         labels=lab(t2.25 $method.cov,
+                                                    tL2.25$method.cov))
+print(ggplot(t2.25,
+             aes(p/n, power_1_0.2, color = method.cov)) +
+      ylab(quote("empirical power "~ list (H[0] : beta[1] == 0.2) )) +
+      geom_point(# aes(shape = Error),
+          alpha = alpha.error) +
+      stat_summary(fun.y=median, geom='line') +
+      geom_point  (data=tL2.25, alpha = alpha.n) +
+      stat_summary(data=tL2.25, fun.y=median, geom='line') +
+      ## g.scale_shape("Error", labels=lab(t2.25$Error)) +
+      scale_col_D2.25 +
+      facet_wrap(~ Psi)
+      )
+@
+\end{center}
+\caption{Empirical power of test $H_0: \beta_1 = 0.2$ for different
+  $\psi$-functions. Results for $n = 25$ and normal errors only.
+}
+\label{fig:power-1-0_2}
+\end{figure}
+
+\begin{figure}
+\begin{center}
+<<fig-power-1-0_4, fig=TRUE, echo=FALSE>>=
+print(ggplot(t2.25,
+             aes(p/n, power_1_0.4, color = method.cov)) +
+      ylab(quote("empirical power "~ list (H[0] : beta[1] == 0.4) )) +
+      geom_point(alpha = alpha.error) +
+      stat_summary(fun.y=median, geom='line') +
+      geom_point  (data=tL2.25, alpha = alpha.n) +
+      stat_summary(data=tL2.25,
+                   fun.y=median, geom='line') +
+      ## g.scale_shape("Error", labels=lab(t2.25$Error)) +
+      scale_col_D2.25 +
+      facet_wrap(~ Psi)
+      )
+@
+\end{center}
+\caption{Empirical power of test $H_0: \beta_1 = 0.4$ for different
+  $\psi$-functions. Results for $n = 25$ and normal errors only.
+}
+\label{fig:power-1-0_4}
+\end{figure}
+
+\begin{figure}
+\begin{center}
+<<fig-power-1-0_6, fig=TRUE, echo=FALSE>>=
+print(ggplot(t2.25,
+             aes(p/n, power_1_0.6, color = method.cov)) +
+      ylab(quote("empirical power "~ list (H[0] : beta[1] == 0.6) )) +
+      geom_point(# aes(shape = Error),
+          alpha = alpha.error) +
+      stat_summary(fun.y=median, geom='line') +
+      geom_point  (data=tL2.25, alpha = alpha.n) +
+      stat_summary(data=tL2.25, fun.y=median, geom='line') +
+      scale_col_D2.25 +
+      facet_wrap(~ Psi)
+      )
+@
+\end{center}
+\caption{Empirical power of test $H_0: \beta_1 = 0.6$ for different
+  $\psi$-functions. Results for $n = 25$ and normal errors only.
+}
+\label{fig:power-1-0_6}
+\end{figure}
+
+\begin{figure}
+\begin{center}
+<<fig-power-1-0_8, fig=TRUE, echo=FALSE>>=
+print(ggplot(t2.25,
+             aes(p/n, power_1_0.8, color = method.cov)) +
+      ylab(quote("empirical power "~ list (H[0] : beta[1] == 0.8) )) +
+      geom_point(alpha = alpha.error) +
+      stat_summary(fun.y=median, geom='line') +
+      geom_point  (data=tL2.25, alpha = alpha.n) +
+      stat_summary(data=tL2.25, fun.y=median, geom='line') +
+      g.scale_shape("Error", labels=lab(t2.25$Error)) +
+      scale_col_D2.25 +
+      facet_wrap(~ Psi)
+      )
+@
+\end{center}
+\caption{Empirical power of test $H_0: \beta_1 = 0.8$ for different
+  $\psi$-functions. Results for $n = 25$ and normal errors only.
+}
+\label{fig:power-1-0_8}
+\end{figure}
+
+\begin{figure}
+\begin{center}
+<<fig-power-1-1, fig=TRUE, echo=FALSE>>=
+print(ggplot(t2.25,
+             aes(p/n, power_1_1, color = method.cov)) +
+      ylab(quote("empirical power "~ list (H[0] : beta[1] == 1) )) +
+      geom_point(alpha = alpha.error) +
+      stat_summary(fun.y=median, geom='line') +
+      geom_point  (data=tL2.25, alpha = alpha.n) +
+      stat_summary(data=tL2.25, fun.y=median, geom='line') +
+      ## g.scale_shape("Error", labels=lab(t2.25$Error)) +
+      scale_col_D2.25 +
+      facet_wrap(~ Psi)
+      )
+@
+\end{center}
+\caption{Empirical power of test $H_0: \beta_1 = 1$ for different
+  $\psi$-functions. Results for $n = 25$ and normal errors only.
+}
+\label{fig:power-1-1}
+\end{figure}
+
+%\clearpage
+
+\begin{figure}
+\begin{center}
+%% now (2016-11 GGally) works:
+<<fig-pred-points, fig=TRUE, echo=FALSE>>=
+pp <- f.prediction.points(dd)[1:7,]
+## Worked in older ggplot2 -- now  plotmatrix() is gone, to be replaced by GGally::ggpairs):
+## tmp <- plotmatrix(pp)$data
+## tmp$label <- as.character(1:7)
+## print(plotmatrix(dd) + geom_text(data=tmp, color = 2, aes(label=label), size = 2.5))
+tmp <- ggpairs(pp)$data
+tmp$label <- as.character(1:7) # and now?
+## ggpairs() + geom_text()  does *NOT* work {ggpairs has own class}
+## print(ggpairs(dd) + geom_text(data=tmp, color = 2, aes(label=label), size = 2.5))
+print( ggpairs(dd) )## now (2016-11) fine
+@
+\end{center}
+\caption{Prediction points for fixed design. The black points are the
+  points of the original design. The red digits indicate the numbers and
+  locations of the points where predictions are taken.}
+\label{fig:design-predict}
+\end{figure}
+
+
+\begin{figure}
+\begin{center}
+<<fig-cpr, fig=TRUE,echo=FALSE>>=
+n.cprs <- names(test.fixed)[grep('cpr', names(test.fixed))] # test.fixed: n=20 => no 'x=ratio'
+test.5 <- melt(test.fixed[,c('method.cov', 'Error', 'Psi', n.cprs)])
+test.5 <- within(test.5, {
+  Point <- as.numeric(do.call('rbind', strsplit(levels(variable), '_'))[,2])[variable]
+})
+print(ggplot(test.5,
+             aes(Point, f.truncate(value), color = method.cov)) +
+      geom_point(aes(shape = Error), alpha = alpha.error) +
+      g.truncate.line + g.truncate.area +
+      stat_summary(fun.y=median, geom='line') +
+      geom_hline(yintercept = 0.05) +
+      g.scale_y_log10_0.05() +
+      g.scale_shape(labels=lab(test.5$Error)) +
+      scale_colour_discrete(name = "Estimator (Cov. Est.)",
+                            labels=lab(test.5$method.cov)) +
+      ylab("empirical level of confidence intervals") +
+      facet_wrap(~ Psi)
+      )
+@
+\end{center}
+\caption{Empirical coverage probabilities. Results for fixed design. The
+  y-values are truncated at $\Sexpr{trunc[2]}$.
+}
+\label{fig:cpr}
+\end{figure}
+
+
+\clearpage
+
+\section{Maximum Asymptotic Bias}
+\label{sec:maximum-asymptotic-bias}
+
+The slower redescending $\psi$-functions come with higher asymptotic bias
+as illustrated in Fig.~\ref{fig:max-asymptotic-bias}. We calculate the
+asymptotic bias as in \citet{berrendero2007maximum}.
+
+<<maxbias-fn, results=hide,echo=FALSE>>=
+## Henning (1994) eq 33:
+g <- Vectorize(function(s, theta, mu, ...) {
+  lctrl <- lmrob.control(...)
+  rho <- function(x)
+    Mchi(x, lctrl$tuning.chi, lctrl$psi, deriv = 0)
+  integrate(function(x) rho(((1 + theta^2)/s^2*x)^2)*dchisq(x, 1, mu^2/(1 + theta^2)),
+            -Inf, Inf)$value
+})
+## Martin et al 1989 Section 3.2: for mu = 0
+g.2 <- Vectorize(function(s, theta, mu, ...) {
+  lctrl <- lmrob.control(...)
+  lctrl$tuning.psi <- lctrl$tuning.chi
+  robustbase:::lmrob.E(chi(sqrt(1 + theta^2)/s*r), lctrl, use.integrate = TRUE)})
+g.2.MM <- Vectorize(function(s, theta, mu, ...) {
+  lctrl <- lmrob.control(...)
+  robustbase:::lmrob.E(chi(sqrt(1 + theta^2)/s*r), lctrl, use.integrate = TRUE)})
+## Henning (1994) eq 30, one parameter case
+g.3 <- Vectorize(function(s, theta, mu, ...) {
+  lctrl <- lmrob.control(...)
+  rho <- function(x)
+    Mchi(x, lctrl$tuning.chi, lctrl$psi, deriv = 0)
+  int.x <- Vectorize(function(y) {
+    integrate(function(x) rho((y - x*theta - mu)/s)*dnorm(x)*dnorm(y),-Inf, Inf)$value })
+  integrate(int.x,-Inf, Inf)$value
+})
+inv.g1 <- function(value, theta, mu, ...) {
+  g <- if (mu == 0) g.2 else g.3
+  uniroot(function(s) g(s, theta, mu, ...) - value, c(0.1, 100))$root
+}
+inv.g1.MM <- function(value, theta, mu, ...) {
+  g <- if (mu == 0) g.2.MM else g.3.MM
+  ret <- tryCatch(uniroot(function(s) g(s, theta, mu, ...) - value, c(0.01, 100)),
+                  error = function(e)e)
+  if (inherits(ret, 'error')) {
+    warning('inv.g1.MM: ', value, ' ', theta, ' ', mu,' -> Error: ', ret$message)
+    NA
+  } else {
+    ret$root
+  }
+}
+s.min <- function(epsilon, ...) inv.g1(0.5/(1 - epsilon), 0, 0, ...)
+s.max <- function(epsilon, ...) inv.g1((0.5-epsilon)/(1-epsilon), 0, 0, ...)
+
+BS <- Vectorize(function(epsilon, ...) {
+  sqrt(s.max(epsilon, ...)/s.min(epsilon, ...)^2 - 1) })
+
+l <- Vectorize(function(epsilon, ...) {
+  sigma_be <- s.max(epsilon, ...)
+  sqrt((sigma_be/inv.g1.MM(g.2.MM(sigma_be,0,0,...) +
+                           epsilon/(1-epsilon),0,0,...))^2 - 1) })
+u <- Vectorize(function(epsilon, ...) {
+  gamma_be <- s.min(epsilon, ...)
+  max(l(epsilon, ...),
+      sqrt((gamma_be/inv.g1.MM(g.2.MM(gamma_be,0,0,...) +
+                               epsilon/(1-epsilon),0,0,...))^2 - 1)) })
+@
+
+\begin{figure}[h!]
+\begin{center}
+<<max-asymptotic-bias,echo=FALSE>>=
+asymptMBFile <- file.path(robustDta, 'asymptotic.max.bias.Rdata')
+if (!file.exists(asymptMBFile)) {
+  x <- seq(0, 0.35, length.out = 100)
+  rmb <- rbind(data.frame(l=l(x, psi = 'hampel'),
+                          u=u(x, psi = 'hampel'), psi = 'Hampel'),
+               data.frame(l=l(x, psi = 'lqq'),
+                          u=u(x, psi = 'lqq'), psi = 'lqq'),
+               data.frame(l=l(x, psi = 'bisquare'),
+                          u=u(x, psi = 'bisquare'), psi = 'bisquare'),
+               data.frame(l=l(x, psi = 'optimal'),
+                          u=u(x, psi = 'optimal'), psi = 'optimal'))
+  rmb$x <- x
+  save(rmb, file=asymptMBFile)
+} else load(asymptMBFile)
+<<fig-max-asymptotic-bias,fig=TRUE,echo=FALSE>>=
+print(ggplot(rmb, aes(x, l, color=psi)) + geom_line() +
+        geom_line(aes(x, u, color=psi), linetype = 2) +
+      xlab(quote("amount of contamination" ~~ epsilon)) +
+      ylab("maximum asymptotic bias bounds") +
+      coord_cartesian(ylim = c(0,10)) +
+      scale_y_continuous(breaks = 1:10) +
+      scale_colour_hue(quote(psi ~ '-function')))
+@
+\end{center}
+\caption{Maximum asymptotic bias bound for the $\psi$-functions used in the
+  simulation. Solid line: lower bound. Dashed line: upper bound.}
+\label{fig:max-asymptotic-bias}
+\end{figure}
+
+\bibliographystyle{chicago}
+\bibliography{robustbase}
+
+\end{document}

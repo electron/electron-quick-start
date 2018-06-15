@@ -1,0 +1,401 @@
+\documentclass[11pt]{article}
+\usepackage[round]{natbib}
+\usepackage{bibentry}
+\usepackage{amsfonts}
+\usepackage{hyperref}
+\renewcommand{\baselinestretch}{1.3}
+\newcommand{\ipred}{\texttt{ipred }}
+
+%\VignetteIndexEntry{Some more or less useful examples for illustration.}
+%\VignetteDepends{ipred}
+%\textwidth=6.2in 
+%\VignetteDepends{mvtnorm,TH.data,rpart,MASS}
+
+\begin{document}
+\title{\ipred: Improved Predictors}
+\date{}
+\SweaveOpts{engine=R,eps=TRUE,pdf=TRUE}
+
+<<preliminaries,echo=FALSE>>=
+options(prompt=">", width=50)
+set.seed(210477)
+@
+
+\maketitle
+
+This short manual is heavily based on
+\cite{Rnews:Peters+Hothorn+Lausen:2002} and needs some improvements.
+
+\section{Introduction}
+In classification problems, there are several attempts to create rules which assign future observations to 
+certain classes. Common methods are for 
+example linear discriminant analysis or 
+classification trees. Recent developments lead to substantial reduction of misclassification error 
+in many applications. 
+Bootstrap aggregation \citep[``bagging'',][]{breiman:1996} combines 
+classifiers trained on bootstrap samples of the original data. Another
+approach is indirect classification, which 
+incorporates a priori knowledge 
+into a classification rule \citep{hand:2001}.
+Since the misclassification error is a criterion to assess the 
+classification techniques, its estimation is of main importance. 
+A nearly unbiased but highly variable estimator can be calculated by cross validation. \cite{efron:1997} discuss bootstrap 
+estimates of misclassification error.
+As a by-product of bagging, \cite{out-of-bag:1996} proposes the out-of-bag 
+estimator. \\ 
+However, the calculation of the desired classification models and 
+their misclassification errors is often aggravated by different and
+specialized interfaces of the various procedures. We propose the \ipred
+package as a first attempt to create a unified interface for improved predictors and various error rate estimators. 
+In the following we demonstrate the functionality of the package 
+in the example of glaucoma classification. We start with an overview 
+about the disease and data and review the implemented 
+classification and estimation methods in context with their
+application to glaucoma diagnosis.
+  
+
+\section{Glaucoma}
+Glaucoma is a slowly processing and irreversible disease that affects 
+the optic nerve head. It is the second most reason for blindness worldwide. 
+Glaucoma is usually diagnosed based on a reduced visual field, 
+assessed by a medical examination of perimetry and a smaller number of 
+intact nerve fibers at the optic nerve head. One opportunity to examine 
+the amount of intact nerve fibers is using the Heidelberg Retina 
+Tomograph (HRT), a confocal laser scanning tomograph, which does a 
+three dimensional topographical analysis of the optic nerve head morphology. 
+
+It produces a series of $32$ images, each of $256 \times 256$ pixels, 
+which are converted to a single topographic image. A less complex, 
+but although a less informative examination tool is the $2$-dimensional 
+fundus photography. However, in cooperation with clinicians and a 
+priori analysis we derived a diagnosis of glaucoma based on three variables 
+only: $w_{lora}$ represents the loss of nerve fibers and is obtained by a
+$2$-dimensional fundus photography, $w_{cs}$ and $w_{clv}$ describe the 
+visual field defect \citep{ifcs:2001}. 
+
+\begin{center}
+\begin{figure}[h]
+\begin{center}
+{\small
+\setlength{\unitlength}{0.6cm}
+\begin{picture}(14.5,5)
+    \put(5, 4.5){\makebox(2, 0.5){$w_{clv}\geq 5.1$}}
+        \put(2.5, 3){\makebox(2, 0.5){$w_{lora}\geq 49.23$}}
+          \put(7.5, 3){\makebox(2, 0.5){$w_{lora} \geq 58.55$}}
+\put(0, 1.5){\makebox(2, 0.5){$glaucoma$}}
+    \put(3.5, 1.5){\makebox(2, 0.5){$normal$}}
+       \put(6.5, 1.5){\makebox(2, 0.5){$w_{cs} < 1.405$}}
+          \put(10, 1.5){\makebox(2, 0.5){$normal$}}
+
+      \put(3.5, 0){\makebox(2, 0.5){$glaucoma$}}
+       \put(6.5, 0){\makebox(2, 0.5){$normal$}}
+
+    \put(6, 4.5){\vector(-3, -2){1.5}}
+    \put(6, 4.5){\vector(3, -2){1.5}}
+
+  \put(3.5, 3){\vector(3, -2){1.5}}
+  \put(3.5, 3){\vector(-3, -2){1.5}}
+        \put(8.5, 3){\vector(3, -2){1.5}}
+        \put(8.5, 3){\vector(-3, -2){1.5}}
+
+      \put(6.5, 1.5){\vector(3, -2){1.5}}
+      \put(6.5, 1.5){\vector(-3, -2){1.5}}
+\end{picture}
+}
+\end{center}
+\caption{Glaucoma diagnosis. \label{diag}}
+\end{figure}
+\end{center}
+
+Figure \ref{diag} represents the diagnosis of glaucoma in terms of a medical 
+decision tree. A complication of the disease is that a damage in the 
+optic nerve head morphology precedes a measurable 
+visual field defect. Furthermore, an early detection 
+is of main importance, since an adequate therapy can only slow down the 
+progression of the disease. Hence, a classification rule for detecting 
+early damages should include morphological informations, rather than 
+visual field data only. 
+
+Two example datasets are included in the package. The first one contains
+measurements of the eye morphology only (\texttt{GlaucomaM}), including $62$
+variables for $196$ observations. The second dataset (\texttt{GlaucomaMVF})
+contains additional visual field measurements for a different set of
+patients. In both example datasets, the observations in the two groups are
+matched by age and sex to prevent any bias.
+
+\section{Bagging}
+Referring to the example of glaucoma diagnosis we first 
+demonstrate the functionality of the \texttt{bagging} function. 
+We fit \texttt{nbagg = 25} (default) classification trees for bagging by 
+<<bagging,echo=TRUE>>=
+library("ipred")
+library("rpart")
+library("MASS")
+data("GlaucomaM", package="TH.data")
+gbag <- bagging(Class ~ ., data = GlaucomaM, coob=TRUE)
+@
+where \texttt{GlaucomaM} contains explanatory HRT variables 
+and the response of glaucoma diagnosis (\texttt{Class}), 
+a factor at two levels \texttt{normal} and \texttt{glaucoma}.
+\texttt{print} returns informations about the returned object,
+i.e. the number of bootstrap replications used and, as requested by
+\texttt{coob=TRUE}, the out-of-bag estimate of misclassification error 
+\citep{out-of-bag:1996}. 
+<<print-bagging, echo=TRUE>>=
+print(gbag)
+@
+The out-of-bag estimate uses the observations which are left out in a
+bootstrap sample to estimate the misclassification error at almost no
+additional computational costs. 
+\cite{double-bag:2002} propose to use the
+out-of-bag samples for a combination of linear discriminant analysis and
+classification trees, called ``Double-Bagging''. For example, a combination
+of a stabilised linear disciminant analysis with classification trees can be
+computed along the following lines
+<<double-bagging, echo=TRUE>>=
+scomb <- list(list(model=slda, predict=function(object, newdata)
+  predict(object, newdata)$x))
+gbagc <- bagging(Class ~ ., data = GlaucomaM, comb=scomb)
+@
+\texttt{predict} predicts future observations according to the 
+fitted model.
+<<predict.bagging, echo=TRUE>>=
+predict(gbagc, newdata=GlaucomaM[c(1:3, 99:102), ])
+@
+Both \texttt{bagging} and \texttt{predict} rely on the \texttt{rpart}
+routines.  The \texttt{rpart} routine for each bootstrap sample
+can be controlled in the usual way. By default \texttt{rpart.control} is used
+with \texttt{minsize=2} and \texttt{cp=0} and it is wise to turn
+cross-validation off (\texttt{xval=0}). The function \texttt{prune} can
+be used to prune each of the trees to an
+appropriate size.
+
+\section{Indirect Classification}
+Especially in a medical context it often occurs that a priori 
+knowledge about a classifying structure is given. For example 
+it might be known that a disease is assessed on a subgroup of 
+the given variables or, moreover, that class memberships are 
+assigned by a deterministically known classifying function. 
+\cite{hand:2001} proposes the framework of indirect classification 
+which incorporates this a priori knowledge into a classification rule. 
+In this framework we subdivide a given data set into three groups of 
+variables: those to be used  predicting the class membership 
+(explanatory), those to be used defining the class membership 
+(intermediate) and the class membership variable itself (response). 
+For future observations, an indirect classifier predicts values 
+for the appointed intermediate variables based
+on explanatory variables only. The observation is classified 
+based on their predicted intermediate variables and a fixed 
+classifying function. This indirect way of classification using 
+the predicted intermediate variables offers possibilities to 
+incorporate a priori knowledge by the subdivision of variables and 
+by the construction of a fixed classifying function.
+
+We apply indirect classification by using the function \texttt{inclass}.
+Referring to the glaucoma example, explanatory variables are HRT 
+and anamnestic variables only, intermediate variables 
+are $w_{lora}, \, w_{cs}$ and $w_{clv}$. The response is the 
+diagnosis of glaucoma which is determined by a fixed classifying 
+function and therefore not included in the learning 
+sample \texttt{GlaucomaMVF}. We assign the given variables to explanatory 
+and intermediate by specifying the input formula.
+<<indirect.formula, echo=TRUE>>=
+data("GlaucomaMVF", package="ipred")
+GlaucomaMVF <- GlaucomaMVF[,-63]
+formula.indirect <- Class~clv + lora + cs ~ .
+@
+The variables on the left-hand side represent the intermediate variables, 
+modeled by the explanatory variables on the right-hand side. Almost each 
+modeling technique can be used to predict the intermediate variables. We 
+chose a linear model by \texttt{pFUN = list(list(model = lm))}.
+<<indirect.fit, echo=TRUE>>=
+classify <- function (data) {
+  attach(data)
+  res <- ifelse((!is.na(clv) & !is.na(lora) & clv >= 5.1 & lora >=
+        49.23372) | (!is.na(clv) & !is.na(lora) & !is.na(cs) &
+        clv < 5.1 & lora >= 58.55409 & cs < 1.405) | (is.na(clv) &
+        !is.na(lora) & !is.na(cs) & lora >= 58.55409 & cs < 1.405) |
+        (!is.na(clv) & is.na(lora) & cs < 1.405), 0, 1)
+  detach(data)
+  factor (res, labels = c("glaucoma", "normal"))
+}
+fit <- inclass(formula.indirect, pFUN = list(list(model = lm)), 
+  cFUN = classify, data = GlaucomaMVF)
+@
+\texttt{print} displays the subdivision of variables and the chosen 
+modeling technique
+<<print.indirect, echo=TRUE>>=
+print(fit)
+@
+Furthermore, indirect classification predicts the intermediate 
+variables based on the explanatory variables and classifies them 
+according to a fixed classifying function in a second step, that means 
+a deterministically known function for the class membership has to be 
+specified. In our example this function is given in 
+Figure \ref{diag} and implemented in the function \texttt{classify}.\\
+Prediction of future observations is now performed by
+<<predict.indirect, echo=TRUE>>=
+predict(object = fit, newdata = GlaucomaMVF[c(1:3, 86:88),])
+@
+We perform a bootstrap aggregated indirect classification approach by 
+choosing \texttt{pFUN = bagging} and specifying the number of 
+bootstrap samples \citep{ifcs:2001}. Regression or classification 
+trees are fitted for each bootstrap sample, with respect to the 
+measurement scale of the specified intermediate variables 
+<<bagging.indirect, echo=TRUE>>=
+mypredict.rpart <- function(object, newdata) {
+  RES <- predict(object, newdata)
+  RET <- rep(NA, nrow(newdata))
+  NAMES <- rownames(newdata)
+  RET[NAMES %in% names(RES)] <- RES[NAMES[NAMES %in% names(RES)]]
+  RET
+}
+fit <- inbagg(formula.indirect, pFUN = list(list(model = rpart, predict =
+mypredict.rpart)), cFUN = classify, nbagg = 25,  data = GlaucomaMVF)
+@
+The call for the prediction of values remains unchanged.
+
+
+\section{Error Rate Estimation}
+Classification rules are usually assessed by their misclassification rate. 
+Hence, error rate estimation is of main importance. 
+The function \texttt{errorest} implements a unified interface to several
+resampling based estimators. Referring to the example, we apply a linear
+discriminant analysis and specify the error rate estimator 
+by \texttt{estimator = "cv", "boot"} or \texttt{"632plus"}, 
+respectively. A 10-fold cross validation is performed by 
+choosing \texttt{estimator = "cv"} and 
+\texttt{est.para = control.errorest(k = 10)}. The options \texttt{estimator = "boot"} or 
+\texttt{estimator = "632plus"} deliver a bootstrap estimator 
+and its  bias corrected version {\sl .632+} \citep[see][]{efron:1997}, 
+we specify the number of bootstrap samples to be drawn by 
+\texttt{est.para = control.errorest(nboot = 50)}. 
+Further arguments are required to particularize the 
+classification technique. The argument \texttt{predict} represents 
+the chosen predictive function. For a unified interface 
+\texttt{predict} has to be based on the arguments \texttt{object} 
+and \texttt{newdata} only, therefore a wrapper function \texttt{mypredict} is necessary for classifiers 
+which require more than those arguments or do not return the predicted
+classes by default. For a linear discriminant analysis with \texttt{lda}, we
+need to specify  
+<<plda, echo=TRUE>>=
+mypredict.lda <- function(object, newdata){    
+  predict(object, newdata = newdata)$class
+}
+@
+and calculate a 10-fold-cross-validated error rate estimator 
+for a linear discriminant analysis by calling 
+<<cvlda, echo=TRUE>>=
+errorest(Class ~ ., data= GlaucomaM, 
+  model=lda, estimator = "cv", predict= mypredict.lda)
+@
+For the indirect approach the specification of the call becomes 
+slightly more complicated. 
+%Again for a unified interface a wrapper 
+%function has to be used, which incorporates the fixed classification rule
+The bias corrected estimator {\sl .632+} is computed by 
+<<cvindirect, echo=TRUE>>=
+errorest(formula.indirect, 
+  data = GlaucomaMVF, model = inclass, 
+  estimator = "632plus", 
+  pFUN = list(list(model = lm)), cFUN = classify)
+@
+Because of the subdivision of variables and a formula describing the 
+modeling between explanatory and intermediate variables only, 
+we must call the class membership variable. Hence, in contrast to the 
+function \texttt{inclass} the data set \texttt{GlaucomaMVF} used in 
+\texttt{errorest} must contain explanatory, intermediate and response 
+variables. 
+
+Sometimes it may be necessary to reduce the number of predictors before
+training a classifier. Estimating the error rate after the variable
+selection leads to biased estimates of the misclassfication error and
+therefore one should estimate the error rate of the whole procedure. Within
+the \texttt{errorest} framework, this can be done as follows. First, we define
+a function which does both variable selection and training of the
+classifier. For illustration proposes, we select the predictors by comparing
+their univariate $P$-values of a two-sample $t$-test with a prespecified
+level and train a LDA using the selected variables only.
+
+<<varsel-def, echo=TRUE>>=
+mymod <- function(formula, data, level=0.05) {
+  # select all predictors that are associated with an
+  # univariate t.test p-value of less that level
+  sel <- which(lapply(data, function(x) {
+    if (!is.numeric(x))
+      return(1)
+    else 
+     return(t.test(x ~ data$Class)$p.value)
+    }) < level)
+  # make sure that the response is still there
+  sel <- c(which(colnames(data) %in% "Class"), sel)
+  # compute a LDA using the selected predictors only
+  mod <- lda(formula , data=data[,sel]) 
+  # and return a function for prediction
+  function(newdata) {
+    predict(mod, newdata=newdata[,sel])$class
+  }
+}
+@
+
+Note that \texttt{mymod} does not return 
+an object of class \texttt{lda} but a function
+with argument \texttt{newdata} only. Thanks to lexical scoping, this 
+function is used for computing
+predicted classes instead of a function \texttt{predict} passed to
+\texttt{errorest} as argument. Computing a $5$-fold cross-validated error rate
+estimator now is approximately a one-liner.
+
+<<varsel-comp, echo=TRUE>>=
+errorest(Class ~ . , data=GlaucomaM, model=mymod, estimator = "cv",
+est.para=control.errorest(k=5))
+@
+
+
+%%To summarize the performance of the different classification techniques in the considered example of glaucoma diagnosis, the 10-fold 
+%%cross-validated error estimator delivers the 
+%%results given in Table \ref{tenf}.
+%%\begin{figure}
+%%\begin{center}
+%%\begin{tabular}{  rrr  }
+%%\hline
+%%dataset & method & error estimate \\
+%%\hline
+%%\texttt{GlaucomaM} & {\sl slda} & 0.168 \\
+%%\texttt{GlaucomaM} & {\sl bagging} & 0.158 \\
+%%\texttt{GlaucomaM} & {\sl double-bagging} & 0.153 \\
+%%\texttt{GlaucomaMVF} & {\sl inclass-bagging} & 0.206 \\
+%%\tetxtt{GlaucomaMVF} & {\sl inclass-lm} & 0.229 \\
+%%\hline
+%%\end{tabular}
+%%\caption{10-fold cross-validated error estimation of 
+%%the misclassification error for several classification 
+%%methods: {\sl slda} - stabilised linear discriminant analysis, 
+%%{\sl bagging} - bagging with 50 bootstrap samples, 
+%%{\sl double-bagging} - bagging with 50 bootstrap samples, 
+%%combined with sLDA, {\sl inclass-bagging} - 
+%%indirect classification using bagging, 
+%%{\sl inclass-lm} indirect classification using 
+%%linear modeling. \label{tenf}}
+%%\end{center}
+%%\end{figure}
+%%Note that an estimator of the variance is available for the ordinary 
+%%bootstrap estimator (\texttt{estimator="boot"}) only, see \cite{efron:1997}.
+
+
+\section{Summary}
+\ipred tries to implement a unified interface to some recent developments
+in classification and error rate estimation. It is by no means finished
+nor perfect and we very much appreciate comments, suggestions and criticism.
+Currently, the major drawback is speed. Calling \texttt{rpart} $50$ 
+times for each bootstrap sample is relatively inefficient 
+but the design of interfaces was our main focus instead of optimization.
+Beside the examples shown, \texttt{bagging} can be used to compute bagging
+for regression trees and \texttt{errorest} computes estimators of the 
+mean squared error for regression models.
+
+\bibliographystyle{plainnat}
+\bibliography{ipred}
+
+
+\end{document}

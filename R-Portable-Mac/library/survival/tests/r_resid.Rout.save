@@ -1,0 +1,348 @@
+
+R version 2.7.1 (2008-06-23)
+Copyright (C) 2008 The R Foundation for Statistical Computing
+ISBN 3-900051-07-0
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> options(na.action=na.exclude) # preserve missings
+> options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
+> library(survival)
+Loading required package: splines
+> 
+> aeq <- function(x,y, ...) all.equal(as.vector(x), as.vector(y), ...)
+> 
+> fit1 <- survreg(Surv(futime, fustat) ~ age + ecog.ps, ovarian)
+> fit4 <- survreg(Surv(log(futime), fustat) ~age + ecog.ps, ovarian,
++ 		dist='extreme')
+> 
+> print(fit1)
+Call:
+survreg(formula = Surv(futime, fustat) ~ age + ecog.ps, data = ovarian)
+
+Coefficients:
+(Intercept)         age     ecog.ps 
+12.28496723 -0.09702669  0.09977342 
+
+Scale= 0.6032744 
+
+Loglik(model)= -90   Loglik(intercept only)= -98
+	Chisq= 15.98 on 2 degrees of freedom, p= 0.00034 
+n= 26 
+> summary(fit4)		
+
+Call:
+survreg(formula = Surv(log(futime), fustat) ~ age + ecog.ps, 
+    data = ovarian, dist = "extreme")
+              Value Std. Error      z        p
+(Intercept) 12.2850     1.5015  8.182 2.80e-16
+age         -0.0970     0.0235 -4.127 3.67e-05
+ecog.ps      0.0998     0.3657  0.273 7.85e-01
+Log(scale)  -0.5054     0.2351 -2.149 3.16e-02
+
+Scale= 0.603 
+
+Extreme value distribution
+Loglik(model)= -21.8   Loglik(intercept only)= -29.8
+	Chisq= 15.98 on 2 degrees of freedom, p= 0.00034 
+Number of Newton-Raphson Iterations: 5 
+n= 26 
+
+> 
+> 
+> # Hypothesis (and I'm fairly sure): censorReg shares the fault of many
+> #  iterative codes -- it returns the loglik and variance for iteration k
+> #  but the coef vector of iteration k+1.  Hence the "all.equal" tests
+> #  below don't come out perfect.
+> #
+> if (exists('censorReg')) {  #true for Splus, not R
++     fit2 <- censorReg(censor(futime, fustat) ~ age + ecog.ps, ovarian)
++     fit3 <- survreg(Surv(futime, fustat) ~ age + ecog.ps, ovarian,
++ 		iter=0, init=c(fit2$coef,   log(fit2$scale)))
++ 
++     aeq(resid(fit2, type='working')[,1], resid(fit3, type='working'))
++     aeq(resid(fit2, type='response')[,1], resid(fit3, type='response'))
++ 
++     temp <- sign(resid(fit3, type='working'))
++     aeq(resid(fit2, type='deviance')[,1], 
++ 	temp*abs(resid(fit3, type='deviance')))
++     aeq(resid(fit2, type='deviance')[,1], resid(fit3, type='deviance'))
++     }
+> #
+> # Now check fit1 and fit4, which should follow identical iteration paths
+> #   These tests should all be true
+> #
+> aeq(fit1$coef, fit4$coef)
+[1] TRUE
+>  
+> resid(fit1, type='working')
+          1           2           3           4           5           6 
+ -4.5081778  -0.5909810  -2.4878519   0.6032744  -5.8993431   0.6032744 
+          7           8           9          10          11          12 
+ -1.7462937  -0.8102883   0.6032744  -1.6593962  -0.8235265   0.6032744 
+         13          14          15          16          17          18 
+  0.6032744   0.6032744   0.6032744   0.6032744   0.6032744   0.6032744 
+         19          20          21          22          23          24 
+  0.6032744   0.6032744   0.6032744   0.2572623 -31.8006867  -0.7426277 
+         25          26 
+ -0.2857597   0.6032744 
+> resid(fit1, type='response')
+          1           2           3           4           5           6 
+ -155.14523   -58.62744  -262.03173  -927.79842 -1377.84908  -658.86626 
+          7           8           9          10          11          12 
+ -589.74449  -318.93436     4.50671  -686.83338  -434.39281 -1105.68733 
+         13          14          15          16          17          18 
+  -42.43371  -173.09223 -4491.29974 -3170.49394 -5028.31053 -2050.91373 
+         19          20          21          22          23          24 
+ -150.65033 -2074.09345   412.32400    76.35826 -3309.40331  -219.81579 
+         25          26 
+  -96.19691  -457.76731 
+> resid(fit1, type='deviance')
+         1          2          3          4          5          6          7 
+-1.5842290 -0.6132746 -1.2876971  0.5387840 -1.7148539  0.6682580 -1.1102921 
+         8          9         10         11         12         13         14 
+-0.7460191  1.4253843 -1.0849419 -0.7531720  0.6648130  1.3526380  1.1954382 
+        15         16         17         18         19         20         21 
+ 0.2962391  0.3916044  0.3278067  0.5929057  1.2747643  0.6171130  1.9857606 
+        22         23         24         25         26 
+ 0.6125492 -2.4504208 -0.7080652 -0.3642424  0.7317955 
+> resid(fit1, type='dfbeta')
+   (Intercept)           age      ecog.ps   Log(scale)
+1   0.43370970 -1.087867e-02  0.126322520  0.048379059
+2   0.14426449 -5.144770e-03  0.088768478 -0.033939677
+3   0.25768057 -3.066698e-03 -0.066578834  0.021817646
+4   0.05772598 -5.068044e-04 -0.013121427 -0.007762466
+5  -0.58773456  6.676156e-03  0.084189274  0.008064026
+6   0.01499533 -7.881949e-04  0.026570173 -0.013513160
+7  -0.17869321  4.126121e-03 -0.072760519 -0.015006956
+8  -0.11851540  2.520303e-03 -0.045549628 -0.035686269
+9   0.08327656  3.206404e-03 -0.141835350  0.024490806
+10 -0.25083921  5.321702e-03 -0.073986269 -0.020648720
+11 -0.21333934  4.155746e-03 -0.049832434 -0.040215681
+12  0.13889770 -1.586136e-03 -0.019701151 -0.004686340
+13  0.07892133 -2.706713e-03  0.085242459  0.007847879
+14  0.29690157 -1.987141e-03 -0.085553120  0.017447343
+15  0.04344618 -6.319243e-04 -0.001944285 -0.003533279
+16  0.04866809 -1.068317e-03  0.012398602 -0.006340983
+17  0.04368104 -9.248316e-04  0.009428718 -0.004869178
+18  0.15684611 -2.081485e-03 -0.013068320 -0.003265399
+19  0.48839511 -4.775829e-03 -0.093258090  0.032703354
+20  0.17598922 -2.349254e-03 -0.014202966 -0.002486428
+21  0.37869758 -8.442011e-03  0.163476417  0.100850775
+22 -0.59761427  8.803638e-03  0.052784598 -0.053085234
+23 -0.79017984  1.092304e-02  0.053690092  0.080780399
+24 -0.02348526  8.331002e-04 -0.039028433 -0.032765737
+25 -0.13948485  3.687927e-04  0.056781884 -0.055647859
+26  0.05778937  3.766350e-06 -0.029232389 -0.008927920
+> resid(fit1, type='dfbetas')
+           [,1]          [,2]         [,3]        [,4]
+1   0.288846658 -0.4627232074  0.345395116  0.20574292
+2   0.096078819 -0.2188323823  0.242713641 -0.14433617
+3   0.171612884 -0.1304417700 -0.182041999  0.09278449
+4   0.038444974 -0.0215568869 -0.035877029 -0.03301165
+5  -0.391425795  0.2839697749  0.230193032  0.03429410
+6   0.009986751 -0.0335258093  0.072649027 -0.05746778
+7  -0.119008027  0.1755042532 -0.198944162 -0.06382048
+8  -0.078930164  0.1072008799 -0.124543264 -0.15176395
+9   0.055461420  0.1363841532 -0.387810796  0.10415271
+10 -0.167056601  0.2263581990 -0.202295647 -0.08781336
+11 -0.142082031  0.1767643342 -0.136253451 -0.17102630
+12  0.092504589 -0.0674661531 -0.053867524 -0.01992972
+13  0.052560878 -0.1151298322  0.233072686  0.03337488
+14  0.197733705 -0.0845228882 -0.233922105  0.07419878
+15  0.028934753 -0.0268788526 -0.005316126 -0.01502607
+16  0.032412497 -0.0454407662  0.033900659 -0.02696647
+17  0.029091172 -0.0393376416  0.025780305 -0.02070728
+18  0.104458066 -0.0885357994 -0.035731824 -0.01388685
+19  0.325266641 -0.2031395176 -0.254989284  0.13907843
+20  0.117207199 -0.0999253459 -0.038834208 -0.01057410
+21  0.252209096 -0.3590802699  0.446982501  0.42889079
+22 -0.398005596  0.3744620571  0.144325354 -0.22575700
+23 -0.526252483  0.4646108448  0.146801184  0.34353696
+24 -0.015640965  0.0354358527 -0.106712804 -0.13934372
+25 -0.092895624  0.0156865706  0.155254862 -0.23665514
+26  0.038487186  0.0001602014 -0.079928144 -0.03796800
+> resid(fit1, type='ldcase')
+          1           2           3           4           5           6 
+0.374432175 0.145690278 0.112678800 0.006399163 0.261176992 0.013280058 
+          7           8           9          10          11          12 
+0.109842490 0.074103234 0.248285282 0.128482147 0.094038203 0.016111951 
+         13          14          15          16          17          18 
+0.132812463 0.111857574 0.001698300 0.004730718 0.003131173 0.015840667 
+         19          20          21          22          23          24 
+0.179925399 0.019071941 0.797119488 0.233096445 0.666613755 0.062959708 
+         25          26 
+0.080117437 0.015922378 
+> resid(fit1, type='ldresp')
+          1           2           3           4           5           6 
+0.076910173 0.173810883 0.078356928 0.005310644 0.060742612 0.010002154 
+          7           8           9          10          11          12 
+0.067356838 0.067065693 0.355103899 0.067043195 0.068142828 0.016740944 
+         13          14          15          16          17          18 
+0.193444572 0.165021262 0.001494685 0.004083386 0.002767560 0.016400993 
+         19          20          21          22          23          24 
+0.269571809 0.020129806 1.409736499 1.040266083 0.058637282 0.071819025 
+         25          26 
+0.112702844 0.015105534 
+> resid(fit1, type='ldshape')
+          1           2           3           4           5           6 
+0.870628250 0.383362440 0.412503605 0.005534970 0.513991064 0.003310847 
+          7           8           9          10          11          12 
+0.291860593 0.154910362 0.256160646 0.312329770 0.183191309 0.004184904 
+         13          14          15          16          17          18 
+0.110215710 0.049299495 0.007678445 0.011633336 0.011588605 0.008641251 
+         19          20          21          22          23          24 
+0.112967758 0.008271358 2.246729275 0.966929220 1.022043272 0.143857170 
+         25          26 
+0.079754096 0.001606647 
+> resid(fit1, type='matrix')
+             g          dg         ddg          ds         dds        dsg
+1  -1.74950763 -1.46198129 -0.32429540  0.88466493 -2.42358635  1.8800360
+2  -0.68266980 -0.82027857 -1.38799493 -0.66206188 -0.57351872  1.3921043
+3  -1.32369884 -1.33411374 -0.53625126  0.31503768 -1.83606321  1.8626973
+4  -0.14514412  0.24059386 -0.39881329 -0.28013223 -0.26053084  0.2237590
+5  -1.96497889 -1.50383619 -0.25491587  1.15700933 -2.68145423  1.8694717
+6  -0.22328436  0.37012071 -0.61351964 -0.33477229 -0.16715487  0.1848047
+7  -1.11099124 -1.23201028 -0.70550005  0.01052036 -1.48515401  1.8106760
+8  -0.77288913 -0.95018808 -1.17265428 -0.51190170 -0.79753045  1.5525642
+9  -1.01586016  1.68391053 -2.79128447  0.01598527 -0.01623681 -1.7104080
+10 -1.08316634 -1.21566480 -0.73259465 -0.03052447 -1.43539383  1.7998987
+11 -0.77825093 -0.95675178 -1.16177415 -0.50314979 -0.81016011  1.5600720
+12 -0.22098818  0.36631452 -0.60721042 -0.33361394 -0.17002503  0.1866908
+13 -0.91481479  1.51641567 -2.51364157 -0.08144930  0.07419757 -1.3814037
+14 -0.71453621  1.18442981 -1.96333502 -0.24017106  0.15944438 -0.7863174
+15 -0.04387880  0.07273440 -0.12056602 -0.13717935 -0.29168773  0.1546569
+16 -0.07667699  0.12710134 -0.21068577 -0.19691828 -0.30879813  0.1993144
+17 -0.05372862  0.08906165 -0.14763041 -0.15709224 -0.30221555  0.1713377
+18 -0.17576861  0.29135764 -0.48296037 -0.30558900 -0.22570402  0.2151929
+19 -0.81251205  1.34683655 -2.23254376 -0.16869744  0.13367171 -1.0672002
+20 -0.19041424  0.31563454 -0.52320225 -0.31581218 -0.20797917  0.2078622
+21 -1.97162252  3.26820173 -5.41743790  1.33844939 -2.24706488 -5.4868428
+22 -0.68222519  1.23245193 -4.79064290 -0.58668577 -0.95209805 -2.8390386
+23 -3.49689798 -1.62675999 -0.05115487  2.90949868 -4.20494743  1.7496975
+24 -0.74529506 -0.91462436 -1.23160543 -0.55723389 -0.73139169  1.5108398
+25 -0.56095318 -0.53280415 -1.86451840 -0.87536233 -0.22666819  0.9689667
+26 -0.26776235  0.44384834 -0.73573207 -0.35281852 -0.11207472  0.1409908
+> 
+> aeq(resid(fit1, type='working'),resid(fit4, type='working'))
+[1] TRUE
+> #aeq(resid(fit1, type='response'), resid(fit4, type='response'))#should differ
+> aeq(resid(fit1, type='deviance'), resid(fit4, type='deviance'))
+[1] TRUE
+> aeq(resid(fit1, type='dfbeta'),   resid(fit4, type='dfbeta'))
+[1] TRUE
+> aeq(resid(fit1, type='dfbetas'),  resid(fit4, type='dfbetas'))
+[1] TRUE
+> aeq(resid(fit1, type='ldcase'),   resid(fit4, type='ldcase'))
+[1] TRUE
+> aeq(resid(fit1, type='ldresp'),   resid(fit4, type='ldresp'))
+[1] TRUE
+> aeq(resid(fit1, type='ldshape'),  resid(fit4, type='ldshape'))
+[1] TRUE
+> aeq(resid(fit1, type='matrix'),   resid(fit4, type='matrix'))
+[1] TRUE
+> #
+> # Some tests of the quantile residuals
+> #
+> motor <- read.table('data.motor', col.names=c('temp', 'time', 'status'))
+> 
+> # These should agree exactly with Ripley and Venables' book
+> fit1 <- survreg(Surv(time, status) ~ temp, data=motor)
+> summary(fit1)
+
+Call:
+survreg(formula = Surv(time, status) ~ temp, data = motor)
+              Value Std. Error     z         p
+(Intercept) 16.3185    0.62296  26.2 3.03e-151
+temp        -0.0453    0.00319 -14.2  6.74e-46
+Log(scale)  -1.0956    0.21480  -5.1  3.38e-07
+
+Scale= 0.334 
+
+Weibull distribution
+Loglik(model)= -147.4   Loglik(intercept only)= -169.5
+	Chisq= 44.32 on 1 degrees of freedom, p= 2.8e-11 
+Number of Newton-Raphson Iterations: 7 
+n= 40 
+
+> 
+> #
+> # The first prediction has the SE that I think is correct
+> #  The third is the se found in an early draft of Ripley; fit1 ignoring
+> #  the variation in scale estimate, except via it's impact on the
+> #  upper left corner of the inverse information matrix.
+> # Numbers 1 and 3 differ little for this dataset
+> #
+> predict(fit1, data.frame(temp=130), type='uquantile', p=c(.5, .1), se=T)
+$fit
+[1] 10.306068  9.676248
+
+$se.fit
+[1] 0.2135247 0.2202088
+
+> 
+> fit2 <- survreg(Surv(time, status) ~ temp, data=motor, scale=fit1$scale)
+> predict(fit2, data.frame(temp=130), type='uquantile', p=c(.5, .1), se=T)
+$fit
+[1] 10.306068  9.676248
+
+$se.fit
+        1         1 
+0.2057964 0.2057964 
+
+> 
+> fit3 <- fit2
+> fit3$var <- fit1$var[1:2,1:2]
+> predict(fit3, data.frame(temp=130), type='uquantile', p=c(.5, .1), se=T)
+$fit
+[1] 10.306068  9.676248
+
+$se.fit
+        1         1 
+0.2219959 0.2219959 
+
+> 
+> pp <- seq(.05, .7, length=40)
+> xx <- predict(fit1, data.frame(temp=130), type='uquantile', se=T,
++ 	      p=pp)
+> #matplot(pp, cbind(xx$fit, xx$fit+2*xx$se, xx$fit - 2*xx$se), type='l')
+> 
+> 
+> #
+> # Now try out the various combinations of strata, #predicted, and
+> #  number of quantiles desired
+> #
+> fit1 <- survreg(Surv(time, status) ~ inst + strata(inst) + age + sex, lung)
+> qq1 <- predict(fit1, type='quantile', p=.3, se=T)
+> qq2 <- predict(fit1, type='quantile', p=c(.2, .3, .4), se=T)
+> aeq <- function(x,y) all.equal(as.vector(x), as.vector(y))
+> aeq(qq1$fit, qq2$fit[,2])
+[1] TRUE
+> aeq(qq1$se.fit, qq2$se.fit[,2])
+[1] TRUE
+> 
+> qq3 <- predict(fit1, type='quantile', p=c(.2, .3, .4), se=T,
++ 	       newdata= lung[1:5,])
+> aeq(qq3$fit, qq2$fit[1:5,])
+[1] TRUE
+> 
+> qq4 <- predict(fit1, type='quantile', p=c(.2, .3, .4), se=T, newdata=lung[7,])
+> aeq(qq4$fit, qq2$fit[7,])
+[1] TRUE
+> 
+> qq5 <- predict(fit1, type='quantile', p=c(.2, .3, .4), se=T, newdata=lung)
+> aeq(qq2$fit, qq5$fit)
+[1] TRUE
+> aeq(qq2$se.fit, qq5$se.fit)
+[1] TRUE
+> 

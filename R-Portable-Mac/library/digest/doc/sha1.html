@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<meta name="author" content="Thierry Onkelinx and Dirk Eddelbuettel" />
+
+<meta name="date" content="2018-01-28" />
+
+<title>Calculating SHA1 hashes with digest() and sha1()</title>
+
+
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+div.sourceCode { overflow-x: auto; }
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code > span.dt { color: #902000; } /* DataType */
+code > span.dv { color: #40a070; } /* DecVal */
+code > span.bn { color: #40a070; } /* BaseN */
+code > span.fl { color: #40a070; } /* Float */
+code > span.ch { color: #4070a0; } /* Char */
+code > span.st { color: #4070a0; } /* String */
+code > span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code > span.ot { color: #007020; } /* Other */
+code > span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code > span.fu { color: #06287e; } /* Function */
+code > span.er { color: #ff0000; font-weight: bold; } /* Error */
+code > span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+code > span.cn { color: #880000; } /* Constant */
+code > span.sc { color: #4070a0; } /* SpecialChar */
+code > span.vs { color: #4070a0; } /* VerbatimString */
+code > span.ss { color: #bb6688; } /* SpecialString */
+code > span.im { } /* Import */
+code > span.va { color: #19177c; } /* Variable */
+code > span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code > span.op { color: #666666; } /* Operator */
+code > span.bu { } /* BuiltIn */
+code > span.ex { } /* Extension */
+code > span.pp { color: #bc7a00; } /* Preprocessor */
+code > span.at { color: #7d9029; } /* Attribute */
+code > span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+</style>
+
+
+
+<link href="data:text/css;charset=utf-8,body%20%7B%0Abackground%2Dcolor%3A%20%23fff%3B%0Amargin%3A%201em%20auto%3B%0Amax%2Dwidth%3A%20700px%3B%0Aoverflow%3A%20visible%3B%0Apadding%2Dleft%3A%202em%3B%0Apadding%2Dright%3A%202em%3B%0Afont%2Dfamily%3A%20%22Open%20Sans%22%2C%20%22Helvetica%20Neue%22%2C%20Helvetica%2C%20Arial%2C%20sans%2Dserif%3B%0Afont%2Dsize%3A%2014px%3B%0Aline%2Dheight%3A%201%2E35%3B%0A%7D%0A%23header%20%7B%0Atext%2Dalign%3A%20center%3B%0A%7D%0A%23TOC%20%7B%0Aclear%3A%20both%3B%0Amargin%3A%200%200%2010px%2010px%3B%0Apadding%3A%204px%3B%0Awidth%3A%20400px%3B%0Aborder%3A%201px%20solid%20%23CCCCCC%3B%0Aborder%2Dradius%3A%205px%3B%0Abackground%2Dcolor%3A%20%23f6f6f6%3B%0Afont%2Dsize%3A%2013px%3B%0Aline%2Dheight%3A%201%2E3%3B%0A%7D%0A%23TOC%20%2Etoctitle%20%7B%0Afont%2Dweight%3A%20bold%3B%0Afont%2Dsize%3A%2015px%3B%0Amargin%2Dleft%3A%205px%3B%0A%7D%0A%23TOC%20ul%20%7B%0Apadding%2Dleft%3A%2040px%3B%0Amargin%2Dleft%3A%20%2D1%2E5em%3B%0Amargin%2Dtop%3A%205px%3B%0Amargin%2Dbottom%3A%205px%3B%0A%7D%0A%23TOC%20ul%20ul%20%7B%0Amargin%2Dleft%3A%20%2D2em%3B%0A%7D%0A%23TOC%20li%20%7B%0Aline%2Dheight%3A%2016px%3B%0A%7D%0Atable%20%7B%0Amargin%3A%201em%20auto%3B%0Aborder%2Dwidth%3A%201px%3B%0Aborder%2Dcolor%3A%20%23DDDDDD%3B%0Aborder%2Dstyle%3A%20outset%3B%0Aborder%2Dcollapse%3A%20collapse%3B%0A%7D%0Atable%20th%20%7B%0Aborder%2Dwidth%3A%202px%3B%0Apadding%3A%205px%3B%0Aborder%2Dstyle%3A%20inset%3B%0A%7D%0Atable%20td%20%7B%0Aborder%2Dwidth%3A%201px%3B%0Aborder%2Dstyle%3A%20inset%3B%0Aline%2Dheight%3A%2018px%3B%0Apadding%3A%205px%205px%3B%0A%7D%0Atable%2C%20table%20th%2C%20table%20td%20%7B%0Aborder%2Dleft%2Dstyle%3A%20none%3B%0Aborder%2Dright%2Dstyle%3A%20none%3B%0A%7D%0Atable%20thead%2C%20table%20tr%2Eeven%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0A%7D%0Ap%20%7B%0Amargin%3A%200%2E5em%200%3B%0A%7D%0Ablockquote%20%7B%0Abackground%2Dcolor%3A%20%23f6f6f6%3B%0Apadding%3A%200%2E25em%200%2E75em%3B%0A%7D%0Ahr%20%7B%0Aborder%2Dstyle%3A%20solid%3B%0Aborder%3A%20none%3B%0Aborder%2Dtop%3A%201px%20solid%20%23777%3B%0Amargin%3A%2028px%200%3B%0A%7D%0Adl%20%7B%0Amargin%2Dleft%3A%200%3B%0A%7D%0Adl%20dd%20%7B%0Amargin%2Dbottom%3A%2013px%3B%0Amargin%2Dleft%3A%2013px%3B%0A%7D%0Adl%20dt%20%7B%0Afont%2Dweight%3A%20bold%3B%0A%7D%0Aul%20%7B%0Amargin%2Dtop%3A%200%3B%0A%7D%0Aul%20li%20%7B%0Alist%2Dstyle%3A%20circle%20outside%3B%0A%7D%0Aul%20ul%20%7B%0Amargin%2Dbottom%3A%200%3B%0A%7D%0Apre%2C%20code%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0Aborder%2Dradius%3A%203px%3B%0Acolor%3A%20%23333%3B%0Awhite%2Dspace%3A%20pre%2Dwrap%3B%20%0A%7D%0Apre%20%7B%0Aborder%2Dradius%3A%203px%3B%0Amargin%3A%205px%200px%2010px%200px%3B%0Apadding%3A%2010px%3B%0A%7D%0Apre%3Anot%28%5Bclass%5D%29%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0A%7D%0Acode%20%7B%0Afont%2Dfamily%3A%20Consolas%2C%20Monaco%2C%20%27Courier%20New%27%2C%20monospace%3B%0Afont%2Dsize%3A%2085%25%3B%0A%7D%0Ap%20%3E%20code%2C%20li%20%3E%20code%20%7B%0Apadding%3A%202px%200px%3B%0A%7D%0Adiv%2Efigure%20%7B%0Atext%2Dalign%3A%20center%3B%0A%7D%0Aimg%20%7B%0Abackground%2Dcolor%3A%20%23FFFFFF%3B%0Apadding%3A%202px%3B%0Aborder%3A%201px%20solid%20%23DDDDDD%3B%0Aborder%2Dradius%3A%203px%3B%0Aborder%3A%201px%20solid%20%23CCCCCC%3B%0Amargin%3A%200%205px%3B%0A%7D%0Ah1%20%7B%0Amargin%2Dtop%3A%200%3B%0Afont%2Dsize%3A%2035px%3B%0Aline%2Dheight%3A%2040px%3B%0A%7D%0Ah2%20%7B%0Aborder%2Dbottom%3A%204px%20solid%20%23f7f7f7%3B%0Apadding%2Dtop%3A%2010px%3B%0Apadding%2Dbottom%3A%202px%3B%0Afont%2Dsize%3A%20145%25%3B%0A%7D%0Ah3%20%7B%0Aborder%2Dbottom%3A%202px%20solid%20%23f7f7f7%3B%0Apadding%2Dtop%3A%2010px%3B%0Afont%2Dsize%3A%20120%25%3B%0A%7D%0Ah4%20%7B%0Aborder%2Dbottom%3A%201px%20solid%20%23f7f7f7%3B%0Amargin%2Dleft%3A%208px%3B%0Afont%2Dsize%3A%20105%25%3B%0A%7D%0Ah5%2C%20h6%20%7B%0Aborder%2Dbottom%3A%201px%20solid%20%23ccc%3B%0Afont%2Dsize%3A%20105%25%3B%0A%7D%0Aa%20%7B%0Acolor%3A%20%230033dd%3B%0Atext%2Ddecoration%3A%20none%3B%0A%7D%0Aa%3Ahover%20%7B%0Acolor%3A%20%236666ff%3B%20%7D%0Aa%3Avisited%20%7B%0Acolor%3A%20%23800080%3B%20%7D%0Aa%3Avisited%3Ahover%20%7B%0Acolor%3A%20%23BB00BB%3B%20%7D%0Aa%5Bhref%5E%3D%22http%3A%22%5D%20%7B%0Atext%2Ddecoration%3A%20underline%3B%20%7D%0Aa%5Bhref%5E%3D%22https%3A%22%5D%20%7B%0Atext%2Ddecoration%3A%20underline%3B%20%7D%0A%0Acode%20%3E%20span%2Ekw%20%7B%20color%3A%20%23555%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Edt%20%7B%20color%3A%20%23902000%3B%20%7D%20%0Acode%20%3E%20span%2Edv%20%7B%20color%3A%20%2340a070%3B%20%7D%20%0Acode%20%3E%20span%2Ebn%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Efl%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Ech%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Est%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Eco%20%7B%20color%3A%20%23888888%3B%20font%2Dstyle%3A%20italic%3B%20%7D%20%0Acode%20%3E%20span%2Eot%20%7B%20color%3A%20%23007020%3B%20%7D%20%0Acode%20%3E%20span%2Eal%20%7B%20color%3A%20%23ff0000%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Efu%20%7B%20color%3A%20%23900%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%20code%20%3E%20span%2Eer%20%7B%20color%3A%20%23a61717%3B%20background%2Dcolor%3A%20%23e3d2d2%3B%20%7D%20%0A" rel="stylesheet" type="text/css" />
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Calculating SHA1 hashes with digest() and sha1()</h1>
+<h4 class="author"><em>Thierry Onkelinx and Dirk Eddelbuettel</em></h4>
+<h4 class="date"><em>2018-01-28</em></h4>
+
+
+
+<p>NB: This vignette is work-in-progress and not yet complete.</p>
+<div id="short-intro-on-hashes" class="section level2">
+<h2>Short intro on hashes</h2>
+<p>TBD</p>
+</div>
+<div id="difference-between-digest-and-sha1" class="section level2">
+<h2>Difference between <code>digest()</code> and <code>sha1()</code></h2>
+<p>R <a href="https://cran.r-project.org/doc/FAQ/R-FAQ.html#Why-doesn_0027t-R-think-these-numbers-are-equal_003f">FAQ 7.31</a> illustrates potential problems with floating point arithmetic. Mathematically the equality <span class="math inline">\(x = \sqrt{x}^2\)</span> should hold. But the precision of floating points numbers is finite. Hence some rounding is done, leading to numbers which are no longer identical.</p>
+<p>An illustration:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># FAQ 7.31</span>
+a0 &lt;-<span class="st"> </span><span class="dv">2</span>
+b &lt;-<span class="st"> </span><span class="kw">sqrt</span>(a0)
+a1 &lt;-<span class="st"> </span>b <span class="op">^</span><span class="st"> </span><span class="dv">2</span>
+<span class="kw">identical</span>(a0, a1)</code></pre></div>
+<pre><code>## [1] FALSE</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">a0 <span class="op">-</span><span class="st"> </span>a1</code></pre></div>
+<pre><code>## [1] -4.440892e-16</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">a &lt;-<span class="st"> </span><span class="kw">c</span>(a0, a1)
+<span class="co"># hexadecimal representation</span>
+<span class="kw">sprintf</span>(<span class="st">&quot;%a&quot;</span>, a)</code></pre></div>
+<pre><code>## [1] &quot;0x1p+1&quot;               &quot;0x1.0000000000001p+1&quot;</code></pre>
+<p>Although the difference is small, any difference will result in different hash when using the <code>digest()</code> function. However, the <code>sha1()</code> function tackles this problem by using the hexadecimal representation of the numbers and truncates that representation to a certain number of digits prior to calculating the hash function.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(digest)
+<span class="co"># different hashes with digest</span>
+<span class="kw">sapply</span>(a, digest, <span class="dt">algo =</span> <span class="st">&quot;sha1&quot;</span>)</code></pre></div>
+<pre><code>## [1] &quot;315a5aa84aa6cfa4f3fb4b652a596770be0365e8&quot;
+## [2] &quot;5e3999bf79c230f7430e97d7f30070a7eff5ec92&quot;</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># same hash with sha1 with default digits (14)</span>
+<span class="kw">sapply</span>(a, sha1)</code></pre></div>
+<pre><code>## [1] &quot;8a938d8f5fb9b8ccb6893aa1068babcc517f32d4&quot;
+## [2] &quot;8a938d8f5fb9b8ccb6893aa1068babcc517f32d4&quot;</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># larger digits can lead to different hashes</span>
+<span class="kw">sapply</span>(a, sha1, <span class="dt">digits =</span> <span class="dv">15</span>)</code></pre></div>
+<pre><code>## [1] &quot;98eb1dc9fada00b945d3ef01c77049ee5a4b7b9c&quot;
+## [2] &quot;5a173e2445df1134908037f69ac005fbd8afee74&quot;</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># decreasing the number of digits gives a stronger truncation</span>
+<span class="co"># the hash will change when then truncation gives a different result</span>
+<span class="co"># case where truncating gives same hexadecimal value</span>
+<span class="kw">sapply</span>(a, sha1, <span class="dt">digits =</span> <span class="dv">13</span>)</code></pre></div>
+<pre><code>## [1] &quot;43b3b465c975af322c85473190a9214b79b79bf6&quot;
+## [2] &quot;43b3b465c975af322c85473190a9214b79b79bf6&quot;</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">sapply</span>(a, sha1, <span class="dt">digits =</span> <span class="dv">10</span>)</code></pre></div>
+<pre><code>## [1] &quot;6b537a9693c750ed535ca90527152f06e358aa3a&quot;
+## [2] &quot;6b537a9693c750ed535ca90527152f06e358aa3a&quot;</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># case where truncating gives different hexadecimal value</span>
+<span class="kw">c</span>(<span class="kw">sha1</span>(pi), <span class="kw">sha1</span>(pi, <span class="dt">digits =</span> <span class="dv">13</span>), <span class="kw">sha1</span>(pi, <span class="dt">digits =</span> <span class="dv">10</span>))</code></pre></div>
+<pre><code>## [1] &quot;169388cf1ce60dc4e9904a22bc934c5db33d975b&quot;
+## [2] &quot;20dc38536b6689d5f2d053f30efb09c44af78378&quot;
+## [3] &quot;3a727417bd1807af2f0148cf3de69abff32c23ec&quot;</code></pre>
+<p>The result of floating point arithematic on 32-bit and 64-bit can be slightly different. E.g. <code>print(pi ^ 11, 22)</code> returns <code>294204.01797389047</code> on 32-bit and <code>294204.01797389053</code> on 64-bit. Note that only the last 2 digits are different.</p>
+<table style="width:8%;">
+<colgroup>
+<col width="2%"></col>
+<col width="2%"></col>
+<col width="2%"></col>
+</colgroup>
+<thead>
+<tr class="header">
+<th>command</th>
+<th>32-bit</th>
+<th>64-bit</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>print(pi ^ 11, 22)</code></td>
+<td><code>294204.01797389047</code></td>
+<td><code>294204.01797389053</code></td>
+</tr>
+<tr class="even">
+<td><code>sprintf(&quot;%a&quot;, pi ^ 11)</code></td>
+<td><code>&quot;0x1.1f4f01267bf5fp+18&quot;</code></td>
+<td><code>&quot;0x1.1f4f01267bf6p+18&quot;</code></td>
+</tr>
+<tr class="odd">
+<td><code>digest(pi ^ 11, algo = &quot;sha1&quot;)</code></td>
+<td><code>&quot;c5efc7f167df1bb402b27cf9b405d7cebfba339a&quot;</code></td>
+<td><code>&quot;b61f6fea5e2a7952692cefe8bba86a00af3de713&quot;</code></td>
+</tr>
+<tr class="even">
+<td><code>sha1(pi ^ 11, digits = 14)</code></td>
+<td><code>&quot;5c7740500b8f78ec2354ea6af58ea69634d9b7b1&quot;</code></td>
+<td><code>&quot;4f3e296b9922a7ddece2183b1478d0685609a359&quot;</code></td>
+</tr>
+<tr class="odd">
+<td><code>sha1(pi ^ 11, digits = 13)</code></td>
+<td><code>&quot;372289f87396b0877ccb4790cf40bcb5e658cad7&quot;</code></td>
+<td><code>&quot;372289f87396b0877ccb4790cf40bcb5e658cad7&quot;</code></td>
+</tr>
+<tr class="even">
+<td><code>sha1(pi ^ 11, digits = 10)</code></td>
+<td><code>&quot;c05965af43f9566bfb5622f335817f674abfc9e4&quot;</code></td>
+<td><code>&quot;c05965af43f9566bfb5622f335817f674abfc9e4&quot;</code></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="choosing-digest-or-sha1" class="section level2">
+<h2>Choosing <code>digest()</code> or <code>sha1()</code></h2>
+<p>TBD</p>
+</div>
+<div id="creating-a-sha1-method-for-other-classes" class="section level2">
+<h2>Creating a sha1 method for other classes</h2>
+<div id="how-to" class="section level3">
+<h3>How to</h3>
+<ol style="list-style-type: decimal">
+<li>Identify the relevant components for the hash.</li>
+<li>Determine the class of each relevant component and check if they are handled by <code>sha1()</code>.
+<ul>
+<li>Write a method for each component class not yet handled by <code>sha1</code>.</li>
+</ul></li>
+<li>Extract the relevant components.</li>
+<li>Combine the relevant components into a list. Not required in case of a single component.</li>
+<li>Apply <code>sha1()</code> on the (list of) relevant component(s).</li>
+<li>Turn this into a function with name sha1.<em>classname</em>.</li>
+<li>sha1.<em>classname</em> needs exactly the same arguments as <code>sha1()</code></li>
+<li>Choose sensible defaults for the arguments
+<ul>
+<li><code>zapsmall = 7</code> is recommended.</li>
+<li><code>digits = 14</code> is recommended in case all numerics are data.</li>
+<li><code>digits = 4</code> is recommended in case some numerics stem from floating point arithmetic.</li>
+</ul></li>
+</ol>
+</div>
+<div id="summary.lm" class="section level3">
+<h3>summary.lm</h3>
+<p>Let’s illustrate this using the summary of a simple linear regression. Suppose that we want a hash that takes into account the coefficients, their standard error and sigma.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># taken from the help file of lm.influence</span>
+lm_SR &lt;-<span class="st"> </span><span class="kw">lm</span>(sr <span class="op">~</span><span class="st"> </span>pop15 <span class="op">+</span><span class="st"> </span>pop75 <span class="op">+</span><span class="st"> </span>dpi <span class="op">+</span><span class="st"> </span>ddpi, <span class="dt">data =</span> LifeCycleSavings)
+lm_sum &lt;-<span class="st"> </span><span class="kw">summary</span>(lm_SR)
+<span class="kw">class</span>(lm_sum)</code></pre></div>
+<pre><code>## [1] &quot;summary.lm&quot;</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># str() gives the structure of the lm object</span>
+<span class="kw">str</span>(lm_sum)</code></pre></div>
+<pre><code>## List of 11
+##  $ call         : language lm(formula = sr ~ pop15 + pop75 + dpi + ddpi, data = LifeCycleSavings)
+##  $ terms        :Classes 'terms', 'formula'  language sr ~ pop15 + pop75 + dpi + ddpi
+##   .. ..- attr(*, &quot;variables&quot;)= language list(sr, pop15, pop75, dpi, ddpi)
+##   .. ..- attr(*, &quot;factors&quot;)= int [1:5, 1:4] 0 1 0 0 0 0 0 1 0 0 ...
+##   .. .. ..- attr(*, &quot;dimnames&quot;)=List of 2
+##   .. .. .. ..$ : chr [1:5] &quot;sr&quot; &quot;pop15&quot; &quot;pop75&quot; &quot;dpi&quot; ...
+##   .. .. .. ..$ : chr [1:4] &quot;pop15&quot; &quot;pop75&quot; &quot;dpi&quot; &quot;ddpi&quot;
+##   .. ..- attr(*, &quot;term.labels&quot;)= chr [1:4] &quot;pop15&quot; &quot;pop75&quot; &quot;dpi&quot; &quot;ddpi&quot;
+##   .. ..- attr(*, &quot;order&quot;)= int [1:4] 1 1 1 1
+##   .. ..- attr(*, &quot;intercept&quot;)= int 1
+##   .. ..- attr(*, &quot;response&quot;)= int 1
+##   .. ..- attr(*, &quot;.Environment&quot;)=&lt;environment: R_GlobalEnv&gt; 
+##   .. ..- attr(*, &quot;predvars&quot;)= language list(sr, pop15, pop75, dpi, ddpi)
+##   .. ..- attr(*, &quot;dataClasses&quot;)= Named chr [1:5] &quot;numeric&quot; &quot;numeric&quot; &quot;numeric&quot; &quot;numeric&quot; ...
+##   .. .. ..- attr(*, &quot;names&quot;)= chr [1:5] &quot;sr&quot; &quot;pop15&quot; &quot;pop75&quot; &quot;dpi&quot; ...
+##  $ residuals    : Named num [1:50] 0.864 0.616 2.219 -0.698 3.553 ...
+##   ..- attr(*, &quot;names&quot;)= chr [1:50] &quot;Australia&quot; &quot;Austria&quot; &quot;Belgium&quot; &quot;Bolivia&quot; ...
+##  $ coefficients : num [1:5, 1:4] 28.566087 -0.461193 -1.691498 -0.000337 0.409695 ...
+##   ..- attr(*, &quot;dimnames&quot;)=List of 2
+##   .. ..$ : chr [1:5] &quot;(Intercept)&quot; &quot;pop15&quot; &quot;pop75&quot; &quot;dpi&quot; ...
+##   .. ..$ : chr [1:4] &quot;Estimate&quot; &quot;Std. Error&quot; &quot;t value&quot; &quot;Pr(&gt;|t|)&quot;
+##  $ aliased      : Named logi [1:5] FALSE FALSE FALSE FALSE FALSE
+##   ..- attr(*, &quot;names&quot;)= chr [1:5] &quot;(Intercept)&quot; &quot;pop15&quot; &quot;pop75&quot; &quot;dpi&quot; ...
+##  $ sigma        : num 3.8
+##  $ df           : int [1:3] 5 45 5
+##  $ r.squared    : num 0.338
+##  $ adj.r.squared: num 0.28
+##  $ fstatistic   : Named num [1:3] 5.76 4 45
+##   ..- attr(*, &quot;names&quot;)= chr [1:3] &quot;value&quot; &quot;numdf&quot; &quot;dendf&quot;
+##  $ cov.unscaled : num [1:5, 1:5] 3.74 -7.24e-02 -4.46e-01 -7.86e-05 -1.88e-02 ...
+##   ..- attr(*, &quot;dimnames&quot;)=List of 2
+##   .. ..$ : chr [1:5] &quot;(Intercept)&quot; &quot;pop15&quot; &quot;pop75&quot; &quot;dpi&quot; ...
+##   .. ..$ : chr [1:5] &quot;(Intercept)&quot; &quot;pop15&quot; &quot;pop75&quot; &quot;dpi&quot; ...
+##  - attr(*, &quot;class&quot;)= chr &quot;summary.lm&quot;</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># extract the coefficients and their standard error</span>
+coef_sum &lt;-<span class="st"> </span><span class="kw">coef</span>(lm_sum)[, <span class="kw">c</span>(<span class="st">&quot;Estimate&quot;</span>, <span class="st">&quot;Std. Error&quot;</span>)]
+<span class="co"># extract sigma</span>
+sigma &lt;-<span class="st"> </span>lm_sum<span class="op">$</span>sigma
+<span class="co"># check the class of each component</span>
+<span class="kw">class</span>(coef_sum)</code></pre></div>
+<pre><code>## [1] &quot;matrix&quot;</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">class</span>(sigma)</code></pre></div>
+<pre><code>## [1] &quot;numeric&quot;</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># sha1() has methods for both matrix and numeric</span>
+<span class="co"># because the values originate from floating point arithmetic it is better to use a low number of digits</span>
+<span class="kw">sha1</span>(coef_sum, <span class="dt">digits =</span> <span class="dv">4</span>)</code></pre></div>
+<pre><code>## [1] &quot;19de60f22fbb5f31e2f39d043d78126b692f3838&quot;</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">sha1</span>(sigma, <span class="dt">digits =</span> <span class="dv">4</span>)</code></pre></div>
+<pre><code>## [1] &quot;cbc83d1791ef1eeadd824ea9a038891b5889056b&quot;</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># we want a single hash</span>
+<span class="co"># combining the components in a list is a solution that works</span>
+<span class="kw">sha1</span>(<span class="kw">list</span>(coef_sum, sigma), <span class="dt">digits =</span> <span class="dv">4</span>)</code></pre></div>
+<pre><code>## [1] &quot;fd6b6805780dcf88e11fe05ba4693170e2dfb170&quot;</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># now turn everything into an S3 method</span>
+<span class="co">#   - a function with name &quot;sha1.classname&quot;</span>
+<span class="co">#   - must have the same arguments as sha1()</span>
+sha1.summary.lm &lt;-<span class="st"> </span><span class="cf">function</span>(x, <span class="dt">digits =</span> <span class="dv">4</span>, <span class="dt">zapsmall =</span> <span class="dv">7</span>){
+    coef_sum &lt;-<span class="st"> </span><span class="kw">coef</span>(x)[, <span class="kw">c</span>(<span class="st">&quot;Estimate&quot;</span>, <span class="st">&quot;Std. Error&quot;</span>)]
+    sigma &lt;-<span class="st"> </span>x<span class="op">$</span>sigma
+    combined &lt;-<span class="st"> </span><span class="kw">list</span>(coef_sum, sigma)
+    <span class="kw">sha1</span>(combined, <span class="dt">digits =</span> digits, <span class="dt">zapsmall =</span> zapsmall)
+}
+<span class="kw">sha1</span>(lm_sum)</code></pre></div>
+<pre><code>## [1] &quot;fd6b6805780dcf88e11fe05ba4693170e2dfb170&quot;</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># try an altered dataset</span>
+LCS2 &lt;-<span class="st"> </span>LifeCycleSavings[<span class="kw">rownames</span>(LifeCycleSavings) <span class="op">!=</span><span class="st"> &quot;Zambia&quot;</span>, ]
+lm_SR2 &lt;-<span class="st"> </span><span class="kw">lm</span>(sr <span class="op">~</span><span class="st"> </span>pop15 <span class="op">+</span><span class="st"> </span>pop75 <span class="op">+</span><span class="st"> </span>dpi <span class="op">+</span><span class="st"> </span>ddpi, <span class="dt">data =</span> LCS2)
+<span class="kw">sha1</span>(<span class="kw">summary</span>(lm_SR2))</code></pre></div>
+<pre><code>## [1] &quot;0643afd880f6f9c4b2aa935bec91724ba103198e&quot;</code></pre>
+</div>
+<div id="lm" class="section level3">
+<h3>lm</h3>
+<p>Let’s illustrate this using the summary of a simple linear regression. Suppose that we want a hash that takes into account the coefficients, their standard error and sigma.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">class</span>(lm_SR)</code></pre></div>
+<pre><code>## [1] &quot;lm&quot;</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># str() gives the structure of the lm object</span>
+<span class="kw">str</span>(lm_SR)</code></pre></div>
+<pre><code>## List of 12
+##  $ coefficients : Named num [1:5] 28.566087 -0.461193 -1.691498 -0.000337 0.409695
+##   ..- attr(*, &quot;names&quot;)= chr [1:5] &quot;(Intercept)&quot; &quot;pop15&quot; &quot;pop75&quot; &quot;dpi&quot; ...
+##  $ residuals    : Named num [1:50] 0.864 0.616 2.219 -0.698 3.553 ...
+##   ..- attr(*, &quot;names&quot;)= chr [1:50] &quot;Australia&quot; &quot;Austria&quot; &quot;Belgium&quot; &quot;Bolivia&quot; ...
+##  $ effects      : Named num [1:50] -68.38 -14.29 7.3 -3.52 -7.94 ...
+##   ..- attr(*, &quot;names&quot;)= chr [1:50] &quot;(Intercept)&quot; &quot;pop15&quot; &quot;pop75&quot; &quot;dpi&quot; ...
+##  $ rank         : int 5
+##  $ fitted.values: Named num [1:50] 10.57 11.45 10.95 6.45 9.33 ...
+##   ..- attr(*, &quot;names&quot;)= chr [1:50] &quot;Australia&quot; &quot;Austria&quot; &quot;Belgium&quot; &quot;Bolivia&quot; ...
+##  $ assign       : int [1:5] 0 1 2 3 4
+##  $ qr           :List of 5
+##   ..$ qr   : num [1:50, 1:5] -7.071 0.141 0.141 0.141 0.141 ...
+##   .. ..- attr(*, &quot;dimnames&quot;)=List of 2
+##   .. .. ..$ : chr [1:50] &quot;Australia&quot; &quot;Austria&quot; &quot;Belgium&quot; &quot;Bolivia&quot; ...
+##   .. .. ..$ : chr [1:5] &quot;(Intercept)&quot; &quot;pop15&quot; &quot;pop75&quot; &quot;dpi&quot; ...
+##   .. ..- attr(*, &quot;assign&quot;)= int [1:5] 0 1 2 3 4
+##   ..$ qraux: num [1:5] 1.14 1.17 1.16 1.15 1.05
+##   ..$ pivot: int [1:5] 1 2 3 4 5
+##   ..$ tol  : num 1e-07
+##   ..$ rank : int 5
+##   ..- attr(*, &quot;class&quot;)= chr &quot;qr&quot;
+##  $ df.residual  : int 45
+##  $ xlevels      : Named list()
+##  $ call         : language lm(formula = sr ~ pop15 + pop75 + dpi + ddpi, data = LifeCycleSavings)
+##  $ terms        :Classes 'terms', 'formula'  language sr ~ pop15 + pop75 + dpi + ddpi
+##   .. ..- attr(*, &quot;variables&quot;)= language list(sr, pop15, pop75, dpi, ddpi)
+##   .. ..- attr(*, &quot;factors&quot;)= int [1:5, 1:4] 0 1 0 0 0 0 0 1 0 0 ...
+##   .. .. ..- attr(*, &quot;dimnames&quot;)=List of 2
+##   .. .. .. ..$ : chr [1:5] &quot;sr&quot; &quot;pop15&quot; &quot;pop75&quot; &quot;dpi&quot; ...
+##   .. .. .. ..$ : chr [1:4] &quot;pop15&quot; &quot;pop75&quot; &quot;dpi&quot; &quot;ddpi&quot;
+##   .. ..- attr(*, &quot;term.labels&quot;)= chr [1:4] &quot;pop15&quot; &quot;pop75&quot; &quot;dpi&quot; &quot;ddpi&quot;
+##   .. ..- attr(*, &quot;order&quot;)= int [1:4] 1 1 1 1
+##   .. ..- attr(*, &quot;intercept&quot;)= int 1
+##   .. ..- attr(*, &quot;response&quot;)= int 1
+##   .. ..- attr(*, &quot;.Environment&quot;)=&lt;environment: R_GlobalEnv&gt; 
+##   .. ..- attr(*, &quot;predvars&quot;)= language list(sr, pop15, pop75, dpi, ddpi)
+##   .. ..- attr(*, &quot;dataClasses&quot;)= Named chr [1:5] &quot;numeric&quot; &quot;numeric&quot; &quot;numeric&quot; &quot;numeric&quot; ...
+##   .. .. ..- attr(*, &quot;names&quot;)= chr [1:5] &quot;sr&quot; &quot;pop15&quot; &quot;pop75&quot; &quot;dpi&quot; ...
+##  $ model        :'data.frame':   50 obs. of  5 variables:
+##   ..$ sr   : num [1:50] 11.43 12.07 13.17 5.75 12.88 ...
+##   ..$ pop15: num [1:50] 29.4 23.3 23.8 41.9 42.2 ...
+##   ..$ pop75: num [1:50] 2.87 4.41 4.43 1.67 0.83 2.85 1.34 0.67 1.06 1.14 ...
+##   ..$ dpi  : num [1:50] 2330 1508 2108 189 728 ...
+##   ..$ ddpi : num [1:50] 2.87 3.93 3.82 0.22 4.56 2.43 2.67 6.51 3.08 2.8 ...
+##   ..- attr(*, &quot;terms&quot;)=Classes 'terms', 'formula'  language sr ~ pop15 + pop75 + dpi + ddpi
+##   .. .. ..- attr(*, &quot;variables&quot;)= language list(sr, pop15, pop75, dpi, ddpi)
+##   .. .. ..- attr(*, &quot;factors&quot;)= int [1:5, 1:4] 0 1 0 0 0 0 0 1 0 0 ...
+##   .. .. .. ..- attr(*, &quot;dimnames&quot;)=List of 2
+##   .. .. .. .. ..$ : chr [1:5] &quot;sr&quot; &quot;pop15&quot; &quot;pop75&quot; &quot;dpi&quot; ...
+##   .. .. .. .. ..$ : chr [1:4] &quot;pop15&quot; &quot;pop75&quot; &quot;dpi&quot; &quot;ddpi&quot;
+##   .. .. ..- attr(*, &quot;term.labels&quot;)= chr [1:4] &quot;pop15&quot; &quot;pop75&quot; &quot;dpi&quot; &quot;ddpi&quot;
+##   .. .. ..- attr(*, &quot;order&quot;)= int [1:4] 1 1 1 1
+##   .. .. ..- attr(*, &quot;intercept&quot;)= int 1
+##   .. .. ..- attr(*, &quot;response&quot;)= int 1
+##   .. .. ..- attr(*, &quot;.Environment&quot;)=&lt;environment: R_GlobalEnv&gt; 
+##   .. .. ..- attr(*, &quot;predvars&quot;)= language list(sr, pop15, pop75, dpi, ddpi)
+##   .. .. ..- attr(*, &quot;dataClasses&quot;)= Named chr [1:5] &quot;numeric&quot; &quot;numeric&quot; &quot;numeric&quot; &quot;numeric&quot; ...
+##   .. .. .. ..- attr(*, &quot;names&quot;)= chr [1:5] &quot;sr&quot; &quot;pop15&quot; &quot;pop75&quot; &quot;dpi&quot; ...
+##  - attr(*, &quot;class&quot;)= chr &quot;lm&quot;</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># extract the model and the terms</span>
+lm_model &lt;-<span class="st"> </span>lm_SR<span class="op">$</span>model
+lm_terms &lt;-<span class="st"> </span>lm_SR<span class="op">$</span>terms
+<span class="co"># check their class</span>
+<span class="kw">class</span>(lm_model) <span class="co"># handled by sha1()</span></code></pre></div>
+<pre><code>## [1] &quot;data.frame&quot;</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">class</span>(lm_terms) <span class="co"># not handled by sha1()</span></code></pre></div>
+<pre><code>## [1] &quot;terms&quot;   &quot;formula&quot;</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># define a method for formula</span>
+sha1.formula &lt;-<span class="st"> </span><span class="cf">function</span>(x, <span class="dt">digits =</span> <span class="dv">14</span>, <span class="dt">zapsmall =</span> <span class="dv">7</span>, ..., <span class="dt">algo =</span> <span class="st">&quot;sha1&quot;</span>){
+    <span class="kw">sha1</span>(<span class="kw">as.character</span>(x), <span class="dt">digits =</span> digits, <span class="dt">zapsmall =</span> zapsmall, <span class="dt">algo =</span> algo)
+}
+<span class="kw">sha1</span>(lm_terms)</code></pre></div>
+<pre><code>## [1] &quot;2737d209720aa7d1c0555050ad06ebe89f3850cd&quot;</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">sha1</span>(lm_model)</code></pre></div>
+<pre><code>## [1] &quot;b1b32bb6d983e1c515706c33ffef6120d811fe52&quot;</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># define a method for lm</span>
+sha1.lm &lt;-<span class="st"> </span><span class="cf">function</span>(x, <span class="dt">digits =</span> <span class="dv">14</span>, <span class="dt">zapsmall =</span> <span class="dv">7</span>, ..., <span class="dt">algo =</span> <span class="st">&quot;sha1&quot;</span>){
+    lm_model &lt;-<span class="st"> </span>x<span class="op">$</span>model
+    lm_terms &lt;-<span class="st"> </span>x<span class="op">$</span>terms
+    combined &lt;-<span class="st"> </span><span class="kw">list</span>(lm_model, lm_terms)
+    <span class="kw">sha1</span>(combined, <span class="dt">digits =</span> digits, <span class="dt">zapsmall =</span> zapsmall, ..., <span class="dt">algo =</span> algo)
+}
+<span class="kw">sha1</span>(lm_SR)</code></pre></div>
+<pre><code>## [1] &quot;2b03ad0002dc6c3676555b60f3f59781e1f42eb0&quot;</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">sha1</span>(lm_SR2)</code></pre></div>
+<pre><code>## [1] &quot;d2bbcc2bfc737e51666d4bf86841f6b25149e224&quot;</code></pre>
+</div>
+</div>
+<div id="using-hashes-to-track-changes-in-analysis" class="section level2">
+<h2>Using hashes to track changes in analysis</h2>
+<p>Use case</p>
+<ul>
+<li>automated analysis</li>
+<li>update frequency of the data might be lower than the frequency of automated analysis</li>
+<li>similar analyses on many datasets (e.g. many species in ecology)</li>
+<li>analyses that require a lot of computing time
+<ul>
+<li>not rerunning an analysis because nothing has changed saves enough resources to compensate the overhead of tracking changes</li>
+</ul></li>
+<li>Bundle all relevant information on an analysis in a class
+<ul>
+<li>data</li>
+<li>method</li>
+<li>formula</li>
+<li>other metadata</li>
+<li>resulting model</li>
+</ul></li>
+<li><p>calculate <code>sha1()</code></p>
+<dl>
+<dt>file fingerprint</dt>
+<dd><code>sha1()</code> on the stable parts
+</dd>
+<dt>status fingerprint</dt>
+<dd><code>sha1()</code> on the parts that result for the model
+</dd>
+</dl></li>
+</ul>
+<ol style="list-style-type: decimal">
+<li>Prepare analysis objects</li>
+<li>Store each analysis object in a rda file which uses the file fingerprint as filename
+<ul>
+<li>File will already exist when no change in analysis</li>
+<li>Don’t overwrite existing files</li>
+</ul></li>
+<li>Loop over all rda files
+<ul>
+<li>Do nothing if the analysis was run</li>
+<li>Otherwise run the analysis and update the status and status fingerprint</li>
+</ul></li>
+</ol>
+</div>
+
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

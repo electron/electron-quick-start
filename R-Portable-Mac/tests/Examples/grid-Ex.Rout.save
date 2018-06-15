@@ -1,0 +1,2088 @@
+
+R version 3.5.0 RC (2018-04-15 r74605) -- "Joy in Playing"
+Copyright (C) 2018 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> pkgname <- "grid"
+> source(file.path(R.home("share"), "R", "examples-header.R"))
+> options(warn = 1)
+> library('grid')
+> 
+> base::assign(".oldSearch", base::search(), pos = 'CheckExEnv')
+> base::assign(".old_wd", base::getwd(), pos = 'CheckExEnv')
+> cleanEx()
+> nameEx("Grid")
+> ### * Grid
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: Grid
+> ### Title: Grid Graphics
+> ### Aliases: Grid
+> ### Keywords: dplot
+> 
+> ### ** Examples
+> 
+> ## Diagram of a simple layout
+> grid.show.layout(grid.layout(4,2,
++                      heights=unit(rep(1, 4),
++                                   c("lines", "lines", "lines", "null")),
++                      widths=unit(c(1, 1), "inches")))
+> ## Diagram of a sample viewport
+> grid.show.viewport(viewport(x=0.6, y=0.6,
++                             w=unit(1, "inches"), h=unit(1, "inches")))
+> ## A flash plotting example
+> grid.multipanel(vp=viewport(0.5, 0.5, 0.8, 0.8))
+> 
+> 
+> 
+> cleanEx()
+> nameEx("arrow")
+> ### * arrow
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: arrow
+> ### Title: Describe arrows to add to a line.
+> ### Aliases: arrow
+> ### Keywords: dplot
+> 
+> ### ** Examples
+> 
+> arrow()
+$angle
+[1] 30
+
+$length
+[1] 0.25inches
+
+$ends
+[1] 2
+
+$type
+[1] 1
+
+attr(,"class")
+[1] "arrow"
+> 
+> 
+> 
+> cleanEx()
+> nameEx("calcStringMetric")
+> ### * calcStringMetric
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: calcStringMetric
+> ### Title: Calculate Metric Information for Text
+> ### Aliases: calcStringMetric
+> ### Keywords: dplot
+> 
+> ### ** Examples
+> 
+> grid.newpage()
+> grid.segments(.01, .5, .99, .5, gp=gpar(col="grey"))
+> metrics <- calcStringMetric(letters)
+> grid.rect(x=1:26/27,
++           width=unit(metrics$width, "inches"),
++           height=unit(metrics$ascent, "inches"),
++           just="bottom",
++           gp=gpar(col="red"))
+> grid.rect(x=1:26/27,
++           width=unit(metrics$width, "inches"),
++           height=unit(metrics$descent, "inches"),
++           just="top",
++           gp=gpar(col="red"))
+> grid.text(letters, x=1:26/27, just="bottom")
+> 
+> test <- function(x) {
++     grid.text(x, just="bottom")
++     metric <- calcStringMetric(x)
++     if (is.character(x)) {
++         grid.rect(width=unit(metric$width, "inches"),
++                   height=unit(metric$ascent, "inches"),
++                   just="bottom",
++                   gp=gpar(col=rgb(1,0,0,.5)))
++         grid.rect(width=unit(metric$width, "inches"),
++                   height=unit(metric$descent, "inches"),
++                   just="top",
++                   gp=gpar(col=rgb(1,0,0,.5)))
++     } else {
++         grid.rect(width=unit(metric$width, "inches"),
++                   y=unit(.5, "npc") + unit(metric[2], "inches"),
++                   height=unit(metric$ascent, "inches"),
++                   just="bottom",
++                   gp=gpar(col=rgb(1,0,0,.5)))
++         grid.rect(width=unit(metric$width, "inches"),
++                   height=unit(metric$descent, "inches"),
++                   just="bottom",
++                   gp=gpar(col=rgb(1,0,0,.5)))
++     }
++ }
+> 
+> tests <- list("t",
++               "test",
++               "testy",
++               "test\ntwo",
++               expression(x),
++               expression(y),
++               expression(x + y),
++               expression(a + b),
++               expression(atop(x + y, 2)))
+> 
+> grid.newpage()
+> nrowcol <- n2mfrow(length(tests))
+> pushViewport(viewport(layout=grid.layout(nrowcol[1], nrowcol[2]),
++                       gp=gpar(cex=5, lwd=.5)))
+> for (i in 1:length(tests)) {
++     col <- (i - 1) %% nrowcol[2] + 1
++     row <- (i - 1) %/% nrowcol[2] + 1
++     pushViewport(viewport(layout.pos.row=row, layout.pos.col=col))
++     test(tests[[i]])
++     popViewport()
++ }
+> 
+> 
+> 
+> 
+> cleanEx()
+> nameEx("current.viewport")
+> ### * current.viewport
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: Querying the Viewport Tree
+> ### Title: Get the Current Grid Viewport (Tree)
+> ### Aliases: current.viewport current.parent current.vpTree current.vpPath
+> ###   current.transform current.rotation
+> ### Keywords: dplot
+> 
+> ### ** Examples
+> 
+> grid.newpage()
+> pushViewport(viewport(width=0.8, height=0.8, name="A"))
+> pushViewport(viewport(x=0.1, width=0.3, height=0.6,
++   just="left", name="B"))
+> upViewport(1)
+> pushViewport(viewport(x=0.5, width=0.4, height=0.8,
++   just="left", name="C"))
+> pushViewport(viewport(width=0.8, height=0.8, name="D"))
+> current.vpPath()
+GRID.VP.65::A::C::D 
+> upViewport(1)
+> current.vpPath()
+GRID.VP.65::A::C 
+> current.vpTree()
+viewport[ROOT]->(viewport[GRID.VP.65]->(viewport[A]->(viewport[B], viewport[C]->(viewport[D])))) 
+> current.viewport()
+viewport[C] 
+> current.vpTree(all=FALSE)
+viewport[C]->(viewport[D]) 
+> popViewport(0)
+> 
+> 
+> 
+> cleanEx()
+> nameEx("depth")
+> ### * depth
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: depth
+> ### Title: Determine the number of levels in an object.
+> ### Aliases: depth depth.viewport depth.path
+> ### Keywords: dplot
+> 
+> ### ** Examples
+> 
+> vp <- viewport()
+> depth(vp)
+[1] 1
+> depth(vpStack(vp, vp))
+[1] 2
+> depth(vpList(vpStack(vp, vp), vp))
+[1] 1
+> depth(vpPath("vp"))
+[1] 1
+> depth(vpPath("vp1", "vp2"))
+[1] 2
+> 
+> 
+> 
+> cleanEx()
+> nameEx("explode")
+> ### * explode
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: explode
+> ### Title: Explode a path into its components.
+> ### Aliases: explode explode.character explode.path
+> ### Keywords: dplot
+> 
+> ### ** Examples
+> 
+> explode("vp1::vp2")
+[1] "vp1" "vp2"
+> explode(vpPath("vp1", "vp2"))
+[1] "vp1" "vp2"
+> 
+> 
+> 
+> cleanEx()
+> nameEx("gEdit")
+> ### * gEdit
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: gEdit
+> ### Title: Create and Apply Edit Objects
+> ### Aliases: gEdit gEditList applyEdit applyEdits
+> ### Keywords: dplot
+> 
+> ### ** Examples
+> 
+> grid.rect(gp=gpar(col="red"))
+> # same thing, but more verbose
+> grid.draw(applyEdit(rectGrob(), gEdit(gp=gpar(col="red"))))
+> 
+> 
+> 
+> cleanEx()
+> nameEx("gPath")
+> ### * gPath
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: gPath
+> ### Title: Concatenate Grob Names
+> ### Aliases: gPath
+> ### Keywords: dplot
+> 
+> ### ** Examples
+> 
+> gPath("g1", "g2")
+g1::g2 
+> 
+> 
+> 
+> cleanEx()
+> nameEx("getNames")
+> ### * getNames
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: getNames
+> ### Title: List the names of grobs on the display list
+> ### Aliases: getNames
+> ### Keywords: dplot
+> 
+> ### ** Examples
+> 
+> grid.grill()
+> getNames()
+[1] "GRID.text.165"     "GRID.rect.166"     "GRID.rect.167"    
+[4] "GRID.segments.168" "GRID.segments.169"
+> 
+> 
+> 
+> cleanEx()
+> nameEx("gpar")
+> ### * gpar
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: gpar
+> ### Title: Handling Grid Graphical Parameters
+> ### Aliases: gpar get.gpar
+> ### Keywords: dplot
+> 
+> ### ** Examples
+> 
+> gp <- get.gpar()
+> utils::str(gp)
+List of 14
+ $ fill      : chr "transparent"
+ $ col       : chr "black"
+ $ lty       : chr "solid"
+ $ lwd       : num 1
+ $ cex       : num 1
+ $ fontsize  : num 12
+ $ lineheight: num 1.2
+ $ font      : int 1
+ $ fontfamily: chr ""
+ $ alpha     : num 1
+ $ lineend   : chr "round"
+ $ linejoin  : chr "round"
+ $ linemitre : num 10
+ $ lex       : num 1
+ - attr(*, "class")= chr "gpar"
+> ## These *do* nothing but produce a "gpar" object:
+> gpar(col = "red")
+$col
+[1] "red"
+
+> gpar(col = "blue", lty = "solid", lwd = 3, fontsize = 16)
+$col
+[1] "blue"
+
+$lty
+[1] "solid"
+
+$lwd
+[1] 3
+
+$fontsize
+[1] 16
+
+> get.gpar(c("col", "lty"))
+$col
+[1] "black"
+
+$lty
+[1] "solid"
+
+> grid.newpage()
+> vp <- viewport(w = .8, h = .8, gp = gpar(col="blue"))
+> grid.draw(gTree(children=gList(rectGrob(gp = gpar(col="red")),
++                      textGrob(paste("The rect is its own colour (red)",
++                                     "but this text is the colour",
++                                     "set by the gTree (green)",
++                                     sep = "\n"))),
++       gp = gpar(col="green"), vp = vp))
+> grid.text("This text is the colour set by the viewport (blue)",
++           y = 1, just = c("center", "bottom"),
++           gp = gpar(fontsize=20), vp = vp)
+> grid.newpage()
+> ## example with multiple values for a parameter
+> pushViewport(viewport())
+> grid.points(1:10/11, 1:10/11, gp = gpar(col=1:10))
+> popViewport()
+> 
+> 
+> 
+> cleanEx()
+> nameEx("grid.DLapply")
+> ### * grid.DLapply
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: grid.DLapply
+> ### Title: Modify the Grid Display List
+> ### Aliases: grid.DLapply
+> ### Keywords: dplot
+> 
+> ### ** Examples
+> 
+> grid.newpage()
+> grid.rect(width=.4, height=.4, x=.25, y=.75, gp=gpar(fill="black"), name="r1")
+> grid.rect(width=.4, height=.4, x=.5, y=.5, gp=gpar(fill="grey"), name="r2")
+> grid.rect(width=.4, height=.4, x=.75, y=.25, gp=gpar(fill="white"), name="r3")
+> grid.DLapply(function(x) { if (is.grob(x)) x$gp <- gpar(); x })
+NULL
+> grid.refresh()
+> 
+> 
+> 
+> cleanEx()
+> nameEx("grid.bezier")
+> ### * grid.bezier
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: grid.bezier
+> ### Title: Draw a Bezier Curve
+> ### Aliases: grid.bezier bezierGrob
+> ### Keywords: dplot
+> 
+> ### ** Examples
+> 
+> x <- c(0.2, 0.2, 0.4, 0.4)
+> y <- c(0.2, 0.4, 0.4, 0.2)
+> 
+> grid.newpage()
+> grid.bezier(x, y)
+> grid.bezier(c(x, x + .4), c(y + .4, y + .4),
++             id=rep(1:2, each=4))
+> grid.segments(.4, .6, .6, .6)
+> grid.bezier(x, y,
++             gp=gpar(lwd=3, fill="black"),
++             arrow=arrow(type="closed"),
++             vp=viewport(x=.9))
+> 
+> 
+> 
+> cleanEx()
+> nameEx("grid.cap")
+> ### * grid.cap
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: grid.cap
+> ### Title: Capture a raster image
+> ### Aliases: grid.cap
+> ### Keywords: dplot
+> 
+> ### ** Examples
+> 
+> 
+> 
+> 
+> cleanEx()
+> nameEx("grid.clip")
+> ### * grid.clip
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: grid.clip
+> ### Title: Set the Clipping Region
+> ### Aliases: grid.clip clipGrob
+> ### Keywords: dplot
+> 
+> ### ** Examples
+> 
+> # draw across entire viewport, but clipped
+> grid.clip(x = 0.3, width = 0.1)
+> grid.lines(gp=gpar(col="green", lwd=5))
+> # draw across entire viewport, but clipped (in different place)
+> grid.clip(x = 0.7, width = 0.1)
+> grid.lines(gp=gpar(col="red", lwd=5))
+> # Viewport sets new clip region
+> pushViewport(viewport(width=0.5, height=0.5, clip=TRUE))
+> grid.lines(gp=gpar(col="grey", lwd=3))
+> # Return to original viewport;  get
+> # clip region from previous grid.clip()
+> # (NOT from previous viewport clip region)
+> popViewport()
+> grid.lines(gp=gpar(col="black"))
+> 
+> 
+> 
+> cleanEx()
+> nameEx("grid.convert")
+> ### * grid.convert
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: grid.convert
+> ### Title: Convert Between Different grid Coordinate Systems
+> ### Aliases: convertUnit convertX convertY convertWidth convertHeight
+> ### Keywords: dplot
+> 
+> ### ** Examples
+> 
+> ## A tautology
+> convertX(unit(1, "inches"), "inches")
+[1] 1inches
+> ## The physical units
+> convertX(unit(2.54, "cm"), "inches")
+[1] 1inches
+> convertX(unit(25.4, "mm"), "inches")
+[1] 1inches
+> convertX(unit(72.27, "points"), "inches")
+[1] 1inches
+> convertX(unit(1/12*72.27, "picas"), "inches")
+[1] 1inches
+> convertX(unit(72, "bigpts"), "inches")
+[1] 1inches
+> convertX(unit(1157/1238*72.27, "dida"), "inches")
+[1] 1inches
+> convertX(unit(1/12*1157/1238*72.27, "cicero"), "inches")
+[1] 1inches
+> convertX(unit(65536*72.27, "scaledpts"), "inches")
+[1] 1inches
+> convertX(unit(1/2.54, "inches"), "cm")
+[1] 1cm
+> convertX(unit(1/25.4, "inches"), "mm")
+[1] 1mm
+> convertX(unit(1/72.27, "inches"), "points")
+[1] 1points
+> convertX(unit(1/(1/12*72.27), "inches"), "picas")
+[1] 1picas
+> convertX(unit(1/72, "inches"), "bigpts")
+[1] 1bigpts
+> convertX(unit(1/(1157/1238*72.27), "inches"), "dida")
+[1] 1dida
+> convertX(unit(1/(1/12*1157/1238*72.27), "inches"), "cicero")
+[1] 1cicero
+> convertX(unit(1/(65536*72.27), "inches"), "scaledpts")
+[1] 1scaledpts
+> 
+> pushViewport(viewport(width=unit(1, "inches"),
++                        height=unit(2, "inches"),
++                        xscale=c(0, 1),
++                        yscale=c(1, 3)))
+>   ## Location versus dimension
+>   convertY(unit(2, "native"), "inches")
+[1] 1inches
+>   convertHeight(unit(2, "native"), "inches")
+[1] 2inches
+>   ## From "x" to "y" (the conversion is via "inches")
+>   convertUnit(unit(1, "native"), "native",
++                axisFrom="x", axisTo="y")
+[1] 2native
+>   ## Convert several values at once
+>   convertX(unit(c(0.5, 2.54), c("npc", "cm")),
++                 c("inches", "native"))
+[1] 0.5inches 1native  
+> popViewport()
+> ## Convert a complex unit
+> convertX(unit(1, "strwidth", "Hello"), "native")
+[1] 0.0558333333333333native
+> 
+> 
+> 
+> cleanEx()
+> nameEx("grid.curve")
+> ### * grid.curve
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: grid.curve
+> ### Title: Draw a Curve Between Locations
+> ### Aliases: grid.curve curveGrob arcCurvature
+> ### Keywords: dplot
+> 
+> ### ** Examples
+> 
+> curveTest <- function(i, j, ...) {
++   pushViewport(viewport(layout.pos.col=j, layout.pos.row=i))
++   do.call("grid.curve", c(list(x1=.25, y1=.25, x2=.75, y2=.75), list(...)))
++   grid.text(sub("list\\((.*)\\)", "\\1",
++                 deparse(substitute(list(...)))),
++             y=unit(1, "npc"))
++   popViewport()
++ }
+> # grid.newpage()
+> pushViewport(plotViewport(c(0, 0, 1, 0),
++                           layout=grid.layout(2, 1, heights=c(2, 1))))
+> pushViewport(viewport(layout.pos.row=1,
++                       layout=grid.layout(3, 3, respect=TRUE)))
+> curveTest(1, 1)
+> curveTest(1, 2, inflect=TRUE)
+> curveTest(1, 3, angle=135)
+> curveTest(2, 1, arrow=arrow())
+> curveTest(2, 2, ncp=8)
+> curveTest(2, 3, shape=0)
+> curveTest(3, 1, curvature=-1)
+> curveTest(3, 2, square=FALSE)
+> curveTest(3, 3, debug=TRUE)
+> popViewport()
+> pushViewport(viewport(layout.pos.row=2,
++                       layout=grid.layout(3, 3)))
+> curveTest(1, 1)
+> curveTest(1, 2, inflect=TRUE)
+> curveTest(1, 3, angle=135)
+> curveTest(2, 1, arrow=arrow())
+> curveTest(2, 2, ncp=8)
+> curveTest(2, 3, shape=0)
+> curveTest(3, 1, curvature=-1)
+> curveTest(3, 2, square=FALSE)
+> curveTest(3, 3, debug=TRUE)
+> popViewport(2)
+> 
+> 
+> 
+> cleanEx()
+> nameEx("grid.delay")
+> ### * grid.delay
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: grid.delay
+> ### Title: Encapsulate calculations and generating a grob
+> ### Aliases: grid.delay delayGrob
+> ### Keywords: dplot
+> 
+> ### ** Examples
+> 
+> grid.delay({
++               w <- convertWidth(unit(1, "inches"), "npc")
++               rectGrob(width=w)
++             },
++             list())
+> 
+> 
+> 
+> cleanEx()
+> nameEx("grid.draw")
+> ### * grid.draw
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: grid.draw
+> ### Title: Draw a grid grob
+> ### Aliases: grid.draw
+> ### Keywords: dplot
+> 
+> ### ** Examples
+> 
+> grid.newpage()
+> ## Create a graphical object, but don't draw it
+> l <- linesGrob()
+> ## Draw it
+> grid.draw(l)
+> 
+> 
+> 
+> cleanEx()
+> nameEx("grid.edit")
+> ### * grid.edit
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: grid.edit
+> ### Title: Edit the Description of a Grid Graphical Object
+> ### Aliases: grid.edit grid.gedit editGrob
+> ### Keywords: dplot
+> 
+> ### ** Examples
+> 
+> grid.newpage()
+> grid.xaxis(name = "xa", vp = viewport(width=.5, height=.5))
+> grid.edit("xa", gp = gpar(col="red"))
+> # won't work because no ticks (at is NULL)
+> try(grid.edit(gPath("xa", "ticks"), gp = gpar(col="green")))
+Error in editDLfromGPath(gPath, specs, strict, grep, global, redraw) : 
+  'gPath' (xa::ticks) not found
+> grid.edit("xa", at = 1:4/5)
+> # Now it should work
+> try(grid.edit(gPath("xa", "ticks"), gp = gpar(col="green")))
+> 
+> 
+> 
+> cleanEx()
+> nameEx("grid.force")
+> ### * grid.force
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: grid.force
+> ### Title: Force a grob into its components
+> ### Aliases: grid.force grid.force.default grid.force.gPath grid.force.grob
+> ###   forceGrob grid.revert grid.revert.gPath grid.revert.grob
+> ### Keywords: dplot
+> 
+> ### ** Examples
+> 
+> grid.newpage()
+> pushViewport(viewport(width=.5, height=.5))
+> # Draw xaxis
+> grid.xaxis(name="xax")
+> grid.ls()
+GRID.text.244
+xax
+> # Force xaxis
+> grid.force()
+> grid.ls()
+GRID.text.244
+xax
+  major
+  ticks
+  labels
+> # Revert xaxis
+> grid.revert()
+> grid.ls()
+GRID.text.244
+xax
+> # Draw and force yaxis
+> grid.force(yaxisGrob(), draw=TRUE)
+forcedgrob[GRID.yaxis.245] 
+> grid.ls()
+GRID.text.244
+xax
+GRID.yaxis.245
+  major
+  ticks
+  labels
+> # Revert yaxis
+> grid.revert()
+> grid.ls()
+GRID.text.244
+xax
+GRID.yaxis.245
+> # Force JUST xaxis
+> grid.force("xax")
+> grid.ls()
+GRID.text.244
+xax
+  major
+  ticks
+  labels
+GRID.yaxis.245
+> # Force ALL
+> grid.force()
+> grid.ls()
+GRID.text.244
+xax
+  major
+  ticks
+  labels
+GRID.yaxis.245
+  major
+  ticks
+  labels
+> # Revert JUST xaxis
+> grid.revert("xax")
+> grid.ls()
+GRID.text.244
+xax
+GRID.yaxis.245
+  major
+  ticks
+  labels
+> 
+> 
+> 
+> cleanEx()
+> nameEx("grid.frame")
+> ### * grid.frame
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: grid.frame
+> ### Title: Create a Frame for Packing Objects
+> ### Aliases: grid.frame frameGrob
+> ### Keywords: dplot
+> 
+> ### ** Examples
+> 
+> grid.newpage()
+> grid.frame(name="gf", draw=TRUE)
+> grid.pack("gf", rectGrob(gp=gpar(fill="grey")), width=unit(1, "null"))
+> grid.pack("gf", textGrob("hi there"), side="right")
+> 
+> 
+> 
+> cleanEx()
+> nameEx("grid.function")
+> ### * grid.function
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: grid.function
+> ### Title: Draw a curve representing a function
+> ### Aliases: grid.function functionGrob grid.abline
+> ### Keywords: dplot
+> 
+> ### ** Examples
+> 
+>     # abline
+>     # NOTE: in ROOT viewport on screen, (0, 0) at top-left
+>     #       and "native" is pixels!
+>     grid.function(function(x) list(x=x, y=0 + 1*x))
+>     # a more "normal" viewport with default normalized "native" coords
+>     grid.newpage()
+>     pushViewport(viewport())
+>     grid.function(function(x) list(x=x, y=0 + 1*x))
+>     # slightly simpler
+>     grid.newpage()
+>     pushViewport(viewport())
+>     grid.abline()
+>     # sine curve
+>     grid.newpage()
+>     pushViewport(viewport(xscale=c(0, 2*pi), yscale=c(-1, 1)))
+>     grid.function(function(x) list(x=x, y=sin(x)))
+>     # constrained sine curve
+>     grid.newpage()
+>     pushViewport(viewport(xscale=c(0, 2*pi), yscale=c(-1, 1)))
+>     grid.function(function(x) list(x=x, y=sin(x)),
++                   range=0:1)
+>     # inverse sine curve
+>     grid.newpage()
+>     pushViewport(viewport(xscale=c(-1, 1), yscale=c(0, 2*pi)))
+>     grid.function(function(y) list(x=sin(y), y=y),
++                   range="y")
+>     # parametric function
+>     grid.newpage()
+>     pushViewport(viewport(xscale=c(-1, 1), yscale=c(-1, 1)))
+>     grid.function(function(t) list(x=cos(t), y=sin(t)),
++                   range=c(0, 9*pi/5))
+>     # physical abline
+>     grid.newpage()
+>     grid.function(function(x) list(x=x, y=0 + 1*x),
++                   units="in")
+> 
+> 
+> 
+> cleanEx()
+> nameEx("grid.get")
+> ### * grid.get
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: grid.get
+> ### Title: Get a Grid Graphical Object
+> ### Aliases: grid.get grid.gget getGrob
+> ### Keywords: dplot
+> 
+> ### ** Examples
+> 
+> grid.xaxis(name="xa")
+> grid.get("xa")
+xaxis[xa] 
+> grid.get(gPath("xa", "ticks"))
+NULL
+> 
+> grid.draw(gTree(name="gt", children=gList(xaxisGrob(name="axis"))))
+> grid.get(gPath("gt", "axis", "ticks"))
+NULL
+> 
+> 
+> 
+> cleanEx()
+> nameEx("grid.grab")
+> ### * grid.grab
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: grid.grab
+> ### Title: Grab the current grid output
+> ### Aliases: grid.grab grid.grabExpr
+> ### Keywords: dplot
+> 
+> ### ** Examples
+> 
+> pushViewport(viewport(w=.5, h=.5))
+> grid.rect()
+> grid.points(stats::runif(10), stats::runif(10))
+> popViewport()
+> grab <- grid.grab()
+> grid.newpage()
+> grid.draw(grab)
+> 
+> 
+> 
+> cleanEx()
+> nameEx("grid.grep")
+> ### * grid.grep
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: grid.grep
+> ### Title: Search for grobs
+> ### Aliases: grid.grep
+> ### Keywords: dplot
+> 
+> ### ** Examples
+> 
+> # A gTree, called "grandparent", with child gTree,
+> # called "parent", with childrenvp vpStack (vp2 within vp1)
+> # and child grob, called "child", with vp vpPath (down to vp2)
+> sampleGTree <- gTree(name="grandparent",
++                      children=gList(gTree(name="parent",
++                           children=gList(grob(name="child", vp="vp1::vp2")),
++                           childrenvp=vpStack(viewport(name="vp1"),
++                                              viewport(name="vp2")))))
+> # Searching for grobs
+> grid.grep("parent", sampleGTree)
+grandparent::parent 
+> grid.grep("parent", sampleGTree, strict=TRUE)
+character(0)
+> grid.grep("grandparent", sampleGTree, strict=TRUE)
+grandparent 
+> grid.grep("grandparent::parent", sampleGTree)
+grandparent::parent 
+> grid.grep("parent::child", sampleGTree)
+grandparent::parent::child 
+> grid.grep("[a-z]", sampleGTree, grep=TRUE)
+grandparent 
+> grid.grep("[a-z]", sampleGTree, grep=TRUE, global=TRUE)
+[[1]]
+grandparent 
+
+[[2]]
+grandparent::parent 
+
+[[3]]
+grandparent::parent::child 
+
+> # Searching for viewports
+> grid.grep("vp1", sampleGTree, viewports=TRUE)
+vp1 
+> grid.grep("vp2", sampleGTree, viewports=TRUE)
+vp1::vp2 
+> grid.grep("vp", sampleGTree, viewports=TRUE, grep=TRUE)
+vp1 
+> grid.grep("vp2", sampleGTree, viewports=TRUE, strict=TRUE)
+character(0)
+> grid.grep("vp1::vp2", sampleGTree, viewports=TRUE)
+vp1::vp2 
+> # Searching for both
+> grid.grep("[a-z]", sampleGTree, viewports=TRUE, grep=TRUE, global=TRUE)
+[[1]]
+grandparent 
+
+[[2]]
+grandparent::parent 
+
+[[3]]
+vp1 
+
+[[4]]
+vp1::vp2 
+
+[[5]]
+grandparent::parent::child 
+
+> 
+> 
+> 
+> cleanEx()
+> nameEx("grid.layout")
+> ### * grid.layout
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: grid.layout
+> ### Title: Create a Grid Layout
+> ### Aliases: grid.layout
+> ### Keywords: dplot
+> 
+> ### ** Examples
+> 
+> ## A variety of layouts (some a bit mid-bending ...)
+> layout.torture()
+> ## Demonstration of layout justification
+> grid.newpage()
+> testlay <- function(just="centre") {
++   pushViewport(viewport(layout=grid.layout(1, 1, widths=unit(1, "inches"),
++                           heights=unit(0.25, "npc"),
++                           just=just)))
++   pushViewport(viewport(layout.pos.col=1, layout.pos.row=1))
++   grid.rect()
++   grid.text(paste(just, collapse="-"))
++   popViewport(2)
++ }
+> testlay()
+> testlay(c("left", "top"))
+> testlay(c("right", "top"))
+> testlay(c("right", "bottom"))
+> testlay(c("left", "bottom"))
+> testlay(c("left"))
+> testlay(c("right"))
+> testlay(c("bottom"))
+> testlay(c("top"))
+> 
+> 
+> 
+> cleanEx()
+> nameEx("grid.lines")
+> ### * grid.lines
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: grid.lines
+> ### Title: Draw Lines in a Grid Viewport
+> ### Aliases: grid.lines linesGrob grid.polyline polylineGrob
+> ### Keywords: dplot
+> 
+> ### ** Examples
+> 
+> grid.lines()
+> # Using id (NOTE: locations are not in consecutive blocks)
+> grid.newpage()
+> grid.polyline(x=c((0:4)/10, rep(.5, 5), (10:6)/10, rep(.5, 5)),
++              y=c(rep(.5, 5), (10:6/10), rep(.5, 5), (0:4)/10),
++              id=rep(1:5, 4),
++              gp=gpar(col=1:5, lwd=3))
+> # Using id.lengths
+> grid.newpage()
+> grid.polyline(x=outer(c(0, .5, 1, .5), 5:1/5),
++              y=outer(c(.5, 1, .5, 0), 5:1/5),
++              id.lengths=rep(4, 5),
++              gp=gpar(col=1:5, lwd=3))
+> 
+> 
+> 
+> cleanEx()
+> nameEx("grid.locator")
+> ### * grid.locator
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: grid.locator
+> ### Title: Capture a Mouse Click
+> ### Aliases: grid.locator
+> ### Keywords: dplot
+> 
+> ### ** Examples
+> 
+> if (dev.interactive()) {
++   ## Need to write a more sophisticated unit as.character method
++   unittrim <- function(unit) {
++     sub("^([0-9]+|[0-9]+[.][0-9])[0-9]*", "\\1", as.character(unit))
++   }
++   do.click <- function(unit) {
++     click.locn <- grid.locator(unit)
++     grid.segments(unit.c(click.locn$x, unit(0, "npc")),
++                   unit.c(unit(0, "npc"), click.locn$y),
++                   click.locn$x, click.locn$y,
++                   gp=gpar(lty="dashed", col="grey"))
++     grid.points(click.locn$x, click.locn$y, pch=16, size=unit(1, "mm"))
++     clickx <- unittrim(click.locn$x)
++     clicky <- unittrim(click.locn$y)
++     grid.text(paste0("(", clickx, ", ", clicky, ")"),
++               click.locn$x + unit(2, "mm"), click.locn$y,
++               just="left")
++   }
++ 
++   grid.newpage() # (empty slate)
++   ## device
++   do.click("inches")
++   Sys.sleep(1)
++ 
++   pushViewport(viewport(width=0.5, height=0.5,
++                         xscale=c(0, 100), yscale=c(0, 10)))
++   grid.rect()
++   grid.xaxis()
++   grid.yaxis()
++   do.click("native")
++   popViewport()
++ }
+> 
+> 
+> 
+> cleanEx()
+> nameEx("grid.ls")
+> ### * grid.ls
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: grid.ls
+> ### Title: List the names of grobs or viewports
+> ### Aliases: grid.ls nestedListing pathListing grobPathListing
+> ### Keywords: dplot
+> 
+> ### ** Examples
+> 
+> # A gTree, called "parent", with childrenvp vpTree (vp2 within vp1)
+> # and child grob, called "child", with vp vpPath (down to vp2)
+> sampleGTree <- gTree(name="parent",
++                      children=gList(grob(name="child", vp="vp1::vp2")),
++                      childrenvp=vpTree(parent=viewport(name="vp1"),
++                                        children=vpList(viewport(name="vp2"))))
+> grid.ls(sampleGTree)
+parent
+  child
+> # Show viewports too
+> grid.ls(sampleGTree, view=TRUE)
+parent
+  vp1
+    vp2
+      2
+  vp1
+    vp2
+      child
+      2
+> # Only show viewports
+> grid.ls(sampleGTree, view=TRUE, grob=FALSE)
+vp1
+  vp2
+    2
+vp1
+  vp2
+    2
+> # Alternate displays
+> # nested listing, custom indent
+> grid.ls(sampleGTree, view=TRUE, print=nestedListing, gindent="--")
+parent
+--vp1
+----vp2
+------2
+--vp1
+----vp2
+------child
+------2
+> # path listing
+> grid.ls(sampleGTree, view=TRUE, print=pathListing)
+            | parent
+vp1
+vp1::vp2
+vp1::vp2::2
+vp1
+vp1::vp2
+vp1::vp2    | parent::child
+vp1::vp2::2
+> # path listing, without grobs aligned
+> grid.ls(sampleGTree, view=TRUE, print=pathListing, gAlign=FALSE)
+ | parent
+vp1
+vp1::vp2
+vp1::vp2::2
+vp1
+vp1::vp2
+vp1::vp2 | parent::child
+vp1::vp2::2
+> # grob path listing
+> grid.ls(sampleGTree, view=TRUE, print=grobPathListing)
+         | parent
+vp1::vp2 | parent::child
+> # path listing, grobs only
+> grid.ls(sampleGTree, print=pathListing)
+ | parent
+ | parent::child
+> # path listing, viewports only
+> grid.ls(sampleGTree, view=TRUE, grob=FALSE, print=pathListing)
+vp1
+vp1::vp2
+vp1::vp2::2
+vp1
+vp1::vp2
+vp1::vp2::2
+> # raw flat listing
+> str(grid.ls(sampleGTree, view=TRUE, print=FALSE))
+List of 6
+ $ name   : chr [1:8] "parent" "vp1" "vp2" "2" ...
+ $ gDepth : num [1:8] 0 1 1 1 1 1 1 1
+ $ vpDepth: num [1:8] 0 0 1 2 0 1 2 2
+ $ gPath  : chr [1:8] "" "parent" "parent" "parent" ...
+ $ vpPath : chr [1:8] "" "" "vp1" "vp1::vp2" ...
+ $ type   : chr [1:8] "gTreeListing" "vpListing" "vpListing" "vpUpListing" ...
+ - attr(*, "class")= chr "flatGridListing"
+> 
+> 
+> 
+> cleanEx()
+> nameEx("grid.move.to")
+> ### * grid.move.to
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: grid.move.to
+> ### Title: Move or Draw to a Specified Position
+> ### Aliases: grid.move.to grid.line.to moveToGrob lineToGrob
+> ### Keywords: dplot
+> 
+> ### ** Examples
+> 
+> grid.newpage()
+> grid.move.to(0.5, 0.5)
+> grid.line.to(1, 1)
+> grid.line.to(0.5, 0)
+> pushViewport(viewport(x=0, y=0, w=0.25, h=0.25, just=c("left", "bottom")))
+> grid.rect()
+> grid.grill()
+> grid.line.to(0.5, 0.5)
+> popViewport()
+> 
+> 
+> 
+> cleanEx()
+> nameEx("grid.null")
+> ### * grid.null
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: grid.null
+> ### Title: Null Graphical Object
+> ### Aliases: grid.null nullGrob
+> ### Keywords: dplot
+> 
+> ### ** Examples
+> 
+> grid.newpage()
+> grid.null(name="ref")
+> grid.rect(height=grobHeight("ref"))
+> grid.segments(0, 0, grobX("ref", 0), grobY("ref", 0))
+> 
+> 
+> 
+> cleanEx()
+> nameEx("grid.path")
+> ### * grid.path
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: grid.path
+> ### Title: Draw a Path
+> ### Aliases: grid.path pathGrob
+> ### Keywords: dplot
+> 
+> ### ** Examples
+> 
+> pathSample <- function(x, y, rule, gp = gpar()) {
++     if (is.na(rule))
++         grid.path(x, y, id = rep(1:2, each = 4), gp = gp)
++     else
++         grid.path(x, y, id = rep(1:2, each = 4), rule = rule, gp = gp)
++     if (!is.na(rule))
++         grid.text(paste("Rule:", rule), y = 0, just = "bottom")
++ }
+> 
+> pathTriplet <- function(x, y, title) {
++     pushViewport(viewport(height = 0.9, layout = grid.layout(1, 3),
++                           gp = gpar(cex = .7)))
++     grid.rect(y = 1, height = unit(1, "char"), just = "top",
++               gp = gpar(col = NA, fill = "grey"))
++     grid.text(title, y = 1, just = "top")
++     pushViewport(viewport(layout.pos.col = 1))
++     pathSample(x, y, rule = "winding",
++                gp = gpar(fill = "grey"))
++     popViewport()
++     pushViewport(viewport(layout.pos.col = 2))
++     pathSample(x, y, rule = "evenodd",
++                gp = gpar(fill = "grey"))
++     popViewport()
++     pushViewport(viewport(layout.pos.col = 3))
++     pathSample(x, y, rule = NA)
++     popViewport()
++     popViewport()
++ }
+> 
+> pathTest <- function() {
++     grid.newpage()
++     pushViewport(viewport(layout = grid.layout(5, 1)))
++     pushViewport(viewport(layout.pos.row = 1))
++     pathTriplet(c(.1, .1, .9, .9, .2, .2, .8, .8),
++                 c(.1, .9, .9, .1, .2, .8, .8, .2),
++                 "Nested rectangles, both clockwise")
++     popViewport()
++     pushViewport(viewport(layout.pos.row = 2))
++     pathTriplet(c(.1, .1, .9, .9, .2, .8, .8, .2),
++                 c(.1, .9, .9, .1, .2, .2, .8, .8),
++                 "Nested rectangles, outer clockwise, inner anti-clockwise")
++     popViewport()
++     pushViewport(viewport(layout.pos.row = 3))
++     pathTriplet(c(.1, .1, .4, .4, .6, .9, .9, .6),
++                 c(.1, .4, .4, .1, .6, .6, .9, .9),
++                 "Disjoint rectangles")
++     popViewport()
++     pushViewport(viewport(layout.pos.row = 4))
++     pathTriplet(c(.1, .1, .6, .6, .4, .4, .9, .9),
++                 c(.1, .6, .6, .1, .4, .9, .9, .4),
++                 "Overlapping rectangles, both clockwise")
++     popViewport()
++     pushViewport(viewport(layout.pos.row = 5))
++     pathTriplet(c(.1, .1, .6, .6, .4, .9, .9, .4),
++                 c(.1, .6, .6, .1, .4, .4, .9, .9),
++                 "Overlapping rectangles, one clockwise, other anti-clockwise")
++     popViewport()
++     popViewport()
++ }
+> 
+> pathTest()
+> 
+> 
+> 
+> cleanEx()
+> nameEx("grid.plot.and.legend")
+> ### * grid.plot.and.legend
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: grid.plot.and.legend
+> ### Title: A Simple Plot and Legend Demo
+> ### Aliases: grid.plot.and.legend
+> ### Keywords: dplot
+> 
+> ### ** Examples
+> 
+> grid.plot.and.legend()
+> 
+> 
+> 
+> cleanEx()
+> nameEx("grid.polygon")
+> ### * grid.polygon
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: grid.polygon
+> ### Title: Draw a Polygon
+> ### Aliases: grid.polygon polygonGrob
+> ### Keywords: dplot
+> 
+> ### ** Examples
+> 
+> grid.polygon()
+> # Using id (NOTE: locations are not in consecutive blocks)
+> grid.newpage()
+> grid.polygon(x=c((0:4)/10, rep(.5, 5), (10:6)/10, rep(.5, 5)),
++              y=c(rep(.5, 5), (10:6/10), rep(.5, 5), (0:4)/10),
++              id=rep(1:5, 4),
++              gp=gpar(fill=1:5))
+> # Using id.lengths
+> grid.newpage()
+> grid.polygon(x=outer(c(0, .5, 1, .5), 5:1/5),
++              y=outer(c(.5, 1, .5, 0), 5:1/5),
++              id.lengths=rep(4, 5),
++              gp=gpar(fill=1:5))
+> 
+> 
+> 
+> cleanEx()
+> nameEx("grid.raster")
+> ### * grid.raster
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: grid.raster
+> ### Title: Render a raster object
+> ### Aliases: grid.raster rasterGrob
+> ### Keywords: dplot
+> 
+> ### ** Examples
+> 
+> redGradient <- matrix(hcl(0, 80, seq(50, 80, 10)),
++                       nrow=4, ncol=5)
+> # interpolated
+> grid.newpage()
+> grid.raster(redGradient)
+> # blocky
+> grid.newpage()
+> grid.raster(redGradient, interpolate=FALSE)
+> # blocky and stretched
+> grid.newpage()
+> grid.raster(redGradient, interpolate=FALSE, height=unit(1, "npc"))
+> 
+> # The same raster drawn several times
+> grid.newpage()
+> grid.raster(0, x=1:3/4, y=1:3/4, w=.1, interp=FALSE)
+> 
+> 
+> 
+> cleanEx()
+> nameEx("grid.record")
+> ### * grid.record
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: grid.record
+> ### Title: Encapsulate calculations and drawing
+> ### Aliases: grid.record recordGrob
+> ### Keywords: dplot
+> 
+> ### ** Examples
+> 
+> grid.record({
++               w <- convertWidth(unit(1, "inches"), "npc")
++               grid.rect(width=w)
++             },
++             list())
+> 
+> 
+> 
+> cleanEx()
+> nameEx("grid.reorder")
+> ### * grid.reorder
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: grid.reorder
+> ### Title: Reorder the children of a gTree
+> ### Aliases: grid.reorder reorderGrob
+> ### Keywords: dplot
+> 
+> ### ** Examples
+> 
+> # gTree with two children, "red-rect" and "blue-rect" (in that order)
+> gt <- gTree(children=gList(
++                 rectGrob(gp=gpar(col=NA, fill="red"),
++                          width=.8, height=.2, name="red-rect"),
++                 rectGrob(gp=gpar(col=NA, fill="blue"),
++                          width=.2, height=.8, name="blue-rect")),
++             name="gt")
+> grid.newpage()
+> grid.draw(gt)
+> # Spec entire order as numeric (blue-rect, red-rect)
+> grid.reorder("gt", 2:1)
+> # Spec entire order as character
+> grid.reorder("gt", c("red-rect", "blue-rect"))
+> # Only spec the one I want behind as character
+> grid.reorder("gt", "blue-rect")
+> # Only spec the one I want in front as character
+> grid.reorder("gt", "blue-rect", back=FALSE)
+> 
+> 
+> 
+> cleanEx()
+> nameEx("grid.roundrect")
+> ### * grid.roundrect
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: roundrect
+> ### Title: Draw a rectangle with rounded corners
+> ### Aliases: roundrect grid.roundrect roundrectGrob
+> ### Keywords: dplot
+> 
+> ### ** Examples
+> 
+> grid.roundrect(width=.5, height=.5, name="rr")
+> theta <- seq(0, 360, length=50)
+> for (i in 1:50)
++     grid.circle(x=grobX("rr", theta[i]),
++                 y=grobY("rr", theta[i]),
++                 r=unit(1, "mm"),
++                 gp=gpar(fill="black"))
+> 
+> 
+> 
+> cleanEx()
+> nameEx("grid.show.layout")
+> ### * grid.show.layout
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: grid.show.layout
+> ### Title: Draw a Diagram of a Grid Layout
+> ### Aliases: grid.show.layout
+> ### Keywords: dplot
+> 
+> ### ** Examples
+> 
+> ## Diagram of a simple layout
+> grid.show.layout(grid.layout(4,2,
++                      heights=unit(rep(1, 4),
++                                   c("lines", "lines", "lines", "null")),
++                      widths=unit(c(1, 1), "inches")))
+> 
+> 
+> 
+> cleanEx()
+> nameEx("grid.show.viewport")
+> ### * grid.show.viewport
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: grid.show.viewport
+> ### Title: Draw a Diagram of a Grid Viewport
+> ### Aliases: grid.show.viewport
+> ### Keywords: dplot
+> 
+> ### ** Examples
+> 
+> ## Diagram of a sample viewport
+> grid.show.viewport(viewport(x=0.6, y=0.6,
++                             w=unit(1, "inches"), h=unit(1, "inches")))
+> grid.show.viewport(viewport(layout.pos.row=2, layout.pos.col=2:3),
++                    grid.layout(3, 4))
+> 
+> 
+> 
+> cleanEx()
+> nameEx("grid.text")
+> ### * grid.text
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: grid.text
+> ### Title: Draw Text
+> ### Aliases: grid.text textGrob
+> ### Keywords: dplot
+> 
+> ### ** Examples
+> 
+> grid.newpage()
+> x <- stats::runif(20)
+> y <- stats::runif(20)
+> rot <- stats::runif(20, 0, 360)
+> grid.text("SOMETHING NICE AND BIG", x=x, y=y, rot=rot,
++           gp=gpar(fontsize=20, col="grey"))
+> grid.text("SOMETHING NICE AND BIG", x=x, y=y, rot=rot,
++           gp=gpar(fontsize=20), check=TRUE)
+> grid.newpage()
+> draw.text <- function(just, i, j) {
++   grid.text("ABCD", x=x[j], y=y[i], just=just)
++   grid.text(deparse(substitute(just)), x=x[j], y=y[i] + unit(2, "lines"),
++             gp=gpar(col="grey", fontsize=8))
++ }
+> x <- unit(1:4/5, "npc")
+> y <- unit(1:4/5, "npc")
+> grid.grill(h=y, v=x, gp=gpar(col="grey"))
+> draw.text(c("bottom"), 1, 1)
+> draw.text(c("left", "bottom"), 2, 1)
+> draw.text(c("right", "bottom"), 3, 1)
+> draw.text(c("centre", "bottom"), 4, 1)
+> draw.text(c("centre"), 1, 2)
+> draw.text(c("left", "centre"), 2, 2)
+> draw.text(c("right", "centre"), 3, 2)
+> draw.text(c("centre", "centre"), 4, 2)
+> draw.text(c("top"), 1, 3)
+> draw.text(c("left", "top"), 2, 3)
+> draw.text(c("right", "top"), 3, 3)
+> draw.text(c("centre", "top"), 4, 3)
+> draw.text(c(), 1, 4)
+> draw.text(c("left"), 2, 4)
+> draw.text(c("right"), 3, 4)
+> draw.text(c("centre"), 4, 4)
+> 
+> 
+> 
+> cleanEx()
+> nameEx("grid.xspline")
+> ### * grid.xspline
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: grid.xspline
+> ### Title: Draw an Xspline
+> ### Aliases: grid.xspline xsplineGrob
+> ### Keywords: dplot
+> 
+> ### ** Examples
+> 
+> x <- c(0.25, 0.25, 0.75, 0.75)
+> y <- c(0.25, 0.75, 0.75, 0.25)
+> 
+> xsplineTest <- function(s, i, j, open) {
++   pushViewport(viewport(layout.pos.col=j, layout.pos.row=i))
++   grid.points(x, y, default.units="npc", pch=16, size=unit(2, "mm"))
++   grid.xspline(x, y, shape=s, open=open, gp=gpar(fill="grey"))
++   grid.text(s, gp=gpar(col="grey"),
++             x=unit(x, "npc") + unit(c(-1, -1, 1, 1), "mm"),
++             y=unit(y, "npc") + unit(c(-1, 1, 1, -1), "mm"),
++             hjust=c(1, 1, 0, 0),
++             vjust=c(1, 0, 0, 1))
++   popViewport()
++ }
+> 
+> pushViewport(viewport(width=.5, x=0, just="left",
++                       layout=grid.layout(3, 3, respect=TRUE)))
+> pushViewport(viewport(layout.pos.row=1))
+> grid.text("Open Splines", y=1, just="bottom")
+> popViewport()
+> xsplineTest(c(0, -1, -1, 0), 1, 1, TRUE)
+> xsplineTest(c(0, -1,  0, 0), 1, 2, TRUE)
+> xsplineTest(c(0, -1,  1, 0), 1, 3, TRUE)
+> xsplineTest(c(0,  0, -1, 0), 2, 1, TRUE)
+> xsplineTest(c(0,  0,  0, 0), 2, 2, TRUE)
+> xsplineTest(c(0,  0,  1, 0), 2, 3, TRUE)
+> xsplineTest(c(0,  1, -1, 0), 3, 1, TRUE)
+> xsplineTest(c(0,  1,  0, 0), 3, 2, TRUE)
+> xsplineTest(c(0,  1,  1, 0), 3, 3, TRUE)
+> popViewport()
+> pushViewport(viewport(width=.5, x=1, just="right",
++                       layout=grid.layout(3, 3, respect=TRUE)))
+> pushViewport(viewport(layout.pos.row=1))
+> grid.text("Closed Splines", y=1, just="bottom")
+> popViewport()
+> xsplineTest(c(-1, -1, -1, -1), 1, 1, FALSE)
+> xsplineTest(c(-1, -1,  0, -1), 1, 2, FALSE)
+> xsplineTest(c(-1, -1,  1, -1), 1, 3, FALSE)
+> xsplineTest(c( 0,  0, -1,  0), 2, 1, FALSE)
+> xsplineTest(c( 0,  0,  0,  0), 2, 2, FALSE)
+> xsplineTest(c( 0,  0,  1,  0), 2, 3, FALSE)
+> xsplineTest(c( 1,  1, -1,  1), 3, 1, FALSE)
+> xsplineTest(c( 1,  1,  0,  1), 3, 2, FALSE)
+> xsplineTest(c( 1,  1,  1,  1), 3, 3, FALSE)
+> popViewport()
+> 
+> 
+> 
+> cleanEx()
+> nameEx("legendGrob")
+> ### * legendGrob
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: legendGrob
+> ### Title: Constructing a Legend Grob
+> ### Aliases: legendGrob grid.legend
+> ### Keywords: aplot
+> 
+> ### ** Examples
+> 
+>   ## Data:
+>   n <- 10
+>   x <- stats::runif(n) ; y1 <- stats::runif(n) ; y2 <- stats::runif(n)
+>   ## Construct the grobs :
+>   plot <- gTree(children=gList(rectGrob(),
++                   pointsGrob(x, y1, pch=21, gp=gpar(col=2, fill="gray")),
++                   pointsGrob(x, y2, pch=22, gp=gpar(col=3, fill="gray")),
++                   xaxisGrob(),
++                   yaxisGrob()))
+>   legd <- legendGrob(c("Girls", "Boys", "Other"), pch=21:23,
++                      gp=gpar(col = 2:4, fill = "gray"))
+>   gg <- packGrob(packGrob(frameGrob(), plot),
++                  legd, height=unit(1,"null"), side="right")
+> 
+>   ## Now draw it on a new device page:
+>   grid.newpage()
+>   pushViewport(viewport(width=0.8, height=0.8))
+>   grid.draw(gg)
+> 
+> 
+> 
+> cleanEx()
+> nameEx("resolveRasterSize")
+> ### * resolveRasterSize
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: resolveRasterSize
+> ### Title: Utility function to resolve the size of a raster grob
+> ### Aliases: resolveRasterSize
+> ### Keywords: dplot
+> 
+> ### ** Examples
+> 
+> # Square raster
+> rg <- rasterGrob(matrix(0))
+> # Fill the complete page (if page is square)
+> grid.newpage()
+> resolveRasterSize(rg)$height
+[1] 6.8inches
+> grid.draw(rg)
+> # Forced to fit tall thin region
+> grid.newpage()
+> pushViewport(viewport(width=.1))
+> resolveRasterSize(rg)$height
+[1] 0.68inches
+> grid.draw(rg)
+> 
+> 
+> 
+> cleanEx()
+> nameEx("showGrob")
+> ### * showGrob
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: showGrob
+> ### Title: Label grid grobs.
+> ### Aliases: showGrob
+> ### Keywords: dplot
+> 
+> ### ** Examples
+> 
+>     grid.newpage()
+>     gt <- gTree(childrenvp=vpStack(
++                   viewport(x=0, width=.5, just="left", name="vp"),
++                   viewport(y=.5, height=.5, just="bottom", name="vp2")),
++                 children=gList(rectGrob(vp="vp::vp2", name="child")),
++                 name="parent")
+>     grid.draw(gt)
+>     showGrob()
+>     showGrob(gPath="child")
+>     showGrob(recurse=FALSE)
+>     showGrob(depth=1)
+>     showGrob(depth=2)
+>     showGrob(depth=1:2)
+>     showGrob(gt)
+>     showGrob(gt, gPath="child")
+>     showGrob(just="left", gp=gpar(col="red", cex=.5), rot=45)
+>     showGrob(labelfun=function(grob, ...) {
++         x <- grobX(grob, "west")
++         y <- grobY(grob, "north")
++         gTree(children=gList(rectGrob(x=x, y=y,
++                 width=stringWidth(grob$name) + unit(2, "mm"),
++                 height=stringHeight(grob$name) + unit(2, "mm"),
++                 gp=gpar(col=NA, fill=rgb(1, 0, 0, .5)),
++                 just=c("left", "top")),
++                 textGrob(grob$name,
++                          x=x + unit(1, "mm"), y=y - unit(1, "mm"),
++                          just=c("left", "top"))))
++     })
+> 
+> ## Not run: 
+> ##D     # Examples from higher-level packages
+> ##D 
+> ##D     library(lattice)
+> ##D     # Ctrl-c after first example
+> ##D     example(histogram)
+> ##D     showGrob()
+> ##D     showGrob(gPath="plot_01.ylab")
+> ##D 
+> ##D     library(ggplot2)
+> ##D     # Ctrl-c after first example
+> ##D     example(qplot)
+> ##D     showGrob()
+> ##D     showGrob(recurse=FALSE)
+> ##D     showGrob(gPath="panel-3-3")
+> ##D     showGrob(gPath="axis.title", grep=TRUE)
+> ##D     showGrob(depth=2)
+> ## End(Not run)
+> 
+> 
+> 
+> cleanEx()
+> nameEx("showViewport")
+> ### * showViewport
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: showViewport
+> ### Title: Display grid viewports.
+> ### Aliases: showViewport
+> ### Keywords: dplot
+> 
+> ### ** Examples
+> 
+> showViewport(viewport(width=.5, height=.5, name="vp"))
+> 
+> grid.newpage()
+> pushViewport(viewport(width=.5, height=.5, name="vp"))
+> upViewport()
+> showViewport(vpPath("vp"))
+> 
+> showViewport(vpStack(viewport(width=.5, height=.5, name="vp1"),
++                      viewport(width=.5, height=.5, name="vp2")),
++              newpage=TRUE)
+> 
+> showViewport(vpStack(viewport(width=.5, height=.5, name="vp1"),
++                      viewport(width=.5, height=.5, name="vp2")),
++              fill=rgb(1:0, 0:1, 0, .1),
++              newpage=TRUE)
+> 
+> 
+> 
+> cleanEx()
+> nameEx("unit")
+> ### * unit
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: unit
+> ### Title: Function to Create a Unit Object
+> ### Aliases: unit
+> ### Keywords: dplot
+> 
+> ### ** Examples
+> 
+> unit(1, "npc")
+[1] 1npc
+> unit(1:3/4, "npc")
+[1] 0.25npc 0.5npc  0.75npc
+> unit(1:3/4, "npc") + unit(1, "inches")
+[1] 0.25npc+1inches 0.5npc+1inches  0.75npc+1inches
+> min(unit(0.5, "npc"), unit(1, "inches"))
+[1] min(0.5npc, 1inches)
+> unit.c(unit(0.5, "npc"), unit(2, "inches") + unit(1:3/4, "npc"),
++        unit(1, "strwidth", "hi there"))
+[1] 0.5npc          2inches+0.25npc 2inches+0.5npc  2inches+0.75npc
+[5] 1strwidth      
+> x <- unit(1:5, "npc")
+> x[2:4]
+[1] 2npc 3npc 4npc
+> x[2:4] <- unit(1, "mm")
+> x
+[1] 1npc 1mm  1mm  1mm  5npc
+> 
+> 
+> 
+> cleanEx()
+> nameEx("unit.length")
+> ### * unit.length
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: unit.length
+> ### Title: Length of a Unit Object
+> ### Aliases: unit.length
+> ### Keywords: dplot
+> 
+> ### ** Examples
+> 
+> length(unit(1:3, "npc"))
+[1] 3
+> length(unit(1:3, "npc") + unit(1, "inches"))
+[1] 3
+> length(max(unit(1:3, "npc") + unit(1, "inches")))
+[1] 1
+> length(max(unit(1:3, "npc") + unit(1, "strwidth", "a"))*4)
+[1] 1
+> length(unit(1:3, "npc") + unit(1, "strwidth", "a")*4)
+[1] 3
+> 
+> 
+> 
+> cleanEx()
+> nameEx("unit.pmin")
+> ### * unit.pmin
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: unit.pmin
+> ### Title: Parallel Unit Minima and Maxima
+> ### Aliases: unit.pmin unit.pmax
+> ### Keywords: dplot
+> 
+> ### ** Examples
+> 
+> max(unit(1:3, "cm"), unit(0.5, "npc"))
+[1] max(1cm, 2cm, 3cm, 0.5npc)
+> unit.pmax(unit(1:3, "cm"), unit(0.5, "npc"))
+[1] max(1cm, 0.5npc) max(2cm, 0.5npc) max(3cm, 0.5npc)
+> 
+> 
+> 
+> cleanEx()
+> nameEx("unit.rep")
+> ### * unit.rep
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: unit.rep
+> ### Title: Replicate Elements of Unit Objects
+> ### Aliases: unit.rep
+> ### Keywords: dplot
+> 
+> ### ** Examples
+> 
+> rep(unit(1:3, "npc"), 3)
+[1] 1npc 2npc 3npc 1npc 2npc 3npc 1npc 2npc 3npc
+> rep(unit(1:3, "npc"), 1:3)
+[1] 1npc 2npc 2npc 3npc 3npc 3npc
+> rep(unit(1:3, "npc") + unit(1, "inches"), 3)
+[1] 1npc+1inches 2npc+1inches 3npc+1inches 1npc+1inches 2npc+1inches
+[6] 3npc+1inches 1npc+1inches 2npc+1inches 3npc+1inches
+> rep(max(unit(1:3, "npc") + unit(1, "inches")), 3)
+[1] max(1npc+1inches, 2npc+1inches, 3npc+1inches)
+[2] max(1npc+1inches, 2npc+1inches, 3npc+1inches)
+[3] max(1npc+1inches, 2npc+1inches, 3npc+1inches)
+> rep(max(unit(1:3, "npc") + unit(1, "strwidth", "a"))*4, 3)
+[1] 4*max(1npc+1strwidth, 2npc+1strwidth, 3npc+1strwidth)
+[2] 4*max(1npc+1strwidth, 2npc+1strwidth, 3npc+1strwidth)
+[3] 4*max(1npc+1strwidth, 2npc+1strwidth, 3npc+1strwidth)
+> rep(unit(1:3, "npc") + unit(1, "strwidth", "a")*4, 3)
+[1] 1npc+4*1strwidth 2npc+4*1strwidth 3npc+4*1strwidth 1npc+4*1strwidth
+[5] 2npc+4*1strwidth 3npc+4*1strwidth 1npc+4*1strwidth 2npc+4*1strwidth
+[9] 3npc+4*1strwidth
+> 
+> 
+> 
+> cleanEx()
+> nameEx("viewport")
+> ### * viewport
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: Grid Viewports
+> ### Title: Create a Grid Viewport
+> ### Aliases: viewport vpList vpStack vpTree
+> ### Keywords: dplot
+> 
+> ### ** Examples
+> 
+> # Diagram of a sample viewport
+> grid.show.viewport(viewport(x=0.6, y=0.6,
++                    w=unit(1, "inches"), h=unit(1, "inches")))
+> # Demonstrate viewport clipping
+> clip.demo <- function(i, j, clip1, clip2) {
++   pushViewport(viewport(layout.pos.col=i,
++                          layout.pos.row=j))
++   pushViewport(viewport(width=0.6, height=0.6, clip=clip1))
++   grid.rect(gp=gpar(fill="white"))
++   grid.circle(r=0.55, gp=gpar(col="red", fill="pink"))
++   popViewport()
++   pushViewport(viewport(width=0.6, height=0.6, clip=clip2))
++   grid.polygon(x=c(0.5, 1.1, 0.6, 1.1, 0.5, -0.1, 0.4, -0.1),
++                y=c(0.6, 1.1, 0.5, -0.1, 0.4, -0.1, 0.5, 1.1),
++                gp=gpar(col="blue", fill="light blue"))
++   popViewport(2)
++ }
+> 
+> grid.newpage()
+> grid.rect(gp=gpar(fill="grey"))
+> pushViewport(viewport(layout=grid.layout(2, 2)))
+> clip.demo(1, 1, FALSE, FALSE)
+> clip.demo(1, 2, TRUE, FALSE)
+> clip.demo(2, 1, FALSE, TRUE)
+> clip.demo(2, 2, TRUE, TRUE)
+> popViewport()
+> # Demonstrate turning clipping off
+> grid.newpage()
+> pushViewport(viewport(w=.5, h=.5, clip="on"))
+> grid.rect()
+> grid.circle(r=.6, gp=gpar(lwd=10))
+> pushViewport(viewport(clip="inherit"))
+> grid.circle(r=.6, gp=gpar(lwd=5, col="grey"))
+> pushViewport(viewport(clip="off"))
+> grid.circle(r=.6)
+> popViewport(3)
+> # Demonstrate vpList, vpStack, and vpTree
+> grid.newpage()
+> tree <- vpTree(viewport(w=0.8, h=0.8, name="A"),
++                vpList(vpStack(viewport(x=0.1, y=0.1, w=0.5, h=0.5,
++                                        just=c("left", "bottom"), name="B"),
++                               viewport(x=0.1, y=0.1, w=0.5, h=0.5,
++                                        just=c("left", "bottom"), name="C"),
++                               viewport(x=0.1, y=0.1, w=0.5, h=0.5,
++                                        just=c("left", "bottom"), name="D")),
++                       viewport(x=0.5, w=0.4, h=0.9,
++                                just="left", name="E")))
+> pushViewport(tree)
+> for (i in LETTERS[1:5]) {
++   seekViewport(i)
++   grid.rect()
++   grid.text(current.vpTree(FALSE),
++             x=unit(1, "mm"), y=unit(1, "npc") - unit(1, "mm"),
++             just=c("left", "top"),
++             gp=gpar(fontsize=8))
++ }
+> 
+> 
+> 
+> cleanEx()
+> nameEx("viewports")
+> ### * viewports
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: Working with Viewports
+> ### Title: Maintaining and Navigating the Grid Viewport Tree
+> ### Aliases: pushViewport downViewport seekViewport popViewport upViewport
+> ### Keywords: dplot
+> 
+> ### ** Examples
+> 
+> # push the same viewport several times
+> grid.newpage()
+> vp <- viewport(width=0.5, height=0.5)
+> pushViewport(vp)
+> grid.rect(gp=gpar(col="blue"))
+> grid.text("Quarter of the device",
++   y=unit(1, "npc") - unit(1, "lines"), gp=gpar(col="blue"))
+> pushViewport(vp)
+> grid.rect(gp=gpar(col="red"))
+> grid.text("Quarter of the parent viewport",
++   y=unit(1, "npc") - unit(1, "lines"), gp=gpar(col="red"))
+> popViewport(2)
+> # push several viewports then navigate amongst them
+> grid.newpage()
+> grid.rect(gp=gpar(col="grey"))
+> grid.text("Top-level viewport",
++   y=unit(1, "npc") - unit(1, "lines"), gp=gpar(col="grey"))
+> if (interactive()) Sys.sleep(1.0)
+> pushViewport(viewport(width=0.8, height=0.7, name="A"))
+> grid.rect(gp=gpar(col="blue"))
+> grid.text("1. Push Viewport A",
++   y=unit(1, "npc") - unit(1, "lines"), gp=gpar(col="blue"))
+> if (interactive()) Sys.sleep(1.0)
+> pushViewport(viewport(x=0.1, width=0.3, height=0.6,
++   just="left", name="B"))
+> grid.rect(gp=gpar(col="red"))
+> grid.text("2. Push Viewport B (in A)",
++   y=unit(1, "npc") - unit(1, "lines"), gp=gpar(col="red"))
+> if (interactive()) Sys.sleep(1.0)
+> upViewport(1)
+> grid.text("3. Up from B to A",
++   y=unit(1, "npc") - unit(2, "lines"), gp=gpar(col="blue"))
+> if (interactive()) Sys.sleep(1.0)
+> pushViewport(viewport(x=0.5, width=0.4, height=0.8,
++   just="left", name="C"))
+> grid.rect(gp=gpar(col="green"))
+> grid.text("4. Push Viewport C (in A)",
++   y=unit(1, "npc") - unit(1, "lines"), gp=gpar(col="green"))
+> if (interactive()) Sys.sleep(1.0)
+> pushViewport(viewport(width=0.8, height=0.6, name="D"))
+> grid.rect()
+> grid.text("5. Push Viewport D (in C)",
++   y=unit(1, "npc") - unit(1, "lines"))
+> if (interactive()) Sys.sleep(1.0)
+> upViewport(0)
+> grid.text("6. Up from D to top-level",
++   y=unit(1, "npc") - unit(2, "lines"), gp=gpar(col="grey"))
+> if (interactive()) Sys.sleep(1.0)
+> downViewport("D")
+> grid.text("7. Down from top-level to D",
++   y=unit(1, "npc") - unit(2, "lines"))
+> if (interactive()) Sys.sleep(1.0)
+> seekViewport("B")
+> grid.text("8. Seek from D to B",
++   y=unit(1, "npc") - unit(2, "lines"), gp=gpar(col="red"))
+> pushViewport(viewport(width=0.9, height=0.5, name="A"))
+> grid.rect()
+> grid.text("9. Push Viewport A (in B)",
++   y=unit(1, "npc") - unit(1, "lines"))
+> if (interactive()) Sys.sleep(1.0)
+> seekViewport("A")
+> grid.text("10. Seek from B to A (in ROOT)",
++   y=unit(1, "npc") - unit(3, "lines"), gp=gpar(col="blue"))
+> if (interactive()) Sys.sleep(1.0)
+> seekViewport(vpPath("B", "A"))
+> grid.text("11. Seek from\nA (in ROOT)\nto A (in B)")
+> popViewport(0)
+> 
+> 
+> 
+> cleanEx()
+> nameEx("vpPath")
+> ### * vpPath
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: vpPath
+> ### Title: Concatenate Viewport Names
+> ### Aliases: vpPath
+> ### Keywords: dplot
+> 
+> ### ** Examples
+> 
+> vpPath("vp1", "vp2")
+vp1::vp2 
+> 
+> 
+> 
+> cleanEx()
+> nameEx("xsplinePoints")
+> ### * xsplinePoints
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: xsplinePoints
+> ### Title: Return the points that would be used to draw an Xspline (or a
+> ###   Bezier curve).
+> ### Aliases: xsplinePoints bezierPoints
+> ### Keywords: dplot
+> 
+> ### ** Examples
+> 
+> grid.newpage()
+> xsg <- xsplineGrob(c(.1, .1, .9, .9), c(.1, .9, .9, .1), shape=1)
+> grid.draw(xsg)
+> trace <- xsplinePoints(xsg)
+> grid.circle(trace$x, trace$y, default.units="inches", r=unit(.5, "mm"))
+> 
+> grid.newpage()
+> vp <- viewport(width=.5)
+> xg <- xsplineGrob(x=c(0, .2, .4, .2, .5, .7, .9, .7),
++                   y=c(.5, 1, .5, 0, .5, 1, .5, 0),
++                   id=rep(1:2, each=4),
++                   shape=1,
++                   vp=vp)
+> grid.draw(xg)
+> trace <- xsplinePoints(xg)
+> pushViewport(vp)
+> invisible(lapply(trace, function(t) grid.lines(t$x, t$y, gp=gpar(col="red"))))
+> popViewport()
+> 
+> grid.newpage()
+> bg <- bezierGrob(c(.2, .2, .8, .8), c(.2, .8, .8, .2))
+> grid.draw(bg)
+> trace <- bezierPoints(bg)
+> grid.circle(trace$x, trace$y, default.units="inches", r=unit(.5, "mm"))
+> 
+> 
+> 
+> ### * <FOOTER>
+> ###
+> cleanEx()
+> options(digits = 7L)
+> base::cat("Time elapsed: ", proc.time() - base::get("ptime", pos = 'CheckExEnv'),"\n")
+Time elapsed:  2.06 0.059 2.129 0 0 
+> grDevices::dev.off()
+null device 
+          1 
+> ###
+> ### Local variables: ***
+> ### mode: outline-minor ***
+> ### outline-regexp: "\\(> \\)?### [*]+" ***
+> ### End: ***
+> quit('no')

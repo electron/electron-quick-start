@@ -1,0 +1,212 @@
+---
+title: "Combining pages of JSON data with jsonlite"
+date: "2017-05-31"
+output:
+  html_document
+vignette: >
+  %\VignetteIndexEntry{Combining pages of JSON data with jsonlite}
+  %\VignetteEngine{knitr::rmarkdown}
+  \usepackage[utf8]{inputenc}
+---
+
+
+
+
+
+
+The [jsonlite](https://cran.r-project.org/package=jsonlite) package is a `JSON` parser/generator for R which is optimized for pipelines and web APIs. It is used by the OpenCPU system and many other packages to get data in and out of R using the `JSON` format.
+
+## A bidirectional mapping
+
+One of the main strengths of `jsonlite` is that it implements a bidirectional [mapping](http://arxiv.org/abs/1403.2805) between JSON and data frames. Thereby it can convert nested collections of JSON records, as they often appear on the web, immediately into the appropriate R structure. For example to grab some data from ProPublica we can simply use:
+
+
+```r
+library(jsonlite)
+mydata <- fromJSON("https://projects.propublica.org/forensics/geos.json", flatten = TRUE)
+View(mydata)
+```
+
+The `mydata` object is a data frame which can be used directly for modeling or visualization, without the need for any further complicated data manipulation.
+
+## Paging with jsonlite
+
+A question that comes up frequently is how to combine pages of data. Most web APIs limit the amount of data that can be retrieved per request. If the client needs more data than what can fits in a single request, it needs to break down the data into multiple requests that each retrieve a fragment (page) of data, not unlike pages in a book. In practice this is often implemented using a `page` parameter in the API. Below an example from the [ProPublica Nonprofit Explorer API](http://projects.propublica.org/nonprofits/api) where we retrieve the first 3 pages of tax-exempt organizations in the USA, ordered by revenue:
+
+
+```r
+baseurl <- "https://projects.propublica.org/nonprofits/api/v1/search.json?order=revenue&sort_order=desc"
+mydata0 <- fromJSON(paste0(baseurl, "&page=0"), flatten = TRUE)
+mydata1 <- fromJSON(paste0(baseurl, "&page=1"), flatten = TRUE)
+mydata2 <- fromJSON(paste0(baseurl, "&page=2"), flatten = TRUE)
+
+#The actual data is in the filings element
+mydata0$filings[1:10, c("organization.sub_name", "organization.city", "totrevenue")]
+```
+
+```
+               organization.sub_name organization.city  totrevenue
+1  KAISER FOUNDATION HEALTH PLAN INC           OAKLAND 40148558254
+2  KAISER FOUNDATION HEALTH PLAN INC           OAKLAND 37786011714
+3        KAISER FOUNDATION HOSPITALS           OAKLAND 20796549014
+4        KAISER FOUNDATION HOSPITALS           OAKLAND 17980030355
+5    PARTNERS HEALTHCARE SYSTEM INC         SOMERVILLE 10619215354
+6                              UPMC         PITTSBURGH 10098163008
+7    UAW RETIREE MEDICAL BENEFITS TR           DETROIT  9890722789
+8   THRIVENT FINANCIAL FOR LUTHERANS       MINNEAPOLIS  9475129863
+9   THRIVENT FINANCIAL FOR LUTHERANS       MINNEAPOLIS  9021585970
+10                    DIGNITY HEALTH     SAN FRANCISCO  8718896265
+```
+
+To analyze or visualize these data, we need to combine the pages into a single dataset. We can do this with the `rbind_pages` function. Note that in this example, the actual data is contained by the `filings` field:
+
+
+```r
+#Rows per data frame
+nrow(mydata0$filings)
+```
+
+```
+[1] 25
+```
+
+```r
+#Combine data frames
+filings <- rbind_pages(
+  list(mydata0$filings, mydata1$filings, mydata2$filings)
+)
+
+#Total number of rows
+nrow(filings)
+```
+
+```
+[1] 75
+```
+
+## Automatically combining many pages
+
+We can write a simple loop that automatically downloads and combines many pages. For example to retrieve the first 20 pages with non-profits from the example above:
+
+
+```r
+#store all pages in a list first
+baseurl <- "https://projects.propublica.org/nonprofits/api/v1/search.json?order=revenue&sort_order=desc"
+pages <- list()
+for(i in 0:20){
+  mydata <- fromJSON(paste0(baseurl, "&page=", i))
+  message("Retrieving page ", i)
+  pages[[i+1]] <- mydata$filings
+}
+
+#combine all into one
+filings <- rbind_pages(pages)
+
+#check output
+nrow(filings)
+```
+
+```
+[1] 525
+```
+
+```r
+colnames(filings)
+```
+
+```
+  [1] "tax_prd"               "tax_prd_yr"           
+  [3] "formtype"              "pdf_url"              
+  [5] "updated"               "totrevenue"           
+  [7] "totfuncexpns"          "totassetsend"         
+  [9] "totliabend"            "pct_compnsatncurrofcr"
+ [11] "tax_pd"                "subseccd"             
+ [13] "unrelbusinccd"         "initiationfees"       
+ [15] "grsrcptspublicuse"     "grsincmembers"        
+ [17] "grsincother"           "totcntrbgfts"         
+ [19] "totprgmrevnue"         "invstmntinc"          
+ [21] "txexmptbndsproceeds"   "royaltsinc"           
+ [23] "grsrntsreal"           "grsrntsprsnl"         
+ [25] "rntlexpnsreal"         "rntlexpnsprsnl"       
+ [27] "rntlincreal"           "rntlincprsnl"         
+ [29] "netrntlinc"            "grsalesecur"          
+ [31] "grsalesothr"           "cstbasisecur"         
+ [33] "cstbasisothr"          "gnlsecur"             
+ [35] "gnlsothr"              "netgnls"              
+ [37] "grsincfndrsng"         "lessdirfndrsng"       
+ [39] "netincfndrsng"         "grsincgaming"         
+ [41] "lessdirgaming"         "netincgaming"         
+ [43] "grsalesinvent"         "lesscstofgoods"       
+ [45] "netincsales"           "miscrevtot11e"        
+ [47] "compnsatncurrofcr"     "othrsalwages"         
+ [49] "payrolltx"             "profndraising"        
+ [51] "txexmptbndsend"        "secrdmrtgsend"        
+ [53] "unsecurednotesend"     "retainedearnend"      
+ [55] "totnetassetend"        "nonpfrea"             
+ [57] "gftgrntsrcvd170"       "txrevnuelevied170"    
+ [59] "srvcsval170"           "grsinc170"            
+ [61] "grsrcptsrelated170"    "totgftgrntrcvd509"    
+ [63] "grsrcptsadmissn509"    "txrevnuelevied509"    
+ [65] "srvcsval509"           "subtotsuppinc509"     
+ [67] "totsupp509"            "ein"                  
+ [69] "organization"          "eostatus"             
+ [71] "tax_yr"                "operatingcd"          
+ [73] "assetcdgen"            "transinccd"           
+ [75] "subcd"                 "grscontrgifts"        
+ [77] "intrstrvnue"           "dividndsamt"          
+ [79] "totexcapgn"            "totexcapls"           
+ [81] "grsprofitbus"          "otherincamt"          
+ [83] "compofficers"          "contrpdpbks"          
+ [85] "totrcptperbks"         "totexpnspbks"         
+ [87] "excessrcpts"           "totexpnsexempt"       
+ [89] "netinvstinc"           "totaxpyr"             
+ [91] "adjnetinc"             "invstgovtoblig"       
+ [93] "invstcorpstk"          "invstcorpbnd"         
+ [95] "totinvstsec"           "fairmrktvalamt"       
+ [97] "undistribincyr"        "cmpmininvstret"       
+ [99] "sec4940notxcd"         "sec4940redtxcd"       
+[101] "infleg"                "contractncd"          
+[103] "claimstatcd"           "propexchcd"           
+[105] "brwlndmnycd"           "furngoodscd"          
+[107] "paidcmpncd"            "trnsothasstscd"       
+[109] "agremkpaycd"           "undistrinccd"         
+[111] "dirindirintcd"         "invstjexmptcd"        
+[113] "propgndacd"            "excesshldcd"          
+[115] "grntindivcd"           "nchrtygrntcd"         
+[117] "nreligiouscd"          "grsrents"             
+[119] "costsold"              "totrcptnetinc"        
+[121] "trcptadjnetinc"        "topradmnexpnsa"       
+[123] "topradmnexpnsb"        "topradmnexpnsd"       
+[125] "totexpnsnetinc"        "totexpnsadjnet"       
+[127] "othrcashamt"           "mrtgloans"            
+[129] "othrinvstend"          "fairmrktvaleoy"       
+[131] "mrtgnotespay"          "tfundnworth"          
+[133] "invstexcisetx"         "sect511tx"            
+[135] "subtitleatx"           "esttaxcr"             
+[137] "txwithldsrc"           "txpaidf2758"          
+[139] "erronbkupwthld"        "estpnlty"             
+[141] "balduopt"              "crelamt"              
+[143] "tfairmrktunuse"        "distribamt"           
+[145] "adjnetinccola"         "adjnetinccolb"        
+[147] "adjnetinccolc"         "adjnetinccold"        
+[149] "adjnetinctot"          "qlfydistriba"         
+[151] "qlfydistribb"          "qlfydistribc"         
+[153] "qlfydistribd"          "qlfydistribtot"       
+[155] "valassetscola"         "valassetscolb"        
+[157] "valassetscolc"         "valassetscold"        
+[159] "valassetstot"          "qlfyasseta"           
+[161] "qlfyassetb"            "qlfyassetc"           
+[163] "qlfyassetd"            "qlfyassettot"         
+[165] "endwmntscola"          "endwmntscolb"         
+[167] "endwmntscolc"          "endwmntscold"         
+[169] "endwmntstot"           "totsuprtcola"         
+[171] "totsuprtcolb"          "totsuprtcolc"         
+[173] "totsuprtcold"          "totsuprttot"          
+[175] "pubsuprtcola"          "pubsuprtcolb"         
+[177] "pubsuprtcolc"          "pubsuprtcold"         
+[179] "pubsuprttot"           "grsinvstinca"         
+[181] "grsinvstincb"          "grsinvstincc"         
+[183] "grsinvstincd"          "grsinvstinctot"       
+```
+
+From here, we can go straight to analyzing the filings data without any further tedious data manipulation.

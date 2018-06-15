@@ -1,0 +1,289 @@
+\documentclass[11pt, a4paper]{article}
+\usepackage[a4paper, text={16cm,25cm}]{geometry}
+
+%\VignetteIndexEntry{covMcd() -- Generalizing the FastMCD}
+%\VignetteDepends{robustbase}
+\SweaveOpts{prefix.string=mcd, eps=FALSE, pdf=TRUE, strip.white=true}
+\SweaveOpts{width=6, height=4.1}
+
+\usepackage{amsmath}
+\usepackage{amsfonts}% \mathbb
+\usepackage{mathtools}% -> \floor, \ceil
+\usepackage[utf8]{inputenc}
+%% The following is partly R's share/texmf/Rd.sty
+\usepackage{color}
+\usepackage{hyperref}
+\definecolor{Blue}{rgb}{0,0,0.8}
+\definecolor{Red}{rgb}{0.7,0,0}
+\hypersetup{%
+  hyperindex,%
+  colorlinks={true},%
+  pagebackref,%
+  linktocpage,%
+  plainpages={false},%
+  linkcolor={Blue},%
+  citecolor={Blue},%
+  urlcolor={Red},%
+  pdfstartview={Fit},%
+  pdfview={XYZ null null null}%
+}
+
+\usepackage{natbib}
+\usepackage[noae]{Sweave}
+%----------------------------------------------------
+\DeclarePairedDelimiter{\ceil}{\lceil}{\rceil}
+\DeclarePairedDelimiter{\floor}{\lfloor}{\rfloor}
+\DeclareMathOperator{\sign}{sign}
+\newcommand{\abs}[1]{\left| #1 \right|}
+\newtheorem{definition}{Definition}
+\newcommand{\byDef}{\mathrm{by\ default}}
+\newcommand{\R}{{\normalfont\textsf{R}}{}}
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand*{\pkg}[1]{\texttt{#1}}
+\newcommand*{\CRANpkg}[1]{\href{https://CRAN.R-project.org/package=#1}{\pkg{#1}}}
+
+%----------------------------------------------------
+\begin{document}
+\setkeys{Gin}{width=0.9\textwidth}
+\setlength{\abovecaptionskip}{-5pt}
+
+\title{covMcd() -- Considerations about Generalizing the FastMCD}
+\author{Martin M\"achler}
+\maketitle
+%\tableofcontents
+%%
+%% Pison, G., Van Aelst, S., and Willems, G. (2002)
+%% Small Sample Corrections for LTS and MCD.
+%% Metrika % ~/save/papers/robust-diverse/Pison_VanAelst_Willems.pdf
+%%
+<<init, echo=FALSE>>=
+# set margins for plots
+options(SweaveHooks=list(fig=function() par(mar=c(3,3,1.4,0.7),
+                         mgp=c(1.5, 0.5, 0))),
+        width = 75)
+@
+
+\section{Introduction}
+The context is robust multivariate ``location and scatter'' estimation,
+which corresponds to estimating the first two moments in cases they exist.
+We assume data and a model
+\begin{align}
+  \label{eq:data-model}
+  x_i & \in  \mathbb{R}^p, \ \ i=1,2,\dots,n \\
+  x_i & \sim \mathcal{F}(\mu, \Sigma), \ \ \mathrm{i.i.d.};\ \
+  \mu \in \mathbb{R}^p, \ \ \Sigma \in \mathbb{R}^{p \times p}, \ \textrm{positive definite},
+\end{align}
+where a conceptual null model is the  $p$-dimensional normal distribution.
+One typical assumption is that $\mathcal{F}$ is a mixture with the majority
+component (``good data'') being $\mathcal{N}_p(\mu, \Sigma)$ and other components
+modeling ``the outliers''.
+
+In other words, we want estimates $\bigl(\hat{\mu}, \hat{\Sigma}\bigr)$ which should
+be close to the true ``good data'' $(\mu, \Sigma)$ --- and do not say more here.
+
+\section{MCD and ``the Fast'' MCD (= \textsc{fastmcd}) Algorithm}
+The \CRANpkg{robustbase} \R{} package has featured a function
+\code{covMcd()} since early on (Feb.~2006)
+and that has been an interface to the Fortran routine provided by the
+original authors and (partly) described in \citet{RouPvD99}.
+%% Rousseeuw, P. J. and van Driessen, K. (1999)
+%% A fast algorithm for the minimum covariance determinant estimator.
+%% Technometrics {41}, 212--223.
+%% >> ~/save/papers/robust-diverse/Rousseeuw_VanD-FastMCD_1999.pdf
+%     ------------------------------------------------------------
+We describe shortly how the algorithm works, partly building on the
+documentation provided in the source (R, S, and Fortran) codes:
+
+%%  R CMD Rdconv --type=latex ../../man/covMcd.Rd > covMcd.tex
+The minimum covariance determinant estimator of location and scatter (MCD)
+implemented in \code{covMcd()} is similar to \R{} function
+\code{cov.mcd()} in \CRANpkg{MASS}.  The (``theoretical'') MCD looks for
+the $h = h_\alpha (> 1/2)$ out of $n$ observations whose classical covariance
+matrix has the lowest possible determinant.  In more detail, we will use
+$h = h_\alpha = h(\alpha,n,p) \approx \alpha \cdot (n+p+1)$,
+where as \citet{RouPvD99} mainly use (the default) $\alpha = \frac 1 2$,
+where $h = h(1/2, n, p) = \floor[\Big]{\frac{n+p+1}{2}}$.
+For general $\alpha \ge \frac 1 2$, the \R{} implementation (derived
+from their original S code) uses
+$h = h(\alpha,n,p) =$ \code{h.alpha.n(alpha,n,p)} (function in
+\pkg{robustbase}), which is
+\begin{eqnarray}
+  \label{eq:def-h}
+  h = h_\alpha = h(\alpha,n,p) := \floor{2 n_2 - n + 2 \alpha (n - n_2)}, \
+  \mathrm{where\ } n_2 := \floor[\Big]{\frac{n+p+1}{2}}%
+  %= (n+p+1)/2 \ \ (\mathrm{\ where ``/'' denotes \emph{integer} division})
+  .
+\end{eqnarray}
+The fraction $\alpha \ge \frac 1 2$ can be chosen by the user,
+where $\alpha = \frac 1 2$ is the most robust, and indeed, $h_{1/2} = n_2 =
+\floor[\Big]{\frac{n+p+1}{2}}$.  Even in general, as long as $n \gg p$,
+$\alpha$ is approximately the \emph{proportion} of the subsample size $h$ in
+the full sample (size $n$):
+\begin{equation}
+  \label{eq:h.approx}
+  h \approx \alpha \cdot n \iff \alpha \approx \frac{h}{n},
+\end{equation}
+<<h.alpha.ex>>=
+require(robustbase)
+n <- c(5, 10, 20, 30, 50, 100, 200, 500)
+hmat <- function(alpha, p) cbind(n, h.alpha = h.alpha.n (alpha, n,p),
+        h. = floor(alpha * (n + p + 1)), alpha.n = round(alpha * n))
+hmat(alpha = 1/2, p = 3)
+hmat(alpha = 3/4, p = 4)
+@
+
+The breakdown point (for $h > \frac{n}{2}$) then is
+\begin{eqnarray}
+  \label{eq:breakdown}
+  \epsilon_{*} = \frac{n-h+1}{n},
+\end{eqnarray}
+which is less than but close to $\frac 1 2$ for $\alpha = \frac 1 2$, and in general,
+$h/n \approx \alpha$, the breakdown point is approximately,
+\begin{eqnarray}
+  \label{eq:eps-approx}
+  \epsilon_{*} = \frac{n-h+1}{n} \approx \frac{n-h}{n} = 1 - \frac{h}{n}
+  \approx 1 - \alpha.
+\end{eqnarray}
+
+
+The raw MCD estimate of location, say $\hat{\mu}_0$, is then the average of these $h$ points,
+whereas the raw MCD estimate of scatter, $\hat{\Sigma}_0$, is their covariance matrix,
+multiplied by a consistency factor \code{.MCDcons(p, h/n)}) and (by default)
+a finite sample correction factor \code{.MCDcnp2(p, n, alpha)}, to make it
+consistent at the normal model and unbiased at small samples.
+%% Both rescaling factors (consistency and finite sample) are returned in the length-2 vector
+%% \code{raw.cnp2}.
+
+In practice, for reasonably sized $n$, $p$ and hence $h$, it is not
+feasible to search the full space of all $n \choose h$ $h$-subsets of $n$
+observations.  Rather, the implementation of \code{covMcd} uses the Fast
+MCD algorithm of \citet{RouPvD99} to approximate the minimum covariance
+determinant estimator, see Section~\ref{sec:fastMCD}.
+
+Based on these raw MCD estimates, $\bigl(\hat{\mu}_0, \hat{\Sigma}_0\bigr)$,
+% (unless argument \code{raw.only} is true),
+a reweighting step is performed, i.e., \code{V <- cov.wt(x,w)},
+where \code{w} are weights determined by ``outlyingness''
+with respect to the scaled raw MCD, using the ``Mahalanobis''-like, robust distances
+$d_i\bigl(\hat{\mu}_0, \hat{\Sigma}_0\bigr)$, see (\ref{eq:Maha}).
+Again, a consistency factor and
+%(if \code{use.correction} is true)
+a finite sample correction factor %(\code{.MCDcnp2.rew(p, n, alpha)})
+are applied.
+The reweighted covariance is typically considerably more efficient
+than the raw one, see \citet{PisGvAW02}.
+
+The two rescaling factors for the reweighted estimates are returned in
+\code{cnp2}.  Details for the computation of the finite sample
+correction factors can be found in \citet{PisGvAW02}.
+
+\section{Fast MCD Algorithm -- General notation}\label{sec:fastMCD}
+
+\paragraph{Note:} In the following, apart from the mathematical notation, we also use
+variable names, e.g., \code{kmini}, used in the Fortran and sometimes \R{} function code,
+in \R{} package \CRANpkg{robustbase}.
+
+Instead of directly searching for $h$-subsets (among ${n \choose h} \approx
+{n \choose n/2}$) the basic idea is to start with small subsets of size
+$p+1$, their center $\mu$ and covariance matrix $\Sigma$, and a corresponding $h$-subset
+of the $h$ observations with smallest (squared) (``Mahalanobis''-like) distances
+\begin{align}  \label{eq:Maha}
+d_i = d_i(\mu,\Sigma) :=  (x_i - \mu)' \Sigma^{-1} (x_i - \mu), \ \ i=1,2,\dots,n,
+\end{align}
+and then use concentration
+steps (``C~steps'') to (locally) improve the chosen set by iteratively
+computing $\mu$, $\Sigma$, new distances $d_i$ and a new set of size $h$ with
+smallest distances $d_i(\mu,\Sigma)$. Each C~step is proven to decrease the
+determinant $\det(\Sigma)$ if $\mu$ and $\Sigma$ did change at all.
+Consequently, convergence to a local minimum is sure, as the number of $h$-subsets is finite.
+
+To make the algorithm \emph{fast} for non small sample size $n$ the data set is
+split into ``groups'' or ``sub-datasets'' as soon as
+\begin{eqnarray} \label{eq:nmini}
+  n \ge 2 n_0, \ \mathrm{ where}\ \  n_0 := \mathtt{nmini} \ ( = 300, \byDef).
+\end{eqnarray}
+i.e., the default cutoff for ``non small'' is at $n = 600$.
+%%
+The \emph{number} of such subsets in the original algorithm is maximally 5,
+and we now use
+\begin{eqnarray}  \label{eq:kmini}
+  k_M = \code{kmini} \ (= 5, \byDef),
+\end{eqnarray}
+as upper limit. As above, we assume from now on that $n \ge 2 n_0$, and let
+\begin{eqnarray} \label{eq:k-def}
+  k := \floor[\Big]{\frac{n}{n_0}} \ge 2
+\end{eqnarray}
+and now distinguish the two cases,
+\begin{eqnarray}
+  \label{eq:cases}
+  \begin{cases}
+    A. & k   < k_M  \iff n  <  k_M \cdot n_0 \\
+    B. & k \ge k_M  \iff n \ge k_M \cdot n_0
+  \end{cases}
+\end{eqnarray}
+\begin{description}
+\item[In case A] $k$ (\code{= ngroup}) subsets aka ``groups'' or ``sub datasets''
+  are used, $k \in\{2,3,\dots,k_M-1\}$, of group sizes $n_j$,
+  $j=1,\dots,k$ (see below).  Note that case~A may be empty because of $2
+  \le k < k_M$, namely if $k_M=2$.  Hence, in case~A, we have $k_M \ge 3$.
+\item[in case B] $k_M$ (\code{= ngroup}) groups each of size $n_0$ are
+  built and in the first stage, only a \emph{subset} of $k_M \cdot n_0 \le n$
+  observations is used.
+\end{description}
+In both cases, the disjoint groups (``sub datasets'') are chosen at random
+from the $n$ observations.
+%%
+For the group sizes for case~A, $n_j$, $j=1,\dots,k$, we have
+\begin{align}
+  n_1 = \; & \floor[\Big]{\frac n k} =
+             \floor[\bigg]{\frac{n}{\floor[\big]{\frac{n}{n_0}}}} \ \ (\; \ge n_0 \label{eq:n1})\\
+  n_j = \; & n_1,\hspace*{2.8em} j = 2,\dots,j_* \\
+  n_j = \; & n_1 + 1, \ \ \    j = j_* +1,\dots,k, \label{n1-plus-1}\\
+  & \qquad \mathrm{where}\ \ j_* := k - r \ \in \{1,\dots,k\}, \label{jstar}\\
+  & \qquad \mathrm{and}\ \  r := n - k n_1 = \label{r-rest}
+                           n - k\floor[\big]{\frac n k} \in \{0,1,\dots,k-1\},
+\end{align}
+where the range of $j_*$, $1,\dots,k$ in (\ref{jstar}) is a consequence of the range of
+the integer division remainder $r \in \{0,1,\dots,k-1\}$ in
+(\ref{r-rest}).  Consequently, (\ref{n1-plus-1}) maybe empty, namely iff
+$r=0$ ($\iff n = k \cdot n_1$ is a multiple of $k$): $j_* = k$, and all $n_j \equiv n_1$.
+
+Considering the range of $n_j$ in case~A, the minimum $n_1 \ge n_0$ in
+(\ref{eq:n1}) is easy to verify.  What is the maximal value of $n_j$ , i.e.,
+an upper bound for $n_{\max} := n_1+1 \ge \max_j n_j$? \
+%%
+%% This is all correct but not useful:
+%% From (\ref{eq:n1}),     $ n/k - 1 < n_1 \le n/k  $, and
+%% from (\ref{eq:k-def}),  $n/n_0 - 1 < k  \le n/n_0$.
+%% Putting these two together, we get
+%% \begin{eqnarray}
+%%   \label{eq:n1-ineq}
+%%   \frac{n^2}{n_0} - 1 \le n/k - 1 < n_1 \le n/k < \frac{n n_0}{n - n_0},
+%% \end{eqnarray}
+%% (the first $\le$ from $\frac{1}{k} \ge \frac{n_0}{n}$; the last $<$ from
+%% $\frac{1}{k} < \frac 1{n/n_0 -1} = \frac{n_0}{n-n_0}$.) Also,
+%% from (\ref{eq:k-def}), $n \ge k n_0$ and $n-n_0 \ge (k-1)n_0$ and since we
+%% are in case~A, $n < n_0 k_M$, which combines to
+%% \begin{eqnarray}
+%%   \label{eq:nn0}
+%%   \frac{n n_0}{n - n_0} < \frac{(n_0 k_M) n_0}{(k-1)n_0} = \frac{n_0 k_M}{k-1}.
+%% \end{eqnarray}
+Consider $n_{1,\max}(k) = \max_{n, \mathrm{given\ } k} n_1 = \max_{n, \mathrm{given\ } k} \floor{\frac n k}$.
+Given $k$, the maximal $n$ still fulfilling $\floor[\big]{\frac{n}{n_0}} = k$
+is $n = (k+1)n_0 - 1$ where $\floor[\big]{\frac{n}{n_0}} = k + \floor[\big]{1 - \frac{1}{n_0}} = k$.
+Hence, $n_{1,\max}(k) =\floor[\big]{\frac{(k+1)n_0 - 1}{k}} = n_0 +
+\floor[\big]{\frac{n_0 - 1}{k}}$, and as $k \ge 2$, the maximum is at $k=2$,
+$\max n_1 = \max_k n_{1,\max}(k) = n_0 + \floor[\big]{\frac{n_0 - 1}{2}} = \floor[\big]{\frac{3 n_0 - 1}{2}}$.
+Taken together, as $n_j = n_1+1$ is possible, we have
+\begin{align}
+  \label{eq:nj-range}
+  n_0 \le & n_1  \le \floor[\Big]{\frac{3 n_0 - 1}{2}} \nonumber\\
+  n_0 \le & n_j  \le \floor[\Big]{\frac{3 n_0 + 1}{2}}, \ \ j \ge 2.
+\end{align}
+Note that indeed, $\floor[\big]{\frac{3 n_0 + 1}{2}}$ is the length of the
+auxiliary vector \code{subndex} in the Fortran code.
+
+\bibliographystyle{chicago}
+\bibliography{robustbase}
+
+\end{document}

@@ -1,0 +1,88 @@
+<!--
+%\VignetteBuilder{knitr::knitr}
+%\VignetteEngine{knitr::knitr}
+%\VignetteIndexEntry{Tidy bootstrapping with dplyr+broom}
+-->
+
+```{r setup, echo=FALSE}
+library(knitr)
+opts_chunk$set(message=FALSE)
+```
+
+Tidy bootstrapping with dplyr+broom
+===================================
+
+Another place where combining model fits in a tidy way becomes useful is when performing bootstrapping or permutation tests. These approaches have been explored before, for instance by [Andrew MacDonald here](http://rstudio-pubs-static.s3.amazonaws.com/19698_a4c472606e3c43e4b94720506e49bb7b.html), and [Hadley has explored efficient support for bootstrapping](https://github.com/hadley/dplyr/issues/269) as a potential enhancement to dplyr. broom fits naturally with dplyr in performing these analyses.
+
+Bootstrapping consists of randomly sampling a dataset with replacement, then performing the analysis individually on each bootstrapped replicate. The variation in the resulting estimate is then a reasonable approximation of the variance in your estimate.
+
+Let's say you want to fit a nonlinear model to the weight/mileage relationship in the `mtcars` dataset.
+
+```{r}
+library(ggplot2)
+data(mtcars)
+ggplot(mtcars, aes(mpg, wt)) + geom_point()
+```
+
+You might use the method of nonlinear least squares (`nls` function) to fit a model.
+
+```{r}
+nlsfit <- nls(mpg ~ k / wt + b, mtcars, start=list(k=1, b=0))
+summary(nlsfit)
+ggplot(mtcars, aes(wt, mpg)) + geom_point() + geom_line(aes(y=predict(nlsfit)))
+```
+
+While this does provide a p-value and confidence intervals for the parameters, these are based on model assumptions that may not hold in real data. Bootstrapping is a popular method for providing confidence intervals and predictions that are more robust to the nature of the data.
+The function `bootstrap` in **broom** can be used to sample bootstrap replications.
+First, we construct 100 bootstrap replications of the data, each of which has been randomly sampled with replacement. 
+
+We use `do` to perform an `nls` fit on each replication, using `tidy` to recombine:
+
+```{r}
+library(dplyr)
+library(broom)
+set.seed(2014)
+bootnls <- mtcars %>% bootstrap(100) %>%
+    do(tidy(nls(mpg ~ k / wt + b, ., start=list(k=1, b=0))))
+```
+
+This produces a summary of each replication, combined into one data.frame:
+
+```{r}
+bootnls
+```
+
+You can then calculate confidence intervals (using what is called the [percentile method](https://www.uvm.edu/~dhowell/StatPages/Randomization%20Tests/ResamplingWithR/BootstMeans/bootstrapping_means.html)):
+
+```{r}
+alpha = .05
+bootnls %>% group_by(term) %>% summarize(low=quantile(estimate, alpha / 2),
+                                         high=quantile(estimate, 1 - alpha / 2))
+```
+
+Or you can use histograms to give you a more detailed idea of the uncertainty in each estimate:
+
+```{r}
+library(ggplot2)
+ggplot(bootnls, aes(estimate)) + geom_histogram(binwidth=2) + facet_wrap(~ term, scales="free")
+```
+
+Or you can use `augment` to visualize the uncertainty in the curve:
+
+```{r}
+bootnls_aug <- mtcars %>% bootstrap(100) %>%
+    do(augment(nls(mpg ~ k / wt + b, ., start=list(k=1, b=0)), .))
+
+ggplot(bootnls_aug, aes(wt, mpg)) + geom_point() +
+    geom_line(aes(y=.fitted, group=replicate), alpha=.2)
+```
+
+With only a few small changes, one could easily perform bootstrapping with other kinds of predictive or hypothesis testing models, since the `tidy` and `augment` functions works for many statistical outputs. As another example, you could use `smooth.spline`:
+
+```{r}
+smoothspline_aug <- mtcars %>% bootstrap(100) %>%
+    do(augment(smooth.spline(.$wt, .$mpg, df=4), .))
+
+ggplot(smoothspline_aug, aes(wt, mpg)) + geom_point() +
+    geom_line(aes(y=.fitted, group=replicate), alpha=.2)
+```

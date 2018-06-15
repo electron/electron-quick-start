@@ -1,0 +1,78 @@
+---
+title: "Introduction to the gower package"
+author: "Mark van der Loo"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Introduction to the gower package}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+## Gower's distance measure
+
+Gower's distance can be used to measure how different two records are. The records may contain combinations of logical, numerical, categorical or text data. The distance is always a number between 0 (identical) and 1 
+(maximally dissimilar). An easy to read specification of the measure is given in the original paper.
+
+Gower (1971) [A general coefficient of similarity and some of its properties.](http://venus.unive.it/romanaz/modstat_ba/gowdis.pdf)  _Biometrics_ **27** 857-874.
+
+In short, Gower's distance (or similarity) first computes distances between pairs of variables over two data sets and then combines those distances to a single value per record-pair.
+
+This package modifies Gower's original similarity measure in the following ways.
+
+- In stead of the original similarity _S_, the package returns the distance _1-S_.
+- The original paper does not mention the concept of `NA`. Missing variables are skipped when computing the distance.
+- The original paper does not mention character data. These are treated as categorical data.
+
+## Computing Gower's distance
+
+The function ```gower_dist``` computes pairwise-distances between records.
+
+```{r}
+library(gower)
+dat1 <- iris[1:10,]
+dat2 <- iris[6:15,]
+gower_dist(dat1, dat2)
+```
+If one data frame has less records than the other, the shortest one is recycled over (just like when you're adding two vectors of unequal length)
+
+```{r}
+gower_dist(iris[1,], dat1)
+```
+
+It is possible to control how columns from the two data sets are paired for comparison using the `pair_x` and `pair_y` arguments. This comes in handy when similar colums have different names accross datasets.  By default, columns with matching names are paired. The behaviour is somewhat similar to that of base R's `merge` in that respect.
+
+```{r}
+dat1 <- dat2 <- iris[1:10,]
+names(dat2) <- tolower(names(dat2))
+gower_dist(dat1, dat2)
+# tell gower_dist to match columns 1..5 in dat1 with column 1..5 in dat2
+gower_dist(dat1, dat2, pair_y=1:5)
+```
+
+## Computing the top-n matches
+
+The function `gower_topn` returns a list with two arrays.
+```{r}
+dat1 <- iris[1:10,]
+L <- gower_topn(x=dat1, y=iris, n=3)
+L
+```
+
+The first array is called `index`. Each column corresponds to one row of `x`. The entries of each column
+index the top _n_ best matches of that row in x with rows in `y`. In this example, the best match of the first row of `dat1` is record number ```r L$index[1,1]``` from `iris` (this should be obvious, since they are the same record). The second best match is record number ```r L$index[2,1]``` from `iris`.
+ 
+The second array is called `distance` and it contains the corresponding distances.
+
+
+
+## Parallelization, memory usage
+
+
+The underlying algorithm is implemented in C and parallelized using [OpenMP](http://www.openmp.org). OpenMP is available on most systems that can run R. Please see [this section](https://cran.r-project.org/doc/manuals/r-release/R-exts.html#OpenMP-support) of the writing R extensions manual for up-to-details details on which systems are supported. At the time of writing (summer 2016), OSX is the only system not supporting OpenMP out of the box. You can still make it work by installing the gcc toolchain and compiling the package (and R).
+
+If OpenMP is not supported, the package will still work but the core algorithms will not be parallelized.
+
+This implementation makes no copies of the data in memory. When computing `gower_dist`, two double precision
+arrays of size _max(nrow(x),nrow(y))_ are kept in memory to store intermediate results. When computing the top-n matches, for _k_ cores, _k+2_ double precision arrays of length ```nrow(y)``` are created to store intermediate results at C level.
+

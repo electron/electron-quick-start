@@ -1,0 +1,1 @@
+This example demonstrates some additional widgets included in Shiny, such as `helpText` and `actionButton`. The latter is used to delay rendering output until the user explicitly requests it (a construct which also introduces two important server functions, `eventReactive` and `isolate`).

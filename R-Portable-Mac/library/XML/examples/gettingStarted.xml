@@ -1,0 +1,229 @@
+<?xml version="1.0"?>
+<article xmlns:r="http://www.r-project.org">
+<abstract>
+<para>
+The idea here is to provide simple examples of how to get started
+with processing XML in R using some reasonably straightforward "flat" XML files
+and not worrying about efficiency.
+</para></abstract>
+<section>
+<title>An Example: Grades</title>
+<para>
+Here is an example of a simple file in XML containing
+grades for students for three different tests.
+<programlisting>
+<xi:include href="generic_file.xml" xmlns:xi="http://www.w3.org/2001/XInclude" parse="text"/>
+</programlisting>
+We might want to turn this into a data frame in R
+with a row for each student  and four variables,
+the name and the scores on the three tests.
+</para>
+
+<para>
+Since this is a small file, let's not worry about efficiency in any way.
+We can read the entire document tree into memory and make multiple passes 
+over it to get the information.
+Our first approach will be to read the XML into an R tree, i.e.
+R-level XML node objects.
+We do this with a simple call to <r:func>xmlTreeParse</r:func>.
+<r:code>
+doc = xmlRoot(xmlTreeParse("generic_file.xml"))
+</r:code>
+We use <r:func>xmlRoot</r:func> to get the top-level node of the tree
+rather than holding onto the general document information since we won't need it. 
+</para>
+<para>
+Since the structure of this file is
+just a list of elements under the root node,
+we need only process each of those nodes and turn them into something we want.
+The "easiest" way to apply the same function to each child of an XML node 
+is with the <r:func>xmlApply</r:func> function.
+What do we want to do for each of the &lt;GRADES&gt; node?
+We want to get the value, i.e. the simple text within the node, of each of its children.
+Since this is the same for each of the child nodes in &lt;GRADES&gt;, this is again
+another call to <r:func>xmlApply</r:func>.  And since  this is all text, we can
+simplify the result and get back a character vector rather than a list by using
+<r:func>xmlSApply</r:func> which will perform this extra simplication step.
+</para>
+
+<para>
+So a function to do the initial processing of an individual 
+&lt;GRADES&gt; node might be
+<r:code eval="false">
+ function(node) 
+     xmlSApply(node, xmlValue)
+</r:code>
+since <r:func>xmlValue</r:func> returns the text content within an XML node.
+Let's check that this does what we want by calling it on the
+first child of the root node.
+<r:code>
+ xmlSApply(doc[[1]], xmlValue)
+</r:code>
+And indeed it does.
+</para>
+<para>
+So we can process all the &lt;GRADES&gt; nodes with the command
+<r:code>
+ tmp = xmlSApply(doc, function(x) xmlSApply(x, xmlValue))
+</r:code>
+The result is a character matrix in which the rows are the variables and the columns
+are the records. So let's transpose this.
+<r:code>
+ tmp = t(tmp)
+</r:code>
+Now, we have finished working with the XML; the rest is regular R programming.
+<r:code>
+ grades = as.data.frame(matrix(as.numeric(tmp[,-1]), 2))
+ names(grades) = names(doc[[1]])[-1]
+ grades$Student = tmp[,1]
+</r:code>
+</para>
+
+<para>
+There seems to be more messing about after we have got the values out of the XML file.
+There are several things that might seem more complex but that actually just move
+the work to different places, i.e. when we are traversing the XML tree.
+</para>
+<para>
+Here's another alternative using XPath.
+<r:code>
+doc = xmlTreeParse("generic_file.xml", useInternal = TRUE)
+
+ans = lapply(c("STUDENT", "TEST1", "TEST2", "FINAL"),
+             function(var)
+               unlist(xpathApply(doc, paste("//", var, sep = ""), xmlValue)))
+</r:code>
+And this gives us a list containing the variables
+with the values as character vectors.
+<r:code>
+as.data.frame(lapply(names(ans), 
+                     function(x) if(x != "STUDENT") as.integer(x) else x ))
+</r:code>
+
+
+
+</para>
+
+</section>
+
+<section>
+<title>Another Example: Customer Information List</title>
+<para>
+The second example is another list, this time of description of customers.
+The first two nodes in the document are shown below:
+<programlisting>
+<![CDATA[
+<dataroot xmlns:od="urn:schemas-microsoft-com:officedata">
+<Customers>
+<CustomerID>ALFKI</CustomerID>
+<CompanyName>Alfreds Futterkiste</CompanyName>
+<ContactName>Maria Anders</ContactName>
+<ContactTitle>Sales Representative</ContactTitle>
+<Address>Obere Str. 57</Address>
+<City>Berlin</City>
+<PostalCode>12209</PostalCode>
+<Country>Germany</Country>
+<Phone>030-0074321</Phone>
+<Fax>030-0076545</Fax>
+</Customers>
+<Customers>
+<CustomerID>ANATR</CustomerID>
+<CompanyName>Ana Trujillo Emparedados y helados</CompanyName>
+<ContactName>Ana Trujillo</ContactName>
+<ContactTitle>Owner</ContactTitle>
+<Address>Avda. de la Constitución 2222</Address>
+<City>México D.F.</City>
+<PostalCode>05021</PostalCode>
+<Country>Mexico</Country>
+<Phone>(5) 555-4729</Phone>
+<Fax>(5) 555-3745</Fax>
+</Customers>
+</dataroot>
+]]>
+</programlisting>
+</para>
+<para>
+
+We can quickly verify that all the nodes under the root are customers
+with the command
+<r:code>
+ doc = xmlRoot(xmlTreeParse("Cust-List.xml"))
+ table(names(doc))
+</r:code>
+We see that these are all "Customers".
+We could further explore to see if each of these nodes has the same fields.
+<r:code>
+fields = xmlApply(doc, names)
+table(sapply(fields, identical, fields[[1]]))
+</r:code>
+And the result indicates that about half of them are the same.
+Let's see how many unique field names there are:
+<r:code>
+ unique(unlist(fields))
+</r:code>
+This gives 10. And
+we can see how may fields are in each of the Customers nodes with
+<r:code>
+xmlSApply(doc, xmlSize)
+</r:code>
+So most of the nodes  have most of the fields.
+</para>
+<para>
+So let's think about a data frame.
+What we can do is treat each of the fields as having a simple string value.
+Then we can create a data frame with the 10 character columns and with NA values for each
+of the records. Thne we will fill this in record at a time.
+<r:code>
+ans = as.data.frame(replicate(10, character(xmlSize(doc))), 
+                      stringsAsFactors = FALSE)
+names(ans) = unique(unlist(fields))
+</r:code>
+Now that we have the skeleton of the answer, we can process each of the 
+Customers nodes.
+
+<r:code><![CDATA[
+sapply(1:xmlSize(doc),
+          function(i) {
+             customer = doc[[i]] 
+             ans[i, names(customer)] <<- xmlSApply(customer, xmlValue)
+          })
+]]></r:code>
+Note that we used a global assignemnt in the function to change the
+<r:var>ans</r:var> in the global environment rather than the local version within the 
+function call.
+Also, we loop over the indices of the 
+nodes in the tree, i.e. use <r:expr eval="false">sapply(1:xmlSize(doc), )</r:expr>
+rather than <r:expr eval="false">xmlSApply(doc, )</r:expr>
+simply because we need to know which row to put the results  for each node.
+</para>
+</section>
+
+<para>
+There are various other ways to process these two XML files.  One is
+to use handler functions to process the internal nodes as they are
+being converted from C-level data structures to R objects in a call to
+<r:func>xmlTreeParse</r:func>.  This avoids multiple traversal of the
+tree but can seem a little indirect until you get the hang of it. And
+some transformations can be cumbersome using this approach as it is a
+bottom up transformation.
+</para>
+<para>
+The event-driven parsing provided by <r:func>xmlEventParse</r:func>
+is a SAX style approach. This is quite low level and used when 
+reading the entire XML document into memory and then processing it is prohibitive,
+i.e. when the XML file is very, very large.
+</para>
+<para>
+The use of XPath to perform queries and get subsets of nodes involves
+a) learning XPath and b) potentially multiple passes over the tree.
+If one has to do many queries, this can be slow overall eventhough each 
+is very fast.   However, if you know XPath or are happy to learn the basics,
+this can be quite convenient, avoiding having to write recursive functions
+to search for the nodes of interests.
+Using the internal nodes (as you must for XPath) also gives you the ability
+to go up the tree, i.e. find parent, ancestor and sibling nodes, and not just
+down to children. So we have more flexibility in how we traverse the tree.
+</para>
+
+
+</article>

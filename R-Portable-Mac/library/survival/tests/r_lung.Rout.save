@@ -1,0 +1,165 @@
+
+R version 2.14.0 (2011-10-31)
+Copyright (C) 2011 The R Foundation for Statistical Computing
+ISBN 3-900051-07-0
+Platform: x86_64-unknown-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> options(na.action=na.exclude) # preserve missings
+> options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
+> library(survival)
+Loading required package: splines
+> 
+> aeq <- function(x,y, ...) all.equal(as.vector(x), as.vector(y), ...)
+> 
+> lfit2 <- survreg(Surv(time, status) ~ age + ph.ecog + strata(sex), lung)
+> lfit3 <- survreg(Surv(time, status) ~ sex + (age+ph.ecog)*strata(sex), lung)
+> 
+> lfit4 <-  survreg(Surv(time, status) ~ age + ph.ecog , lung,
++ 		  subset=(sex==1))
+> lfit5 <- survreg(Surv(time, status) ~ age + ph.ecog , lung,
++ 		  subset=(sex==2))
+> 
+> if (exists('censorReg')) {
++     lfit1 <- censorReg(censor(time, status) ~ age + ph.ecog + strata(sex),lung)
++     aeq(lfit4$coef, lfit1[[1]]$coef)
++     aeq(lfit4$scale, lfit1[[1]]$scale)
++     aeq(c(lfit4$scale, lfit5$scale), sapply(lfit1, function(x) x$scale))
++     }
+> aeq(c(lfit4$scale, lfit5$scale), lfit3$scale )
+[1] TRUE
+> 
+> #
+> # Test out ridge regression and splines
+> #
+> lfit0 <- survreg(Surv(time, status) ~1, lung)
+> lfit1 <- survreg(Surv(time, status) ~ age + ridge(ph.ecog, theta=5), lung)
+> lfit2 <- survreg(Surv(time, status) ~ sex + ridge(age, ph.ecog, theta=1), lung)
+> lfit3 <- survreg(Surv(time, status) ~ sex + age + ph.ecog, lung)
+> 
+> lfit0
+Call:
+survreg(formula = Surv(time, status) ~ 1, data = lung)
+
+Coefficients:
+(Intercept) 
+   6.034904 
+
+Scale= 0.7593936 
+
+Loglik(model)= -1153.9   Loglik(intercept only)= -1153.9
+n= 228 
+> lfit1
+Call:
+survreg(formula = Surv(time, status) ~ age + ridge(ph.ecog, theta = 5), 
+    data = lung)
+
+               coef     se(coef) se2     Chisq DF p      
+(Intercept)     6.83082 0.42860  0.42860 254.0 1  0.00000
+age            -0.00783 0.00687  0.00687   1.3 1  0.25000
+ridge(ph.ecog) -0.32032 0.08484  0.08405  14.2 1  0.00016
+
+Scale= 0.738 
+
+Iterations: 1 outer, 5 Newton-Raphson
+Degrees of freedom for terms= 1 1 1 1 
+Likelihood ratio test=18.6  on 2 df, p=8.73e-05
+  n=227 (1 observation deleted due to missingness)
+> lfit2
+Call:
+survreg(formula = Surv(time, status) ~ sex + ridge(age, ph.ecog, 
+    theta = 1), data = lung)
+
+               coef     se(coef) se2     Chisq  DF p      
+(Intercept)     6.27163 0.45280  0.45210 191.84 1  0.0e+00
+sex             0.40096 0.12371  0.12371  10.50 1  1.2e-03
+ridge(age)     -0.00746 0.00675  0.00674   1.22 1  2.7e-01
+ridge(ph.ecog) -0.33848 0.08329  0.08314  16.51 1  4.8e-05
+
+Scale= 0.731 
+
+Iterations: 1 outer, 6 Newton-Raphson
+Degrees of freedom for terms= 1 1 2 1 
+Likelihood ratio test=30  on 3 df, p=1.37e-06
+  n=227 (1 observation deleted due to missingness)
+> lfit3
+Call:
+survreg(formula = Surv(time, status) ~ sex + age + ph.ecog, data = lung)
+
+Coefficients:
+ (Intercept)          sex          age      ph.ecog 
+ 6.273435252  0.401090541 -0.007475439 -0.339638098 
+
+Scale= 0.731109 
+
+Loglik(model)= -1132.4   Loglik(intercept only)= -1147.4
+	Chisq= 29.98 on 3 degrees of freedom, p= 1.4e-06 
+n=227 (1 observation deleted due to missingness)
+> 
+> 
+> xx <- pspline(lung$age, nterm=3, theta=.3)
+> xx <- matrix(unclass(xx), ncol=ncol(xx))   # the raw matrix
+> lfit4 <- survreg(Surv(time, status) ~xx, lung)
+> lfit5 <- survreg(Surv(time, status) ~age, lung)
+> 
+> lfit6 <- survreg(Surv(time, status)~pspline(age, df=2), lung)
+> 
+> lfit7 <- survreg(Surv(time, status) ~ offset(lfit6$lin), lung)
+> 
+> lfit4
+Call:
+survreg(formula = Surv(time, status) ~ xx, data = lung)
+
+Coefficients:
+(Intercept)         xx1         xx2         xx3         xx4         xx5 
+  13.551290   -7.615741   -7.424565   -7.533378   -7.571272  -14.527489 
+
+Scale= 0.755741 
+
+Loglik(model)= -1150.1   Loglik(intercept only)= -1153.9
+	Chisq= 7.52 on 5 degrees of freedom, p= 0.19 
+n= 228 
+> lfit5
+Call:
+survreg(formula = Surv(time, status) ~ age, data = lung)
+
+Coefficients:
+(Intercept)         age 
+ 6.88712062 -0.01360829 
+
+Scale= 0.7587515 
+
+Loglik(model)= -1151.9   Loglik(intercept only)= -1153.9
+	Chisq= 3.91 on 1 degrees of freedom, p= 0.048 
+n= 228 
+> lfit6
+Call:
+survreg(formula = Surv(time, status) ~ pspline(age, df = 2), 
+    data = lung)
+
+                          coef    se(coef) se2     Chisq  DF   p    
+(Intercept)                6.5918 0.63681  0.41853 107.15 1.00 0.000
+pspline(age, df = 2), lin -0.0136 0.00687  0.00687   3.94 1.00 0.047
+pspline(age, df = 2), non                            0.78 1.06 0.400
+
+Scale= 0.756 
+
+Iterations: 4 outer, 12 Newton-Raphson
+     Theta= 0.926 
+Degrees of freedom for terms= 0.4 2.1 1.0 
+Likelihood ratio test=5.2  on 1.5 df, p=0.0441  n= 228 
+> signif(lfit7$coef,6)
+(Intercept) 
+1.47899e-09 
+> 

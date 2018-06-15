@@ -1,0 +1,278 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title></title><link rel="stylesheet" href="No" type="text/css"></link><link rel="stylesheet" href="entry" type="text/css"></link><link rel="stylesheet" href="for" type="text/css"></link><link rel="stylesheet" href="URI" type="text/css"></link><link rel="stylesheet" href="/OmegaTech.css" type="text/css"></link><meta name="generator" content="DocBook XSL Stylesheets V1.75.2"></meta>
+<link xmlns="" rel="stylesheet" type="text/css" href="http://yui.yahooapis.com/2.8.0r4/build/tabview/assets/skins/sam/tabview.css">
+<script xmlns="" type="text/javascript" src="http://yui.yahooapis.com/2.8.0r4/build/yahoo-dom-event/yahoo-dom-event.js"></script>
+<script xmlns="" type="text/javascript" src="http://yui.yahooapis.com/2.8.0r4/build/element/element-min.js"></script>
+<script xmlns="" type="text/javascript" src="http://yui.yahooapis.com/2.8.0r4/build/tabview/tabview-min.js"></script>
+<script xmlns="" type="text/javascript" src="/Users/duncan/Classes/StatComputing/XDynDocs/inst/JavaScript/yahooTabUtils.js"></script>
+<script xmlns="" type="text/javascript" src="http://www.omegahat.net/DynDocs/JavaScript/toggleHidden.js"></script>
+</head><body class="yui-skin-sam">
+<script xmlns="" type="text/javascript"><!--
+var toggleCodeIds = [
+ 
+   "id36261878", 
+   "id36261911", 
+   "id36261920", 
+   "id36261928", 
+   "id36261932", 
+   "id36261936", 
+   "id36261949", 
+   "id36261955", 
+   "id36261977", 
+   "id36261981", 
+   "id36261987", 
+   "id36261991", 
+   "id36262000", 
+   "id36262005"
+];
+--></script><p xmlns=""></p>
+<div class="article"><div class="titlepage"><hr></hr></div><div class="abstract" title="Abstract"><p class="title"><b>Abstract</b></p><p>
+The idea here is to provide simple examples of how to get started
+with processing XML in R using some reasonably straightforward "flat" XML files
+and not worrying about efficiency.
+</p></div><div class="section" title="An Example: Grades"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a id="id36209076"></a>An Example: Grades</h2></div></div></div><p>
+Here is an example of a simple file in XML containing
+grades for students for three different tests.
+</p><pre class="programlisting">
+&lt;?xml version="1.0" ?&gt;
+&lt;TABLE&gt;
+   &lt;GRADES&gt;
+      &lt;STUDENT&gt; Fred &lt;/STUDENT&gt;
+      &lt;TEST1&gt; 66 &lt;/TEST1&gt;
+      &lt;TEST2&gt; 80 &lt;/TEST2&gt;
+      &lt;FINAL&gt; 70 &lt;/FINAL&gt;
+   &lt;/GRADES&gt;
+   &lt;GRADES&gt;
+      &lt;STUDENT&gt; Wilma &lt;/STUDENT&gt;
+      &lt;TEST1&gt; 97 &lt;/TEST1&gt;
+      &lt;TEST2&gt; 91 &lt;/TEST2&gt;
+      &lt;FINAL&gt; 98 &lt;/FINAL&gt;
+   &lt;/GRADES&gt;
+&lt;/TABLE&gt;
+
+</pre><p>
+We might want to turn this into a data frame in R
+with a row for each student  and four variables,
+the name and the scores on the three tests.
+</p><p>
+Since this is a small file, let's not worry about efficiency in any way.
+We can read the entire document tree into memory and make multiple passes 
+over it to get the information.
+Our first approach will be to read the XML into an R tree, i.e.
+R-level XML node objects.
+We do this with a simple call to <i xmlns:s3="http://www.r-project.org/S3" xmlns:cpp="http://www.cplusplus.org" xmlns:xi="http://www.w3.org/2001/XInclude" xmlns="" class="rfunc"><a href="Help//xmlTreeParse.html">xmlTreeParse()
+  </a></i>.
+</p><div xmlns="" class="codeToggle"><div class="unhidden" id="id36261878"><div><pre class="rcode" title="R code">
+doc = xmlRoot(xmlTreeParse("generic_file.xml"))
+</pre></div></div></div>
+<div xmlns="" class="clearFloat"></div>
+<p>
+We use <i xmlns:s3="http://www.r-project.org/S3" xmlns:cpp="http://www.cplusplus.org" xmlns:xi="http://www.w3.org/2001/XInclude" xmlns="" class="rfunc"><a href="Help//xmlRoot.html">xmlRoot()
+  </a></i> to get the top-level node of the tree
+rather than holding onto the general document information since we won't need it. 
+</p><p>
+Since the structure of this file is
+just a list of elements under the root node,
+we need only process each of those nodes and turn them into something we want.
+The "easiest" way to apply the same function to each child of an XML node 
+is with the <i xmlns:s3="http://www.r-project.org/S3" xmlns:cpp="http://www.cplusplus.org" xmlns:xi="http://www.w3.org/2001/XInclude" xmlns="" class="rfunc"><a href="Help//xmlApply.html">xmlApply()
+  </a></i> function.
+What do we want to do for each of the &lt;GRADES&gt; node?
+We want to get the value, i.e. the simple text within the node, of each of its children.
+Since this is the same for each of the child nodes in &lt;GRADES&gt;, this is again
+another call to <i xmlns:s3="http://www.r-project.org/S3" xmlns:cpp="http://www.cplusplus.org" xmlns:xi="http://www.w3.org/2001/XInclude" xmlns="" class="rfunc"><a href="Help//xmlApply.html">xmlApply()
+  </a></i>.  And since  this is all text, we can
+simplify the result and get back a character vector rather than a list by using
+<i xmlns:s3="http://www.r-project.org/S3" xmlns:cpp="http://www.cplusplus.org" xmlns:xi="http://www.w3.org/2001/XInclude" xmlns="" class="rfunc"><a href="Help//xmlSApply.html">xmlSApply()
+  </a></i> which will perform this extra simplication step.
+</p><p>
+So a function to do the initial processing of an individual 
+&lt;GRADES&gt; node might be
+</p><div xmlns="" class="codeToggle"><div class="unhidden" id="id36261911"><div><pre class="rcode" title="R code">
+ function(node) 
+     xmlSApply(node, xmlValue)
+</pre></div></div></div>
+<div xmlns="" class="clearFloat"></div>
+<p>
+since <i xmlns:s3="http://www.r-project.org/S3" xmlns:cpp="http://www.cplusplus.org" xmlns:xi="http://www.w3.org/2001/XInclude" xmlns="" class="rfunc"><a href="Help//xmlValue.html">xmlValue()
+  </a></i> returns the text content within an XML node.
+Let's check that this does what we want by calling it on the
+first child of the root node.
+</p><div xmlns="" class="codeToggle"><div class="unhidden" id="id36261920"><div><pre class="rcode" title="R code">
+ xmlSApply(doc[[1]], xmlValue)
+</pre></div></div></div>
+<div xmlns="" class="clearFloat"></div>
+<p>
+And indeed it does.
+</p><p>
+So we can process all the &lt;GRADES&gt; nodes with the command
+</p><div xmlns="" class="codeToggle"><div class="unhidden" id="id36261928"><div><pre class="rcode" title="R code">
+ tmp = xmlSApply(doc, function(x) xmlSApply(x, xmlValue))
+</pre></div></div></div>
+<div xmlns="" class="clearFloat"></div>
+<p>
+The result is a character matrix in which the rows are the variables and the columns
+are the records. So let's transpose this.
+</p><div xmlns="" class="codeToggle"><div class="unhidden" id="id36261932"><div><pre class="rcode" title="R code">
+ tmp = t(tmp)
+</pre></div></div></div>
+<div xmlns="" class="clearFloat"></div>
+<p>
+Now, we have finished working with the XML; the rest is regular R programming.
+</p><div xmlns="" class="codeToggle"><div class="unhidden" id="id36261936"><div><pre class="rcode" title="R code">
+ grades = as.data.frame(matrix(as.numeric(tmp[,-1]), 2))
+ names(grades) = names(doc[[1]])[-1]
+ grades$Student = tmp[,1]
+</pre></div></div></div>
+<div xmlns="" class="clearFloat"></div>
+<p>
+</p><p>
+There seems to be more messing about after we have got the values out of the XML file.
+There are several things that might seem more complex but that actually just move
+the work to different places, i.e. when we are traversing the XML tree.
+</p><p>
+Here's another alternative using XPath.
+</p><div xmlns="" class="codeToggle"><div class="unhidden" id="id36261949"><div><pre class="rcode" title="R code">
+doc = xmlTreeParse("generic_file.xml", useInternal = TRUE)
+
+ans = lapply(c("STUDENT", "TEST1", "TEST2", "FINAL"),
+             function(var)
+               unlist(xpathApply(doc, paste("//", var, sep = ""), xmlValue)))
+</pre></div></div></div>
+<div xmlns="" class="clearFloat"></div>
+<p>
+And this gives us a list containing the variables
+with the values as character vectors.
+</p><div xmlns="" class="codeToggle"><div class="unhidden" id="id36261955"><div><pre class="rcode" title="R code">
+as.data.frame(lapply(names(ans), 
+                     function(x) if(x != "STUDENT") as.integer(x) else x ))
+</pre></div></div></div>
+<div xmlns="" class="clearFloat"></div>
+<p>
+
+
+
+</p></div><div class="section" title="Another Example: Customer Information List"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a id="id36261961"></a>Another Example: Customer Information List</h2></div></div></div><p>
+The second example is another list, this time of description of customers.
+The first two nodes in the document are shown below:
+</p><pre class="programlisting">
+
+&lt;dataroot xmlns:od="urn:schemas-microsoft-com:officedata"&gt;
+&lt;Customers&gt;
+&lt;CustomerID&gt;ALFKI&lt;/CustomerID&gt;
+&lt;CompanyName&gt;Alfreds Futterkiste&lt;/CompanyName&gt;
+&lt;ContactName&gt;Maria Anders&lt;/ContactName&gt;
+&lt;ContactTitle&gt;Sales Representative&lt;/ContactTitle&gt;
+&lt;Address&gt;Obere Str. 57&lt;/Address&gt;
+&lt;City&gt;Berlin&lt;/City&gt;
+&lt;PostalCode&gt;12209&lt;/PostalCode&gt;
+&lt;Country&gt;Germany&lt;/Country&gt;
+&lt;Phone&gt;030-0074321&lt;/Phone&gt;
+&lt;Fax&gt;030-0076545&lt;/Fax&gt;
+&lt;/Customers&gt;
+&lt;Customers&gt;
+&lt;CustomerID&gt;ANATR&lt;/CustomerID&gt;
+&lt;CompanyName&gt;Ana Trujillo Emparedados y helados&lt;/CompanyName&gt;
+&lt;ContactName&gt;Ana Trujillo&lt;/ContactName&gt;
+&lt;ContactTitle&gt;Owner&lt;/ContactTitle&gt;
+&lt;Address&gt;Avda. de la Constitución 2222&lt;/Address&gt;
+&lt;City&gt;México D.F.&lt;/City&gt;
+&lt;PostalCode&gt;05021&lt;/PostalCode&gt;
+&lt;Country&gt;Mexico&lt;/Country&gt;
+&lt;Phone&gt;(5) 555-4729&lt;/Phone&gt;
+&lt;Fax&gt;(5) 555-3745&lt;/Fax&gt;
+&lt;/Customers&gt;
+&lt;/dataroot&gt;
+
+</pre><p>
+</p><p>
+
+We can quickly verify that all the nodes under the root are customers
+with the command
+</p><div xmlns="" class="codeToggle"><div class="unhidden" id="id36261977"><div><pre class="rcode" title="R code">
+ doc = xmlRoot(xmlTreeParse("Cust-List.xml"))
+ table(names(doc))
+</pre></div></div></div>
+<div xmlns="" class="clearFloat"></div>
+<p>
+We see that these are all "Customers".
+We could further explore to see if each of these nodes has the same fields.
+</p><div xmlns="" class="codeToggle"><div class="unhidden" id="id36261981"><div><pre class="rcode" title="R code">
+fields = xmlApply(doc, names)
+table(sapply(fields, identical, fields[[1]]))
+</pre></div></div></div>
+<div xmlns="" class="clearFloat"></div>
+<p>
+And the result indicates that about half of them are the same.
+Let's see how many unique field names there are:
+</p><div xmlns="" class="codeToggle"><div class="unhidden" id="id36261987"><div><pre class="rcode" title="R code">
+ unique(unlist(fields))
+</pre></div></div></div>
+<div xmlns="" class="clearFloat"></div>
+<p>
+This gives 10. And
+we can see how may fields are in each of the Customers nodes with
+</p><div xmlns="" class="codeToggle"><div class="unhidden" id="id36261991"><div><pre class="rcode" title="R code">
+xmlSApply(doc, xmlSize)
+</pre></div></div></div>
+<div xmlns="" class="clearFloat"></div>
+<p>
+So most of the nodes  have most of the fields.
+</p><p>
+So let's think about a data frame.
+What we can do is treat each of the fields as having a simple string value.
+Then we can create a data frame with the 10 character columns and with NA values for each
+of the records. Thne we will fill this in record at a time.
+</p><div xmlns="" class="codeToggle"><div class="unhidden" id="id36262000"><div><pre class="rcode" title="R code">
+ans = as.data.frame(replicate(10, character(xmlSize(doc))), 
+                      stringsAsFactors = FALSE)
+names(ans) = unique(unlist(fields))
+</pre></div></div></div>
+<div xmlns="" class="clearFloat"></div>
+<p>
+Now that we have the skeleton of the answer, we can process each of the 
+Customers nodes.
+
+</p><div xmlns="" class="codeToggle"><div class="unhidden" id="id36262005"><div><pre class="rcode" title="R code">
+sapply(1:xmlSize(doc),
+          function(i) {
+             customer = doc[[i]] 
+             ans[i, names(customer)] &lt;&lt;- xmlSApply(customer, xmlValue)
+          })
+</pre></div></div></div>
+<div xmlns="" class="clearFloat"></div>
+<p>
+Note that we used a global assignemnt in the function to change the
+<b xmlns:rs="http://www.omegahat.net/RS" xmlns:s="http://cm.bell-labs.com/stat/S4" xmlns="" class="$">ans</b> in the global environment rather than the local version within the 
+function call.
+Also, we loop over the indices of the 
+nodes in the tree, i.e. use <code xmlns:rs="http://www.omegahat.net/RS" xmlns:s="http://cm.bell-labs.com/stat/S4" xmlns="" class="Sexpression">sapply(1:xmlSize(doc), )</code>
+rather than <code xmlns:rs="http://www.omegahat.net/RS" xmlns:s="http://cm.bell-labs.com/stat/S4" xmlns="" class="Sexpression">xmlSApply(doc, )</code>
+simply because we need to know which row to put the results  for each node.
+</p></div><p>
+There are various other ways to process these two XML files.  One is
+to use handler functions to process the internal nodes as they are
+being converted from C-level data structures to R objects in a call to
+<i xmlns:s3="http://www.r-project.org/S3" xmlns:cpp="http://www.cplusplus.org" xmlns:xi="http://www.w3.org/2001/XInclude" xmlns="" class="rfunc"><a href="Help//xmlTreeParse.html">xmlTreeParse()
+  </a></i>.  This avoids multiple traversal of the
+tree but can seem a little indirect until you get the hang of it. And
+some transformations can be cumbersome using this approach as it is a
+bottom up transformation.
+</p><p>
+The event-driven parsing provided by <i xmlns:s3="http://www.r-project.org/S3" xmlns:cpp="http://www.cplusplus.org" xmlns:xi="http://www.w3.org/2001/XInclude" xmlns="" class="rfunc"><a href="Help//xmlEventParse.html">xmlEventParse()
+  </a></i>
+is a SAX style approach. This is quite low level and used when 
+reading the entire XML document into memory and then processing it is prohibitive,
+i.e. when the XML file is very, very large.
+</p><p>
+The use of XPath to perform queries and get subsets of nodes involves
+a) learning XPath and b) potentially multiple passes over the tree.
+If one has to do many queries, this can be slow overall eventhough each 
+is very fast.   However, if you know XPath or are happy to learn the basics,
+this can be quite convenient, avoiding having to write recursive functions
+to search for the nodes of interests.
+Using the internal nodes (as you must for XPath) also gives you the ability
+to go up the tree, i.e. find parent, ancestor and sibling nodes, and not just
+down to children. So we have more flexibility in how we traverse the tree.
+</p></div></body></html>

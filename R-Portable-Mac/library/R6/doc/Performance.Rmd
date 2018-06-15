@@ -1,0 +1,786 @@
+---
+title: "R6 and Reference class performance tests"
+output:
+  html_document:
+    theme: null
+    css: mystyle.css
+    toc: yes
+    fig_retina: false
+vignette: >
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteIndexEntry{R6 and Reference class performance tests}
+  %\usepackage[utf8]{inputenc}
+---
+
+```{r echo = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.width = 3.9, fig.height = 3.5)
+
+# Make sure vignette doesn't error on platforms where microbenchmark is not present.
+if (requireNamespace("microbenchmark", quietly = TRUE)) {
+  library(microbenchmark)
+
+  # Only print 3 significant digits
+  print_microbenchmark <- function (x, unit, order = NULL, ...) {
+    s <- summary(x, unit = unit)
+    cat("Unit: ", attr(s, "unit"), "\n", sep = "")
+
+    timing_cols <- c("min", "lq", "median", "uq", "max")
+    s[timing_cols] <- lapply(s[timing_cols], signif, digits = 3)
+    s[timing_cols] <- lapply(s[timing_cols], format, big.mark = ",")
+
+    print(s, ..., row.names = FALSE)
+  }
+
+  assignInNamespace("print.microbenchmark", print_microbenchmark,
+                    "microbenchmark")
+
+} else {
+  # Some dummy functions so that the vignette doesn't throw an error.
+  microbenchmark <- function(...) {
+    structure(list(), class = "microbenchmark_dummy")
+  }
+
+  summary.microbenchmark_dummy <- function(object, ...) {
+    data.frame(expr = "", median = 0)
+  }
+}
+```
+
+This document compares the memory costs and speed of R's reference classes against R6 classes and simple environments. For must uses, R6 and reference classes have comparable features, but as we'll see, R6 classes are faster and lighter weight.
+
+This document tests reference classes against R6 classes (in many variations), as well as against very simple reference objects: environments created by functino calls.
+
+*****
+
+First we'll load some packages which will be used below:
+
+```{r eval = FALSE}
+library(microbenchmark)
+options(microbenchmark.unit = "us")
+library(pryr)  # For object_size function
+library(R6)
+```
+
+```{r echo = FALSE}
+# The previous code block is just for appearances. This code block is the one
+# that gets run. The loading of microbenchmark must be conditional because it is
+# not available on all platforms.
+if (requireNamespace("microbenchmark", quietly = TRUE)) {
+  library(microbenchmark)
+}
+options(microbenchmark.unit = "us")
+library(pryr)  # For object_size function
+library(R6)
+```
+
+
+```{r echo=FALSE}
+library(ggplot2)
+library(scales)
+
+# Set up ggplot2 theme
+my_theme <- theme_bw(base_size = 10) +
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank()
+    )
+```
+
+*****
+
+Class definitions
+=================
+
+We'll start by defining a number of classes or class-like entities, using reference classes, R6 classes, and simple environments that are created directly by functions. There are a number of options for R6 that can affect the size of the resulting objects, so we will use a number of variants. These classes will be used for the speed and memory tests that follow. This is a lot of boring code, so you may want to skip ahead to the results.
+
+
+All of these classes have the same basic characteristics:
+
+* A field named `x` that contains a number.
+* An way of initializing the value of `x`.
+* A method named `getx` for retrieving the value of `x`.
+* A method named `inc` for incrementing the value of `x`.
+
+The fields and methods are accessed with the `$` operator, so if we have an object named `obj`, we could use `obj$x` or `obj$getx()`.
+
+## R reference class
+
+```{r}
+RC <- setRefClass("RC",
+  fields = list(x = "numeric"),
+  methods = list(
+    initialize = function(x = 1) .self$x <- x,
+    getx = function() x,
+    inc = function(n = 1) x <<- x + n
+  )
+)
+```
+
+In reference classes, the binding that points back to the object is named `.self`. Within a method, assignment can be done by using `.self`, as in `.self$x <- 10`, or by using `<<-`, as in `x <<- 10`.
+
+To create an object, simply call `$new()` on the class:
+
+```{r}
+RC$new()
+```
+
+## R6 class
+
+Creating an R6 class is similar to the reference class, except that there's no need to separate the fields and methods, and you can't specify the types of the fields.
+
+```{r}
+R6 <- R6Class("R6",
+  public = list(
+    x = NULL,
+    initialize = function(x = 1) self$x <- x,
+    getx = function() self$x,
+    inc = function(n = 1) self$x <- x + n
+  )
+)
+```
+
+Whereas reference classes use `.self`, R6 classes use `self` (without the leading period). As with reference classes, objects are instantiated by calling `$new()`:
+
+```{r}
+R6$new()
+```
+
+An R6 object essentially just a set of environments structured in a particular way. The fields and methods for an R6 object have bindings (that is, they have names) in the *public environment*. There is also have a separate environment which is the *enclosing environment* for methods (they "run in" an environment that contains a binding named `self`, which is simply a reference to the public environment).
+
+
+## R6 class, without class attribute
+
+By default, a class attribute is added to R6 objects. This attribute adds a slight performance penalty because R will attempt to use S3 dispatch when using `$` on the object.
+
+It's possible generate objects without the class attribute, by using `class=FALSE`:
+
+```{r}
+R6NoClass <- R6Class("R6NoClass",
+  class = FALSE,
+  public = list(
+    x = NULL,
+    initialize = function(x = 1) self$x <- x,
+    getx = function() self$x,
+    inc = function(n = 1) self$x <- self$x + n
+  )
+)
+```
+
+Note that without the class attribute, S3 method dispatch on the objects is not possible.
+
+## R6 class, non-portable
+
+By default, R6 objects are *portable*. This means that inheritance can be in classes that are in different packages. However, it also requires the use of `self$` and `private$` to access members, and this incurs a small performance penalty.
+
+If `portable=FALSE` is used, members can be accessed without using `self$`, and assignment can be done with `<<-`:
+
+```{r}
+R6NonPortable <- R6Class("R6NonPortable",
+  portable = FALSE,
+  public = list(
+    x = NULL,
+    initialize = function(value = 1) x <<- value,
+    getx = function() x,
+    inc = function(n = 1) x <<- x + n
+  )
+)
+```
+
+
+## R6 class, with `cloneable=FALSE`
+
+By default, R6 objects have a `clone()` method, which is a fairly large function. If you do not need this feature, you can save some memory by using `cloneable=FALSE`.
+
+```{r}
+R6NonCloneable <- R6Class("R6NonCloneable",
+  cloneable = FALSE,
+  public = list(
+    x = NULL,
+    initialize = function(x = 1) self$x <- x,
+    getx = function() self$x,
+    inc = function(n = 1) self$x <- self$x + n
+  )
+)
+```
+
+
+## R6 class, without class attribute, non-portable, and non-cloneable
+
+For comparison, we'll use a an R6 class that is without a class attribute, non-portable, and non-cloneable. This is the most stripped-down we can make an R6 object.
+
+```{r}
+R6Bare <- R6Class("R6Bare",
+  portable = FALSE,
+  class = FALSE,
+  cloneable = FALSE,
+  public = list(
+    x = NULL,
+    initialize = function(value = 1) x <<- value,
+    getx = function() x,
+    inc = function(n = 1) x <<- x + n
+  )
+)
+```
+
+
+## R6 class, with public and private members
+
+This variant has public and private members.
+
+```{r}
+R6Private <- R6Class("R6Private",
+  private = list(x = NULL),
+  public = list(
+    initialize = function(x = 1) private$x <- x,
+    getx = function() private$x,
+    inc = function(n = 1) private$x <- private$x + n
+  )
+)
+```
+
+Instead of a single `self` object which refers to all items in an object, these objects have `self` (which refers to the public items) and `private`.
+
+```{r}
+R6Private$new()
+```
+
+
+## R6 class, with public and private, no class attribute, non-portable, and non-cloneable
+
+For comparison, we'll add a version that is without a class attribute, non-portable, and non-cloneable.
+
+```{r}
+R6PrivateBare <- R6Class("R6PrivateBare",
+  portable = FALSE,
+  class = FALSE,
+  cloneable = FALSE,
+  private = list(x = NULL),
+  public = list(
+    initialize = function(x = 1) private$x <- x,
+    getx = function() x,
+    inc = function(n = 1) x <<- x + n
+  )
+)
+```
+
+
+## Environment created by a function call, with class attribute
+
+In R, environments are passed by reference. A simple way to create an object that's passed by reference is to use the environment created by the invocation of a function. The function below captures that environment, attaches a class to it, and returns it:
+
+```{r}
+FunctionEnvClass <- function(x = 1) {
+  inc <- function(n = 1) x <<- x + n
+  getx <- function() x
+  self <- environment()
+  class(self) <- "FunctionEnvClass"
+  self
+}
+```
+
+Even though `x` isn't declared in the function body, it gets captured because it's an argument to the function.
+
+```{r}
+ls(FunctionEnvClass())
+```
+
+Objects created this way are very similar to those created by `R6` generator we created above.
+
+
+## Environment created by a function call, without class attribute
+
+We can make an even simpler type of reference object to the previous one, by not having a a class attribute, and not having `self` object:
+
+```{r}
+FunctionEnvNoClass <- function(x = 1) {
+  inc <- function(n = 1) x <<- x + n
+  getx <- function() x
+  environment()
+}
+```
+
+This is simply an environment with some objects in it.
+
+```{r}
+ls(FunctionEnvNoClass())
+```
+
+*****
+
+Tests
+=====
+
+For all the timings using `microbenchmark()`, the results are reported in microseconds, and the most useful value is probably the median column.
+
+## Memory footprint
+
+```{r echo = FALSE}
+# Utility functions for calculating sizes
+obj_size <- function(expr, .env = parent.frame()) {
+  size_n <- function(n = 1) {
+    objs <- lapply(1:n, function(x) eval(expr, .env))
+    as.numeric(do.call(object_size, objs))
+  }
+
+  data.frame(one = size_n(1), incremental = size_n(2) - size_n(1))
+}
+
+obj_sizes <- function(..., .env = parent.frame()) {
+  exprs <- as.list(match.call(expand.dots = FALSE)$...)
+  names(exprs) <- lapply(1:length(exprs),
+    FUN = function(n) {
+      name <- names(exprs)[n]
+      if (is.null(name) || name == "") paste(deparse(exprs[[n]]), collapse = " ")
+      else name
+    })
+
+  sizes <- mapply(obj_size, exprs, MoreArgs = list(.env = .env), SIMPLIFY = FALSE)
+  do.call(rbind, sizes)
+}
+```
+
+
+How much memory does a single instance of each object take, and how much memory does each additional object take? We'll use the functions `obj_size` and `obj_sizes` (shown at the bottom of this document) to calculate the sizes.
+
+Sizes of each type of object, in bytes:
+
+```{r}
+sizes <- obj_sizes(
+  RC$new(),
+  R6$new(),
+  R6NoClass$new(),
+  R6NonPortable$new(),
+  R6NonCloneable$new(),
+  R6Bare$new(),
+  R6Private$new(),
+  R6PrivateBare$new(),
+  FunctionEnvClass(),
+  FunctionEnvNoClass()
+)
+sizes
+```
+
+The results are plotted below. Note that the plots have very different x scales.
+
+```{r echo = FALSE, results = 'hold'}
+objnames <- c(
+  "RC", "R6", "R6NoClass", "R6NonPortable", "R6NonCloneable",
+  "R6Bare", "R6Private", "R6PrivateBare", "FunctionEnvClass",
+  "FunctionEnvNoClass"
+)
+
+obj_labels <- objnames
+obj_labels[1] <- "RC (off chart)"
+
+sizes$name <- factor(objnames, levels = rev(objnames))
+
+ggplot(sizes, aes(y = name, x = one)) +
+  geom_segment(aes(yend = name), xend = 0, colour = "gray80") +
+  geom_point(size = 2) +
+  scale_x_continuous(limits = c(0, max(sizes$one[-1]) * 1.5),
+                     expand = c(0, 0), oob = rescale_none) +
+  scale_y_discrete(
+    breaks = sizes$name,
+    labels = obj_labels) +
+  my_theme +
+  ggtitle("First object")
+
+ggplot(sizes, aes(y = name, x = incremental)) +
+  geom_segment(aes(yend = name), xend = 0, colour = "gray80") +
+  scale_x_continuous(limits = c(0, max(sizes$incremental) * 1.05),
+                     expand = c(0, 0)) +
+  geom_point(size = 2) +
+  my_theme +
+  ggtitle("Additional objects")
+```
+
+Some preliminary observations about the first instance of various classes: Using a reference class consumes a large amount of memory. For R6 objects, the option with the largest impact is `cloneable`: not having the `clone()` method saves around 40 kB of memory.
+
+For subsequent instances of these classes, there isn't nearly as much difference between the different kinds.
+
+
+It appeared that using a reference class takes up a huge amount of memory, but much of that is shared between reference classes. Adding an object from a different reference class doesn't require much more memory --- around 38KB:
+
+```{r}
+RC2 <- setRefClass("RC2",
+  fields = list(x = "numeric"),
+  methods = list(
+    initialize = function(x = 2) .self$x <<- x,
+    inc = function(n = 2) x <<- x * n
+  )
+)
+
+# Calcualte the size of a new RC2 object, over and above an RC object
+as.numeric(object_size(RC$new(), RC2$new()) - object_size(RC$new()))
+```
+
+## Object instantiation speed
+
+How much time does it take to create one of these objects? This shows the median time, in microseconds:
+
+```{r}
+# Function to extract the medians from microbenchmark results
+mb_summary <- function(x) {
+  res <- summary(x, unit="us")
+  data.frame(name = res$expr, median = res$median)
+}
+
+speed <- microbenchmark(
+  RC$new(),
+  R6$new(),
+  R6NoClass$new(),
+  R6NonPortable$new(),
+  R6NonCloneable$new(),
+  R6Bare$new(),
+  R6Private$new(),
+  R6PrivateBare$new(),
+  FunctionEnvClass(),
+  FunctionEnvNoClass()
+)
+speed <- mb_summary(speed)
+speed
+```
+
+The plot below shows the median instantiation time.
+
+```{r echo = FALSE, results = 'hold', fig.width = 8}
+speed$name <- factor(speed$name, rev(levels(speed$name)))
+
+p <- ggplot(speed, aes(y = name, x = median)) +
+  geom_segment(aes(yend = name), xend = 0, colour = "gray80") +
+  geom_point(size = 2) +
+  scale_x_continuous(limits = c(0, max(speed$median) * 1.05), expand = c(0, 0)) +
+  my_theme +
+  ggtitle("Median time to instantiate object (\u0b5s)")
+
+p
+```
+
+Reference classes are much slower to instantiate than the other types of classes. Instantiating R6 objects is roughly 5 times faster. Creating an environment with a simple function call is another 20-30 times faster.
+
+
+## Field access speed
+
+How much time does it take to access a field in an object? First we'll make some objects:
+
+```{r}
+rc           <- RC$new()
+r6           <- R6$new()
+r6noclass    <- R6NoClass$new()
+r6noport     <- R6NonPortable$new()
+r6noclone    <- R6NonCloneable$new()
+r6bare       <- R6Bare$new()
+r6priv       <- R6Private$new()
+r6priv_bare  <- R6PrivateBare$new()
+fun_env      <- FunctionEnvClass()
+fun_env_nc   <- FunctionEnvNoClass()
+```
+
+And then get a value from these objects:
+
+```{r}
+speed <- microbenchmark(
+  rc$x,
+  r6$x,
+  r6noclass$x,
+  r6noport$x,
+  r6noclone$x,
+  r6bare$x,
+  r6priv$x,
+  r6priv_bare$x,
+  fun_env$x,
+  fun_env_nc$x
+)
+speed <- mb_summary(speed)
+speed
+```
+
+
+```{r echo = FALSE, results = 'hold', fig.width = 8}
+speed$name <- factor(speed$name, rev(levels(speed$name)))
+
+p <- ggplot(speed, aes(y = name, x = median)) +
+  geom_segment(aes(yend = name), xend = 0, colour = "gray80") +
+  geom_point(size = 2) +
+  scale_x_continuous(limits = c(0, max(speed$median) * 1.05), expand = c(0, 0)) +
+  my_theme +
+  ggtitle("Median time to access field (\u0b5s)")
+
+p
+```
+
+Accessing the field of a reference class is much slower than the other methods.
+
+There's also an obvious pattern where accessing the field of an environment (created by R6 or a function call) is slower when there is a class attribute. This is because, for the objects that have a class attribute, R attempts to look up an S3 method for `$`, and this lookup has a performance penalty. We'll see more about this below.
+
+
+## Field setting speed
+
+How much time does it take to set the value of a field in an object?
+
+```{r}
+speed <- microbenchmark(
+  rc$x <- 4,
+  r6$x <- 4,
+  r6noclass$x <- 4,
+  r6noport$x <- 4,
+  r6noclone$x <- 4,
+  r6bare$x <- 4,
+  # r6priv$x <- 4,         # Can't set private field directly,
+  # r6priv_nc_np$x <- 4,   # so we'll skip these two
+  fun_env$x <- 4,
+  fun_env_nc$x <- 4
+)
+speed <- mb_summary(speed)
+speed
+```
+
+```{r echo = FALSE, results = 'hold', fig.width = 8}
+speed$name <- factor(speed$name, rev(levels(speed$name)))
+
+p <- ggplot(speed, aes(y = name, x = median)) +
+  geom_segment(aes(yend = name), xend = 0, colour = "gray80") +
+  geom_point(size = 2) +
+  scale_x_continuous(limits = c(0, max(speed$median) * 1.05), expand = c(0, 0)) +
+  my_theme +
+  ggtitle("Median time to set field (\u0b5s)")
+
+p
+```
+
+Reference classes are significantly slower than the others, again. In this case, there's additional overhead due to type-checking the value.
+
+Once more, the no-class objects are significantly faster than the others, again probably due to attempted S3 dispatch on the `` `$<-` `` function.
+
+## Speed of method call that accesses a field
+
+How much overhead is there when calling a method from one of these objects? All of these `getx()` methods simply return the value of `x` in the object. When necessary, this method uses `self$x` (for R6 classes, when `portable=TRUE`), and in others, it just uses `x` (when `portable=FALSE`, and in reference classes).
+
+```{r}
+speed <- microbenchmark(
+  rc$getx(),
+  r6$getx(),
+  r6noclass$getx(),
+  r6noport$getx(),
+  r6noclone$getx(),
+  r6bare$getx(),
+  r6priv$getx(),
+  r6priv_bare$getx(),
+  fun_env$getx(),
+  fun_env_nc$getx()
+)
+speed <- mb_summary(speed)
+speed
+```
+
+```{r echo = FALSE, results = 'hold', fig.width = 8}
+speed$name <- factor(speed$name, rev(levels(speed$name)))
+
+p <- ggplot(speed, aes(y = name, x = median)) +
+  geom_segment(aes(yend = name), xend = 0, colour = "gray80") +
+  geom_point(size = 2) +
+  my_theme +
+  ggtitle("Median time to call method that accesses field (\u0b5s)")
+
+p
+```
+
+The reference class is the slowest.
+
+`r6` is also somewhat slower than the others. There are two reasons for this: first, it uses `self$x` which adds some time, and second, it has a class attribute, which slows down the access of both `r6$getx` and `self$x`.
+
+One might expect `r6priv` to be the same speed as `r6`, but it is faster. Although accessing `r6priv$getx` is slow because `r6priv` has a class attribute, accessing `private$x` is faster because it does not have a class attribute.
+
+The objects which can access `x` directly (without `self` or `private`) and which lack a class attribute are the fastest.
+
+## Assignment using `self$x <-` vs. `x <<-`
+
+With reference classes, you can modify fields using the `<<-` operator, or by using the `.self` object. For example, compare the `setx()` methods of these two classes:
+
+```{r}
+RCself <- setRefClass("RCself",
+  fields = list(x = "numeric"),
+  methods = list(
+    initialize = function() .self$x <- 1,
+    setx = function(n = 2) .self$x <- n
+  )
+)
+
+RCnoself <- setRefClass("RCnoself",
+  fields = list(x = "numeric"),
+  methods = list(
+    initialize = function() x <<- 1,
+    setx = function(n = 2) x <<- n
+  )
+)
+```
+
+Non-portable R6 classes are similar, except they use `self` instead of `.self`.
+
+```{r}
+R6self <- R6Class("R6self",
+  portable = FALSE,
+  public = list(
+    x = 1,
+    setx = function(n = 2) self$x <- n
+  )
+)
+
+R6noself <- R6Class("R6noself",
+  portable = FALSE,
+  public = list(
+    x = 1,
+    setx = function(n = 2) x <<- n
+  )
+)
+```
+
+
+```{r}
+rc_self   <- RCself$new()
+rc_noself <- RCnoself$new()
+r6_self   <- R6self$new()
+r6_noself <- R6noself$new()
+
+speed <- microbenchmark(
+  rc_self$setx(),
+  rc_noself$setx(),
+  r6_self$setx(),
+  r6_noself$setx()
+)
+speed <- mb_summary(speed)
+speed
+```
+
+```{r echo = FALSE, results = 'hold', fig.width = 8}
+speed$name <- factor(speed$name, rev(levels(speed$name)))
+
+p <- ggplot(speed, aes(y = name, x = median)) +
+  geom_segment(aes(yend = name), xend = 0, colour = "gray80") +
+  geom_point(size = 2) +
+  my_theme +
+  ggtitle("Assignment to a field using self vs <<- (\u0b5s)")
+
+p
+```
+
+For both reference and non-portable R6 classes, assignment using `.self$x <-` is somewhat slower than using `x <<-`.
+
+Bear in mind that, by default, R6 classes are portable, and can't use assignment with `x <<-`.
+
+## Overhead from using `$` on objects with a class attribute
+
+There is some overhead when using `$` on an object that has a class attribute. In the test below, we'll create three different kinds of objects:
+
+1. An environment with no class attribute.
+1. An environment with a class `"e2"`, but without a `$.e2` S3 method.
+1. An environment with a class `"e3"`, which has a `$.e3` S3 method that simply returns `NULL`.
+
+Each one of these environments will contain an object `x`.
+
+```{r}
+e1 <- new.env(hash = FALSE, parent = emptyenv())
+e2 <- new.env(hash = FALSE, parent = emptyenv())
+e3 <- new.env(hash = FALSE, parent = emptyenv())
+
+e1$x <- 1
+e2$x <- 1
+e3$x <- 1
+
+class(e2) <- "e2"
+class(e3) <- "e3"
+
+# Define an S3 method for class e3
+`$.e3` <- function(x, name) {
+  NULL
+}
+```
+
+Now we can run timing tests for calling `$` on each type of object. Note that for the `e3` object, the `$` function does nothing --- it simply returns `NULL`.
+
+```{r}
+speed <- microbenchmark(
+  e1$x,
+  e2$x,
+  e3$x
+)
+speed <- mb_summary(speed)
+speed
+```
+
+Using `$` on `e2` and `e3` is much slower than on `e1`. This is because `e2` and `e3` have a class attribute. Even though there's no `$` method defined for `e2`, doing `e2$x` still about 6 times slower than `e1$x`, simply because R looks for an appropriate S3 method.
+
+`e3$x` is slightly faster than `e2$x`; this is probably because the `$.e3` function doesn't actually do anything other than return NULL.
+
+If an object has a class attribute, R will attempt to look for a method every time `$` is called. This can slow things down considerably, if `$` is used often.
+
+## Lists vs. environments, and `$` vs. `[[`
+
+Lists could also be used for creating classes (albeit not with reference semantics). How much time does it take to access items using `$` for lists vs. environments? We'll also compare using `obj$x` to `obj[['x']]`.
+
+```{r}
+lst <- list(x = 10)
+env <- new.env()
+env$x <- 10
+
+mb_summary(microbenchmark(
+  lst = lst$x,
+  env = env$x,
+  lst[['x']],
+  env[['x']]
+))
+```
+
+Performance is comparable across environments and lists.
+
+The `[[` operator is slightly faster than `$`, probably because it doesn't need to convert the unevaluated symbol to a string.
+
+*****
+
+Wrap-up
+=======
+
+R6 objects take less memory and are significantly faster than R's reference class objects, and they also have some options that provide for even more speed.
+
+In these tests, the biggest speedup for R6 classes comes from not using a class attribute; this speeds up the use of `$`. Non-portable R6 classes can also access fields without `$` at all, which provides another modest speed boost. In most cases, these speed increases are negligible -- they are on the order of microseconds and will be noticeable only when tens or even hundreds of thousands of class member accesses are performed.
+
+
+*****
+
+Appendix
+========
+
+## Functions for calculating object sizes
+
+```{r eval=FALSE}
+# Utility functions for calculating sizes
+obj_size <- function(expr, .env = parent.frame()) {
+  size_n <- function(n = 1) {
+    objs <- lapply(1:n, function(x) eval(expr, .env))
+    as.numeric(do.call(object_size, objs))
+  }
+
+  data.frame(one = size_n(1), incremental = size_n(2) - size_n(1))
+}
+
+obj_sizes <- function(..., .env = parent.frame()) {
+  exprs <- as.list(match.call(expand.dots = FALSE)$...)
+  names(exprs) <- lapply(1:length(exprs),
+    FUN = function(n) {
+      name <- names(exprs)[n]
+      if (is.null(name) || name == "") paste(deparse(exprs[[n]]), collapse = " ")
+      else name
+    })
+
+  sizes <- mapply(obj_size, exprs, MoreArgs = list(.env = .env), SIMPLIFY = FALSE)
+  do.call(rbind, sizes)
+}
+```
+
+
+## System information
+
+```{r}
+sessionInfo()
+```

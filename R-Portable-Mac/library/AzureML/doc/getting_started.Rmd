@@ -1,0 +1,728 @@
+---
+title: "Getting Started with the AzureML Package"
+date: "`r Sys.Date()`"
+output:
+
+  html_document: 
+    keep_md: yes
+vignette: >
+  %\VignetteIndexEntry{Getting Started with the AzureML package}
+  %\VignetteEngine{knitr::rmarkdown}
+---
+
+Use this package to upload and download datasets to and from AzureML, to
+interrogate experiments, to publish R functions as AzureML web services, and to
+run R data through existing web services and retrieve the output.
+
+# Installation instructions
+
+Install the development version of the package directly from GitHub with:
+
+```r
+# Install devtools
+if(!require("devtools")) install.packages("devtools")
+devtools::install_github("RevolutionAnalytics/azureml")
+```
+
+The package depends on:
+
+- `jsonlite`
+- `curl`
+- `miniCRAN`
+- `base64enc`
+- `uuid`
+
+Some of the examples use data and functions in:
+
+- `lme4`
+- `ggplot2`
+
+
+# Overview
+
+AzureML provides an interface to publish web services on Microsoft Azure
+Machine Learning (Azure ML) from your local R environment. The main functions
+in the package cover the following topics:
+
+- Workspace: connect to and manage AzureML workspaces
+- Datasets: upload and download datasets to and from AzureML workspaces
+- Publish: publish R functions as AzureML web services, and update or delete existing services
+- Consume: apply any AzureML web service to your R data
+
+## Getting Started
+
+To get started, please navigate to [AzureML Studio](https://studio.azureml.net)
+and create a free account (not guest) or use your existing AzureML account.
+After logging in, under the "Settings" tab, copy and paste your Workspace ID
+from the "Name" sub-tab into your R console. From the "Authorization Tokens"
+sub-tab, copy your Primary Authorization Token into your R console. You will
+need this information to access all package functionality.
+
+The package defines a `Workspace` class that represents an AzureML work space.
+Most of the functions in the package refer to a Workspace object directly or
+indirectly. Use the `workspace()` function to create Workspace objects, either
+by explicitly specifying an AzureML workspace ID and authorization token.
+Workspace objects are simply R environments that actively cache details about
+your AzureML sessions.
+
+## Obtaining AzureML Credentials
+
+Before using the package, it is necessary to first obtain the security
+credentials to your Azure Machine Learning workspace. You can find this by
+logging in at the [AzureML Studio](https://studio.azureml.net). If you do not
+have an account, you can create a free account (not guest) to use these APIs.
+
+Once logged in, you will be brought to the Studio landing page. Using the
+left-hand menu, navigate to the 'Settings' tab to find your Workspace ID. Note
+this, or copy it into your R session and store it is a variable, e.g. `myWsID`.
+
+<img src="workspaceID.png" width="80%">
+
+Next, within the 'Settings' tab, use the overhead menu to navigate to the
+'Authorization Tokens' tab and similarly note your Primary Authorization Token.
+
+<img src="authToken.png" width="80%">
+
+
+```r
+library(AzureML)
+ws <- workspace(
+  id = "your workspace ID",
+  auth = "your authorization token"
+)
+```
+
+or alternatively create a file in `~/.azureml/settings.json` with the JSON
+structure (`api_endpoint` and `management_endpoint` are optional):
+
+```json
+{"workspace": {
+   "id"                  : "test_id",
+   "authorization_token" : "test_token",
+   "api_endpoint"        : "api_endpoint",
+   "management_endpoint" : "management_endpoint"
+}}
+```
+
+See `?workspace` for more details.
+
+## Examining workspace datasets, experiments and services
+
+The `datasets()`, `experiments()`, and `services()` functions return data
+frames that contain information about those objects available in the workspace.
+
+The package caches R data frame objects describing available datasets,
+experiments and services in the workspace environment. That cache can be
+refreshed at any time with the `refresh()` function. The data frame objects
+make it relatively easy to sort and filter the datasets, experiments, and
+services in arbitrary ways.  The functions also include filtering options for
+specific and common filters, like looking up something by name.
+
+Use the `download.datasets()` and `upload.dataset()` functions to download or
+upload data between R and your Azure workspace. The
+`download.intermediate.dataset()` function can download ephemeral data from a
+port in an experiment that is not explicitly stored in your Azure workspace.
+
+Use `delete.datasets()` to remove and delete datasets from the workspace.
+
+The `endpoints()` function describes Azure web service endpoints, and works with
+supporting help functions like `endpointHelp()`.
+
+The `publishWebService()` function publishes a custom R function as an AzureML
+web service, available for use by any client. The `updateWebService()` and
+`deleteWebServce()` update or delete existing web services, respectively.
+
+Use the `consume()` function to evaluate an Azure ML web service with
+new data uploaded to AzureML from your R environment.
+
+# Examples
+
+Work with the AzureML package begins by defining a workspace object. The
+example below uses the configured workspace ID and authorization token in the
+`~/.azureml/settings.json` file.  Alternatively specify these settings
+explicitly in the `workspace()` function as outlined above. All of the examples
+require this step.
+
+
+```r
+library(AzureML)
+ws <- workspace()
+ws
+```
+
+```
+## AzureML Workspace
+## Workspace ID : dd01c7e4a424432c9a9f83142d5cfec4 
+## API endpoint : https://studio.azureml.net
+```
+
+## Service availability
+
+AzureML is a web service and sometimes operations can't
+immediately proceed due to rate limiting or other factors. When this
+kind of thing occurs, the AzureML R package presents a warning and
+retries the service a few times before giving up with an error.
+
+## Datasets
+
+AzureML _datasets_ correspond more or less to R data frames. The AzureML
+package defines four basic dataset operations: list, upload, download, and
+delete.
+
+### List available datasets
+
+The following example illustrates listing available datasets in your workspace.
+
+
+```r
+head(datasets(ws))     # Or, equivalently: head(ws$datasets)
+```
+
+```
+##                                               Name DataTypeId      Size
+## 1 Flight_On_Time_Performance_July_October_2013.csv GenericCSV 100506313
+## 2                                 TestReadFromBlob    Dataset      8102
+## 3                                 New York weather GenericCSV    116989
+## 4                                       airquality GenericTSV      2901
+## 5         dataset-test-upload-2015-11-17--22-12-47 GenericTSV      2901
+## 6         dataset-test-upload-2015-11-17--22-14-37 GenericTSV      2901
+##   ...
+## 1 ...
+## 2 ...
+## 3 ...
+## 4 ...
+## 5 ...
+## 6 ...
+## ----------------------------------------------
+## AzureML datasets data.frame variables include:
+##  [1] "VisualizeEndPoint"    "SchemaEndPoint"       "SchemaStatus"        
+##  [4] "Id"                   "DataTypeId"           "Name"                
+##  [7] "Description"          "FamilyId"             "ResourceUploadId"    
+## [10] "SourceOrigin"         "Size"                 "CreatedDate"         
+## [13] "Owner"                "ExperimentId"         "ClientVersion"       
+## [16] "PromotedFrom"         "UploadedFromFilename" "ServiceVersion"      
+## [19] "IsLatest"             "Category"             "DownloadLocation"    
+## [22] "IsDeprecated"         "Culture"              "Batch"               
+## [25] "CreatedDateTicks"
+```
+
+The list of datasets is presented as an a R data frame with class `Datasets`.
+Its print method shows a summary of the datasets, along with all of the
+available variables. Use any normal R data frame operation to manipulate the
+datasets. For example, to see the "Owner" value of each dataset:
+
+
+```r
+head(ws$datasets$Owner, n=20)
+```
+
+```
+##  [1] "apdevries"             "apdevries"            
+##  [3] "apdevries"             "R"                    
+##  [5] "R"                     "R"                    
+##  [7] "R"                     "R"                    
+##  [9] "R"                     "R"                    
+## [11] "R"                     "R"                    
+## [13] "R"                     "Microsoft Corporation"
+## [15] "Microsoft Corporation" "Microsoft Corporation"
+## [17] "Microsoft Corporation" "Microsoft Corporation"
+## [19] "Microsoft Corporation" "Microsoft Corporation"
+```
+
+### Downloading datasets
+
+The next example illustrates downloading a specific  dataset named "Airport
+Codes Dataset" from AzureML to your R session. This dataset is presented by
+AzureML as a "Generic CSV" dataset, and will be parsed by R's `read.table()`
+function. (Other formats are parsed by an appropriate parser, for example
+`read.arff()`.) The example illustrates passing additional arguments to the
+`read.table()` function used to parse the data from AzureML in this case.
+
+
+```r
+airports <- download.datasets(ws, name = "Airport Codes Dataset", quote="\"")
+head(airports)
+```
+
+```
+##   airport_id        city state                                 name
+## 1      10165 Adak Island    AK                                 Adak
+## 2      10299   Anchorage    AK  Ted Stevens Anchorage International
+## 3      10304       Aniak    AK                        Aniak Airport
+## 4      10754      Barrow    AK      Wiley Post/Will Rogers Memorial
+## 5      10551      Bethel    AK                       Bethel Airport
+## 6      10926     Cordova    AK                Merle K Mudhole Smith
+```
+
+You can use `download.datasets()` to download more than one dataset as a time,
+returning the results in a list of data frames.
+
+### Uploading R data frames as AzureML datasets and deleting datasets
+
+Use the `upload.dataset()` function to upload R data frames to AzureML.
+
+
+
+
+
+```r
+upload.dataset(airquality, ws, name = "Air quality")
+```
+
+```
+##          Name DataTypeId Size ...
+## 1 Air quality GenericTSV 2901 ...
+## ----------------------------------------------
+## AzureML datasets data.frame variables include:
+##  [1] "VisualizeEndPoint"    "SchemaEndPoint"       "SchemaStatus"        
+##  [4] "Id"                   "DataTypeId"           "Name"                
+##  [7] "Description"          "FamilyId"             "ResourceUploadId"    
+## [10] "SourceOrigin"         "Size"                 "CreatedDate"         
+## [13] "Owner"                "ExperimentId"         "ClientVersion"       
+## [16] "PromotedFrom"         "UploadedFromFilename" "ServiceVersion"      
+## [19] "IsLatest"             "Category"             "DownloadLocation"    
+## [22] "IsDeprecated"         "Culture"              "Batch"               
+## [25] "CreatedDateTicks"
+```
+
+```r
+# Let's see what we've got:
+head(download.datasets(ws, name = "Air quality"))
+```
+
+```
+##   Ozone Solar.R Wind Temp Month Day
+## 1    41     190  7.4   67     5   1
+## 2    36     118  8.0   72     5   2
+## 3    12     149 12.6   74     5   3
+## 4    18     313 11.5   62     5   4
+## 5    NA      NA 14.3   56     5   5
+## 6    28      NA 14.9   66     5   6
+```
+
+Delete one or more AzureML datasets with `delete.datasets()`:
+
+
+```r
+delete.datasets(ws, name="Air quality")
+```
+
+```
+## Request failed with status 400. Waiting 2.3 seconds before retry
+```
+
+```
+## ...
+```
+
+```
+##          Name Deleted status_code
+## 1 Air quality    TRUE         204
+```
+
+
+## Experiments
+
+Use the `experiments()` function or simply use the `ws$experiments` data frame
+object directly to list details about experiments in your AzureML workspace.
+The `experiments()` function optionally filters experiments by ownership.
+
+
+```r
+e <- experiments(ws, filter = "samples")
+head(e)
+```
+
+```
+##                                        Description        CreationTime ...
+## 1  Sample 6: Train, Test, Evaluate for Regression: 2015-08-27 21:34:57 ...
+## 2 Text Classification: Step 2 of 5, text preproces 2015-08-27 21:39:38 ...
+## 3        Quantile Regression: Car price prediction 2015-08-27 21:37:39 ...
+## 4   Multiclass Classification: News categorization 2015-08-27 21:36:23 ...
+## 5                Neural Network: Basic convolution 2015-08-27 21:36:48 ...
+## 6 Text Classification: Step 3B of 5, unigrams TF-I 2015-08-27 21:39:49 ...
+## -------------------------------------------------
+## AzureML experiments data.frame variables include:
+##  [1] "ExperimentId"                       
+##  [2] "Description"                        
+##  [3] "Etag"                               
+##  [4] "Creator"                            
+##  [5] "IsArchived"                         
+##  [6] "JobId"                              
+##  [7] "VersionId"                          
+##  [8] "RunId"                              
+##  [9] "OriginalExperimentDocumentationLink"
+## [10] "Summary"                            
+## [11] "Category"                           
+## [12] "Tags"                               
+## [13] "StatusCode"                         
+## [14] "StatusDetail"                       
+## [15] "CreationTime"                       
+## [16] "StartTime"                          
+## [17] "EndTime"                            
+## [18] "Metadata"
+```
+
+The `ws$experiments` object is just an R data frame with class `Experiments`.
+Its print method shows a summary of the available experiments, but it can
+otherwise be manipulated like a normal R data frame.
+
+The list of experiments in your workspace is cached in the workspace
+environment.  Use the `refresh()` function to explicitly update the cache at any
+time, for example:
+
+
+```r
+refresh(ws, "experiments")
+```
+
+
+# Web Services
+
+The AzureML package helps you to publish R functions as AzureML web services
+that can be consumed anywhere. You can also use the AzureML package to run R
+data through an existing web service and collect the output.
+
+## Publishing a Web Service
+
+The `publishWebService()` publishes an R function as an AzureML web service.
+Consider this simple example R function:
+
+
+```r
+add <- function(x, y) {
+  x + y
+}
+```
+
+Use the function `publishWebService()` to publish the function as a
+service named "AzureML-vignette-silly":
+
+
+```r
+ws <- workspace()
+api <- publishWebService(
+  ws,
+  fun = add, 
+  name = "AzureML-vignette-silly",
+  inputSchema = list(
+    x = "numeric", 
+    y = "numeric"
+  ), 
+  outputSchema = list(
+    ans = "numeric"
+  )
+)
+```
+
+The example publishes a function of two scalar numeric arguments, returning a
+single numeric scalar output value. Note that we explicitly define the web
+service input and output schema in the example. See the examples below for more
+flexible ways of defining web services with functions of data frames.
+
+The result of `publishWebService()` is an `Endpoint` object, really just an R
+data frame with two elements: a list containing the details of the newly
+created web service, and a list of the endpoints of the web service. From here,
+you can pass the information on to another user, or use the information to use
+the web service from R:
+
+
+```r
+class(api)
+```
+
+```
+## [1] "Endpoint"   "data.frame"
+```
+
+```r
+names(api)
+```
+
+```
+##  [1] "Name"                  "Description"          
+##  [3] "CreationTime"          "WorkspaceId"          
+##  [5] "WebServiceId"          "HelpLocation"         
+##  [7] "PrimaryKey"            "SecondaryKey"         
+##  [9] "ApiLocation"           "PreventUpdate"        
+## [11] "MaxConcurrentCalls"    "DiagnosticsTraceLevel"
+## [13] "ThrottleLevel"
+```
+
+The web service created is identical to a web service published through the
+Azure Machine Learning Studio. From the response, you can get the Web Service's
+URL, API Key and Help Page URL, as shown above. The first two are needed to
+make calls to the web service. The latter has the sample code, sample request
+and other information for consuming the API from client apps such as mobile and
+web applications.
+
+The new web service will show up on the 'Web Services' tab of the Studio
+interface, and the service will have a help page for each endpoint, e.g.
+
+Note that AzureML allows multiple services to have the same name.
+
+
+```r
+(helpPageUrl <- api$HelpLocation)
+```
+
+```
+## [1] "https://studio.azureml.net/apihelp/workspaces/dd01c7e4a424432c9a9f83142d5cfec4/webservices/10b27c1cc68d11e59a9e9fda44a82b45/endpoints/4ce411c50ec3486db0a5c191af0309c1"
+```
+
+Once published, you can update a web service using the `updateWebService()` or
+`publishWebService()` functions.  The `updateWebService()` function is just an
+alias for `publishWebService()`, except that the argument `serviceId` is
+compulsory.
+
+
+
+```r
+api <- updateWebService(
+  ws,
+  fun = function(x, y) x - y,
+  inputSchema = list(
+    x = "numeric",
+    y = "numeric"
+  ),
+  outputSchema = list(
+    ans = "numeric"
+  ),
+  serviceId = api$WebServiceId   # <<-- Required to update!
+)
+```
+
+The "AzureML-vignette-silly" service now substracts two numbers instead of adding them.
+
+## Discovering Web Services
+
+Use the `services()` function to list in detail all of the available services
+in your AzureML workspace, or filter by web service name as shown below:
+
+
+```r
+(webservices <- services(ws, name = "AzureML-vignette-silly"))
+```
+
+```
+##                                  Id                   Name Description
+## 22 0118e986c68c11e5bf7d7d3f8709ee1b AzureML-vignette-silly        <NA>
+## 24 7cca5998c68c11e581cfcf4167576cd7 AzureML-vignette-silly        <NA>
+## 26 10b27c1cc68d11e59a9e9fda44a82b45 AzureML-vignette-silly        <NA>
+##                CreationTime                      WorkspaceId
+## 22 2016-01-29T13:27:14.153Z dd01c7e4a424432c9a9f83142d5cfec4
+## 24 2016-01-29T13:30:42.485Z dd01c7e4a424432c9a9f83142d5cfec4
+## 26 2016-01-29T13:34:50.512Z dd01c7e4a424432c9a9f83142d5cfec4
+##    DefaultEndpointName EndpointCount
+## 22             default             1
+## 24             default             1
+## 26             default             1
+```
+
+Given a service, use the `endpoints()` function to list the AzureML
+service endpoints for the service:
+
+
+```r
+ep <- endpoints(ws, webservices[1, ])
+class(ep)
+```
+
+```
+## [1] "Endpoint"   "data.frame"
+```
+
+```r
+names(ep)
+```
+
+```
+##  [1] "Name"                  "Description"          
+##  [3] "CreationTime"          "WorkspaceId"          
+##  [5] "WebServiceId"          "HelpLocation"         
+##  [7] "PrimaryKey"            "SecondaryKey"         
+##  [9] "ApiLocation"           "PreventUpdate"        
+## [11] "MaxConcurrentCalls"    "DiagnosticsTraceLevel"
+## [13] "ThrottleLevel"
+```
+
+The returned `Endpoints` object contains all the information needed to consume a web
+service. The  `endpointHelp()` function returns detailed information about an endpoint
+including its input and output schema and URI.
+
+
+## Consuming Web Services
+
+Use the `consume()` function to send data to your newly published web service
+API for scoring.
+
+
+```r
+df <- data.frame(
+  x = 1:5,
+  y = 6:10
+)
+s <- services(ws, name = "AzureML-vignette-silly")
+s <- tail(s, 1) # use the last published function, in case of duplicate function names
+ep <- endpoints(ws, s)
+consume(ep, df)
+```
+
+```
+##   ans
+## 1  -5
+## 2  -5
+## 3  -5
+## 4  -5
+## 5  -5
+```
+
+Alternatively, the endpoint primary key and API location can be found on the
+help page for that specific endpoint, which can be found on Azure Machine
+Learning Studio. Using the Help Page URL, you can access sample code to build
+clients that can consume this web service in real time to make predictions.
+
+## Deleting a Web Service
+
+Use `deleteWebservice()` to remove a webservice endpoint that you no longer need
+or want (like these silly examples):
+
+
+```r
+deleteWebService(ws, name = "AzureML-vignette-silly")
+```
+
+## Other examples of publishing web services
+
+The simplest and perhaps most useful way to define a web service uses functions
+that take a single data frame argument and return a vector or data frame of
+results. The next example trains a generalized boosted regression model using
+the gbm package, publishes the model as a web service with name
+"AzureML-vignette-gbm", and runs example data through the model for prediction
+using the `consume()` function.
+
+
+```r
+library(AzureML)
+library(MASS)
+library(gbm)
+```
+
+```
+## Loading required package: survival
+```
+
+```
+## Loading required package: lattice
+```
+
+```
+## Loading required package: splines
+```
+
+```
+## Loading required package: parallel
+```
+
+```
+## Loaded gbm 2.1.1
+```
+
+```r
+ws <- workspace()
+test <- Boston[1:5, 1:13]
+
+set.seed(123)
+gbm1 <- gbm(medv ~ .,
+            distribution = "gaussian",
+            n.trees = 5000,
+            interaction.depth = 8,
+            n.minobsinnode = 1,
+            shrinkage = 0.01,
+            cv.folds = 5,
+            data = Boston,
+            n.cores = 1) # You can set this to n.cores = NULL to use all cores
+best.iter <- gbm.perf(gbm1, method="cv", plot=FALSE)
+
+mypredict <- function(newdata)
+{
+  require(gbm)
+  predict(gbm1, newdata, best.iter)
+}
+
+# Example use of the prediction function
+print(mypredict(test))
+```
+
+```
+## [1] 24.54431 21.15155 33.88859 34.06615 34.93906
+```
+
+```r
+# Publish the service
+ep <- publishWebService(ws = ws, fun = mypredict, name = "AzureML-vignette-gbm",
+                        inputSchema = test)
+
+# Consume test data, comparing with result above
+print(consume(ep, test))
+```
+
+```
+## Request failed with status 401. Waiting 6.7 seconds before retry
+```
+
+```
+## .......
+```
+
+```
+##        ans
+## 1 24.54431
+## 2 21.15155
+## 3 33.88859
+## 4 34.06615
+## 5 34.93906
+```
+
+Notice that we don't need to explicitly specific the `inputSchema` or
+`outputSchema` arguments when working with functions that use data frame I/O.
+When finished with this example, we can delete the example service with:
+
+```r
+deleteWebService(ws, "AzureML-vignette-gbm")
+```
+
+## Tips on writing functions used in web services
+
+Try to use the data frame I/O interface as illustrated in the last example
+above. It's simpler and more robust than using functions of scalars or lists
+and exhibits faster execution for large data sets.
+
+Use `require()` in your function to explicitly load required packages.
+
+The `publishWebServce()` function uses codetools to bundle objects required by
+your function following R lexical scoping rules. The previous example, for
+instance, uses the `best.iter` and `gbm1` variables inside of the `mypredict()`
+function. `publishWebService()` identified that and included their definitions
+in the R environment in which the function is evaluated in AzureML.
+Fine-grained control over the export of variables is provided by the
+`publishWebService()` function in case you need it (see the help page for
+details).
+
+Use the `packages` option of `publishWebService()` to explicitly bundle
+required packages and their dependencies (but not suggested dependencies) using
+miniCRAN. This lets you upload packages to AzureML that may not otherwise be
+available in that environment already, using the correct R version and platform
+used by AzureML.
+
+Be aware that the version of R running in AzureML may not be the same as the
+version of R that you are running locally. That means that some packages might
+not be available, or sometimes package behavior in the AzureML version of R
+might be different that what you observe locally. This is generally more of an
+issue for cutting-edge packages.
+
+JSON is used to transfer data between your local R environment and the R
+services running in AzureML--numeric values experience a change of base, which
+can lead to a small loss of precision in some circumstances. If you really,
+really need to move binary objects between your local R session and the AzureML
+R service you might try base64 encoding the data, for example.

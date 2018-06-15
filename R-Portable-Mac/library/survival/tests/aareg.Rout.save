@@ -1,0 +1,381 @@
+
+R version 2.14.0 Under development (unstable) (2011-04-10 r55401)
+Copyright (C) 2011 The R Foundation for Statistical Computing
+ISBN 3-900051-07-0
+Platform: x86_64-unknown-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> options(na.action=na.exclude) # preserve missings
+> options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
+> library(survival)
+Loading required package: splines
+> 
+> #
+> # Test aareg, for some simple data where the answers can be computed
+> #  in closed form
+> #
+> aeq <- function(x,y, ...) all.equal(as.vector(x), as.vector(y), ...)
+>    
+> test1 <- data.frame(time=  c(4, 3,1,1,2,2,3),
++                     status=c(1,NA,1,0,1,1,0),
++                     x=     c(0, 2,1,1,1,0,0),
++ 		    wt=    c(1, 1:6))
+> 
+> tfit  <- aareg(Surv(time, status) ~ x, test1)
+> aeq(tfit$times, c(1,2,2))
+[1] TRUE
+> aeq(tfit$nrisk, c(6,4,4))
+[1] TRUE
+> aeq(tfit$coefficient, matrix(c(0,0,1/3, 1/3, 1, -1/3), ncol=2))
+[1] TRUE
+> aeq(tfit$tweight, matrix(c(3,3,3, 3/2, 3/4, 3/4), ncol=2))
+[1] TRUE
+> aeq(tfit$test.statistic, c(1,1))
+[1] TRUE
+> aeq(tfit$test.var,       c(1, -1/4, -1/4, 1/4 + 9/16 + 1/16))
+[1] TRUE
+> 
+> tfit <- aareg(Surv(time, status) ~ x, test1, test='nrisk')
+> aeq(tfit$tweight, matrix(c(3,3,3, 3/2, 3/4, 3/4), ncol=2)) #should be as before
+[1] TRUE
+> aeq(tfit$test.statistic, c(4/3, 6/3+ 4 - 4/3))
+[1] TRUE
+> aeq(tfit$test.var,       c(16/9, -16/9, -16/9, 36/9 + 16 + 16/9))
+[1] TRUE
+> 
+> # In the 1-variable case, this is the same as the default Aalen weight
+> tfit <- aareg(Surv(time, status) ~ x, test1, test='variance')
+> aeq(tfit$test.statistic, c(1,1))
+[1] TRUE
+> aeq(tfit$test.var,       c(1, -1/4, -1/4, 1/4 + 9/16 + 1/16))
+[1] TRUE
+> 
+> #
+> # Repeat the above, with case weights
+> #
+> tfit <- aareg(Surv(time, status) ~x, test1, weights=wt)  
+> aeq(tfit$times, c(1,2,2))
+[1] TRUE
+> aeq(tfit$nrisk, c(21,16,16))
+[1] TRUE
+> aeq(tfit$coefficient, matrix(c(0,0,5/12, 2/9, 1, -5/12), ncol=2))
+[1] TRUE
+> aeq(tfit$tweight, matrix(c(12,12,12, 36/7, 3,3), ncol=2))
+[1] TRUE
+> aeq(tfit$test.statistic, c(5, 72/63 + 3 - 15/12))
+[1] TRUE
+> aeq(tfit$test.var,       c(25, -25/4, -25/4, (72/63)^2 + 9 + (5/4)^2))
+[1] TRUE
+> 
+> tfit <- aareg(Surv(time, status) ~x, test1, weights=wt, test='nrisk')
+> aeq(tfit$test.statistic, c(20/3,  42/9 + 16 - 16*5/12))
+[1] TRUE
+> aeq(tfit$test.var,       c(400/9, -400/9, -400/9, 
++ 			    (42/9)^2 + 16^2 + (16*5/12)^2))
+[1] TRUE
+> 
+> #
+> # Make a test data set with no NAs, in sorted order, no ties,
+> #   15 observations
+> tdata <- lung[15:29, c('time', 'status', 'age', 'sex', 'ph.ecog')]
+> tdata$status <- tdata$status -1
+> tdata <- tdata[order(tdata$time, tdata$status),]
+> row.names(tdata) <- 1:15
+> tdata$status[8] <- 0      #for some variety
+> 
+> afit <- aareg(Surv(time, status) ~ age + sex + ph.ecog, tdata, nmin=6)
+> #
+> # Now, do it "by hand"
+> cfit <- coxph(Surv(time, status) ~ age + sex + ph.ecog, tdata, iter=0,
++                method='breslow')
+> dt1   <- coxph.detail(cfit)
+> sch1  <- resid(cfit, type='schoen')
+> 
+> # First estimate of Aalen: from the Cox computations, first 9
+> #  The first and last cols of the ninth are somewhat unstable (approx =0)
+> mine <- rbind(solve(dt1$imat[,,1], sch1[1,]),
++               solve(dt1$imat[,,2], sch1[2,]),
++               solve(dt1$imat[,,3], sch1[3,]),
++               solve(dt1$imat[,,4], sch1[4,]),
++               solve(dt1$imat[,,5], sch1[5,]),
++               solve(dt1$imat[,,6], sch1[6,]),
++               solve(dt1$imat[,,7], sch1[7,]),
++               solve(dt1$imat[,,8], sch1[8,]),
++               solve(dt1$imat[,,9], sch1[9,])) 
+> mine <- diag(1/dt1$nrisk[1:9]) %*% mine
+> 
+> aeq(mine, afit$coef[1:9, -1])
+[1] TRUE
+> 
+> rm(tfit, afit, mine, dt1, cfit, sch1)
+> 
+> #
+> # Check out the dfbeta matrix from aareg
+> #   Note that it is kept internally in time order, not data set order
+> # Those who want residuals should use the resid function!
+> 
+> #
+> # First, the simple test case where I know the anwers
+> #
+> afit <- aareg(Surv(time, status) ~ x, test1, dfbeta=T)
+> temp <- c(rep(0,6),             #intercepts at time 1
++           c(2,-1,-1,0,0,0)/9,   #alpha at time 1
++           c(0,0,0,2, -1, -1)/9, #intercepts at time 2
++           c(0,0,0,-2,1,1)/9)    #alpha at time 2
+> aeq(afit$dfbeta, temp)
+[1] TRUE
+> 
+> #
+> #Now a multivariate data set
+> #
+> afit <- aareg(Surv(time, status) ~ age + sex + ph.ecog, lung, dfbeta=T)
+> 
+> ord <- order(lung$time, -lung$status)
+> cfit <- coxph(Surv(time, status) ~ age + sex + ph.ecog, lung[ord,],
++ 	        method='breslow', iter=0, x=T)
+> cdt  <- coxph.detail(cfit, riskmat=T)
+> 
+> # an arbitrary list of times
+> acoef <- rowsum(afit$coef, afit$times) #per death time coefs
+> indx <- match(cdt$time, afit$times)
+> for (i in c(2,5,27,54,101, 135)) {
++     lwho <- (cdt$riskmat[,i]==1)
++     lmx <- cfit$x[lwho,]
++     lmy <- 1*( cfit$y[lwho,2]==1 & cfit$y[lwho,1] == cdt$time[i])
++     fit <- lm(lmy~ lmx)
++     cat("i=", i, "coef=", aeq(fit$coef, acoef[i,]))
++ 
++     rr <- diag(resid(fit))
++     zz <- cbind(1,lmx)
++     zzinv <- solve(t(zz) %*% zz)
++     cat(" twt=", aeq(1/(diag(zzinv)), afit$tweight[indx[i],]))
++ 
++     df <- t(zzinv %*% t(zz)  %*% rr)
++     cat(" dfbeta=", aeq(df, afit$dfbeta[lwho,,i]), "\n")
++     }
+i= 2 coef= TRUE twt= TRUE dfbeta= TRUE 
+i= 5 coef= TRUE twt= TRUE dfbeta= TRUE 
+i= 27 coef= TRUE twt= TRUE dfbeta= TRUE 
+i= 54 coef= TRUE twt= TRUE dfbeta= TRUE 
+i= 101 coef= TRUE twt= TRUE dfbeta= TRUE 
+i= 135 coef= TRUE twt= TRUE dfbeta= TRUE 
+> 	  
+> rm(afit, cfit, cdt, lwho, lmx, lmy, fit, rr, zz, df)
+> 
+> 
+> # Repeat it with case weights
+> ww <- rep(1:5, length=nrow(lung))/ 3.0
+> afit <- aareg(Surv(time, status) ~ age + sex + ph.ecog, lung, dfbeta=T,
++ 	      weights=ww)
+> cfit <- coxph(Surv(time, status) ~ age + sex + ph.ecog, lung[ord,],
++ 	        method='breslow', iter=0, x=T, weight=ww[ord])
+> cdt  <- coxph.detail(cfit, riskmat=T)
+> 
+> acoef <- rowsum(afit$coef, afit$times) #per death time coefs
+> for (i in c(2,5,27,54,101, 135)) {
++     who <- (cdt$riskmat[,i]==1)
++     x <- cfit$x[who,]
++     y <- 1*( cfit$y[who,2]==1 & cfit$y[who,1] == cdt$time[i])
++     w <- cfit$weight[who]
++     fit <- lm(y~x, weights=w)
++     cat("i=", i, "coef=", aeq(fit$coef, acoef[i,]))
++ 
++     rr <- diag(resid(fit))
++     zz <- cbind(1,x)
++     zzinv <- solve(t(zz)%*% (w*zz))
++     cat(" twt=", aeq(1/(diag(zzinv)), afit$tweight[indx[i],]))
++  
++     df <- t(zzinv %*% t(zz) %*% (w*rr))
++     cat(" dfbeta=", aeq(df, afit$dfbeta[who,,i]), "\n")
++     }
+i= 2 coef= TRUE twt= TRUE dfbeta= TRUE 
+i= 5 coef= TRUE twt= TRUE dfbeta= TRUE 
+i= 27 coef= TRUE twt= TRUE dfbeta= TRUE 
+i= 54 coef= TRUE twt= TRUE dfbeta= TRUE 
+i= 101 coef= TRUE twt= TRUE dfbeta= TRUE 
+i= 135 coef= TRUE twt= TRUE dfbeta= TRUE 
+> 	  
+> rm(afit, cfit, cdt, who, x, y, fit, rr, zz, df)
+> rm(ord, acoef)
+>     
+> #
+> # Check that the test statistic computed within aareg and
+> #  the one recomputed within summary.aareg are the same.
+> # Of course, they could both be wrong, but at least they'll agree!
+> # If the maxtime argument is used in summary, it recomputes the test,
+> #  even if we know that it wouldn't have had to.
+> #
+> # Because the 1-variable and >1 variable case have different code, test
+> #  them both.
+> #
+> afit <- aareg(Surv(time, status) ~ age, lung, dfbeta=T)
+> asum <- summary(afit, maxtime=max(afit$times))
+> aeq(afit$test.stat, asum$test.stat)
+[1] TRUE
+> aeq(afit$test.var,  asum$test.var)
+[1] TRUE
+> aeq(afit$test.var2, asum$test.var2)
+[1] TRUE
+> 
+> print(afit)
+Call:
+aareg(formula = Surv(time, status) ~ age, data = lung, dfbeta = T)
+
+  n= 228 
+    139 out of 139 unique event times used
+
+              slope      coef se(coef) robust se      z      p
+Intercept -0.000872 -0.000905 4.26e-03  4.13e-03 -0.219 0.8270
+age        0.000110  0.000142 6.96e-05  6.75e-05  2.110 0.0351
+
+Chisq=4.44 on 1 df, p=0.035; test weights=aalen
+> 
+> afit <- aareg(Surv(time, status) ~ age, lung, dfbeta=T, test='nrisk')
+> asum <- summary(afit, maxtime=max(afit$times))
+> aeq(afit$test.stat, asum$test.stat)
+[1] TRUE
+> aeq(afit$test.var,  asum$test.var)
+[1] TRUE
+> aeq(afit$test.var2, asum$test.var2)
+[1] TRUE
+> 
+> summary(afit)
+$table
+                  slope        coef    se(coef)   robust se         z
+Intercept -0.0009538483 -0.11693804 0.534885651 0.533148054 -0.219335
+age        0.0001053024  0.01795521 0.008746523 0.008734005  2.055782
+                   p
+Intercept 0.82638908
+age       0.03980352
+
+$test
+[1] "nrisk"
+
+$test.statistic
+Intercept       age 
+-19.29478   2.96261 
+
+$test.var
+          [,1]        [,2]
+[1,] 7789.1449 -126.055872
+[2,] -126.0559    2.082758
+
+$test.var2
+          [,1]      [,2]
+[1,] 7738.6204 -125.5077
+[2,] -125.5077    2.0768
+
+$chisq
+        [,1]
+[1,] 4.22624
+
+$n
+[1] 228 139 139
+
+attr(,"class")
+[1] "summary.aareg"
+> 
+> #
+> # Mulitvariate
+> #
+> afit <- aareg(Surv(time, status) ~ age + sex + ph.karno + pat.karno, lung,
++ 	      dfbeta=T)
+> asum <- summary(afit, maxtime=max(afit$times))
+> aeq(afit$test.stat, asum$test.stat)
+[1] TRUE
+> aeq(afit$test.var,  asum$test.var)
+[1] TRUE
+> aeq(afit$test.var2, asum$test.var2)
+[1] TRUE
+> 
+> print(afit)
+Call:
+aareg(formula = Surv(time, status) ~ age + sex + ph.karno + pat.karno, 
+    data = lung, dfbeta = T)
+
+  n=224 (4 observations deleted due to missingness)
+    132 out of 136 unique event times used
+
+              slope      coef se(coef) robust se     z       p
+Intercept  2.15e-02  0.025000 8.45e-03  7.72e-03  3.25 0.00117
+age        3.09e-05  0.000076 7.32e-05  6.49e-05  1.17 0.24100
+sex       -2.96e-03 -0.004020 1.25e-03  1.23e-03 -3.27 0.00109
+ph.karno  -6.77e-05 -0.000083 6.69e-05  8.30e-05 -1.00 0.31700
+pat.karno -1.01e-04 -0.000112 5.59e-05  5.70e-05 -1.96 0.05010
+
+Chisq=23.36 on 4 df, p=0.00011; test weights=aalen
+> 
+> afit <- aareg(Surv(time, status) ~ age + sex + ph.karno + pat.karno, lung,
++ 	      dfbeta=T, test='nrisk')
+> asum <- summary(afit, maxtime=max(afit$times))
+> aeq(afit$test.stat, asum$test.stat)
+[1] TRUE
+> aeq(afit$test.var,  asum$test.var)
+[1] TRUE
+> aeq(afit$test.var2, asum$test.var2)
+[1] TRUE
+> 
+> summary(afit)
+$table
+                  slope        coef    se(coef)   robust se         z
+Intercept  2.119015e-02  3.05872822 1.044992929 0.955953617  3.199662
+age        3.181122e-05  0.01071085 0.009280348 0.008182931  1.308926
+sex       -2.985556e-03 -0.49368373 0.153217001 0.151559500 -3.257359
+ph.karno  -8.371983e-05 -0.01131957 0.007825769 0.009654398 -1.172478
+pat.karno -8.501076e-05 -0.01328844 0.007241150 0.007669582 -1.732617
+                   p
+Intercept 0.00137589
+age       0.19055946
+sex       0.00112454
+ph.karno  0.24100515
+pat.karno 0.08316385
+
+$test
+[1] "nrisk"
+
+$test.statistic
+ Intercept        age        sex   ph.karno  pat.karno 
+480.220330   1.681604 -77.508345  -1.777173  -2.086286 
+
+$test.var
+            b0                                                   
+b0 26916.95995 -177.3767597 -791.4141458 -103.5540756 -69.1210402
+    -177.37676    2.1228915    0.1752574    0.4055099   0.1622945
+    -791.41415    0.1752574  578.6463538   -0.9726495  -0.6320578
+    -103.55408    0.4055099   -0.9726495    1.5095704  -0.5793466
+     -69.12104    0.1622945   -0.6320578   -0.5793466   1.2924520
+
+$test.var2
+            [,1]         [,2]         [,3]         [,4]        [,5]
+[1,] 22525.42254 -109.0376340 -1294.620657 -135.7477106 -24.1718358
+[2,]  -109.03763    1.6505060     2.562655    0.1774270  -0.1206339
+[3,] -1294.62066    2.5626546   566.194480    7.4865489  -4.7691882
+[4,]  -135.74771    0.1774270     7.486549    2.2974694  -0.9877341
+[5,]   -24.17184   -0.1206339    -4.769188   -0.9877341   1.4499155
+
+$chisq
+        [,1]
+[1,] 22.3874
+
+$n
+[1] 224 132 136
+
+attr(,"class")
+[1] "summary.aareg"
+> 
+> # Weights play no role in the final computation of the test statistic, given
+> #  the coefficient matrix, nrisk, and dfbeta as inputs.  (Weights do
+> #  change the inputs).  So there is no need to reprise the above with
+> #  case weights.
+> 

@@ -1,0 +1,148 @@
+#!/bin/sh
+
+## f77 -- Simple shell script wrapper to compile/link FORTRAN 77 code
+## using the FORTRAN-to-C converter.
+##
+## Usage:
+##   R CMD f77 [options] files [objs]
+
+## Copyright (C) 2002-2005 The R Core Team
+##
+## This document is free software; you can redistribute it and/or modify
+## it under the terms of the GNU General Public License as published by
+## the Free Software Foundation; either version 2, or (at your option)
+## any later version.
+##
+## This program is distributed in the hope that it will be useful, but
+## WITHOUT ANY WARRANTY; without even the implied warranty of
+## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+## General Public License for more details.
+##
+## A copy of the GNU General Public License is available at
+## https://www.R-project.org/Licenses/
+
+revision='$Rev: 71736 $'
+version=`set - ${revision}; echo ${2}`
+version="R front-end script to f2c: ${R_VERSION} (r${version})
+
+Copyright (C) 2002-2005 The R Core Team.
+This is free software; see the GNU General Public License version 2
+or later for copying conditions.  There is NO warranty."
+
+usage="Usage: R CMD f77 [options] files [objs]
+
+The specified files should be FORTRAN 77 source files ending in '.f'.
+
+Options:
+  -h, --help            print short help message and exit
+      --version         print version info and exit
+  -c                    compile and assemble, but do not link
+  -o FILE               place the output into FILE
+  --verbose             display the programs invoked
+
+Report bugs at <https://bugs.R-project.org>."
+
+## Possible user overrides
+: ${F2C='f2c'}
+: ${F2CLIBS='-lf2c'}
+: ${CC='cc'}
+: ${CPP='cpp'}
+CFLAGS=
+
+##
+rc=0
+tmp_stderr_file=${TMPDIR-/tmp}/f77_stderr.${$}
+trap "rm -f ${tmp_stderr_file}; exit \$rc" 0
+
+opt_c=no
+opt_o=no
+echo=echo
+outfile=a.out
+verbose=false
+srcs=
+objs=
+
+## Argument loop.
+while test -n "${1}"; do
+  case "${1}" in
+    -h|--help)
+      ${echo} "${usage}"; exit 0 ;;
+    --version)
+      ${echo} "${version}"; exit 0 ;;
+    --verbose)
+      verbose=${echo} ;;
+    -c)
+      opt_c=yes ;;
+    -o)
+      opt_o=yes
+      outfile="${2}"
+      shift
+      ;;
+    -v)
+      ${echo} "-lg2c -lm"; exit 0 ;;
+    *.f)
+      srcs="${srcs} ${1}" ;;
+    *.F)
+      srcs="${srcs} ${1}" ;;
+    */*|*.a|*.o|*.s[lo]|*.s[lo].*)
+      objs="${objs} ${1}" ;;
+    *)  # assume all the rest are C flags, -fPIC, -I etc.
+      CFLAGS="${CFLAGS} $1" ;;
+  esac
+  shift
+done
+
+set - "${srcs}"
+if test ${#} -gt 1 \
+     && test "${opt_c}" = yes \
+     && test "${opt_o}" = yes; then
+  echo "cannot specify -o with -c and multiple compilations"
+  exit
+fi
+
+for f in ${*}; do
+    case ${f} in
+	*.f)
+	    b=`basename ${f} .f`
+	    ${verbose} ${F2C} ${F2CFLAGS} ${f}
+	    ${F2C} ${F2CFLAGS} ${f}
+	    rc=${?}
+	    test ${rc} = 0 || exit
+	    ;;
+	*.F)
+	    b=`basename ${f} .F`
+	    ${CPP} $1 >$b.i
+	    rc=$?
+	    case $rc in
+		0)
+		    ${verbose} ${F2C} ${F2CFLAGS} <$b.i >$b.c
+		    ${F2C} ${F2CFLAGS} <$b.i >$b.c
+		    rc=$?
+		    ;;
+	    esac
+	    rm $b.i
+	    test ${rc} = 0 || exit
+	    ;;
+    esac
+  if test "${opt_c}" = yes && test "${opt_o}" = yes; then
+    CFLAGS="${CFLAGS} -o ${outfile}"
+  fi
+  ${verbose} ${CC} -c ${CFLAGS} ${b}.c 2>${tmp_stderr_file}
+  ${CC} -c ${CFLAGS} ${b}.c 2>${tmp_stderr_file}
+  rc=${?}
+  test ${rc} = 0 || exit
+  objs="${objs} ${b}.o"
+  rm -f ${b}.c
+done
+
+if test "${opt_c}" = no && test -n "${objs}"; then
+  ${verbose} "${CC} ${CFLAGS} -o ${outfile} -u MAIN__ ${objs} ${F2CLIBS}"
+  ${CC} ${CFLAGS} -o ${outfile} -u MAIN__ ${objs} ${F2CLIBS}
+fi
+rc=${?}
+exit ${rc}
+
+### Local Variables: ***
+### mode: sh ***
+### sh-indentation: 2 ***
+### End: ***

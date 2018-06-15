@@ -1,0 +1,439 @@
+<?xml version="1.0"?>
+<!DOCTYPE article[
+  <!ENTITY C "C">
+  <!ENTITY S "S">
+  <!ENTITY R "R">
+  <!ENTITY SPlus "SPlus">
+]>
+
+<article xmlns:r="http://www.r-project.org"
+         xmlns:c="http://www.bell-labs.com"
+         xmlns:rs="http://www.omegahat.net/RS">
+
+<title>&R; Output Format using XML</title>
+<author><a href="http://cm.bell-labs.com/stat/duncan">Duncan Temple Lang</a></author>
+
+
+The code here defines a mechanism to create
+external representations of R (and S) objects
+using XML. The idea is to allow the objects
+to be shared across different systems, specifically
+&SPlus; and &R;
+
+<code lang="S">
+<![CDATA[
+writeXML <-
+function(x, con, ...)
+{
+ UseMethod("writeXML")
+}
+
+writeXML.default <-
+function(x, con, ...)
+{
+
+ if(length(class(x)) > 0)
+   return(writeXML.object(x, con, ...))
+
+ name <- paste("writeXML", typeof(x), sep=".")
+
+ if(exists(name, mode="function")) {
+   f <- get(name)
+   f(x, con, ...)
+ } else if(is.integer(x)) {
+    lapply(x, function(i, con, ...) { con$addTag("integer", i); T} , con=con, ...)
+ } else if(!is.na(match(mode(x), c("integer", "numeric", "character", "logical")))) {
+    lapply(x, function(i, con, tag, ...) { con$addTag(tag, i); T} , con=con, tag=mode(x), ...)
+ } else if(typeof(x) == "NULL") {
+   con$addTag("null")
+ } else
+   stop(paste("No method for writeXML", typeof(x)))
+
+}
+]]>
+</code>
+
+Given the default mechanism for dispatching to the different functions
+specific to the types of &R; objects, we now implement the details for
+these kinds of values.
+<code lang="S">
+<![CDATA[
+writeXML.list <-
+#
+# Write the representation of an S list
+# to the XML connection.
+#
+#
+function(x, con,  ...)
+{
+ isNamed <- (length(names(x)) > 0)
+ tag <- ifelse(isNamed, "namedlist", "list")
+
+ con$addTag(tag, attrs=c(length=length(x)), close=F)
+ for(i in 1:length(x)) {
+   if(isNamed) {
+    con$addTag("name", names(x)[i])
+   }
+    con$addTag("element", close=F)
+       writeXML(x[[i]], con, ...)
+    con$addEndTag("element")
+ }
+
+ con$addEndTag(tag)
+
+ invisible(con)
+}
+
+
+
+writeXML.object <-
+#
+# Writes a general S3 object, i.e. one with a 
+# non-null class() value. 
+# This just writes out the names of the named
+# elements of x. 
+# Doesn't handle non-named lists yet
+#
+function(x, con, ...)
+{
+ classes <- class(x)
+ con$addTag("object", attrs=c(type=classes[1]), close=F)
+ for(i in names(x)) {
+   con$addTag("slot", attrs=c(name=i), close=F)
+    writeXML(x[[i]], con, ...)
+   con$addEndTag("slot")
+ }
+   
+ if(length(classes) > 1) {
+   con$addTag("classes", attrs=c(length=length(classes)))
+   sapply(classes, function(x, con, ...) {
+                          con$addTag("class", x)
+                       }, con, ...)
+   con$addEndTag("classes")
+ }
+
+  con$addEndTag("object")
+
+ invisible(con)
+}
+
+
+writeXML.closure <-
+function(x, con, ...)
+{
+ is.missing.arg <- function(arg) typeof(arg) == "symbol" && deparse(arg) == ""
+ args <- formals(x)
+ con$addTag("function", close=F)
+ con$addTag("args", attrs=c(length=length(args)), close=F)
+ for(i in names(args)) {
+   con$addTag("arg", attrs=c(name=i), close=F)
+   if(!is.missing.arg(args[[i]])) {
+     con$addTag("value", close=F)
+     writeXML(args[[i]], con, ...)
+     con$addEndTag("value")
+   }
+   con$addEndTag("arg")
+ }
+ con$addEndTag("args")
+
+ b <- body(x)
+ if(length(b) > 1)
+    bodyLen <- length(body(x))-1
+ else
+    bodyLen <- 1
+
+ con$addTag("body", attrs=c(length=bodyLen), close = F)
+   writeXML(b, con, ...)
+ con$addEndTag("body")
+ con$addEndTag("function")
+
+ invisible(con)
+}
+
+writeXML.language <-
+function(x, con, ...)
+{
+ if(x[[1]] == "if") {
+   writeXML.if(x, con, ...)
+ } else if(x[[1]] == "{") {
+   for(i in 2:length(x))
+     writeXML(x[[i]], con, ...)
+ } else if(x[[1]] == "for") {
+   writeXML.for(x, con, ...)
+ } else if(isLogicalExpression(x)) {
+   writeXML.logicalExpr(x, con, ...)
+ } else if(isComparator(x)) {
+   writeXML.comparator(x, con, ...)
+ } else if(x[[1]] == "while") {
+   writeXML.while(x, con, ...)
+ } else if(x[[1]] == "break" || x[[1]] == "next") {
+   con$addTag(x[[1]])
+ } else if(x[[1]] == "<-") {
+   con$addTag("assign", close=F)
+   writeXML(x[[2]], con, ...)
+   writeXML(x[[3]], con, ...)
+   con$addEndTag("assign")
+ } else if(x[[1]] == "repeat") {
+   con$addTag("repeat", close=F)
+   writeXML(x[[2]], con, ...)
+   con$addEndTag("repeat")
+ } else if(x[[1]] == "return") {
+   con$addTag("return", close=F)
+    if(length(x) > 1)
+     writeXML(x[[2]], con, ...)
+   con$addEndTag("return")
+ } else if(mode(x) == "call") {
+   writeXML.call(x, con, ...)
+ } 
+
+ invisible(con)
+}
+
+writeXML.if <-
+function(x, con, ...)
+{
+ con$addTag("if", close=F)
+ 
+  con$addTag("cond", close=F)
+    writeXML(x[[2]], con, ...)
+  con$addEndTag("cond")
+  if(length(x) > 2) {
+    con$addTag("action", close=F)
+     writeXML(x[[3]], con, ...)
+    con$addEndTag("action")
+  }
+  if(length(x) == 4) {
+    con$addTag("else", close=F)
+     writeXML(x[[4]], con, ...)
+    con$addEndTag("else")
+  }
+
+ con$addEndTag("if")
+
+ invisible(con)
+}
+
+
+writeXML.for <-
+function(x, con, ...)
+{
+ con$addTag("for", close=F)
+ 
+  con$addTag("index", close=F)
+    writeXML(x[[2]], con, ...)
+  con$addEndTag("index")
+
+  con$addTag("elements", close=F)
+     writeXML(x[[3]], con, ...)
+  con$addEndTag("elements")
+
+   con$addTag("loop", close=F)
+     writeXML(x[[4]], con, ...)
+   con$addEndTag("loop")
+
+ con$addEndTag("for")
+
+ invisible(con)
+}
+
+
+writeXML.while <-
+function(x, con, ...)
+{
+
+ con$addTag("while", attrs = c(doWhile= (x[[1]] == "do")), close=F)
+ 
+  con$addTag("cond", close=F)
+    writeXML(x[[2]], con, ...)
+  con$addEndTag("cond")
+
+  con$addTag("loop", close=F)
+     writeXML(x[[3]], con, ...)
+  con$addEndTag("loop")
+
+ con$addEndTag("while")
+
+ invisible(con)
+}
+
+writeXML.symbol <-
+function(x, con, ...)
+{
+ con$addTag("symbol", as.character(x))
+ invisible(con)
+}
+
+writeXML.call <-
+function(x, con, ...)
+{
+  con$addTag("call", close=F)
+   con$addTag("caller", close=F)
+    writeXML(x[[1]], con, ...)
+   con$addEndTag("caller")
+     # Don't make this a x[2:length(x)]
+     # or x[-1]. Infinite loop results.
+   argNames <- names(x)
+
+ if(length(x) > 1) {
+   for(i in seq(2, length=length(x)-1)) {
+    if(!is.null(argNames) && argNames[i] != "")
+     con$addTag("namedArg", attrs=c(name=argNames[i]), close=F)
+
+    writeXML(x[[i]], con, ...)
+
+    if(!is.null(argNames) && argNames[i] != "")
+     con$addEndTag("namedArg")
+   }
+ }
+  con$addEndTag("call")
+
+ invisible(call)
+}
+]]>
+</code>
+
+<code lang="S">
+<![CDATA[
+isLogicalExpression <-
+function(x, ...)
+{
+  !is.na(match(as.character(x[[1]]), c("&", "&&", "|", "||")))
+}
+
+
+writeXML.logicalExpr <-
+function(x, con, ...)
+{
+ logicalTags <- c("&" ="elementAnd", "&&"="logicalAnd", 
+                  "|" ="elementOr", "||"="logicalOr") 
+
+  tag <- logicalTags[as.character(x[[1]])]
+
+  con$addTag(tag, close=F)
+
+  writeXML(x[[2]], con, ...)
+  writeXML(x[[3]], con, ...)
+
+  con$addEndTag(tag)
+}
+]]>
+</code>
+
+<code lang="S">
+<![CDATA[
+isComparator <-
+function(x, ...)
+{
+  !is.na(match(as.character(x[[1]]), c("<", ">", "<=", ">=", "==", "!=")))
+}
+
+writeXML.comparator <-
+function(x, con, ...)
+{
+ logicalTags <- c("<" ="lessThan", ">"="greaterThan", 
+                  "<=" = "lessThanEqual", ">="="greaterThanEqual",
+                  "==" = "equal", "!=" = "notEqual") 
+
+  tag <- logicalTags[as.character(x[[1]])]
+
+  con$addTag(tag, close=F)
+
+  writeXML(x[[2]], con, ...)
+  writeXML(x[[3]], con, ...)
+
+  con$addEndTag(tag) 
+}
+
+writeXML.builtin <-
+#
+# for primitives 
+#
+function(x, con, ...)
+{
+ con$addTag("builtin", attrs=c(name=getPrimitiveName(x)), close=F)
+}
+
+
+writeXML.special <-
+#
+# for primitives 
+#
+function(x, con, ...)
+{
+ con$addTag("special", attrs=c(name=getPrimitiveName(x)), close=F)
+}
+
+
+writeXML.environment <-
+#
+# for primitives 
+#
+function(x, con, ...)
+{
+ con$addTag("environment", attrs=c(name=getPrimitiveName(x)), close=F)
+}
+]]>
+</code>
+
+
+When writing out a call to a Primitive (usually only in
+<r:package>base</r:package>), we need to know the name of the
+operation which is being called. This function is a simple call to a
+&C; routine which gets this name.
+
+
+<rs:function lang="S">
+<![CDATA[
+getPrimitiveName <-
+function(obj)
+{
+ .Call("RXML_getPrimitiveName", obj)
+}
+]]>
+</rs:function>
+
+Now we turn our attention to providing the low level mechanisms to
+gather some of the information that we need to output the XML
+representation of the R objects.  There is no (simple) way to get the
+name of the primitive operation being called in a
+<sfunction>.Primitive</sfunction> call via user level code. Instead,
+we must use &C;-level code to get this information.
+
+<p/> The code is simple.  It consists of including header files that
+we need, using some <file>Defn.h</file> that are not in &R;'s public API.
+This is not an issue here as this code will eventually be absorbed
+into the core, track the changes to the internals or simply disappear.
+
+<p/> The hear of this routine is simply to create a character vector
+of length 1 and then populate it with an entry which is computed by
+getting the name of the primitive operation specified in
+the function call given by the <arg>obj</arg>.
+
+<code lang="C">
+
+ <fragmentRef id="includes" />
+
+SEXP 
+RXML_getPrimitiveName(SEXP obj)
+{
+  SEXP ans;
+  PROTECT(ans = NEW_STRING(1));
+  SET_STRING_ELT(ans, 0,  mkChar(PRIMNAME(obj)));
+  UNPROTECT(1);
+  return(ans);
+}
+</code>
+
+The following are the list of header files
+that are needed by the &C; code in this library.
+Note that we require <file>Defn.h</file>
+to access <c:macro>PRIMNAME</c:macro>
+<fragment id="includes">
+#include "R.h"
+#include "Defn.h"
+#include "Rinternals.h"
+#include "Rdefines.h"
+</fragment>
+
+
+</article>

@@ -1,0 +1,222 @@
+---
+title: "Introduction to readr"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Introduction to readr}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+library(readr)
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+The key problem that readr solves is __parsing__ a flat file into a tibble. Parsing is the process of taking a text file and turning it into a rectangular tibble where each column is the appropriate part. Parsing takes place in three basic stages:
+
+1.  The flat file is parsed into a rectangular matrix of
+    strings.
+
+1.  The type of each column is determined.
+
+1.  Each column of strings is parsed into a vector of a 
+    more specific type.
+
+It's easiest to learn how this works in the opposite order Below, you'll learn how the:
+
+1.  __Vector parsers__ turn a character vector in to a 
+    more specific type. 
+
+1.  __Column specification__ describes the type of each 
+    column and the strategy readr uses to guess types so
+    you don't need to supply them all.
+    
+1.  __Rectangular parsers__ turn a flat file into a 
+    matrix of rows and columns.
+  
+Each `parse_*()` is coupled with a `col_*()` function, which will be used in the process of parsing a complete tibble. 
+
+## Vector parsers
+
+It's easiest to learn the vector parses using `parse_` functions. These all take a character vector and some options. They return a new vector the same length as the old, along with an attribute describing any problems.
+
+### Atomic vectors
+
+`parse_logical()`, `parse_integer()`, `parse_double()`, and `parse_character()` are straightforward parsers that produce the corresponding atomic vector.
+
+```{r}
+parse_integer(c("1", "2", "3"))
+parse_double(c("1.56", "2.34", "3.56"))
+parse_logical(c("true", "false"))
+```
+
+By default, readr expects `.` as the decimal mark and `,` as the grouping mark. You can override this default using `locale()`, as described in `vignette("locales")`.
+
+### Flexible numeric parser
+
+`parse_integer()` and `parse_double()` are strict: the input string must be a single number with no leading or trailing characters. `parse_number()` is more flexible: it ignores non-numeric prefixes and suffixes, and knows how to deal with grouping marks. This makes it suitable for reading currencies and percentages:
+
+```{r}
+parse_number(c("0%", "10%", "150%"))
+parse_number(c("$1,234.5", "$12.45"))
+```
+
+### Date/times
+
+readr supports three types of date/time data:
+
+* dates: number of days since 1970-01-01.
+* times: number of seconds since midnight.
+* datetimes: number of seconds since midnight 1970-01-01.
+
+```{r}
+parse_datetime("2010-10-01 21:45")
+parse_date("2010-10-01")
+parse_time("1:00pm")
+```
+
+Each function takes a `format` argument which describes the format of the string. If not specified, it uses a default value:
+
+* `parse_datetime()` recognises
+  [ISO8601](https://en.wikipedia.org/wiki/ISO_8601) 
+  datetimes.
+
+* `parse_date()` uses the `date_format` specified by
+  the `locale()`. The default value is `%AD` which uses
+  an automatic date parser that recognises dates of the 
+  format `Y-m-d` or `Y/m/d`.
+  
+* `parse_time()` uses the `time_format` specified by
+  the `locale()`. The default value is `%At` which uses
+  an automatic time parser that recognises times of the
+  form `H:M` optionally followed by seconds and am/pm.
+  
+In most cases, you will need to supply a `format`, as documented in `parse_datetime()`:
+
+```{r}
+parse_datetime("1 January, 2010", "%d %B, %Y")
+parse_datetime("02/02/15", "%m/%d/%y")
+```
+
+### Factors
+
+When reading a column that has a known set of values, you can read directly into a factor. `parse_factor()` will generate generate a warning if a value is not in the supplied levels.
+ 
+```{r}
+parse_factor(c("a", "b", "a"), levels = c("a", "b", "c"))
+parse_factor(c("a", "b", "d"), levels = c("a", "b", "c"))
+```
+
+## Column specification
+
+It would be tedious if you had to specify the type of every column when reading a file. Instead readr, uses some heuristics to guess the type of each column. You can access these results yourself using `guess_parser()`:
+
+```{r}
+guess_parser(c("a", "b", "c"))
+guess_parser(c("1", "2", "3"))
+guess_parser(c("1,000", "2,000", "3,000"))
+guess_parser(c("2001/10/10"))
+```
+
+The guessing policies are described in the documentation for the individual functions. Guesses are fairly strict. For example, we don't guess that currencies are numbers, even though we can parse them:
+
+```{r}
+guess_parser("$1,234")
+parse_number("1,234")
+``` 
+
+The are two parsers that will never be guessed: `col_skip()` and `col_factor()`. You will always need to supply these explicitly.
+
+You can see the specification that readr would generate for a column file by using `spec_csv()`, `spec_tsv()` and so on:
+
+```{r}
+x <- spec_csv(readr_example("challenge.csv"))
+```
+
+For bigger files, you can often make the specification simpler by changing the default column type using `cols_condense()`
+
+```{r}
+mtcars_spec <- spec_csv(readr_example("mtcars.csv"))
+mtcars_spec
+
+cols_condense(mtcars_spec)
+```
+
+
+By default readr only looks at the first 1000 rows. This keeps file parsing speedy, but can generate incorrect guesses. For example, in `challenge.csv` the column types change in row 1001, so readr guesses the wrong types. One way to resolve the problem is to increase the number of rows:
+
+```{r}
+x <- spec_csv(readr_example("challenge.csv"), guess_max = 1001)
+```
+
+Another way is to manually specify the `col_type`, as described below.
+
+## Rectangular parsers
+
+readr comes with five parsers for rectangular file formats:
+
+* `read_csv()` and `read_csv2()` for csv files
+* `read_tsv()` for tabs separated files
+* `read_fwf()` for fixed-width files
+* `read_log()` for web log files
+
+Each of these functions firsts calls `spec_xxx()` (as described above), and then parses the file according to that column specification:
+
+```{r}
+df1 <- read_csv(readr_example("challenge.csv"))
+```
+
+The rectangular parsing functions almost always succeed; they'll only fail if the format is severely messed up. Instead, readr will generate a data frame of problems. The first few will be printed out, and you can access them all with `problems()`:
+
+```{r}
+problems(df1)
+```
+
+You've already seen one way of handling bad guesses: increasing the number of rows used to guess the type of each column. 
+
+```{r}
+df2 <- read_csv(readr_example("challenge.csv"), guess_max = 1001)
+```
+
+Another approach is to manually supply the column specification.
+
+### Overriding the defaults
+
+In the previous examples, you may have noticed that readr printed the column specification that it used to parse the file:
+
+```{r}
+#> Parsed with column specification:
+#> cols(
+#>   x = col_integer(),
+#>   y = col_character()
+#> )
+```
+
+You can also access it after the fact using `spec()`:
+
+```{r}
+spec(df1)
+spec(df2)
+```
+
+(This also allows you to access the full column specification if you're reading a very wide file. By default, readr will only print the specification of the first 20 columns.)
+
+If you want to manually specify the column types, you can start by copying and pasting this code, and then tweaking it fix the parsing problems.
+
+```{r}
+df3 <- read_csv(
+  readr_example("challenge.csv"), 
+  col_types = cols(
+    x = col_double(),
+    y = col_date(format = "")
+  )
+)
+```
+
+In general, it's good practice to supply an explicit column specification. It is more work, but it ensures that you get warnings if the data changes in unexpected ways. To be really strict, you can use `stop_for_problems(df3)`. This will throw an error if there are any parsing problems, forcing you to fix those problems before proceeding with the analysis.
+
+### Output
+
+The output of all these functions is a tibble. Note that characters are never automatically converted to factors (i.e. no more `stringsAsFactors = FALSE`) and column names are left as is, not munged into valid R identifiers (i.e. there is no `check.names = TRUE`). Row names are never set.
+
+Attributes store the column specification (`spec()`) and any parsing problems (`problems()`).

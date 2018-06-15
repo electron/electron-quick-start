@@ -1,0 +1,921 @@
+---
+title: |
+       | Extending \rlang with C++: 
+       | A Brief Introduction to Rcpp
+       
+# Use letters for affiliations
+author:
+  - name: Dirk Eddelbuettel
+    affiliation: a
+  - name: James Joseph Balamuta
+    affiliation: b
+address:
+  - code: a
+    address: Debian and R Projects; Chicago, IL, USA; \url{edd@debian.org}
+  - code: b
+    address: Depts of Informatics and Statistics, Univ. of Illinois at Urbana-Champaign; Champaign, IL, USA; \url{balamut2@illinois.edu}
+
+# For footer text  TODO(fold into template, allow free form two-authors)
+lead_author_surname: Eddelbuettel and Balamuta
+
+# Place DOI URL or CRAN Package URL here
+doi: "https://cran.r-project.org/package=Rcpp"
+
+# Abstract
+abstract: |
+  \rlang has always provided an application programming interface (API) for extensions.
+  Based on the \clang language, it uses a number of macros and other low-level constructs
+  to exchange data structures between the \rlang process and any dynamically-loaded component
+  modules authors added to it. With the introduction of the \rcpp package, and its later
+  refinements, this process has become considerably easier yet also more robust.  By now, \rcpp has
+  become the most popular extension mechanism for \rlangns. This article introduces \rcppns, and
+  illustrates with several examples how the _Rcpp Attributes_ mechanism in particular
+  eases the transition of objects between \rlang and \cpp code.
+
+# Acknowledgements
+acknowledgements: |
+  We thank Bob Rudis and Lionel Henry for excellent comments and suggestion on an earlier 
+  draft of this manuscript. Furthermore, we appreciate the improved \cpp annotated function
+  graphic provided by Bob Rudis. This version is a pre-print of \citet{PeerJ:Rcpp}.
+
+# One or more keywords 
+keywords:
+  - applications and case studies
+  - statistical computing
+  - computationally intensive methods
+  - simulation
+
+# Bibliography 
+bibliography: Rcpp
+
+# Enable a watermark on the document
+watermark: false
+
+# Customize footer, eg by referencing the vignette
+footer_contents: "Rcpp Vignette"
+
+# Produce a pinp document
+output: pinp::pinp
+
+# Local additiona of a few definitions we use
+header-includes: >
+  \newcommand{\TODO}{\marginnote{TODO}}
+  \newcommand{\rlang}{\textit{R }}
+  \newcommand{\rlangns}{\textit{R}}
+  \newcommand{\slang}{\textit{S }}
+  \newcommand{\rcpp}{\textit{Rcpp }}
+  \newcommand{\rcppns}{\textit{Rcpp}}
+  \newcommand{\clang}{\textit{C }}
+  \newcommand{\clangns}{\textit{C}} 
+  \newcommand{\cpp}{\textit{C++ }}
+  \newcommand{\cppns}{\textit{C++}}
+  \newcommand{\fortran}{\textit{Fortran }}
+  \newcommand{\fortranns}{\textit{Fortran}}
+  \newcommand{\python}{\textit{Python}}
+  \newcommand{\julia}{\textit{Julia}}
+  \newcommand{\pkg}[1]{\textbf{#1}}
+  
+vignette: >
+  %\VignetteIndexEntry{Rcpp-introduction}
+  %\VignetteKeywords{Rcpp, R, Cpp}
+  %\VignettePackage{Rcpp}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(cache=TRUE)
+library(Rcpp)
+```
+
+
+# Introduction
+
+The \rlang language and environment \citep{R:main} has established itself as
+both an increasingly dominant facility for data analysis, and the
+*lingua franca* for statistical computing in both research and
+application settings.
+
+Since the beginning, and as we argue below, "by design", 
+the \rlang system has always provided an application programming interface (API)
+suitable for extending \rlang with code written in \clang or \fortranns.  Being
+implemented chiefly in \rlang and \clang (with a generous sprinkling of \fortran
+for well-established numerical subroutines), \rlang has always been
+extensible via a \clang interface.  Both the actual
+implementation and the \clang interface use a number of macros and other
+low-level constructs to exchange data structures between the \rlang process
+and any dynamically-loaded component modules authors added to it.
+
+A \clang interface will generally also be accessible to other languages.
+Particularly noteworthy here is the \cpp language, developed originally as a
+'better \clangns', which is by its design very interoperable with
+\clangns. And with the introduction of the \rcpp package
+\citep{JSS:Rcpp,Eddelbuettel:2013:Rcpp,CRAN:Rcpp}, and its later refinements, this
+process of extending \rlang has become considerably easier yet also more robust.
+To date, \rcpp has become the most popular extension system for
+\rlangns. This article introduces \rcppns, and illustrates with several
+examples how the _Rcpp Attributes_ mechanism
+\citep{CRAN:Rcpp:Attributes} in particular eases the transition of
+objects between \rlang and \cpp code.
+
+
+## Background 
+
+\citet[p. 3]{Chambers:2008:SoDA} provides a very thorough discussion of
+desirable traits for a system designed to _program with data_,
+and the \rlang system in particular. Two key themes motivate the introductory
+discussion. First, the _Mission_ is to aid exploration in order to
+provide the best platform to analyse data: "to boldly go where no one
+has gone before." Second, the _Prime Directive_ is that the software
+systems we build must be _trustworthy_: "the many computational steps
+between original data source and displayed result must all be
+trustful."  The remainder of the book then discusses \rlangns, leading
+to two final chapters on interfaces.
+
+\citet[p. 4]{Chambers:2016:ExtR} builds and expands on this theme.  Two core
+facets of what "makes" \rlang are carried over from the previous book. The
+first states what \rlang is composed of: _Everything that exists in \rlang is
+an object_.  The second states how these objects are created or
+altered: _Everything that happens in \rlang is a function call_. A third
+statement is now added: _Interfaces to other software are part of \rlangns_.
+
+This last addition is profound. If and when suitable and performant
+software for a task exists, it is in fact desirable to have a (preferably
+also perfomant) interface to this software from \rlangns.
+\cite{Chambers:2016:ExtR} discusses several possible approaches for simpler
+interfaces and illustrates them with reference implementations to both \python\ and
+\julia. However, the most performant interface for \rlang is provided at the
+subroutine level, and rather than discussing the older \clang interface for
+\rlangns, \cite{Chambers:2016:ExtR} prefers to discuss \rcppns.  This article
+follows the same school of thought and aims to introduce \rcpp to
+analysts and data scientists, aiming to enable them to use---and
+create--- further _interfaces_ for \rlang which aid the _mission_ while
+staying true to the _prime directive_.  Adding interfaces in such a way is in
+fact a natural progression from the earliest designs for its predecessor
+\slang which was after all designed to provide a more useable 'interface' to
+underlying routines in \fortranns.
+
+The rest of the paper is structured as follows. We start by discussing
+possible first steps, chiefly to validate correct installations. This
+is followed by an introduction to simple \cpp functions, comparison to
+the \clang API, a discussion of packaging with \rcpp and a linear algebra
+example.  The appendix contains some empirical illustrations of the
+adoption of \rcppns.
+
+
+# First Steps with \rcpp
+
+\rcpp is a CRAN package and can be installed 
+by using `install.packages('Rcpp')` just like any other \rlang package. On
+some operating systems this will download _pre-compiled_ binary packages; on
+others an installation from source will be attempted.  But \rcpp is a little
+different from many standard \rlang packages in one important aspect: it helps the user
+to _write C(++) programs more easily_.  The key aspect to note here is \cpp
+programs: to operate, \rcpp needs not only \rlang but also an additional
+_toolchain_ of a compiler, linker and more in order to be able to create _binary_ object
+code extending \rlangns.
+
+We note that this requirement is no different from what is needed with base \rlang when
+compilation of extensions is attempted.  How to achieve this using only base \rlang is described in
+some detail in the _Writing R Extensions_ manual \citep{R:Extensions} that is included
+with \rlangns. As for the toolchain requirements, on Linux and macOS, all required
+components are likely to be present. The macOS can offer additional challenges as toolchain
+elements can be obtained in different ways. Some of these are addressed in the _Rcpp FAQ_
+\citep{CRAN:Rcpp:FAQ} in sections 2.10 and 2.16.  On Windows, users will have to install
+the Rtools kit provided by R Core available at <https://cran.r-project.org/bin/windows/Rtools/>.
+Details of these installation steps are beyond the scope of this
+paper. However, many external resources exist that provide detailed 
+installation guides for \rlang toolschains in
+[Windows](http://thecoatlessprofessor.com/programming/rcpp/install-rtools-for-rcpp/)
+and
+[macOS](http://thecoatlessprofessor.com/programming/r-compiler-tools-for-rcpp-on-os-x/).
+
+As a first step, and chiefly to establish that the toolchain is set up correctly, consider
+a minimal use case such as the following:
+
+```{r evalCpp, eval=FALSE}
+library("Rcpp")
+evalCpp("2 + 2")
+```
+
+Here the \rcpp package is loaded first via the `library()` function.  Next, we deploy one
+of its simplest functions, `evalCpp()`, which is described in the _Rcpp Attributes_ vignette
+\citep{CRAN:Rcpp:Attributes}. It takes the first (and often only) argument---a character
+object---and evaluates it as a minimal \cpp expression.  The value assignment and return
+are implicit, as is the addition of a trailing semicolon and more.  In fact, `evalCpp()`
+surrounds the expression with the required 'glue' to make it a minimal source file which
+can be compiled, linked and loaded. The exact details behind this process
+are available in-depth when the `verbose` option of the function is set. 
+If everything is set up correctly, the newly-created \rlang function will be
+returned.
+
+While such a simple expression is not interesting in itself, it serves a
+useful purpose here to unequivocally establish whether \rcpp is correctly
+set up.  Having accomplished that, we can proceed to the next step of
+creating simple functions.
+
+# A first \cpp function using \rcpp
+
+As a first example, consider the determination of whether a number is odd or even. The
+default practice is to use modular arithmetic to check if a remainder exists under $x
+\bmod 2$. Within \rlangns, this can be implemented as follows:
+
+```{r isOddR, cache=TRUE}
+isOddR <- function(num = 10L) {
+   result <- (num %% 2L == 1L)
+   return(result)
+}
+```
+
+The operator `%%` implements the $\bmod$ operation in \rlangns. For the default
+(integer) argument of ten used in the example, $10 \bmod 2$ results in zero, which is then
+mapped to `FALSE` in the context of a logical expression.
+
+Translating this implementation into \cppns, several small details have to be
+considered. First and foremost, as \cpp is a _statically-typed language_, there needs to
+be additional (compile-time) information provided for each of the variables. Specifically,
+a *type*, _i.e._ the kind of storage used by a variable must be explicitly
+defined. Typed languages generally offer benefits in terms of both correctness
+(as it is harder to accidentally assign to an ill-matched type) and
+performance (as the compiler can optimize code based on the storage and cpu
+characteristics). Here we have an `int` argument, but return a logical, or
+`bool` for short.  Two more smaller differences are that each statement
+within the body must be concluded with a semicolon, and that `return` does 
+not require parentheses around its argument. A graphical breakdown of all
+aspects of a corresponding \cpp function is given in Figure \ref{fig:cpp-function-annotation}.
+
+\begin{figure*}
+  \begin{center}
+    \includegraphics[width=5.5in]{figures/function_annotation_cpp.png}
+    \caption{Graphical annotation of the \texttt{is\_odd\_cpp} function.}
+    \label{fig:cpp-function-annotation}
+  \end{center}
+\end{figure*}
+
+When using \rcppns, such \cpp functions can be directly embedded and compiled in an \rlang
+script file through the use of the `cppFunction()` provided by _Rcpp Attributes_
+\citep{CRAN:Rcpp:Attributes}. The first parameter of the function accepts string input
+that represents the \cpp code. Upon calling the `cppFunction()`, and similarly to the
+earlier example involving `evalCpp()`, the \cpp code is both _compiled_ and _linked_, and
+then _imported_ into \rlang under the name of the function supplied (_e.g._ here `isOddCpp()`).
+
+```{r isOddRcpp, cache=TRUE, eval=FALSE}
+library("Rcpp")
+cppFunction("
+bool isOddCpp(int num = 10) {
+   bool result = (num % 2 == 1);
+   return result;
+}")
+isOddCpp(42L)
+```
+
+# Extending \rlang via its \clang API
+
+Let us first consider the case of 'standard \rlangns', _i.e._ the API as
+defined in the core \rlang documentation.  Extending \rlang with routines written
+using the \clang language requires the use of internal macros and functions
+documented in Chapter 5 of _Writing R Extensions_ \citep{R:Extensions}.
+
+```{Rcpp convolutionC, eval = FALSE}
+#include <R.h>
+#include <Rinternals.h>
+
+SEXP convolve2(SEXP a, SEXP b) {
+    int na, nb, nab;
+    double *xa, *xb, *xab;
+    SEXP ab;
+
+    a = PROTECT(coerceVector(a, REALSXP));
+    b = PROTECT(coerceVector(b, REALSXP));
+    na = length(a); nb = length(b); 
+    nab = na + nb - 1;
+    ab = PROTECT(allocVector(REALSXP, nab));
+    xa = REAL(a); xb = REAL(b); xab = REAL(ab);
+    for (int i = 0; i < nab; i++)
+        xab[i] = 0.0;
+    for (int i = 0; i < na; i++)
+	    for (int j = 0; j < nb; j++)
+            xab[i + j] += xa[i] * xb[j];
+    UNPROTECT(3);
+    return ab;
+}
+```
+
+This function computes a _convolution_ of two vectors supplied on input, $a$ and
+$b$, which is defined to be ${ab_{k + 1}} = \sum\limits_{i + j == k} {{a_i} \cdot {b_j}}$.
+Before computing the convolution (which is really just the three lines involving two
+nested for loops with indices $i$ and $j$), a total of ten lines of mere housekeeping
+are required. Vectors $a$ and $b$ are coerced to `double`, and a results vector `ab` is
+allocated. This expression involves three calls to the `PROTECT` macro for which a _precisely_
+matching `UNPROTECT(3)` is required as part of the interfacing of internal memory
+allocation. The vectors are accessed through pointer equivalents `xa`, `xb` and `xab`; and
+the latter has to be explicitly zeroed prior to the convolution calculation involving
+incremental summary at index $i+j$.
+
+
+# Extending \rlang via the \cpp API of \rcpp
+
+Using the idioms of \rcppns, the above example can be written in a much more
+compact fashion---leading to code that is simpler to read and
+maintain. 
+
+```{Rcpp convolutionRcpp, eval = FALSE}
+#include "Rcpp.h"
+using namespace Rcpp;
+
+// [[Rcpp::export]]
+NumericVector 
+convolve_cpp(const NumericVector& a,
+             const NumericVector& b) {
+  
+    // Declare loop counters, and vector sizes
+    int i, j,
+        na = a.size(), nb = b.size(),
+        nab = na + nb - 1;
+    
+    // Create vector filled with 0
+    NumericVector ab(nab);
+    
+    // Crux of the algorithm
+    for(i = 0; i < na; i++) {
+        for(j = 0; j < nb; j++) {
+            ab[i + j] += a[i] * b[j];
+        }
+    }
+    
+    // Return result
+    return ab;                                     
+}
+```
+
+To deploy such code from within an \rlang script or session, first save it into a new
+file---which could be called **convolve.cpp**---in either the working directory, a
+temporary directoy or a project directory. Then from within the \rlang session,
+use `Rcpp::sourceCpp("convolve.cpp")` (possibly using a path as well as the filename). This
+not only compiles, links and loads the code within the external file but also adds the
+necessary "glue" to make the \rcpp function available in the \rlang environment. Once the
+code is compiled and linked, call the newly-created `convolve_cpp()` function with the
+appropriate parameters as done in previous examples.
+
+What is notable about the \rcpp version is that it has no `PROTECT` or `UNPROTECT`
+which not only frees the programmer from a tedious (and error-prone) step but 
+more importantly also shows that memory management can be handled automatically.
+The result vector is already initialized at zero as well,
+reducing the entire function to just the three lines for the two nested loops,
+plus some variable declarations and the `return` statement.  The resulting code is
+shorter, easier to read, comprehend and maintain. Furthermore, the \rcpp code 
+is more similar to traditional \rlang code, which reduces
+the barrier of entry.
+
+
+# Data Driven Performance Decisions with \rcpp
+
+When beginning to implement an idea, more so an algorithm, there are many ways
+one is able to correctly implement it. Prior to the routine being used in
+production, two questions must be asked: 
+
+1. Does the implementation produce the _correct_ results?
+2. What implementation of the routine is the _best_?
+
+The first question is subject to a binary pass-fail unit test verification 
+while the latter question is where the details of an implementation are scrutinized
+to extract maximal efficiency from the routine. The quality of the _best_ routine
+follows first and foremost from its correctness. To that end,
+\rlang offers many different unit testing frameworks such as \pkg{RUnit} by
+\cite{CRAN:RUnit}, which is used to construct \rcppns's 1385+ unit tests, and 
+\pkg{testthat} by \cite{CRAN:testthat}. Only when correctness is
+achieved is it wise to begin the procedure of optimizing the efficiency of
+the routine and, in turn, selecting the best routine. 
+
+Optimization of an algorithm involves performing a quantitative analysis of the
+routine's properties. There are two main approaches to analyzing the behavior
+of a routine: theoretical analysis\footnote{
+Theoretical analysis is often directed to describing 
+the limiting behavior of a function through asymptotic notation, 
+commonly referred to as Big O and denoted as $\mathcal{O}(\cdot)$.}
+or an empirical examination using profiling tools.\footnote{
+Within base \rlangns, profiling can be activated by \code{utils::Rprof()}
+for individual command timing information, \code{utils::Rprofmem()} for memory
+information, and \code{System.time(\{\})} for a quick overall execution timing.
+Additional profiling \rlang packages such as \pkg{profvis} by
+\cite{CRAN:profvis}, \pkg{Rperform} by \cite{GitHub:Rperform}, and
+benchmarking packages have extended the ability to analyze performance.}
+Typically, the latter option is more prominently used
+as the routine's theoretical properties are derived prior to an implementation
+being started. Often the main concern regarding an implementation in \rlang relates
+to the speed of the algorithm as it impacts how quickly analyses
+can be done and reports can be provided to decision makers. Coincidentally, the
+speed of code is one of the key governing use cases of \rcppns. Profiling \rlang
+code will reveal shortcomings related to loops, _e.g._ `for`, `while`, and `repeat`;
+conditional statements, _e.g._ `if`-`else if`-`else` and `switch`;
+and recursive functions, _i.e._ a function written in terms of itself such that the
+problem is broken down on each call in a reduced state until an answer can be
+obtained. In contrast, the overhead for such operations is significantly less 
+in \cppns. Thus, critical components of a given routine should be written 
+in \rcpp to capture maximal efficiency.
+
+Returning to the second question, to decide which
+implementation works the best, one needs to employ a benchmark
+to obtain _quantifiable results_. Benchmarks are an ideal way to quantify how
+well a method performs because they have the ability to show the amount of time the
+code has been running and where bottlenecks exist within functions. 
+This does not imply that benchmarks are completely infallible as user error
+can influence the end results. For example, if a user decides
+to benchmark code in one \rlang session and in another session performs a heavy
+computation, then the benchmark will be biased (if "wall clock" is measured).
+
+There are different levels of magnification that a benchmark can provide. For a more macro
+analysis, one should benchmark data using `benchmark(test = func(), test2 = func2())`,
+a function from the \pkg{rbenchmark} \rlang package by \cite{CRAN:rbenchmark}. This form of
+benchmarking will be used when the computation is more intensive.
+The motivating example `isOdd()` 
+(which is only able to accept a single `integer`) warrants a much more
+microscopic timing comparison.  In cases such as this, the objective
+is to obtain precise results in the amount of nanoseconds elapsed. Using the
+`microbenchmark` function from the \pkg{microbenchmark} \rlang package by
+\cite{CRAN:microbenchmark} is more helpful to obtain timing information. 
+To perform the benchmark:
+
+```{r microbenchmark_isOdd, dependson=c("isOddR", "isOddRcpp"), eval=FALSE}
+library("microbenchmark")
+results <- microbenchmark(isOddR   = isOddR(12L),
+                          isOddCpp = isOddCpp(12L))
+print(summary(results)[, c(1:7)],digits=1)
+```
+
+By looking at the summary of 100 evaluations, we note that the
+\rcpp function performed better than the equivalent in \rlang by achieving
+a lower run time on average. The lower run time in this part is not necessarily 
+critical as the difference is nanoseconds on a trivial computation.
+However, each section of code does contribute to a faster overall runtime.
+
+# Random Numbers within \rcppns: An Example of _Rcpp Sugar_
+
+\rcpp connects \rlang with \cppns. Only the former is vectorized: \cpp is not.
+_Rcpp Sugar_, however, provides a convenient way to work with high-performing
+\cpp functions in a similar way to how \rlang offers vectorized operations. 
+The _Rcpp Sugar_ vignette \citep{CRAN:Rcpp:Sugar} details these, as well as 
+many more functions directly accessible to \rcpp in a way that should feel
+familiar to \rlang users. Some examples of _Rcpp Sugar_ functions
+include special math functions like gamma and beta, statistical distributions
+and random number generation.
+
+We will illustrate a case of random number generation.  Consider drawing one
+or more $N(0,1)$-distributed random variables. The very 
+simplest case can just use `evalCpp()`:
+
+```{r rnormScalar}
+evalCpp("R::rnorm(0, 1)")
+```
+
+By setting a seed, we can make this reproducible:
+
+```{r normWithSeed}
+set.seed(123)
+evalCpp("R::rnorm(0, 1)")
+```
+
+One important aspect of the behind-the-scenes code generation for the single expression
+(as well as all code created via _Rcpp Attributes_) is the automatic preservation of the
+state of the random nunber generators in \rlangns.  This means that from a given seed, we will
+receive _identical_ draws of random numbers whether we access them from \rlang or via \cpp code
+accessing the same generators (via the \rcpp interfaces). To illustrate, the 
+same number is drawn via \rlang code after resetting the seed:
+
+```{r rnormWithSeedFromR}
+set.seed(123)
+# Implicit mean of 0, sd of 1
+rnorm(1)
+```
+
+We can make the _Rcpp Sugar_
+function `rnorm()` accessible from \rlang in the same way to return a vector of values:
+
+```{r rnormExCpp}
+set.seed(123)
+evalCpp("Rcpp::rnorm(3)")
+```
+
+Note that we use the `Rcpp::` namespace explicitly here to
+contrast the vectorised `Rcpp::rnorm()` with the scalar `R::rnorm()`
+also provided as a convenience wrapper for the \clang API of \rlangns.
+
+And as expected, this too replicates from \rlang as the very
+same generators are used in both cases along with consistent handling
+of generator state permitting to alternate:
+
+```{r rnormExR}
+set.seed(123)
+rnorm(3)
+```
+
+# Translating Code from \rlang into \rcppns: A Bootstrapping Example
+
+Statistical inference relied primarily upon asymptotic theory until
+\cite{Efron:1979:Bootstrap} proposed the bootstrap. Bootstrapping is known
+to be computationally intensive due to the need to use loops. Thus, it is an ideal candidate to use as an
+example. Before starting to write \cpp code using \rcpp, prototype the code in \rlangns.
+
+```{r bootstrap_in_r}
+# Function declaration
+bootstrap_r <- function(ds, B = 1000) {
+  
+  # Preallocate storage for statistics
+  boot_stat <- matrix(NA, nrow = B, ncol = 2)
+  
+  # Number of observations
+  n <- length(ds)
+  
+  # Perform bootstrap 
+  for(i in seq_len(B)) {
+     # Sample initial data
+     gen_data <- ds[ sample(n, n, replace=TRUE) ]
+     # Calculate sample data mean and SD
+     boot_stat[i,] <- c(mean(gen_data),
+                        sd(gen_data))
+  }
+  
+  # Return bootstrap result
+  return(boot_stat)
+}
+```
+
+Before continuing, check that the initial prototype \rlang code works. To
+do so, write a short \rlang script. Note the use of `set.seed()` to ensure
+reproducible draws.
+
+```{r bootstrap_example}
+# Set seed to generate data
+set.seed(512)
+# Generate data
+initdata <- rnorm(1000, mean = 21, sd = 10)
+# Set a new _different_ seed for bootstrapping
+set.seed(883)
+# Perform bootstrap
+result_r <- bootstrap_r(initdata)
+```
+
+Figure \ref{fig:bootstrap-graphs} shows that the bootstrap procedure worked well!
+
+```{r dist_graphs, echo = FALSE, results = "hide"}
+make_boot_graph <- function(ds, actual, type, ylim){
+  hist(ds, main = paste(type, "Bootstrap"), xlab = "Samples",
+       col = "lightblue", lwd = 2, prob = TRUE, ylim = ylim, cex.axis = .85, cex.lab = .90)
+  abline(v = actual, col = "orange2", lwd = 2)
+  lines(density(ds))
+}
+pdf("bootstrap.pdf", width=6.5, height=3.25)
+par(mfrow=c(1,2))
+make_boot_graph(result_r[,1], 21, "Mean", c(0, 1.23))
+make_boot_graph(result_r[,2], 10, "SD", c(0, 1.85))
+dev.off()
+```
+
+\begin{figure*}
+  \begin{center}
+    \includegraphics[width=6.5in, height=3.25in]{bootstrap} 
+    \caption{Results of the bootstrapping procedure for sample mean and variance.}
+    \label{fig:bootstrap-graphs} 
+  \end{center}
+\end{figure*}
+
+With reassurances that the method to be implemented within \rcpp works
+appropriately in \rlangns, proceed to translating the code 
+into \rcppns. As indicated previously, there are many convergences between \rcpp
+syntax and base \rlang via \rcpp Sugar.
+
+
+```{Rcpp bootstrap_in_cpp}
+#include <Rcpp.h>
+
+// Function declaration with export tag
+// [[Rcpp::export]]
+Rcpp::NumericMatrix 
+bootstrap_cpp(Rcpp::NumericVector ds,
+              int B = 1000) {
+  
+  // Preallocate storage for statistics
+  Rcpp::NumericMatrix boot_stat(B, 2);
+  
+  // Number of observations
+  int n = ds.size();
+  
+  // Perform bootstrap 
+  for(int i = 0; i < B; i++) {
+    // Sample initial data 
+    Rcpp::NumericVector gen_data = 
+        ds[ floor(Rcpp::runif(n, 0, n)) ]; 
+    // Calculate sample mean and std dev
+    boot_stat(i, 0) = mean(gen_data); 
+    boot_stat(i, 1) = sd(gen_data);
+  }
+  
+  // Return bootstrap results
+  return boot_stat;
+}
+```
+
+In the \rcpp version of the bootstrap function, there are a few additional
+changes that occurred during the translation. In particular, the use of
+`Rcpp::runif(n, 0, n)` enclosed by `floor()`, which rounds down to the nearest integer,
+in place of `sample(n, n, replace = TRUE)` to sample row ids. This is an
+equivalent substitution since equal weight is being placed upon all row ids and
+replacement is allowed.\footnote{For more flexibility in sampling see Christian Gunning's
+Sample extension for \pkg{RcppArmadillo} and 
+\href{http://gallery.rcpp.org/articles/using-the-Rcpp-based-sample-implementation/}{Rcpp Gallery: Using the \pkg{RcppArmadillo}-based Implementation of R's sample()} or consider using the \code{Rcpp::sample()} sugar function added in 0.12.9 by Nathan Russell.}
+Note that the upper bound of the interval, `n`, will never be reached. While
+this may seem flawed, it is important to note that vectors and matrices in
+\cpp use a zero-based indexing system, meaning that they begin at 0 instead of 1
+and go up to $n-1$ instead of $n$, which is unlike \rlangns's system. Thus, an
+out of bounds error would be triggered if `n` was used as that point does _not_
+exist within the data structure. The application of this logic can be seen
+in the span the `for` loop takes in \cpp when compared to \rlangns. Another 
+syntactical change is the use of `()` in place of `[]`
+while accessing the matrix. This change is due to the governance of \cpp
+and its comma operator making it impossible to place multiple indices inside 
+the square brackets.
+
+To validate that the translation was successful, first run the \cpp function
+under the _same_ data and seed as was given for the \rlang function.
+
+```{r bootstrap_cpp}
+# Use the same seed use in R and C++ 
+set.seed(883)
+# Perform bootstrap with C++ function
+result_cpp <- bootstrap_cpp(initdata)
+```
+
+Next, check the output between the functions using \rlang's `all.equal()` function
+that allows for an $\varepsilon$-neighborhood around a number.
+
+```{r check_r_to_cpp}
+# Compare output
+all.equal(result_r, result_cpp)
+```
+
+Lastly, make sure to benchmark the newly translated \rcpp function against the
+\rlang implementation. As stated earlier, data is paramount to making a decision
+related to which function to use in an analysis or package.
+
+```{r benchmark_r_to_cpp}
+library(rbenchmark)
+
+benchmark(r = bootstrap_r(initdata),
+          cpp = bootstrap_cpp(initdata))[, 1:4]
+```
+
+# Using \rcpp as an Interface to External Libraries: Exploring Linear Algebra Extensions
+
+Many of the previously illustrated \rcpp examples were directed primarily to
+show the gains in computational efficiency that are possible by implementing 
+code directly in \cppns; however, this is only one potential application of \rcppns.
+Perhaps one of the most understated features of \rcpp is its ability to 
+enable \cite{Chambers:2016:ExtR}'s third statement of
+_Interfaces to other software are part of \rlangns_. In particular, \rcpp is 
+designed to facilitate interfacing libraries written in \cpp or \clang to \rlangns. 
+Hence, if there is a specific feature within a \cpp or \clang library,
+then one can create a bridge to it using \rcpp to enable it from within \rlangns.
+
+An example is the use of \cpp matrix algebra libraries like
+\pkg{Armadillo} \citep{Sanderson:2010:Armadillo} 
+<!-- \citep{Sanderson+Curtin:2016} -->
+or \pkg{Eigen} \citep{Eigen:Web}.  By outsourcing complex linear
+algebra operations to matrix libraries, the need to directly call
+functions within \pkg{Linear Algebra PACKage (LAPACK)}
+\citep{Anderson:1990:UGLAPACK} is negated. Moreover, the \rcpp design
+allows for seamless transfer between object types by using automatic
+converters governed by `wrap()`, \cpp to \rlang, and `as<T>()`, \rlang
+to \cpp with the `T` indicating the type of object being cast into.
+These two helper functions provide a non-invasive way to work with an
+external object. Thus, a further benefit to using external \cpp
+libraries is the ability to have a portable code base that can be
+implemented within a standalone \cpp program or within another
+computational language.
+
+
+## Compute RNG draws from a multivariate Normal
+
+A common application in statistical computing is simulating from a multivariate normal distribution.
+The algorithm relies on a linear transformation of the
+standard Normal distribution.
+Letting $\boldsymbol{Y}_{m \times 1} = \boldsymbol{A}_{m\times n}\boldsymbol{Z}_{n\times 1} + \boldsymbol{b}_{m\times 1}$, 
+where $\boldsymbol{A}$ is a $m \times n$ matrix, $\boldsymbol{b} \in \mathbb{R}^m$, $\boldsymbol{Z} \sim N(\boldsymbol{0}_{n},\boldsymbol{I}_n)$, 
+and $\boldsymbol{I}_n$ is the identity matrix, then ${\boldsymbol{Y}} \sim N_{m}\left({\boldsymbol{\mu} = \boldsymbol{b}, \boldsymbol{\Sigma} = \boldsymbol{A}\boldsymbol{A}^T}\right)$. 
+To obtain the matrix $\boldsymbol{A}$ from $\boldsymbol{\Sigma}$, either a Cholesky or Eigen decomposition 
+is required. As noted in \citet{Venables+Ripley:2002:MASS}, the Eigen decomposition is more
+stable in addition to being more computationally demanding compared to
+the Cholesky decomposition. For simplicity and speed, we have opted to implement
+the sampling procedure using a Cholesky decomposition. Regardless, there
+is a need to involve one of the above matrix libraries to make the sampling
+viable in \cppns.
+
+Here, we demonstrate how to take advantage of the *Armadillo* linear algebra template
+classes \citep{Sanderson+Curtin:2016} via the \pkg{RcppArmadillo} package
+\citep{Eddelbuettel+Sanderson:2013:RcppArmadillo, CRAN:RcppArmadillo}. Prior to
+running this example, the \pkg{RcppArmadillo} package must be installed using
+`install.packages('RcppArmadillo')`.\footnote{macOS users may encounter `-lgfortran` 
+and `-lquadmath` errors on compilations with this package if the development environment 
+is not appropriately set up. \href{https://cran.r-project.org/web/packages/Rcpp/vignettes/Rcpp-FAQ.pdf}{Section 2.16 of the Rcpp FAQ} provides details regarding the necessary `gfortran` binaries.}
+One important caveat when using additional packages
+within the \rcpp ecosystem is the correct header file may not be `Rcpp.h`.
+In a majority of cases, the additional package ships a dedicated header
+(as _e.g._ `RcppArmadillo.h` here) which not only declares data
+structures from both systems, but may also add complementary integration and conversion
+routines.  It typically needs to be listed in an `include` statement along with a
+`depends()` attribute to tell \rlang where to find the additional header files:
+
+```{Rcpp armaDepends, eval = F}
+// Use the RcppArmadillo package
+// Requires different header file from Rcpp.h
+#include <RcppArmadillo.h>
+// [[Rcpp::depends(RcppArmadillo)]]
+```
+
+With this in mind, sampling from a multivariate normal distribution can
+be obtained in a straightforward manner. Using only _Armadillo_
+data types and values:
+
+```{Rcpp rmvnorm, eval = FALSE}
+#include <RcppArmadillo.h>
+// [[Rcpp::depends(RcppArmadillo)]]
+
+// Sample N x P observations from a Standard 
+// Multivariate Normal given N observations, a 
+// vector  of P means, and a P x P cov matrix
+// [[Rcpp::export]]
+arma::mat rmvnorm(int n, 
+                  const arma::vec& mu, 
+                  const arma::mat& Sigma) {
+    unsigned int p = Sigma.n_cols;
+    
+    // First draw N x P values from a N(0,1)
+    Rcpp::NumericVector draw = Rcpp::rnorm(n*p);
+    
+    // Instantiate an Armadillo matrix with the 
+    // drawn values using advanced constructor 
+    // to reuse allocated memory
+    arma::mat Z = arma::mat(draw.begin(), n, p, 
+                            false, true);
+    
+    // Simpler, less performant alternative 
+    // arma::mat Z = Rcpp::as<arma::mat>(draw);
+    
+    // Generate a sample from the Transformed 
+    // Multivariate Normal
+    arma::mat Y = arma::repmat(mu, 1, n).t() + 
+        Z * arma::chol(Sigma);
+
+    return Y;
+}
+```
+
+As a result of using a random number generation (RNG), there is an
+additional requirement to ensure reproducible results: the necessity
+to explicitly set a seed (as shown above). Because of the
+(programmatic) interface provided by \rlang to its own RNGs, this setting of the
+seed has to occur at the \rlang level
+via the `set.seed()` function as no (public) interface is provided by
+the \rlang header files.
+
+
+## Faster linear model fits
+
+As a second example, consider the problem of estimating a common
+linear model repeatedly. One use case might be the
+simulation of size and power of standard tests. Many users of \rlang would
+default to using `lm()`, however, the overhead associated with this function
+greatly impacts speed with which an estimate can be obtained. Another approach
+would be to take the base \rlang function `lm.fit()`, which is called by `lm()`,
+to compute estimated $\hat{\beta}$ in just about the fastest time possible. 
+However, this approach is also not viable as it does not report the estimated
+standard errors. As a result, we cannot use any default
+\rlang functions in the context of simulating finite sample population
+effects on inference.
+
+One alternative is provided by the `fastLm()` function in
+\pkg{RcppArmadillo} \citep{CRAN:RcppArmadillo}.
+
+```{Rcpp fastLm, eval = FALSE}
+#include <RcppArmadillo.h>
+// [[Rcpp::depends(RcppArmadillo)]]
+
+// Compute coefficients and their standard error 
+// during multiple linear regression given a 
+// design matrix X containing N observations with 
+// P regressors and a vector y containing of 
+// N responses
+// [[Rcpp::export]]
+Rcpp::List fastLm(const arma::mat& X, 
+                  const arma::colvec& y) {
+    // Dimension information
+    int n = X.n_rows, p = X.n_cols;
+    
+    // Fit model y ~ X 
+    arma::colvec coef = arma::solve(X, y);    
+    
+    // Compute the residuals 
+    arma::colvec res  = y - X*coef;           
+
+    // Estimated variance of the random error 
+    double s2 = 
+        std::inner_product(res.begin(), res.end(),
+                           res.begin(), 0.0) 
+                           / (n - p);
+    
+    // Standard error matrix of coefficients
+    arma::colvec std_err = arma::sqrt(s2 * 
+        arma::diagvec(arma::pinv(X.t()*X)));
+
+    // Create named list with the above quantities
+    return Rcpp::List::create(
+        Rcpp::Named("coefficients") = coef,
+        Rcpp::Named("stderr")       = std_err,
+        Rcpp::Named("df.residual")  = n - p    );
+}
+```
+
+The interface is very simple: a matrix $X_{n \times p}$ of regressors, and a
+dependent variable $y_{n \times 1}$ as a vector.  We invoke the standard Armadillo
+function `solve()` to fit the model `y ~ X`.\footnote{We should note
+that this will use the standard \pkg{LAPACK} functionality via Armadillo whereas R
+uses an internal refinement of \pkg{LINPACK} \citep{Dongarra:1979:UGLINPACK} via pivoting,
+rendering the operation numerically more stable.  That is an important
+robustness aspect---though common datasets on current hardware almost
+never lead to actual differences.  That said, if in doubt, stick with
+the R implementation.  What is shown here is mostly for exposition of
+the principles.}  We then compute residuals, and extract the
+(appropriately scaled) diagonal of the covariance matrix, also taking
+its square root, in order to return both estimates $\hat{\beta}$ and $\hat{\sigma}$.
+
+# \rcpp in Packages
+
+Once a project containing compiled code has matured to the point of sharing it with
+collaborators\footnote{It is sometimes said that every project has two collaborators:
+self, and future self. Packaging code is \textsl{best practices} even for code not
+intended for public uploading.} or using it within a parallel computing environments, the
+ideal way forward is to embed the code within an \rlang package. Not only does an \rlang
+package provide a way to automatically compile source code, but also enables the use of
+the \rlang help system to document how the written functions should be used. As a further
+benefit, the package format enables the use of unit tests to ensure that the functions are
+producing the correct output.  Lastly, having a package provides the option of uploading
+to a repository such as CRAN for wider dissemination.
+
+To facilitate package building, \rcpp provides a function `Rcpp.package.skeleton()` that
+is modeled after the base \rlang function `package.skeleton()`. This function automates
+the creation of a skeleton package appropriate for distributing \rcppns:
+
+```{r skeleton, eval = FALSE}
+library("Rcpp")
+Rcpp.package.skeleton("samplePkg")
+```
+
+\begin{figure}
+  \begin{center}
+    \includegraphics[width=3in]{figures/samplePkg-files-light-bg.png}
+    \caption{Graphical annotation of the \texttt{is\_odd\_cpp} function.}
+    \label{fig:package-files}
+  \end{center}
+\end{figure}
+
+
+This shows how distinct directories `man`, `R`, `src` are created for,
+respectively, the help pages, files with \rlang code and files with
+\cpp code. Generally speaking, all compiled code, be it from \clangns,
+\cpp or \fortran sources, should be placed within the `src/`
+directory.
+
+Alternatively, one can achieve similar results to using
+`Rcpp.package.skeleton()` by using a feature of the
+RStudio IDE. Specifically, while creating a new package project there
+is an option to select the type of package by engaging a dropdown menu
+to select "Package w/ Rcpp" in RStudio versions prior to v1.1.0. In RStudio
+versions later than v1.1.0, support for package templates has been added
+allowing users to directly create \rcppns-based packages that use Eigen or Armadillo. 
+
+Lastly, one more option exists for users who are familiar with the \pkg{devtools}
+\rlang package. To create the \rlang package skeleton
+use `devtools::create("samplePkg")`. From here, part of the
+structure required by \rcpp can be added by using `devtools::use_rcpp()`.
+The remaining aspects needed by \rcpp must be manually copied from
+the roxygen tags written to console and pasted into one of the package's \rlang
+files to successfully incorporate the dynamic library and link to \rcppns's
+headers.
+
+All of these methods take care of a number of small settings one would have to enable
+manually otherwise.  These include an 'Imports:' and 'LinkingTo:' declaration in file
+DESCRIPTION, as well as 'useDynLib' and 'importFrom' in NAMESPACE. For _Rcpp Attributes_
+use, the `compileAttributes()` function has to be called. Similarly, to take advantage of
+its documentation-creation feature, the `roxygenize()` function from \pkg{roxygen2} has to
+be called.\footnote{The \pkg{littler} package \citep{CRAN:littler} has a helper script `roxy.r`
+for this.} Additional details on using \rcpp within a package scope are detailed in
+\citet{CRAN:Rcpp:Package}.
+
+# Conclusion
+
+\rlang has always provided mechanisms to extend it.  The bare-bones \clang API is already used
+to great effect by a large number of packages.  By taking advantage of a number of \cpp
+features, \rcpp has been able to make extending \rlang easier, offering a combination of
+both speed _and_ ease of use that has been finding increasingly widespread utilization by
+researchers and data scientists.  We are thrilled about this adoption, and look forward to
+seeing more exciting extensions to \rlang being built.
+

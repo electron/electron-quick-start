@@ -1,0 +1,3449 @@
+\documentclass{article}
+
+%% Defines my own fxns
+
+\renewcommand{\th}{\textsuperscript{th}\xspace}
+\newcommand{\nd}{\textsuperscript{nd}\xspace}
+\newcommand{\st}{\textsuperscript{st}\xspace}
+\newcommand{\rd}{\textsuperscript{rd}\xspace}
+\newcommand{\sq}{\textsuperscript{2}\xspace}
+
+%% end fxns
+
+\pagestyle{headings}
+
+\usepackage[round]{natbib}
+
+%% Sweave Package for incorporating R Code
+
+\usepackage{Sweave}  
+
+\DefineVerbatimEnvironment{Sinput}{Verbatim}{fontsize=\small,fontshape=sl}
+\DefineVerbatimEnvironment{Soutput}{Verbatim}{fontsize=\small}
+\DefineVerbatimEnvironment{Scode}{Verbatim}{fontsize=\small,fontshape=sl}
+
+\bibliographystyle{plainnat}
+
+\begin{document}
+
+\title{Trading with the \texttt{portfolio} package}
+\author{by Jeff Enos, Daniel Gerlanc, and David Kane}
+
+%%\VignetteIndexEntry{Using the tradelist class}
+%%\VignetteDepends{portfolio}
+
+\maketitle
+
+\SweaveOpts{echo=TRUE, quiet=TRUE}
+\setcounter{secnumdepth}{3}
+
+<<echo=FALSE, results=hide>>=
+## Sets display options
+options(width = 75, digits = 2, scipen = 5)
+set.seed(0)
+## Loads the package 
+library(portfolio) 
+@ 
+
+<<echo=FALSE, results=hide>>=
+## data saved for this example
+
+## save(portfolios, misc, data.list, mvCandidates, file = "tradelist.RData", compress = TRUE)
+
+## loads the dataset for this vignette
+
+load("tradelist.RData")
+
+p.current <- portfolios[["p.current.abs"]]
+p.target <- portfolios[["p.target.abs"]]
+data <- data.list[["data.abs"]]
+
+sorts <- list(alpha = 1.5, ret.1.d = 1)
+
+tl <- new("tradelist", orig = p.current, target = p.target, sorts =
+sorts, turnover = 2000, chunk.usd = 2000, data = data, to.equity = FALSE)
+
+@
+
+\begin{abstract}
+\label{abstract}
+
+Given a set of current holdings and a target portfolio, that is, a set
+of desirable holdings to which we would be willing to switch if
+trading were free, and that our reasons for trading can be captured
+with one or more rank orderings, the \texttt{portfolio} package
+provides a way to use multiple measures of desirability to determine
+which trades or portions of trades to do.
+
+\end{abstract}
+
+\section{Introduction}
+
+What should we trade now? This question is much more difficult than it
+might first appear, and yet thousands of individuals and firms
+controlling trillions of dollars must answer it each day. Consider a
+simple example.
+
+Imagine that the investment universe is restricted to 10 securities
+and that our portfolio must hold 5 equal-weighted long positions.  At
+any given point in time, we will hold one of those portfolios. The
+simplest possible ``trade'' is to do nothing, keeping the same
+portfolio in the next period that we hold in the current one. A period
+can be 5 minutes or 5 months or any length of time. The next simplest
+trade is a single position swap. Trade one of our 5 current holdings
+for one of the 5 securities not in the portfolio. There are 25 such
+trades.  Continuing up the complexity scale, there are 100 trades in
+which we replace 2 securities in the portfolio with 2 securities not
+in the portfolio. Considering all sets of possible trades, there are
+252 options (including the option of no trading), which is equal to
+the total number of possible portfolios, $10 \choose 5$.
+
+In a world of perfect information, we would know the future
+returns for each of the 10 securities in the universe. Given this
+information, and some preferences with regard to risk and return, we
+could examine all 252 options and determine which was best.
+Unfortunately, in a real world example with thousands of securities in
+the universe and possibly hundreds in the portfolio, there is no way
+to consider every possible portfolio.
+
+\section{Complications}
+
+The problem of choosing the set of trades to perform, or to which
+target portfolio to trade, is difficult because of the sheer number of
+possible solutions.  As a result, it is impossible to look at every
+set of possible trades, or each target portfolio that results from
+these trades.  Even then, suppose we could arrive at a single,
+desirable target portfolio.  There are still complications when
+determining exactly which portions of the resulting trades should be
+done.
+
+\begin{itemize}
+
+\item{\bf{Liquidity}}: Even if it were simple to determine the target
+  portfolio, it may be difficult to get there. Imagine that moving to
+  the target portfolio requires that we trade one million shares of
+  IBM; however, suppose IBM typically trades 100,000 shares per day. How are we
+  going to buy all the necessary shares in one day? Even if we bought
+  the entire day's volume (an impossibility) it would take us ten days
+  to get the entire position.
+
+\item{\bf{Price Impact}}: Although commission and spread may be linear in
+  trade volume, price impact is not.  We are a participant in the
+  market, and every time we trade we impact the price.  Price impact
+  is generally small if we trade a modest portion, say 10\%, of
+  volume.  But if we trade more, then the price will move against
+  us.  Over some range, price impact increases more than linearly.
+
+\item{\bf{Trade Costs}}: Trading is not free so we will want to do less of
+  it in the real world than we might care to do in theory. Basic trading costs (including commissions and spread) tend
+  to enter the calculation linearly. Trade twice as much and we pay
+  twice the costs. 
+
+\item{\bf{Turnover}}: Turnover is the flip-side of holding period.  In an
+  ideal world, holding period would be endogenous. We would select
+  the holding period which maximised the risk-adjusted return of the
+  portfolio. But, in the real world, almost all portfolios have
+  targeted holding periods to which we much adhere. We are only
+  allowed a certain amount of turnover.
+
+\item{\bf{Ranking Trades}}: We may have multiple criteria for ranking
+  trades.  Some criteria may be more appropriate for ranking
+  certain types of trades under specific circumstances.  In the case
+  where we have a large number of criteria, how do we choose the most
+  appropriate criterion for each trade?
+
+ 
+\end{itemize}
+
+None of these problems is impossible to overcome, but all of them
+conspire to make a general solution to the trading problem extremely
+difficult. Therefore, we simplify.
+
+\section{Key Simplifying Assumptions}
+
+\label{simplifying assumption}
+
+The \texttt{portfolio} package makes three major simplifying
+assumptions.  The first is that we have created a ``target'' or
+``ideal'' portfolio, a set of positions that is desirable and to which
+we would be willing to switch if trading were free. This assumption is
+implausible but it does serve to make the problem tractable. If we
+only consider trades which move us closer to the target portfolio, it
+is much easier to handle the other difficulties associated with
+turnover, liquidity and the like. Instead of looking at all possible
+buys, for example, we only need to analyse buys for securities in
+which the target portfolio has more shares than the current portfolio.  The
+second simplifying assumption is that different criteria for trading
+can be captured with a rank ordering.  We discard the information used
+to create the ranks.  The third simplifying assumption is that no one
+type of trade is intrinsically better than another type of trade.  All
+things equal, buys, sells, covers, and shorts are equally preferable.
+
+\section{Implementation}
+
+
+\SweaveOpts{echo=FALSE, quiet=TRUE}
+
+Our simplifying assumptions allow us to solve the trading problem much
+more easily, but implementing the solution still requires many steps.
+Consider a simple example where we already have a small
+portfolio consisting of positions in various equities.  We have been
+given an additional \$1,000 to invest in the portfolio, and we must
+invest this \$1,000 over the course of one trading day.  This is not a
+realistic scenario, but having a set amount of time in which to trade
+will simplify our example.  Throughout the document, we will refer to
+our present holdings as the ``current'' portfolio.  The ``target
+portfolio'' is an ideal set of holdings to which we would immediately
+switch if trading were free as per the first simplifying
+assumption.  Note that in this simple example the only trades we will
+be considering are buys.
+
+\subsection{Current and target holdings}
+
+Our current portfolio consists of shares of
+\Sexpr{nrow(p.current@shares)} companies, IBM (International Business
+Machines), GM (General Motors) and EBAY (EBay).
+
+<<p.current@shares, echo=FALSE>>=
+p.current@shares[, c("shares", "price")]
+@
+
+The \texttt{shares} column expresses how many shares of each stock are
+in the portfolio, and the \texttt{price} column expresses the most
+recent price of that equity.\footnote{For simplicity, we use US
+dollars.}  The market value of the current portfolio can be calculated
+by summing the products of the shares and prices.
+
+As per the simplifying assumption, we provide a target portfolio.
+
+<<p.target@shares>>=
+p.target@shares[, c("shares", "price")]
+@
+
+We would like to buy more shares of GM and take positions in SCHW
+(Charles Schwab Inc.), MSFT (Microsoft), and GOOG (Google).  The
+market value of the target portfolio is
+\$\Sexpr{prettyNum(portfolio:::mvLong(p.target),big.mark=",")}.
+ 
+\subsection{Portfolio difference}
+
+The portfolio difference may be understood as the trades that would
+change our current holdings into our target holdings. If trading were
+free and instantaneous, we would immediately complete all these trades and reach our
+target portfolio.  Alas, trading is not free, and we will most likely
+not complete all the orders in one day.  Some of them probably require
+that we purchase a large portion of the daily trading volume (over
+10\%), at which point the trade may become significantly less
+desirable.
+
+From the portfolio difference, we determine our \emph{candidate
+trades}.
+
+\begin{description}
+
+\item{\bf{candidate trades}}: The complete set of trades we would have
+to make to trade from our current portfolio to the target portfolio.
+If trading were free, we would make all of these trades right now.
+
+\end{description}
+
+Below, we list the candidate trades.
+
+<<echo=FALSE>>=
+tl@candidates[, c("side", "shares", "mv")]
+@
+
+The \texttt{side} column expresses what type of trade we will be
+making.\protect\footnote{In later examples, S will represent a sell, X
+will represent a short and C will represent a cover.}  All the
+candidate trades are buys so the \texttt{side} column only contains
+\texttt{B}.  The \texttt{shares} column expresses the number of shares
+of each stock we must buy to reach the target portfolio.  The
+\texttt{mv} column expresses the effect that the candidate trade will have on
+the value of the portfolio.  Buys, which increase the value of our
+portfolio, have a positive value.  Sells, which decrease the value of
+the portfolio, have a negative value.
+
+As the market value of the target portfolio
+(\$\Sexpr{prettyNum(portfolio:::mvLong(p.target),big.mark=",")}) is
+greater than the market value of the original portfolio
+(\$\Sexpr{prettyNum(portfolio:::mvLong(p.current), big.mark = ",")}),
+we would have to invest an additional
+\$\Sexpr{prettyNum(portfolio:::mvLong(p.target)-portfolio:::mvLong(p.current),big.mark=",")}
+to trade from our current portfolio to our target portfolio.  However,
+we only have \$1,000 with which we may buy additional shares.
+Therefore, we have to decide which subset of the candidate trades we
+will make.
+
+One of our simplifying assumptions is that we would instantly switch
+to the target portfolio if trading were free.  This implies that all of
+the candidate trades are desirable.  However, they are not all equally
+desirable.  Some trades are better than others.  We want to determine
+which candidate trades or subsets of the candidate trades yield the
+most utility on the margins.
+
+If we had unlimited funds or could freely trade between our current
+and target portfolios, we would not have to express preferences
+amongst trades.  However, in the real world, we must decide, given a
+set of possible trades, which trades we should make first.  One way to
+do this involves assigning each trade a value of overall desirability.
+For example, one could use the values of a \emph{signal}, calculated
+for each stock, as the measure of desirability for each trade.
+
+\begin{description}
+
+\item{\bf{signal}}: a value, most likely generated by some sort of
+  quantitative model, which expresses the relative quality of the
+  candidate trades.
+
+\end{description}
+
+In our example, we assign to trades values of a signal called alpha.  When we
+associate trades with the values of alpha we say that we ``sort by
+alpha'' or ``use alpha as a \emph{sort.}''  Like portfolio
+construction, signal generation is beyond the scope of this document.
+In this example, the alpha signal is already calculated and provided
+for use in a sort.  In the table below, the candidate at the top of
+the data frame has the highest value for alpha and is therefore the
+most desirable trade with respect to this signal.
+
+<<shows alpha sort>>=
+tmp <- data.frame(side = tl@candidates[, "side"], alpha =  tl@ranks[, "alpha"])
+row.names(tmp) <- tl@candidates$id
+tmp  <- tmp[order(tmp$alpha, decreasing = TRUE),]
+tmp
+@ 
+
+Based on the above signal values, MSFT is the best trade, SCHW is the second
+best trade, and GM is the worst trade with an alpha value of
+\Sexpr{data[match("GM",data[["id"]]),"alpha"]}.
+
+\subsection{Preliminary ranks}
+
+We determine which trades are most desirable by generating an overall
+measure of desirability for each trade.  The first step in generating
+this value involves creating a \emph{rank ordering} of the trades for each
+sort we have created.  A definition of this term follows:
+
+\begin{description}
+
+  \item{\bf{rank ordering}}: a linear, relational ordering of the
+  candidates, where each candidate is assigned a rank from the set $1, 2,
+  3\dots{}n$ where $n$ is the number of candidate trades.  Trade 1
+  provides the greatest  utility and trade $n$ provides the
+  least  utility.  In creating a rank ordering we discard
+  cardinal information such as a signal and replace it
+  with a whole number ranking.
+
+
+\end{description}
+
+We rank and order the candidates by the signal called alpha below:
+
+<<trades ranked and ordered by alpha>>=
+
+## for buys, ranks by the inverse because lower values are better
+tl@ranks$rank <- rank(-tl@ranks$alpha, na.last = TRUE,  ties.method = "random")
+
+## removes the "ret.1.d" column for successful row binding later on
+alpha <- tl@ranks[,!names(tl@ranks) %in% "ret.1.d"]
+
+## appends a column so we know what sort these values come from
+alpha$sort <- "alpha"
+
+alpha[order(alpha$rank), c("rank", "side", "alpha", "shares", "mv")]
+@ 
+
+While the alpha column provides an absolute measure of desirability, rank
+expresses the relative desirability amongst trades.  We say that we
+lose \emph{cardinal information} when we use ranks.
+
+\begin{description}
+
+\item{\bf{cardinal information}}: The values used to create a rank
+  ordering.  The creation of ranks abstracts these values and replaces
+  them with an ordering that reflects the value of an element relative
+  to other elements in the rank ordering.
+
+\end{description}
+
+In some cases we may want to use more than one measure of
+desirability.  We may have more than one source of cardinal
+information.  Imagine that we want to use both alpha and one-day
+return as the cardinal information in our sorts.  If we believe in one
+day reversal, we would assign higher ranks to both orders to sell
+stocks with positive one-day returns and to orders to buy stocks with
+negative one-day returns.  However, we associate more desirable buys
+with greater sort values.  To account for this, the inverse of one-day
+return is used as the cardinal information for a one-day reversal sort.
+Therefore, if the one-day return for GM is $-0.10$, the value used in
+the one-day reversal sort is $0.10$.  Below, the table on the left
+shows the different stocks' one-day return.  The table on the right
+shows the ranks and input values in the one-day reversal sort ret.1.d.
+
+\begin{verbatim}
+
+     side one.day.ret               side rank ret.1.d (sort)
+GM      B       -0.10          GM      B    1    0.10
+GOOG    B       -0.01          GOOG    B    2    0.01
+MSFT    B        0.01          MSFT    B    3   -0.01
+SCHW    B        0.02          SCHW    B    4   -0.02
+
+\end{verbatim}
+
+<<ret.1.d sort>>=
+tmp <- tl@ranks[order(tl@ranks$ret.1.d), c("side","ret.1.d")]
+tmp <- cbind(rank = 1:nrow(tmp), tmp)
+tmp$ret.1.d <- tmp$ret.1.d[order(tmp$ret.1.d, decreasing = TRUE)]
+row.names(tmp) <- tl@candidates$id
+@
+
+\Sexpr{row.names(tmp)[1]} has the highest rank according to one-day reversal
+because it has the most negative return of all the buys.
+
+\subsubsection{The problem of multiple sorting criteria}
+
+When we combine the sorts in a single data frame, it is not clear
+which sort values we should use. If we order by alpha we get the
+following set of ranks:
+
+<<two sorts sorting by alpha>>=
+tmp.1 <- tl@ranks[order(tl@ranks$alpha, decreasing = TRUE), c("alpha", "ret.1.d")]
+tmp.1 <- tmp.1 <- cbind(rank = 1:nrow(tmp.1), tmp.1)
+tmp.1
+@ 
+
+Ranking by the inverse of one-day return yields another ordering:
+
+<<two sorts sorting by ret.1.d>>=
+tmp.2 <- tl@ranks[order(tl@ranks$ret.1.d, decreasing = TRUE), c("alpha", "ret.1.d")]
+tmp.2 <- cbind(rank = 1:nrow(tmp.2), tmp.2)
+tmp.2
+@
+
+When we use multiple sorts, there is no obvious way in which we would
+order the trades by desirability.  When sorting by alpha,
+\Sexpr{row.names(tmp.1)[1]} is the most desirable trade, and when
+sorting by the inverse of one-day return, \Sexpr{row.names(tmp.2)[1]}
+is the most desirable trade.  We cannot easily compare or combine the
+two sorts because we do not know what the exact relationship is
+between one-day reversal and alpha, and because the sorts are on
+different numeric scales.
+
+<<trades ranked and ordered by ret.1.d>>=
+## we don't actually show any of these values right here
+## for buys, ranks by the inverse because lower values are better
+tl@ranks$rank <- rank(-tl@ranks$ret.1.d, na.last = TRUE, ties.method = "random")
+## removes the "alpha" column for successful row binding later on
+ret.1.d <- tl@ranks[,!names(tl@ranks) %in% "alpha"]
+## appends a column so we know what sort these values come from
+ret.1.d$sort <- "ret.1.d"
+@
+
+%% As per our second simplifying assumption, we lose a certain amount of
+%% data when we replace cardinal information with ranks.  In doing this
+%% the \texttt{portfolio} package makes the important assumption, that
+%% all our different criteria for trading can be captured with a rank
+%% ordering.  Anyone who uses the package should be aware of this
+%% assumption.  This assumption and the assumption that the user provides
+%% a target portfolio are the most significant assumptions we make.
+
+%% However, if we did not only consider ranks, it would be difficult to
+%% compare sorts.  We would have to force the user to provide a function
+%% that expresses the relationship between the sorts.  Writing such a
+%% function is hard, especially if the we use multiple sorts.  To
+%% facilitate the comparison of sorts, we introduce a weighting scheme.
+
+\subsection{Weighting sorts}
+\label{words weighting sorts}
+
+At this point we face two problems.  First, we have measures of desirability that are on totally different numeric scales.  Inverse of return is in percent return, and alpha is in some other units.  In order to work with both variables at the same time, we transform each measure into a series of ranks.
+
+The second problem we face is that the two variables we're using may
+not be equally important.  As sorts express preferences amongst
+trades, weights express preferences amongst sorts.  By assigning each
+sort a weight, we express how important that sort is relative to other
+sorts.  To illustrate some weighting examples, let's consider the
+scenario in which we have assigned a weight of 1 to both the alpha and
+one-day reversal sorts.  By assigning the same weight to both sorts we
+assert that they are equally important.  Assigning a weight directly
+affects the sort rankings by causing them to be divided by the weight.
+However, we have assigned both of the sorts a weight of 1 so the ranks
+remain the same.
+
+<<weighted alpha>>=
+## saves off alpha$rank
+alpha.rank.orig <- alpha$rank
+
+alpha$rank <- alpha$rank
+alpha[order(alpha$rank), c("rank", "side", "alpha", "shares", "mv")]
+@ 
+
+The ranks for one-day return remain the same because one-day reversal
+has a weight of 1.
+
+<<unweighted ret.1.d>>=
+ret.1.d[order(ret.1.d$rank), c("rank", "side", "ret.1.d", "shares", "mv")]
+@ 
+
+Having divided the original \emph{raw ranks} by weight, we now have
+\emph{weighted ranks}.
+
+\begin{description}
+
+\item{\bf{raw ranks}}: the original, linearly spaced ranks, built on
+  the scale $1, 2, 3\dots{}n$
+
+\item{\bf{weighted ranks}}: the raw ranks divided by sort weight.
+
+\end{description}
+
+We now have two ranks associated with each candidate, one from the
+alpha sort and another from the one-day reversal sort.  To illustrate
+that we have duplicate ranks for each sort, we combine the
+equally-weighted alpha and one-day reversal sorts to form a single data
+frame.
+
+<<unweighted ranks>>=
+
+## sets the ranks of alpha to the original, unweighted ranks
+alpha$rank <- alpha.rank.orig
+
+## subsets out the "alpha" and "ret.1.d" columns so that both data frames have the same set of columns
+alpha   <- alpha[,!names(alpha) %in% "alpha"]
+ret.1.d <- ret.1.d[,!names(ret.1.d) %in% "ret.1.d"]
+
+overall.ranks <- rbind(alpha, ret.1.d)
+overall.ranks <- overall.ranks[order(overall.ranks$rank), c("id", "sort", "rank", "side", "shares", "mv")]
+row.names(overall.ranks) <- paste(overall.ranks$id, overall.ranks$sort, sep = ".")
+overall.ranks[, c("rank", "sort", "side", "shares", "mv")]
+@ 
+
+The row names contain the equity ticker symbols and the name of the sort that generated the rank.
+For each rank there are two candidates, one of which has been
+associated with a rank from alpha and the other which has been
+associated with a rank from one-day reversal.  In cases such as this
+where we have equally weighted sorts there will be a candidate trade
+from each sort at every rank.
+
+If we use $n$ sorts, we will have $n$ ranks associated with each
+candidate.  We only want one rank associated with each candidate.  So
+that each candidate only has one rank associated with it, we assign
+each rank the best rank generated for it by any sort.  We have done
+this in the data frame below.
+
+
+<<unweighted w/out duplicates>>=
+
+ranks <- alpha
+top.ranks <- aggregate(overall.ranks[c("rank")], by = list(id = overall.ranks$id), min)
+ranks$rank <- top.ranks$rank[match(ranks$id, top.ranks$id)]
+ranks[order(ranks$rank), c("rank", "shares", "mv")]
+@ 
+
+Both GM and MSFT have been assigned a rank of one.  This occurs
+because MSFT has been ranked 1 by the alpha sort and GM has been
+ranked 1 by the one-day reversal sort.  SCHW has been ranked 2 by the
+alpha sort and GOOG has been ranked 3 by the alpha sort.
+
+When we equally weight the sorts we are equally likely to use ranks
+from either sort.  This behaviour is logical because
+assigning sorts equal weights suggests that they are equally
+important.  However, the sorts may not always be equally important.
+In the next example we use a weighting scheme that causes us to use
+one sort to the exclusion of the other.
+
+Let's say that we do not want to consider one-day reversal.  To ignore
+all of the one-day reversal values, we make alpha 10 times more
+important than one-day reversal.  Therefore, we will consider 10 ranks
+from alpha for every one rank from one-day reversal.  As there are only
+\Sexpr{nrow(tl@candidates)} candidate trades, we will choose the
+rankings in alpha over all ranks in the one-day reversal sort.
+
+<<unbalanced weights>>=
+## Assigns one sort, alpha, a much higher weight than the other sort
+
+## restores the original alpha rankings
+
+alpha$rank <- alpha.rank.orig
+
+## weights the alpha rankings by 10
+
+alpha$rank <- alpha$rank / 10
+
+overall.ranks <- data.frame()
+overall.ranks <- rbind(alpha, ret.1.d)
+overall.ranks <- overall.ranks[order(overall.ranks$rank), c("id", "sort", "rank", "side", "shares", "mv")]
+row.names(overall.ranks) <- paste(overall.ranks$id, overall.ranks$sort, sep = ".")
+overall.ranks[c("rank", "side", "shares", "mv")]
+@
+
+Creating this unbalanced weighting causes us to stack the alpha ranks
+on top of the one-day reversal ranks.  Since we always assign the lowest
+rank from all trades to a sort, we will consider the alpha ranks
+before any of the one-day reversal ranks.
+
+<<unbalanced w/out duplicates>>=
+
+top.ranks <- do.call(rbind, lapply(split(overall.ranks, overall.ranks$id),
+                                   function(x) { x[which.min(x$rank),] }))
+top.ranks <- top.ranks[order(top.ranks$rank),]
+top.ranks[c("rank","sort","shares","mv")]
+
+ranks <- alpha
+top.ranks <- aggregate(overall.ranks[c("rank")], by = list(id = overall.ranks$id), min)
+ranks$rank <- top.ranks$rank[match(ranks$id, top.ranks$id)]
+## ranks[order(ranks$rank), c("rank", "sort", "shares", "mv")]
+@
+
+Making the alpha sort 10 times as important as the one-day reversal sort
+causes us to only use ranks from the alpha sort.  We do not even
+consider the number 1 ranked one-day reversal trade until we examine all
+the alpha values ranked in the top ten.  As we only have 4 candidate
+trades, we do not consider any trades from one-day reversal.
+
+The last weighting we will consider falls somewhere in between the
+previous two.  We weight the alpha sort by an additional 50\%, and
+as a result divide all of the ranks in the alpha sort by 1.5.
+
+<<mixed weighting>>=
+
+## returns alpha$rank to original level
+
+alpha$rank <- alpha.rank.orig
+alpha$rank <- alpha$rank / 1.5
+
+overall.ranks <- data.frame()
+overall.ranks <- rbind(alpha, ret.1.d)
+overall.ranks <- overall.ranks[order(overall.ranks$rank), c("id", "sort", "rank", "side", "shares", "mv")]
+row.names(overall.ranks) <- paste(overall.ranks$id, overall.ranks$sort, sep = ".")
+overall.ranks[c("rank", "side", "shares", "mv")]
+@
+
+This causes us to consider 3 ranks from the
+alpha sort for every 2 ranks from the one-day reversal sort.
+
+<<mixed w/out duplicates>>=
+
+top.ranks <- do.call(rbind, lapply(split(overall.ranks, overall.ranks$id),
+                                   function(x) { x[which.min(x$rank),] }))
+top.ranks <- top.ranks[order(top.ranks$rank),]
+top.ranks[c("rank","sort","shares","mv")]
+
+ranks <- alpha
+top.ranks <- aggregate(overall.ranks[c("rank")], by = list(id = overall.ranks$id), min)
+ranks$rank <- top.ranks$rank[match(ranks$id, top.ranks$id)]
+tmp <- ranks[order(ranks$rank), c("rank", "sort", "shares", "mv")]
+## tmp
+@
+
+We use three of the ranks from the alpha sort and one
+rank from the one-day reversal sort.  This is the weighting scheme that
+we will use in the rest of the example.
+
+To review, the ranking process has four steps.  First, we ranked each
+trade according to both alpha and one-day reversal to generate raw
+ranks.  Second, we weighted these ranks.  Third, we combined the alpha
+and one-day reversal ranks.  Fourth, we eliminated duplicates by
+associating each trade with the lowest rank assigned to it by either
+alpha or one-day reversal.  We call these ranks preliminary ranks
+because they are not the final values we use to determine the
+desirability of each trade.  Nonetheless, we must generate preliminary
+ranks before we can arrive at final ranks, the calculation of which we
+describe in the next section.
+
+\subsection{Generating synthetic ranks}
+\label{generating synthetic ranks}
+
+Consider a scenario with 100 candidate trades.  If trade 1 is $X$
+better than trade 2, is trade 99 $X$ better than trade 100?
+Most portfolio managers would argue that the difference in utility
+between trade 1 and trade 2 is greater than the difference in utility
+between trade 99 and trade 100.  However, with raw ranks, we make no
+assertion of how much better one trade is than another trade.  To
+express the tendency for us to derive more utility from the most
+highly ranked trades, we synthesise yet another set of values from the
+weighted ranks.  We call these values synthetic
+ranks.\protect\footnote{We are abusing the term ``ranks'' by using it
+  in several different contexts.}
+
+\begin{description}
+
+\item{\bf{synthetic ranks}}: values generated by mapping the weighted
+ranks to a truncated normal distribution ($> 85^{th}$ percentile on
+$N(0,1)$).
+
+\end{description}
+
+First, we re-rank the weighted ranks:
+
+<<>>=
+tmp$rank <- rank(tmp$rank, ties.method = "first")
+tmp[order(tmp$rank),c("rank","shares","mv")]
+@ 
+
+Next, we evenly distribute the ranks on the interval
+$[0.85,1)$ such that the best ranked trades are closest to 1 and the
+worst ranked trades are closest to $0.85$:
+
+<<scaling ranks>>=
+
+## a hacked version of the scaling function in calcRanks, built only
+## for a list of all buys
+
+r.max  <- max(tmp$rank) + 1
+r.mult <- 0.15
+r.add  <- 0.85
+
+tmp$rank.s <- (r.mult * tmp$rank[nrow(tmp):1] / r.max) + r.add
+
+## Saves off rank.s for later use
+rank.s <- tmp
+
+tmp[c("rank","shares","mv","rank.s")]
+@ 
+
+We list the scaled ranks in \texttt{rank.s}.  Next, we map to a
+truncated normal distribution.\protect\footnote{$> 85^{th}$ percentile
+of $N(0,1)$}
+
+
+<<synthesised ranks>>=
+tmp$rank.t <- qnorm(tmp$rank.s)
+tmp[c("rank", "shares", "mv","rank.s", "rank.t")]
+@
+
+The \texttt{rank.t} column lists the ranks mapped to a truncated
+normal distribution.  MSFT has the best rank and
+GOOG has the worst rank.  We might
+expect to see a \texttt{rank.t} of approximately 3.5 for the best
+ranked trade, but because we only have \Sexpr{nrow(tmp)} candidates
+and the scaled values are evenly spaced on the interval $[0.85,1)$,
+the normalised value of the best ranked trade is not as great as
+it would be if we had 100 trades.
+
+Recall that synthetic ranks express the tendency for there to be
+greater differences in desirability between adjacent, highly ranked trades
+($1,2,3\dots{}$) than between adjacent, poorly ranked trades: \\*
+
+\begin{table}[!htbp]
+  \begin{tabular}[c]{|rr|rr|rr|}
+    \hline
+    rank & $\Delta$ & $N(0,1)$ & $\Delta$ & $> 85^{th}$ of $N(0,1)$ & $\Delta$ \\
+      \hline
+      1   & 1  &  3.50 & 1.17 & 3.50 & 0.53 \\
+      2   & 1  &  2.32 & 0.27 & 2.96 & 0.21 \\
+      3   & 1  &  2.05 & 0.17 & 2.74 & 0.13 \\
+      4   & 1  &  1.88 & 0.13 & 2.61 & 0.10 \\
+      5   & 1  &  1.75 & 0.11 & 2.51 & 0.08 \\
+      .   & .  &     . &    . &    . &    . \\
+      .   & .  &     . &    . &    . &    . \\
+      48  & 1  &  0.05 & 0.03 & 1.46 & 0.01 \\
+      49  & 1  &  0.02 & 0.02 & 1.45 & 0.01 \\
+      50  & 1  &  0.00 & 0.02 & 1.44 & 0.01 \\
+      51  & 1  & -0.02 & 0.02 & 1.43 & 0.01 \\
+      52  & 1  & -0.05 & 0.03 & 1.42 & 0.01 \\
+      .   & .  &     . &    . &    . &    . \\
+      .   & .  &     . &    . &    . &    . \\
+      96  & 1  & -1.64 & 0.11 & 1.06 & 0.00 \\
+      97  & 1  & -1.75 & 0.13 & 1.06 & 0.00 \\
+      98  & 1  & -1.88 & 0.17 & 1.06 & 0.00 \\
+      99  & 1  & -2.05 & 0.27 & 1.06 & 0.00 \\
+      100 & -  & -2.32 & -    & 1.06 & -    \\
+      \hline
+  \end{tabular}
+  \caption[Synthetic rank distributions]{Creating synthetic ranks
+    using a linear distribution, a normal distribution, and a
+    truncated normal distribution.  Delta columns express the
+    difference in desirability between adjacent trades.\label{distribution
+    table}}
+\end{table}
+
+Table \ref{distribution table} expresses the differences amongst
+distributions we might use to rank 100 trades.  The \texttt{rank}
+column contains the raw ranks for the 5 best trades, the 5
+middle-ranked trades, and the 5 worst trades.  In this example the
+ranks on $[1,100]$ are spaced on intervals of one.  The rank
+difference between every trade is the same.  The difference between
+trade 1 and trade 2 is the same as the difference between trade 99 and
+trade 100.
+
+The normal distribution column $(N(0,1))$ expresses what happens when
+we normalise the raw ranks.  The normal distribution correctly
+expresses our belief that there is a large  difference in
+desirability between the best ranked trades.  However, use of the normal
+distribution would incorrectly suggest that there are similarly large
+desirability differences between the worst trades.  We get these results when
+using the normal distribution because the best and worst ranked trades
+lie in the tails of the distribution.  We do not want large 
+differences in desirability amongst the worst ranked trades.  The 
+desirability differences decrease until we reach trade 50, then increase
+again as we move towards the other tail of the distribution.  We want
+desirability to remain the same on the margin past the 50th trade.
+
+To address the problems associated with normalising to $N(0,1)$, we
+normalise to a normal distribution truncated below the 85th
+percentile.  In the right\-most delta $(\Delta)$ column, the synthetic rank
+differences between the best ranked trades are over 50 times greater
+than the synthetic rank differences between the middle ranked trades.  Every
+trade ranked worse than 50 has a similar synthetic rank difference.  Although
+the subset $[0.85,1)$ is slightly arbitrary, (we could have set the
+lower extreme to be 0.84, 0.86, or another similar value) it serves
+our purpose of expressing large differences in desirability where we find
+the best buys, on one tail, and small differences in desirability amongst the
+worst buys, on the other.
+
+Recall the steps we have taken towards generating our final synthetic
+rank.  First, we converted the sort values to raw ranks.  Second, we
+converted the raw ranks to weighted ranks.  Third, we scaled the
+weighted ranks to $[0.85,1)$ to generate scaled weights.  Lastly, we
+mapped the scaled weights to a truncated normal distribution for our
+final synthetic rank.  By only using the $85^{th}$ percentile and
+above, we express our belief that the differences in desirability
+between the best ranked trades is much greater than the differences in
+desirability between the worst ranked trades.
+
+If the costs associated with trading any stock, all things being
+equal, were the same, we would not care about the difference in
+utility between trades.  We would move down the trade list from best
+to worst until we reached our allotted turnover.  However, our trading
+influences prices and may reduce the desirability of a trade.
+
+
+\subsection{Chunks, synthetic rank, and trade-cost adjustment}
+\label{Chunks, synthetic rank, and trade-cost adjustment}
+
+We want to know at what point the cost of trading an equity exceeds
+the utility of trading that equity.  In the \texttt{portfolio}
+package, we use synthetic rank to represent utility.  Determining the
+cost of purchasing an additional share is impossible if our smallest
+trading unit is an entire order so we break each order into
+\emph{chunks}.
+
+\begin{description}
+
+\item{\bf{chunk}}: A portion of a candidate trade.
+
+\end{description}
+
+We break candidate trades into chunks by market value.  Each chunk has
+a market value of approximately \$\Sexpr{tl@chunk.usd}:
+
+<<chunk w/out tca.rank>>=
+tl@chunks[order(-tl@chunks$rank.t), c("side", "shares", "mv", "alpha", "ret.1.d", "rank.t", "chunk.shares", "chunk.mv")]
+@ 
+
+The candidate trades are broken into \Sexpr{nrow(tl@chunks)} chunks.
+The number following the ticker in the row name expresses the chunk
+number for that particular equity.  The \texttt{chunks.mv} column
+expresses the market value of each chunk. The \texttt{chunk.shares}
+column expresses how many shares are in each chunk.
+
+\subsubsection{Trade-cost adjustment of individual chunks}
+
+As we trade a greater percentage of the average daily volume, the price
+of the trades will increase.  To reflect this phenomenon, we penalise
+the synthetic ranks of the chunk as we trade greater percentages of
+the daily volume.  We call this penalty \emph{trade-cost adjustment}.
+
+\begin{description}
+
+\item{\bf{trade-cost adjustment}}: Lowering a chunk's rank because of
+trading volume.
+
+\end{description}
+
+To fix this idea, let's first examine the daily volumes of our
+candidate trades.\protect\footnote{The \texttt{volume} column
+represents some measure of past trading volume such as the average
+trading volume over the last 30 days.  A daily measure of
+\texttt{volume} is not required; we would use whatever measure is
+natural for the frequency with which we trade.}
+
+<<trading volume>>=
+trading.volume <- data.frame(rank.t = tl@ranks$rank.t, volume = tl@data$volume[match(tl@ranks$id, tl@data$id)], shares = tl@ranks$shares)
+row.names(trading.volume) <- tl@ranks$id
+trading.volume[order(-trading.volume$rank.t),]
+@
+
+The trades we want to make for MSFT, SCHW, and GOOG involve less
+than 3\% of the daily trading volume.  However, we want to trade 100\% of
+the daily trading volume of GM.  We would probably not be able to
+purchase all of these shares in one day, and even if we could, we would
+affect prices significantly.  Moving into the position over several
+days would be better.
+
+We use a trade-cost adjustment function to express how increasing
+trade costs reduce the desirability of candidate trades.  To better
+approximate utility, we penalise synthetic ranks at the chunk level.
+Doing this allows us to better determine at which point the cost of
+trading an additional chunk is greater than the utility derived by
+trading an additional chunk.  We perform trade-cost adjustment on the
+chunks by keeping track of what percentage of the daily volume we have
+traded with each additional chunk.  In the trade-cost adjustment
+function used in this example, the first chunk to cross the threshold
+of 15\% of the daily trading volume is penalised by a fixed amount.
+All subsequent chunks are penalised by that amount, and any further
+chunks that pass 30\% or 45\% percent of the daily trading volume
+receive further penalties.  The function used in this example also
+prevents any adjustment on the first chunk of a candidate trade.
+Below, we can see that the second chunk of the trade for GM has been
+trade-cost adjusted:
+
+<<chunks w/ tca.rank>>=
+
+tl@chunks[order(-tl@chunks$rank.t), c("side", "mv", "alpha", "ret.1.d",
+                                      "rank.t", "chunk.shares", "chunk.mv", "tca.rank")]
+@ 
+
+The \texttt{tca.rank} column expresses the synthetic rank adjusted for
+trade costs.  Since GM is the only candidate for which we want to purchase more
+than 15\% of the daily trading volume, it is the only candidate
+for which we trade-cost adjust the chunks.  Every chunk of GM beyond
+the first has been trade-cost adjusted.  This will cause us to
+consider the chunks of other candidate trades before we trade
+additional chunks of GM:
+
+<<ordered chunks w/ tca.rank>>=
+
+tl@chunks[order(tl@chunks$tca.rank, decreasing = TRUE), c("side",
+              "mv", "alpha", "ret.1.d", "rank.t", "chunk.shares",
+              "chunk.mv", "tca.rank")]
+@ 
+
+As MSFT is the best ranked candidate and does not receive a trade-cost
+penalty, we would trade all the shares of MSFT before considering the
+other candidates.\protect\footnote{Assuming that derived turnover is
+greater than the market value of all the candidate trades.}  Having
+completed all the chunks of MSFT, we would consider the first chunk of
+GM, the only chunk which has not been trade-cost adjusted.
+Subsequently, we would trade all the chunks of SCHW and GOOG, the
+candidate trades ranked 3 and 4.  Lastly, we trade the penalised
+chunk of GM.
+
+\subsubsection{Synthetic rank and trade-cost adjustment of small portfolios}
+\label{Synthetic rank and trade-cost adjustment of small portfolios}
+In this example, trade-cost adjustment decreases the desirability of
+the second chunk of GM in a non-trivial way.  Although GM is ranked second as a
+candidate trade, every other candidate trade would be made before we
+completed all the chunks of GM.  When we consider such a small number
+of trades, we assume that all of the trades are of approximately equal
+quality; the  difference in utility between candidate trades
+is fairly small.  This occurs because the scaled ranks are evenly
+distributed on $[0.85,1)$:
+
+<<rank.s>>=
+rank.s[c("rank","shares","mv","rank.s")]
+@ 
+
+  When we only have \Sexpr{nrow(tl@candidates)} candidates, none of
+the scaled ranks will be very close to $1$, and consequently, none of
+the synthetic ranks will fall at the extreme tail
+of the normal distribution:
+
+<<rank.t>>=
+rank.t <- rank.s
+rank.t$rank.t <- qnorm(rank.t$rank.s)
+rank.t[c("rank","shares","mv","rank.s","rank.t")]
+@ 
+
+Consequently, the  difference in utility between candidate
+trades will be small when there are few candidate trades.
+Heuristically, this seems correct because if we are making very few
+trades, we would most likely derive similar utility from any of
+them.  Therefore, it makes sense for us to
+trade the other three candidates if the costs associated with trading
+GM are large.
+
+\subsubsection{Synthetic rank and trade-cost adjustment of large portfolios}
+\label{Synthetic rank and trade-cost adjustment of large portfolios}
+
+Moving away from our example for a moment, imagine that we have a
+large current and target portfolio, the trade list for which contains
+100 candidate trades.  When we evenly distribute the
+scaled ranks on the interval $[0.85,1)$, we have more synthetic ranks at
+the extreme tail:
+
+<<misc$rank.s>>=
+misc$rank.s
+@ 
+
+The row names express the equity ticker symbols.  \texttt{rank} is the
+raw rank. \texttt{rank.s} is the scaled rank, and \texttt{rank.t} is
+the synthetic rank.  The best ranked trade, 
+\Sexpr{row.names(misc[["rank.s"]])[1]}, has a scaled rank value very
+close to one and
+a synthetic rank close to three.  This indicates that the best rank
+falls at the tail of the normal distribution.  The worst ranked
+candidates not only have low synthetic ranks, but they also have very
+small  differences in synthetic rank.  If we trade-cost adjust
+one of the poorly ranked candidates we will most likely not trade it
+until we have traded all other candidates not penalised by trade cost
+adjustment.  On the other hand, we would still trade
+\Sexpr{row.names(misc[["rank.s"]])[1]},
+\Sexpr{row.names(misc[["rank.s"]])[2]}, or
+\Sexpr{row.names(misc[["rank.s"]])[3]}, even if some of the chunks had
+been trade-cost adjusted.
+
+Let's quickly review how we generate the final, synthetic ranks.  The
+preliminary values from which we draw the raw ranks are the sorts we
+define.  In this example, we defined sorts for alpha and one-day
+reversal.  In creating raw ranks, we ignore the underlying values
+used by the sorts.  At this point, we still have a different set
+of raw ranks for each sort.  To express preferences amongst the
+sorts, we apply weights to the sorts.  This step yields weighted
+ranks.  From the sets of weighted ranks, we associate with each
+candidate the best weighted rank from any sort.  Next, we scale the
+buys to the interval $[0.85,1)$.  This step yields scaled ranks.  From
+scaled ranks, we generate synthetic ranks by mapping the scaled ranks
+to a truncated normal distribution.  Next, we break the candidates
+into chunks and perform trade-cost adjustment as necessary.  This
+yields trade-cost adjusted ranks which are the final measure of
+chunks' desirability.
+
+\subsection{Sorting theory}
+\label{sorting theory}
+
+Chooing the best candidate when we have multiple measures of
+desirability is difficult.  Consider the situation where we must
+choose ten stocks to trade.
+
+In our example, assuming that we use some type of formula to generate
+alpha, we might be able to incorporate our other sorts into the
+formula for alpha.  Instead of having alpha and one-day reversal as
+distinct sorts, we would only have one sort, alpha, which would also
+take one-day reversal into account.  For this to work, however, we
+would have to write a function that accounted for the the ordering of
+every trade by every sort.  Furthermore, this function would have to
+take into account our preference for certain sorts over other sorts.
+To elaborate on how difficult it is to create such a function, let us
+consider the situation where we must choose our ten favourite trades,
+in no particular order, using the data in the table below.
+
+\begin{table}[!htbp]
+  \begin{tabular}[c]{|r|r|r|r|r|r|}
+    \hline
+    symbol & raw rank & alpha & symbol & raw rank  & one-day return \\
+      \hline
+     IBM   &  1  & 1.57  &  HPQ &  1 & -0.063 \\
+     MS    &  2  & 1.26  & SUNW &  2 & -0.056 \\
+     EBAY  &  3  & 1.24  &  AET &  3 & -0.041 \\
+     CBBO  &  4  & 1.21  & YHOO &  4 & -0.036 \\
+     SCHW  &  5  & 1.15  &    T &  5 & -0.014 \\
+     PAYX  &  6  & 1.12  &  CVX &  6 & -0.011 \\
+     HAL   &  7  & 1.12  & GOOG &  7 & -0.011 \\
+     AMD   &  8  & 1.10  & PAYX &  8 & -0.002 \\
+     MSFT  &  9  & 0.99  & CBBO &  9 &  0.003 \\
+     CVX   & 10  & 0.96  &  HAL & 10 &  0.009 \\
+     AET   & 11  & 0.92  & QCOM & 11 &  0.011 \\
+     HPQ   & 12  & 0.81  & EBAY & 12 &  0.014 \\
+     QCOM  & 13  & 0.77  & SCHW & 13 &  0.029 \\
+     GOOG  & 14  & 0.65  & AAPL & 14 &  0.036 \\
+     YHOO  & 15  & 0.64  &   MS & 15 &  0.041 \\
+     \hline  
+  \end{tabular}
+  \caption[alpha and one-day return ranks]{The alpha and one-day
+  returns of candidates suggest different rank orderings.  All of the
+  candidates are buys.\label{theory table 1}}
+\end{table}
+      
+Table \ref{theory table 1} has a row for each of 15 candidates, their
+alpha and one-day reversal values, and the raw ranks we would generate
+from these values.  All of the candidates are buys so greater alpha
+values are better and lesser one-day reversal values are better.
+
+One portfolio manager might decide that she wants to make trades based
+only on alpha.  She chooses the top ten trades according to alpha.  A
+second portfolio manager may want to make trades based only on one-day
+return.  She chooses the top ten trades according to one-day return.
+The third portfolio manager considers both alpha and one-day return
+and choose her favorite trades by examining both.  
+
+Portfolio manager three believes in buying equities which have had
+price decreases of greater than 4\% during the previous trading day.
+Consequently, she would buy HPQ, SUNW, and AET.  She would fill her
+remaining orders using the top 7 trades according to alpha.
+
+How would the third portfolio manager write a function that expresses
+her trading preferences?  What if some days she acted like the first
+portfolio manager and on other days like the second portfolio manager?
+How would she account for a change in preference for one of the sorts?
+
+Our solution allows any of these portfolio managers to express her
+trading preferences without having to write a function that relates
+the different measures of desirability.  Instead, she would use the
+weighting function that the \texttt{portfolio} package provides.  She
+would examine the trade list created using different weighting schemes
+and adjust the weights until the  utility derived from the
+last candidate traded was greater than the  cost of the first
+trade \emph{not} made.
+
+For example, the portfolio manager may decide that YHOO is a better
+reversal trade than the last alpha trade and revise the weighting
+scheme so that she makes one less alpha trade and one more reversal
+trade.
+
+\begin{table}[!htbp]
+  \begin{tabular}[c]{|r|r|r|r|r|r|}
+    \hline
+    symbol & raw rank & alpha & symbol & raw rank  & ret.1.d \\
+      \hline
+     IBM   &  1  & 1.57  &  HPQ &  1 & -0.063 \\
+     MS    &  2  & 1.26  & SUNW &  2 & -0.056 \\
+     EBAY  &  3  & 1.24  &  AET &  3 & -0.041 \\ 
+     CBBO  &  4  & 1.21  & YHOO &  4 & -0.036 \\ \cline{5-5}
+     SCHW  &  5  & 1.15  &    T &  5 & -0.014 \\ 
+     PAYX  &  6  & 1.12  &  CVX &  6 & -0.011 \\ \cline{2-2}
+     HAL   &  7  & 1.12  & GOOG &  7 & -0.011 \\ 
+     AMD   &  8  & 1.10  & PAYX &  8 & -0.002 \\
+     MSFT  &  9  & 0.99  & CBBO &  9 &  0.003 \\
+     CVX   & 10  & 0.96  &  HAL & 10 &  0.009 \\
+     AET   & 11  & 0.92  & QCOM & 11 &  0.011 \\
+     HPQ   & 12  & 0.81  & EBAY & 12 &  0.014 \\
+     QCOM  & 13  & 0.77  & SCHW & 13 &  0.029 \\
+     GOOG  & 14  & 0.65  & AAPL & 14 &  0.036 \\
+     YHOO  & 15  & 0.64  &   MS & 15 &  0.041 \\
+     \hline  
+  \end{tabular}
+  \caption[Trading Preferences II]{Portfolio manager 3 revises her
+  trading preferences.\label{theory_table_2}}
+\end{table}
+
+What ultimately matters is the last candidate we decide to trade and
+the first candidate we decide not to trade.  By using rank orders
+instead of underlying values, we do not have to combine the different
+sorts.  Instead, we can express our preferences for different,
+possibly unrelated criteria through the use of a weighting scheme we
+provide in \texttt{portfolio}.  
+
+\subsection{Pairing trades}
+
+Let us return to discussing trade list construction.  In practise,
+most equity portfolios must be maintained at a specific market value.
+One logical way to achieve this result would be to pair desirable buys
+and sells of equal market value, which is what we do in the
+\texttt{portfolio} package.  We call these pairings of buys and sells
+a swap:
+
+\begin{description}
+
+  \item{\bf{swap}}: A pairing of a buy and sell or short and cover of
+  similar market market value and desirability.
+
+\end{description}
+
+We have already created the framework to create swaps; we break
+the candidates into chunks of similar market value and then rank these
+chunks individually.  If our candidate trades included buys and sells,
+we would simply match the most desirable buys with the most desirable
+sells.  However, our candidate trades are all buys, and we want to
+increase the market value of our portfolio by \$1,000.
+
+\subsubsection{Dummy chunks}
+
+If we want to increase the market value of the portfolio, we must buy
+more than we sell.  Therefore, we do not want to pair a buy with a
+sell.  We just want buys.  The situation where we just want buys or
+sells is a special case.  The \texttt{portfolio} package is structured
+so that we must also trade in pairs.  To work within the package
+framework we introduce the concept of \emph{dummy chunks}:
+
+\begin{description}
+
+  \item{\bf{dummy chunk}}: A \emph{fake} buy or sell chunk that we pair with
+  a real buy or sell chunk in situations where we want to increase or
+  decrease the market value of the portfolio.
+
+\end{description}
+
+As our example only contains buys, we have paired every buy with a
+dummy sell.\protect\footnote{We only show the head of the swaps table.}
+
+<<swaps table>>=
+head(tl@swaps[, c("tca.rank.enter", "tca.rank.exit",
+"rank.gain")])
+@ 
+
+In the table above, the row names express the chunk ticker symbols
+that form the swap.  To the left of the comma is an enter chunk, and
+to the right of the comma is an exit chunk.\protect\footnote{Enter
+chunks are either a buy or short.  A buy allows us to take a long
+position and a short allows us to take a short position.  Exit chunks
+are either sells or covers.  A sell allows us to exit a long position
+and a cover allows us to exit a short position.}  The exit chunks all
+have a symbol \texttt{NA.0} because they are dummy sells.  The
+\texttt{tca.rank.enter} column expresses the trade-cost adjusted rank
+of the enter chunk, the buy, and the \texttt{tca.rank.exit} column
+expresses the trade-cost adjusted rank of the exit chunk, the dummy
+sell.  The \texttt{rank.gain} column expresses the difference in
+trade-cost adjusted rank between the enter and the exit, the buy and
+dummy sell.  
+
+We have spent considerable time discussing the generation of all types
+of ranks for buys, but we have not yet discussed ranking sells.  For
+sells, better ranks are more negative.  Therefore, a great sell might
+have a synthetic rank of -3.5.
+
+Recall that our goal is to make the trades which yield the most
+utility.  In spending our \$1,000, we want to trade the best chunks.
+So that we make the best buys when increasing the market value of the
+portfolio, we assign the dummy sells an arbitrarily high rank.  In the
+table above, the dummy sells have a trade-cost adjusted rank of
+-10,000.  We match the best the buys and sells by calculating rank
+gain.  As no real sells will yield the same rank gain that the pairing
+of buy and a dummy sell yields, we create pairs with all the dummy
+sells before even considering other sells.  As there are no sells in
+this example, all the swaps consist of a buy and a dummy sell.
+
+Let's quickly review why we create swaps.  We want to maximise utility
+by making the candidate trades or portions of candidate trades that
+yield the greatest  utility.  Generally, we want to maintain
+the portfolio equity at a constant level.  A logical way to do this
+involves pairing buys and sells of similar market value.  To maximise
+utility, we should pair the most best ranked buys and sells.  In
+special cases, we want to increase or decrease the market value
+of our portfolio.  In order to do this, we must make more of one type
+of trade.  However, this would require that we have swaps that contain
+only a buy or sell.  Since we cannot have a swap of only one trade, we
+introduce dummy trades.  As dummy trades have an arbitrarily high
+synthetic rank they pair with the best buys and sells to ensure that
+we choose the most useful candidates in changing the market value of
+the portfolio.
+
+\subsection{Accounting for turnover}
+
+\emph{Note: this and subsequent sections need to account
+  for change in turnover application.  Now all swaps are done such
+  that the total market value of trades goes up to but doesn't exceed
+  the turnover amount.  In the meantime I have adjusted the example's
+  turnover to \$2,000 so that at least one chunk is done, although now
+  Sweave chunks will be inconsistent with the text.}
+\\
+
+As we stated earlier, holding period would be endogenous if
+we could always set it to maximise risk-adjusted return.  However,
+most real world portfolios have a set holding period and consequently,
+a set turnover.  There is no real concept of turnover or holding
+period in this example.  We have \$1,000 to invest in our portfolio
+over the course of a single day.  Although this additional investment
+does not represent turnover, we can view our \$1,000 as representing a
+daily turnover of \$1,000.  We want to make the best ranked trades
+until the cumulative market value of these trades exceeds the money we
+have to invest.  Analogously, we would say that we want to make the
+best ranked trades until we exceed turnover.
+
+As our turnover in this example is \$\Sexpr{tl@turnover}, all of our
+trades will not have a market value greater than
+\$\Sexpr{tl@turnover}:
+
+<<>>=
+tl@swaps.actual[, c("tca.rank.enter", "tca.rank.exit",
+"rank.gain")]
+@ 
+
+MSFT is the the best ranked trade.  Consequently, we choose swaps of
+MSFT before choosing other swaps.  We make
+\Sexpr{nrow(tl@swaps.actual)} because each swap has a value of
+approximately \$\Sexpr{tl@chunk.usd}, and our turnover is
+\$\Sexpr{tl@turnover}.
+
+\subsection{Actual orders}
+
+We do not want to submit two orders for 8 shares of MSFT.  Before
+submitting the trade list, we must roll-up the swaps into larger
+orders.  We first remove the dummy chunks:
+
+<<remove idiots>>=
+
+tl@chunks.actual[, c("side", "mv", "alpha", "ret.1.d", "rank.t",
+              "chunk.shares", "chunk.mv", "tca.rank")]
+@ 
+
+Then we combine the chunks to form a single order per candidate:
+
+<<>>=
+tl@actual[, !names(tl@actual) %in% c("id")]
+@
+
+We now have an order for \Sexpr{tl@actual[1,"shares"]} shares of
+\Sexpr{tl@actual[1,"id"]}, which is the sum of the chunks of
+\Sexpr{tl@actual[1,"id"]}.  Having discussed in words the process of
+trade list creation, we describe, step-by-step, the process of
+building a \texttt{tradelist} object in R.
+
+
+%% \section{A simple example}
+
+%% \SweaveOpts{echo=FALSE, quiet=TRUE}
+
+%% Assume that we already have a small portfolio consisting of positions
+%% in various equities.  We have been given an additional \$1,000 to
+%% invest in the current portfolio, and we must invest this \$1,000 over
+%% the course of one trading day.  We only consider buys.  This is not
+%% a realistic scenario, but it is simple.
+
+%% Recall our first simplifying assumption that we already have a
+%% ``target portfolio'', an ideal set of holdings that we would
+%% immediately switch to if trading were free.  We use the \$1,000 to move
+%% towards the target portfolio.
+
+%% %\subsection{Holdings}
+%% %\subsubsection{Current portfolio}
+%% %\subsubsection{Target portfolio}
+%% %\subsubsection{Portfolio difference and candidate trades}
+
+%% \subsection{Current and target holdings}
+
+%% Our current portfolio consists of shares of
+%% \Sexpr{nrow(p.current@shares)} companies, IBM (International Business
+%% Machines), GM (General Motors) and EBAY (EBay).
+
+%% <<p.current@shares, echo=FALSE>>=
+%% p.current@shares[, c("shares", "price")]
+%% @
+
+%% The \texttt{shares} column expresses how many shares of each stock are in
+%% the portfolio, and the \texttt{price} column expresses the most recent
+%% price of that equity.\footnote{For simplicity, we express monetary
+%% values in this document as US dollars.}  The market value of the
+%% current portfolio can be calculated by summing the products of the
+%% shares and prices, and it is
+%% \$\Sexpr{prettyNum(portfolio:::mvLong(p.current),big.mark=",")}.
+
+%% As per our simplifying assumption the user already has a target
+%% portfolio.
+
+%% <<p.target@shares>>=
+%% p.target@shares[, c("shares", "price")]
+%% @
+
+%% We would like to buy more shares of GM and take positions in SCHW
+%% (Charles Schwab Inc.), MSFT (Microsoft), and GOOG (Google).  The
+%% market value of the target portfolio is
+%% \$\Sexpr{prettyNum(portfolio:::mvLong(p.target),big.mark=",")}.
+ 
+%% The target portfolio expresses the positions we want to take with our
+%% \$1,000.  It is an ideal set of holdings that we would immediately
+%% switch to if trading were free.  The positions in the target portfolio
+%% are all desirable, otherwise we would not switch to them.  However, it
+%% is not given that we can move to the target portfolio.  Liquidity,
+%% price impact, and turnover complicate trading.  At best, we will move
+%% in the direction of the target portfolio.  There are a variety of ways
+%% to do this.  The \texttt{portfolio} package helps us to decide which
+%% is the best.
+
+%% \subsection{Portolio difference and candidate trades}
+
+%% The portfolio difference may be understood as the trades that would
+%% change our current holdings into our ideal holdings. From the
+%% portfolio difference, we determine our \emph{candidate trades}.
+
+%% \begin{description}
+
+%% \item{\bf{candidate trades}}: The set of trades to move from
+%% the current portfolio to the target portfolio.  If trading were free,
+%% we would make all of these trades.
+
+%% \end{description}
+
+%% \subsection{Expressing preferences amongst trades}
+
+%% Part of our simplifying assumption is that we would instantly switch
+%% to the target portfolio if trading were free.  This implies that all
+%% of the candidate trades are desirable.  However, they are not all
+%% equally desirable.  Some trades are better than others.  We want to
+%% determine which candidate trades or subsets of the candidate trades
+%% yield the most utility.  We might do this by assigning each stock some
+%% measure of utility.
+
+
+
+%% This approach works fine when we only have one measure of utility, but
+%% fails when we have multiple measures of utility.  Let's say that we
+%% have two measures of utility, \emph{alpha} and \emph{one-day return}.
+
+%% Alpha is a measure of utility.  Using some quantitative model, we
+%% generate a measure of alpha for the stocks in our portfolio.  
+
+
+
+%% Each stock has some value associated with it which represents alpha.
+%% Positive alpha values indicate that we should buy a stock; the greater
+%% the magnitude, the better the buy.  EBAY (EBay) is the best buy and
+%% IBM (International Business Machines) is worst buy.  The opposite
+%% applies for sells.  Negative alpha values indicate that we should sell
+%% stock.
+
+%% Based on these alpha values, we decide to buy all of these stocks.  
+ 
+%% When we associate trades with alpha, we say that we sort by alpha or
+%% use alpha as a \emph{sort.}
+
+%% \begin{description}
+
+%% \item{\bf{sort}}: a set of values associated with a set of positions.
+%% Higher values suggest positive future performance and negative values
+%% suggest poor future performance.  Based on a sort we can determine
+%% what type of trade is most desirable for each position.  Therefore, we
+%% want to buy or cover positions with positive sort value and sell or
+%% short positions with negative sort values.
+
+%% \end{description}
+
+%% Like portfolio construction, alpha generation is beyond the scope of
+%% this document; we provide alpha values and will be using alpha as a
+%% sort.  We associate good buys with greater alpha values.  The
+%% candidate at the head of the data frame has the highest alpha value
+%% and is therefore the most desirable trade.
+
+%% \subsection{Preliminary ranks}
+
+%% We determine which trades are most desirable by generating an overall
+%% measure of desirability for each trade.  The first step in generating
+%% this value involves creating a \emph{rank ordering} of the trades for each
+%% sort we have created.
+
+%% \begin{description}
+
+%%   \item{\bf{rank ordering}}: a linear ordering of the candidates,
+%%   where each candidate is assigned a rank from the set $1, 2,
+%%   3\dots{}n$.  Trade 1 provides the greatest utility and trade $n$
+%%   provides the least utility.  
+
+%% \end{description}
+
+%% <<trades ranked and ordered by alpha>>=
+
+%% ## removes the "ret.1.d" column for successful row binding later on
+%% alpha <- tl@ranks[,!names(tl@ranks) %in% "ret.1.d"]
+
+%% ## appends a column so we know what sort these values come from
+%% alpha$sort <- "alpha"
+
+%% @ 
+
+%% We lose \emph{cardinal information} when we use ranks.  Cardinal
+%% information is the set of values we use to create the ranks.  In some
+%% cases we may want to use more than one measure of desirability.  We
+%% may have more than one source of cardinal information.  Imagine that
+%% we want to use both alpha and one-day return as sorts.  If we believe
+%% in one day reversal, we would assign higher ranks to both orders to
+%% sell stocks with positive one-day returns and to orders to buy stocks
+%% with negative one-day returns.  However, we associate more desirable
+%% buys with greater sort values.  To account for this, we have taken the
+%% inverse of all one-day return values.  Therefore, if the return
+%% one-day return for GM appears to be $0.10$, it should really be
+%% $-0.10$.  The table on the left shows the one-day return values after
+%% we have taken their inverse.  The table to the right contains that
+%% actual one-day return values.
+
+%% \begin{verbatim}
+
+%%      rank side ret.1.d         rank side ret.1.d
+%% GM      1    B    0.10    GM      1    B   -0.10
+%% GOOG    2    B    0.01    GOOG    2    B   -0.01
+%% MSFT    3    B   -0.01    MSFT    3    B    0.01
+%% SCHW    4    B   -0.02    SCHW    4    B    0.02
+
+%% \end{verbatim}
+
+%% <<ret.1.d sort>>=
+%% tmp <- tl@ranks[order(tl@ranks$ret.1.d), c("side","ret.1.d")]
+%% tmp <- cbind(rank = 1:nrow(tmp), tmp)
+%% tmp$ret.1.d <- tmp$ret.1.d[order(tmp$ret.1.d, decreasing = TRUE)]
+%% row.names(tmp) <- tl@candidates$id
+%% @
+
+%% \Sexpr{row.names(tmp)[1]} has the highest rank according to one-day return
+%% because it has the most negative return of all the buys, but for the
+%% \texttt{portfolio} package to properly process our one-day reversal
+%% sort, we must take the inverse of all the one-day return values.
+
+%% \subsubsection{The problem of multiple sorting criteria}
+
+%% When we combine the sorts in a single data frame, it is not clear
+%% which sort values we should use. If we order by alpha we get the
+%% following set of ranks:
+
+%% <<two sorts sorting by alpha>>=
+%% tmp.1 <- tl@ranks[order(tl@ranks$alpha, decreasing = TRUE), c("alpha", "ret.1.d")]
+%% tmp.1 <- tmp.1 <- cbind(rank = 1:nrow(tmp.1), tmp.1)
+%% tmp.1
+%% @ 
+
+%% Ordering by one-day return yields another ordering:
+
+%% <<two sorts sorting by ret.1.d>>=
+%% tmp.2 <- tl@ranks[order(tl@ranks$ret.1.d, decreasing = TRUE), c("alpha", "ret.1.d")]
+%% tmp.2 <- cbind(rank = 1:nrow(tmp.2), tmp.2)
+%% tmp.2
+%% @
+
+%% When we use multiple sorts, there is no obvious way by hich we would
+%% order the trades by desirability.  When sorting by alpha,
+%% \Sexpr{row.names(tmp.1)[1]} is the most desirable trade, and when
+%% sorting by one-day return, \Sexpr{row.names(tmp.2)[1]} is the most
+%% desirable trade.  We cannot easily compare or combine the two sorts
+%% because we do not know what the exact relationship is between one-day
+%% reversal and alpha.  Neither sort is even on the same numeric scale.
+%% Should we alternate between using values from alpha and one-day
+%% return?  How would we decide how often to alternate between the sorts?
+%% The way in which we express preferences amongst trades in the
+%% \texttt{portfolio} package represents our answer to these questions.
+%% In sections \ref{words weighting sorts} through \ref{generating
+%% synthetic ranks} we discuss our method for ranking trades when we
+%% multiple measures of desirability.  In section \ref{sorting theory} we
+%% will discuss the reasoning behind our mtehod of ordering trades.
+
+%% <<trades ranked and ordered by ret.1.d>>=
+%% ## we don't actually show any of these values right here
+%% ## for buys, ranks by the inverse because lower values are better
+%% tl@ranks$rank <- rank(-abs(tl@ranks$ret.1.d), na.last = TRUE, ties.method = "random")
+%% ## removes the "alpha" column for successful row binding later on
+%% ret.1.d <- tl@ranks[,!names(tl@ranks) %in% "alpha"]
+%% ## appends a column so we know what sort these values come from
+%% ret.1.d$sort <- "ret.1.d"
+%% @
+
+%% %% As per our second simplifying assumption, we lose a certain amount of
+%% %% data when we replace cardinal information with ranks.  In doing this
+%% %% the \texttt{portfolio} package makes the important assumption, that
+%% %% all our different criteria for trading can be captured with a rank
+%% %% ordering.  Anyone who uses the package should be aware of this
+%% %% assumption.  This assumption and the assumption that the user provides
+%% %% a target portfolio are the most significant assumptions we make.
+
+%% %% However, if we did not only consider ranks, it would be difficult to
+%% %% compare sorts.  We would have to force the user to provide a function
+%% %% that expresses the relationship between the sorts.  Writing such a
+%% %% function is hard, especially if the we use multiple sorts.  To
+%% %% facilitate the comparison of sorts, we introduce a weighting scheme.
+
+%% \subsection{Weighting sorts}
+%% \label{words weighting sorts}
+
+%% As sorts express preferences amongst stocks, weights express
+%% preferences amongst sorts.  A weight is a measure of how important a
+%% sort is relative to other sorts.  Say that alpha and one-day return
+%% are equally important to us.  We assert this by assigning them both
+%% the same weight.  Assigning a weight divides the sort values by that
+%% weight.  We assign a weight of one.
+
+%% <<weighted ranks>>=
+%% ## saves off alpha$rank
+%% alpha.rank.orig <- alpha$rank
+
+%% ## creates a column w/ 1-day return
+%% alpha$ret.1.d <- ret.1.d$ret.1.d
+
+%% ## orders each column individually
+
+%% alpha[order(alpha$rank), c("alpha","ret.1.d")]
+%% @ 
+
+%% However, the ranks for one-day return remain the same because one-day
+%% return has a weight of 1.
+
+%% <<unweighted ret.1.d>>=
+
+%% @ 
+
+%% Having divided the original, \emph{raw ranks} by weight, we now have
+%% \emph{weighted ranks}.
+
+%% \begin{description}
+
+%% \item{\bf{raw ranks}}: the original, linearly spaced ranks, built on
+%%   the scale $1, 2, 3\dots{}n$
+
+%% \item{\bf{weighted ranks}}: the raw ranks divided by the weights of
+%%   the sorts.
+
+%% \end{description}
+
+%% We now have two ranks associated with each candidate, one from the
+%% alpha sort and another from the one-day return sort.  To illustrate
+%% that we have duplicate ranks for each sort, we bind the
+%% equally-weighted alpha and one-day return sorts to form a single data
+%% frame.
+
+%% <<unweighted ranks>>=
+
+%% ## sets the ranks of alpha to the original, unweighted ranks
+%% alpha$rank <- alpha.rank.orig
+
+%% ## subsets out the "alpha" and "ret.1.d" columns so that both data frames have the same set of columns
+%% alpha   <- alpha[,!names(alpha) %in% "alpha"]
+%% ret.1.d <- ret.1.d[,!names(ret.1.d) %in% "ret.1.d"]
+
+%% overall.ranks <- rbind(alpha, ret.1.d)
+%% overall.ranks <- overall.ranks[order(overall.ranks$rank), c("id", "sort", "rank", "side", "shares", "mv")]
+%% row.names(overall.ranks) <- paste(overall.ranks$id, overall.ranks$sort, sep = ".")
+%% overall.ranks[, c("rank", "sort", "side", "shares", "mv")]
+%% @ 
+
+%% Equally weighted sorts produce candidate trades from each sort at every
+%% rank.  Using $x$ sorts produces $x$ ranks for each candidate.  We
+%% assign each candidate the best rank generated for it by any sort:
+
+
+%% <<unweighted w/out duplicates>>=
+
+%% ranks <- alpha
+%% top.ranks <- aggregate(overall.ranks[c("rank")], by = list(id = overall.ranks$id), min)
+%% ranks$rank <- top.ranks$rank[match(ranks$id, top.ranks$id)]
+%% ranks[order(ranks$rank), c("rank", "shares", "mv")]
+%% @ 
+
+%% Both GM and MSFT have been assigned a rank of one.  This occurs
+%% because MSFT has been ranked 1 by the alpha sort and GM has been
+%% ranked 1 by the one-day return sort.  SCHW has been ranked 2 by the
+%% alpha sort and GOOG has been ranked 3 by the alpha sort.
+
+%% When we equally weight the sorts we are equally likely to use ranks
+%% from either sort.  This behavior is logical because assigning sorts
+%% equal weights suggests that they are equally important.  However, the
+%% sorts may not always be equally important.  In the next example we use
+%% a weighting scheme that causes us to use one sort to the exlusion of
+%% the other.
+
+%% To ignore one-day return we make alpha 10 times more important.  We
+%% consider 10 ranks from alpha for every one rank from one-day return.
+%% As there are only \Sexpr{nrow(tl@candidates)} candidate trades, we
+%% choose the rankings in alpha over the ranks in the one-day return
+%% sort.
+
+%% <<unbalanced weights>>=
+%% ## Assigns one sort, alpha, a much higher weight than the other sort
+
+%% ## restores the original alpha rankings
+
+%% alpha$rank <- alpha.rank.orig
+
+%% ## weights the alpha rankings by 10
+
+%% alpha$rank <- alpha$rank / 10
+
+%% overall.ranks <- data.frame()
+%% overall.ranks <- rbind(alpha, ret.1.d)
+%% overall.ranks <- overall.ranks[order(overall.ranks$rank), c("id", "sort", "rank", "side", "shares", "mv")]
+%% row.names(overall.ranks) <- paste(overall.ranks$id, overall.ranks$sort, sep = ".")
+%% overall.ranks[c("rank", "side", "shares", "mv")]
+%% @
+
+%% This extreme weighting stacks the alpha ranks on top of the one-day
+%% return ranks.  Since we always assign the lowest rank from all trades
+%% to a sort, we consider the alpha ranks before any of the one-day
+%% return ranks.
+
+%% <<unbalanced w/out duplicates>>=
+
+%% ranks <- alpha
+%% top.ranks <- aggregate(overall.ranks[c("rank")], by = list(id = overall.ranks$id), min)
+%% ranks$rank <- top.ranks$rank[match(ranks$id, top.ranks$id)]
+%% ranks[order(ranks$rank), c("rank", "sort", "shares", "mv")]
+%% @
+
+%% Making the alpha 10 times as important as the one-day return sort
+%% causes us to only use ranks from the alpha sort.  We do not even
+%% consider the number 1 ranked one-day return trade until we examine all
+%% the alpha sorts ranked in the top ten.
+
+%% The last weighting we consider falls somewhere in between the
+%% previous two.
+
+%% <<mixed weighting>>=
+
+%% ## returns alpha$rank to original level
+
+%% alpha$rank <- alpha.rank.orig
+%% alpha$rank <- alpha$rank / 1.5
+
+%% overall.ranks <- data.frame()
+%% overall.ranks <- rbind(alpha, ret.1.d)
+%% overall.ranks <- overall.ranks[order(overall.ranks$rank), c("id", "sort", "rank", "side", "shares", "mv")]
+%% row.names(overall.ranks) <- paste(overall.ranks$id, overall.ranks$sort, sep = ".")
+%% overall.ranks[c("rank", "side", "shares", "mv")]
+%% @
+
+%% Having assigning a weight of 1.5 to alpha we divide each alpha value
+%% by 1.5.
+
+%% <<mixed w/out duplicates>>=
+
+%% ranks <- alpha
+%% top.ranks <- aggregate(overall.ranks[c("rank")], by = list(id = overall.ranks$id), min)
+%% ranks$rank <- top.ranks$rank[match(ranks$id, top.ranks$id)]
+%% tmp <- ranks[order(ranks$rank), c("rank", "shares", "mv")]
+%% tmp
+%% @
+
+%% We use three of the ranks from the alpha sort and one
+%% rank from the one-day return sort.  This is the weighting scheme that
+%% we use in the rest of the example.
+
+%% To review, the ranking process has four steps.  First, we ranked each
+%% trade according to both alpha and one-day return to generate raw
+%% ranks.  Second, we weight these ranks.  Third, we combined the alpha
+%% and one-day return ranks.  Fourth, we eliminated duplicates by
+%% associating each trade with the lowest rank assigned to it by either
+%% alpha or one-day return.  We call these ranks preliminary ranks
+%% because they are not the final values we use to determine the
+%% desirability of each trade.  Nonetheless, we must generate preliminary
+%% ranks before we can arrive at final ranks, the calculation of which we
+%% describe in the next section.
+
+%% \subsection{Generating synthetic ranks}
+%% \label{generating synthetic ranks}
+
+%% If trade 1 is $X$ better than the trade 2, then is trade 99 $X$ better
+%% than trade 100?  Most portfolio managers would argue that the
+%% difference in utility between trade 1 and trade 2 is greater than the
+%% difference in utility between trade 99 and trade 100.  However, with
+%% raw ranks, we make no assertion of how much better one trade is than
+%% another trade.  To express the tendency for us to derive more utility
+%% from the most highly ranked trades, we synthesise yet another set of
+%% values from the weighted ranks.  We call these values synthetic
+%% ranks.\protect\footnote{We are abusing the term ``ranks'' by using it
+%% in several different contexts.}
+
+%% \begin{description}
+
+%% \item{\bf{synthetic ranks}}: values generated by mapping the weighted
+%% ranks to a truncated normal distribution ($> 85^{th}$ percentile on
+%% $N(0,1)$).
+
+%% \end{description}
+
+%% First, we re-rank the weighted ranks:
+
+%% <<>>=
+%% tmp$rank <- rank(tmp$rank, ties.method = "first")
+%% tmp[order(tmp$rank),]
+%% @ 
+
+%% Next, we evenly distribute the ranks on the interval interval
+%% $[0.85,1)$ such that the best ranked trades are closest to 1 and the
+%% worst ranked trades are closest to $0.85$:
+
+%% <<scaling ranks>>=
+
+%% ## a hacked version of the scaling function in calcRanks, built only
+%% ## for a list of all buys
+
+%% r.max  <- max(tmp$rank) + 1
+%% r.mult <- 0.15
+%% r.add  <- 0.85
+
+%% tmp$rank.s <- (r.mult * tmp$rank[nrow(tmp):1] / r.max) + r.add
+
+%% ## Saves off rank.s for later use
+%% rank.s <- tmp
+
+%% tmp
+%% @ 
+
+%% We list the scaled ranks in \texttt{rank.s}.  Next, we map to the a
+%% truncated normal distribution.\protect\footnote{$> 85^{th}$ percentile
+%% of $N(0,1)$}
+
+
+%% <<synthesised ranks>>=
+%% tmp$rank.t <- qnorm(tmp$rank.s)
+%% tmp[,c("rank", "rank.s", "rank.t", "shares", "mv")]
+%% @
+
+%% The \texttt{rank.t} column lists the ranks mapped to the truncated
+%% normal distribution.  \Sexpr{tl@ranks[1,"id"]} has the best rank and
+%% \Sexpr{tl@ranks[nrow(tl@ranks),"id"]}, has the lowest rank.  We might
+%% expect to see a \texttt{rank.t} of approximately 3.5 for the best
+%% ranked trade, but because we only have \Sexpr{nrow(tmp)} candidates
+%% and the scaled values are evenly spaced on the interval $[0.85,1)$,
+%% the normalised value of the best ranked trade is not as great as
+%% it would be if we had 100 trades.
+
+%% \emph{preliminary ranks section}
+%% We mentioned in section \ref{} that synthetic ranks express the
+%% greater differences in utility between adjacent, highly ranked trades
+%% ($1,2,3\dots{}$) than between adjacent, poorly ranked trades: \\*
+
+%% \begin{table}[!htbp]
+%%   \begin{tabular}[c]{|rr|rr|rr|}
+%%     \hline
+%%     rank & $\Delta$ & $N(0,1)$ & $\Delta$ & $> 85^{th}$ of $(0,1)$ & $\Delta$ \\
+%%       \hline
+%%       1   & 1  &  3.50 & 1.17 & 3.50 & 0.53 \\
+%%       2   & 1  &  2.32 & 0.27 & 2.96 & 0.21 \\
+%%       3   & 1  &  2.05 & 0.17 & 2.74 & 0.13 \\
+%%       4   & 1  &  1.88 & 0.13 & 2.61 & 0.10 \\
+%%       5   & 1  &  1.75 & -    & 2.51 & -    \\
+%%       .   & .  &     . &    . &    . &    . \\
+%%       .   & .  &     . &    . &    . &    . \\
+%%       48  & 1  &  0.05 & 0.03 & 1.46 & 0.01 \\
+%%       49  & 1  &  0.02 & 0.02 & 1.45 & 0.01 \\
+%%       50  & 1  &  0.00 & 0.02 & 1.44 & 0.01 \\
+%%       51  & 1  & -0.02 & 0.02 & 1.43 & 0.01 \\
+%%       52  & 1  & -0.05 & -    & 1.41 & -    \\
+%%       .   & .  &     . &    . &    . &    . \\
+%%       .   & .  &     . &    . &    . &    . \\
+%%       96  & 1  & -1.64 & 0.11 & 1.06 & 0.00 \\
+%%       97  & 1  & -1.75 & 0.13 & 1.06 & 0.00 \\
+%%       98  & 1  & -1.88 & 0.17 & 1.06 & 0.00 \\
+%%       99  & 1  & -2.05 & 0.27 & 1.06 & 0.00 \\
+%%       100 & -  & -2.32 & -    & -    & NA   \\
+%%       \hline
+%%   \end{tabular}
+%%   \caption[Synthetic rank distributions]{Creating synthetic ranks
+%%     using a linear distribution, a normal distribution, and a
+%%     truncated normal distribution.  Delta columns express the
+%%     difference in utility between adjacent trades.\label{distribution
+%%     table}}
+%% \end{table}
+
+%% Table \ref{distribution table} expresses the differences amongst
+%% distributions we might use to rank 100 trades.  The \texttt{Raw Rank}
+%% column contains the raw ranks for the 5 best trades, the 5
+%% middle-ranked trades, and the 5 worst trades.  In this example the
+%% ranks on $[1,100]$ are spaced at intervals of one.  The alpha
+%% difference between every trade is the same.  If we use raw rank as a
+%% measure of alpha, we derive the same utility from every trade.  Trade
+%% 1 is one better than trade 2, and trade 99 is one better than trade
+%% 100.
+
+%% The normal distribution column $(N(0,1))$ expresses what happens when
+%% we normalise the raw ranks.  The normal distribution correctly
+%% expresses our belief that there is a large  difference in
+%% alpha between the best ranked trades.  However, use of the normal
+%% distribution would incorrectly suggest that there are similarly large
+%% alpha differences between the worst trades.  We get these results when
+%% using the normal distribution because the best and worst ranked trades
+%% form the tails of the distribution.  We do not want large 
+%% differences in alpha amongst the worst rank trades.  The 
+%% alpha differences decrease until we reach trade 50, then increase
+%% again as we move towards the other tail of the distribution.  We want
+%% alpha to remain the same on the margin past the 50th trade.
+
+%% To address the problems of a normal and linear distribution, we use a
+%% truncated normal distribution, $> 85^{th} \% of N(0,1)$.  In the
+%% right\-most delta $(\Delta)$ column, the  alpha differences
+%% between the best ranked trades is over 50 times greater than the
+%%  alpha differences between the worst ranked trades.  Every
+%% trade ranked worse than 50 has a similar  alpha difference.
+%% Although the subset $[0.85,1)$ is slightly arbitrary, (we could have
+%% set the lower extreme to be 0.84, 0.85, or another similar value) it
+%% serves our purpose of expressing large differences in  alpha
+%% and where we find the best buys, at one tail, and small differences in
+%%  alpha amongst the worst buys.
+
+%% Recall the steps we have taken towards in generating our final measure
+%% of rank, synthetic rank.  First, we converted the sort values to raw
+%% ranks.  Second, we converted the raw ranks to weighted ranks.  Third,
+%% we scaled the weighted ranks to $[0.85,1)$ to generate scaled weights.
+%% Lastly, we mapped the scaled weights to the truncated normal
+%% distribution.  By only using the $85^{th}$ percentile and above, we
+%% express our belief that the differences in alpha between the best
+%% ranked trades is much greater than the differences in alpha between
+%% the worst ranked trades.
+
+%% If the costs associated with trading any stock, all things being
+%% equal, were the same, we would not care about the difference in
+%% utility between any trades.  We would move down the trade list from
+%% best to worst until we match the allotted turnover.  However, our
+%% trading influences prices and may reduce the desirability of a trade.
+
+
+%% \subsection{Chunks, synthetic rank, and trade-cost adjustment}
+%% \label{Chunks, synthetic rank, and trade-cost adjustment}
+
+%% We want to know at what point the cost of trading an equity exceeds
+%% the utility of trading that equity.  In the \texttt{portfolio}
+%% package, we use synthetic rank to represent utility.  Determining the
+%% cost of purchasing an additional share is impossible if our smallest
+%% trading unit is an entire order so we break each order into
+%% \emph{chunks}.
+
+%% \begin{description}
+
+%% \item{\bf{chunk}}: A portion of a candidate trade.
+
+%% \end{description}
+
+%% We break candidate trades into chunks by market value.  Each chunk has
+%% a market value of approximately \$\Sexpr{tl@chunk.usd}:
+
+%% <<chunk w/out tca.rank>>=
+%% tl@chunks[, c("side", "shares", "mv", "alpha", "ret.1.d", "rank.t", "chunk.shares", "chunk.mv")]
+%% @ 
+
+%% The candidate trades are broken into \Sexpr{nrow(tl@chunks)} chunks.
+%% The number following the period in the row name expresses the chunk
+%% number for that particular equity.  The \texttt{chunks.mv} column
+%% expresses the market value of each chunk. The \texttt{chunk.shares}
+%% column expresses how many shares each chunk consists of.
+
+%% \subsubsection{Trade-cost adjustment of individual chunks}
+
+%% As we trade greater percentages of the average daily volume, the price
+%% of the equity will increase.  To reflect this phenomenon, we penalise
+%% the synthetic ranks of the chunk as we trade greater percentages of
+%% the daily volume.  We call this penalty \emph{trade-cost adjustment}.
+
+%% \begin{description}
+
+%% \item{\bf{trade-cost adjustment}}: Lowering a chunk's rank because of
+%% trading volume.
+
+%% \end{description}
+
+%% To fix this idea, let's first examine the daily volumes of our
+%% candidate trades.\protect\footnote{The \texttt{volume} column
+%% represents some measure of past trading volume such as the average
+%% trading volume over the last 30 days.  A daily measure of
+%% \texttt{volume} is not required; we would use whatever measure is
+%% natural for the frequency with which we trade.}
+
+%% <<trading volume>>=
+%% trading.volume <- data.frame()
+%% trading.volume <- cbind(rank.t = tl@ranks[, c("rank.t")], volume = tl@data[match(tl@ranks$id, tl@data$id), c("volume")], shares = tl@ranks[, "shares"])
+%% row.names(trading.volume) <- tl@ranks$id
+%% trading.volume
+%% @
+
+%% \emph{This must be updated as I change the portfolio}
+
+%% The trades we want to make for both MSFT, SCHW, and GOOG involve less
+%% than 3\% of the daily trading volume.  However, we must trade 100\% of
+%% the daily trading volume.  We would probably not be able to purchase
+%% all these shares in one day, and even if we could, we would affect
+%% prices significantly.  Moving into the position over several days
+%% would be better.
+
+%% We use a trade-cost adjustment function to express how increasing
+%% trade costs reduce the desirability of candidate trades.  To better
+%% approximate utility, we penalise synthetic ranks at the chunks level.
+%% Doing this allows us to better determine at which point the cost of
+%% trading an additional chunk is greater than the utility derived by
+%% trading an additional chunk.  We perform trade-cost adjustment on the
+%% chunks by keeping track of what percentage of the daily volume we have
+%% traded with each additional chunk.  The first chunk to cross the
+%% threshold of 15\% of the daily trading volume is penalised by a fixed
+%% amount.  All subsequent chunks are penalised by that amount, and any
+%% further chunks that pass 30\% or 45\% percent of the daily trading
+%% volume receive further penalties.  The chunks of GM, an illiquid
+%% equity, have been trade-cost adjusted.
+
+%% <<chunks w/ tca.rank>>=
+
+%% head(tl@chunks[, c("side", "mv", "alpha", "ret.1.d",
+%%               "rank.t", "chunk.shares", "chunk.mv", "tca.rank")])
+%% @ 
+
+%% The \texttt{tca.rank} column expresses the synthetic rank adjusted for
+%% trade-cost.  As the only candidate for which we want to purchase more
+%% than 15\% of the daily trading volume is GM, it is the only candidate
+%% for which we trade-cost adjust the chunks.  Every chunk of GM beyond
+%% the first has been trade-cost adjusted.  This will cause us to
+%% consider the chunks of other candidate trades before we trade
+%% additional chunks of GM:
+
+%% <<ordered chunks w/ tca.rank>>=
+
+%% tl@chunks[order(tl@chunks$tca.rank, decreasing = TRUE), c("side",
+%%               "mv", "alpha", "ret.1.d", "rank.t", "chunk.shares",
+%%               "chunk.mv", "tca.rank")]
+%% @ 
+
+%% As MSFT is the best ranked candidate and does not receive a trade-cost
+%% penalty, we would trade all the shares of MSFT before considering the
+%% other candidates.\protect\footnote{Assuming that derived turnover is
+%% greater than the market value of all the candidate trades.}  Having
+%% completed all the trades of MSFT, we would consider the first chunk of
+%% GM, the only chunk which has not been trade-cost adjusted.
+%% Subsequently, we would trade all the chunks of SCHW and GOOG, the
+%% candidate trades ranked 3 and 4.  Lastly, we trade the penalised
+%% chunks of GM.
+
+%% \subsubsection{Synthetic rank and trade-cost adjustment of small portfolios}
+%% \label{Synthetic rank and trade-cost adjustment of small portfolios}
+%% In this example, trade-cost adjustment decreases the desirability of
+%% the chunks of GM in a non-trivial way.  Although GM is ranked 2nd as a
+%% candidate trade, every other candidate trade would be made before we
+%% completed all the chunks of GM.  When we consider such a small number
+%% of trades, we assume that all of the trades are of approximately equal
+%% quality; the  difference in utility between candidate trades
+%% is fairly small.  This occurs because the scaled ranks are evenly
+%% distributed on $[0.85,1)$:
+
+%% <<rank.s>>=
+%% rank.s
+%% @ 
+
+%%   When we only have \Sexpr{nrow(tl@candidates)} candidates, none of
+%% the scaled ranks will be very close to $1$, and consequently, none of
+%% the synthetic ranks will fall at the extreme tail
+%% of the normal distribution:
+
+%% <<rank.t>>=
+%% rank.t <- rank.s
+%% rank.t$rank.t <- qnorm(rank.t$rank.s)
+%% rank.t
+%% @ 
+
+%% Consequently, the  difference in utility between candidate
+%% trades will be small when there are few candidate trades.
+%% Heuristically, this seems correct because if we are making very few
+%% trades, we would most likely derive similar utility from any of
+%% them.\protect\footnote{This does not exclude our expressing a
+%% preference amongst the sorts.}  Therefore, it makes sense for us to
+%% trade the other three candidates if the costs associated with trading
+%% GM are non\-trivial.
+
+%% \subsubsection{Synthetic rank and trade-cost adjustment of large portfolios}
+%% \label{Synthetic rank and trade-cost adjustment of large portfolios}
+
+%% Moving away from our example for a moment, imagine that we have a
+%% large current and target portfolio, the trade list for which contains
+%% 100 candidate trades.  When we have a large portfolio, we tend to
+%% view the differences in  utility between candidates in the
+%% manner we described in section \ref{}.  When evenly distribute the
+%% scaled ranks on the interval $[0.85,1)$, we have more ranks at
+%% the extreme tail:
+
+%% <<misc$rank.s>>=
+%% misc$rank.s
+%% @ 
+
+%% The row names express the equity ticker symbols.  \texttt{rank} is the
+%% raw rank. \texttt{rank.s} is the scaled rank, and \texttt{rank.t} is
+%% the synthetic rank.  The best ranked trade
+%% \Sexpr{row.names(misc[["rank.s"]])[1]}, has a scaled rank value very
+%% close to one, \Sexpr{row.names(misc[["rank.s"]][["rank.s"]])[1]}, and
+%% a synthetic rank close to three.  This indicates that the best rank
+%% falls at the tail of the normal distribution.  The worst ranked
+%% candidates not only have low synthetic ranks, but they also have very
+%% small  differences in synthetic rank.  If we trade-cost adjust
+%% one of the poorly ranked candidates we will most likely not trade it
+%% until we have traded all other candidates not penalised by trade cost
+%% adjustment.  On the other hand, we would still trade
+%% \Sexpr{row.names(misc[["rank.s"]])[1]},
+%% \Sexpr{row.names(misc[["rank.s"]])[2]}, or
+%% \Sexpr{row.names(misc[["rank.s"]])[3]}, even if some of the chunks had
+%% been trade-cost adjusted:
+
+%% Here we have a subset of the hypothetical chunk table for the 100
+%% candidate example.  For this example, the GOOG candidate has been
+%% broken up into 2 chunks and the IBM candidate has been broken up into
+%% 4 chunks.  The ranks of 2$^{nd}$, 3$^{rd}$, and
+%% 4$^{th}$ chunks of IBM have been penalised for trade costs.
+%% Therefore, we trade the first chunk of IBM, followed by all the chunks
+%% of GOOG.  Subsequently, we trade the remaining chunks of IBM because
+%% the trade-cost adjusted rank of its chunks is still greater than the
+%% un-penalised synthetic rank of the next most desirable candidate, GM.
+
+%% Let's quickly review how we generate the final, synthetic ranks.  The
+%% preliminary values from which we draw the raw ranks are the sorts we
+%% define.  In this example, we defined sorts for alpha and one-day
+%% return.  In creating raw ranks abstract away the underlying values
+%% provided by the sorts.  At this point, we still have a different set
+%% of raw ranks for each sorts.  To express preferences amongst the
+%% sorts, we apply weights to the sorts.  This step yields weighted
+%% ranks.  From the sets of weighted ranks, we associate with each
+%% candidate the best weighted rank from any sort.  Next, we scale the
+%% buys to the interval $[0.85,1)$.  This step yields scaled ranks.  From
+%% scaled ranks, we generate synthetic ranks by mapping the scaled ranks
+%% to a truncated normal distribution.  Next, we break the candidates
+%% into chunks and perform trade-cost adjustment as necessary.  This
+%% yields trade-cost adjusted ranks which are the final measure of a
+%% chunks desirability.
+
+%% \subsection{Sorting theory}
+%% \label{sorting theory}
+
+%% Chooing the best candidate when we have multiple measures of
+%% desirability is difficult.  Consider the situation where we must
+%% choose ten stocks to trade.
+
+%% Assuming that we use some type of formula to generate alpha, we might
+%% be able to incorporate our other sorts into the formula for alpha.
+%% Instead of having alpha and one-day return as distinct sorts, we would
+%% only have one sort, alpha, which would also take one-day return into
+%% account.  For this to work, however, we would have to write a function
+%% that accounted for the the ordering of every trade by every sort.
+%% Furthermore, this function would have to take into account our
+%% preference for certain certain sorts over other sorts.  To elaborate
+%% on the difficulty of this creating such a function, let us consider
+%% the situation where we must choose our ten favourite trades, in no
+%% particular order, using the data in the table below.
+
+%% \begin{table}[!htbp]
+%%   \begin{tabular}[c]{|r|r|r|r|r|r|}
+%%     \hline
+%%     symbol & raw rank & alpha & symbol & raw rank  & ret.1.d \\
+%%       \hline
+%%      IBM   &  1  & 1.57  &  HPQ &  1 & -0.063 \\
+%%      MS    &  2  & 1.26  & SUNW &  2 & -0.056 \\
+%%      EBAY  &  3  & 1.24  &  AET &  3 & -0.041 \\
+%%      CBBO  &  4  & 1.21  & YHOO &  4 & -0.036 \\
+%%      SCHW  &  5  & 1.15  &    T &  5 & -0.014 \\
+%%      PAYX  &  6  & 1.12  &  CVX &  6 & -0.011 \\
+%%      HAL   &  7  & 1.12  & GOOG &  7 & -0.011 \\
+%%      AMD   &  8  & 1.10  & PAYX &  8 & -0.002 \\
+%%      MSFT  &  9  & 0.99  & CBBO &  9 &  0.003 \\
+%%      CVX   & 10  & 0.96  &  HAL & 10 &  0.009 \\
+%%      AET   & 11  & 0.92  & QCOM & 11 &  0.011 \\
+%%      HPQ   & 12  & 0.81  & EBAY & 12 &  0.014 \\
+%%      QCOM  & 13  & 0.77  & SCHW & 13 &  0.029 \\
+%%      GOOG  & 14  & 0.65  & AAPL & 14 &  0.036 \\
+%%      YHOO  & 15  & 0.64  &   MS & 15 &  0.041 \\
+%%      \hline  
+%%   \end{tabular}
+%%   \caption[alpha and one-day return ranks]{The alpha and one-day
+%%   returns of candidates suggest different rank orderings.  All of the
+%%   candidates are buys.\label{theory table 1}}
+%% \end{table}
+      
+%% Table \ref{theory table 1} has a row for each of 15 candidates, their
+%% alpha and one-day return values, and the raw ranks we would generate
+%% from these values.  All of the candidates are buys so greater alpha
+%% values are better and lesser one-day return values are better.
+
+%% One portfolio manager might decide that she wants to make trades based
+%% only on alpha.  She chooses the top ten trades according to alpha.  A
+%% second portfolio manager may want to make trades based only on one-day
+%% return.  She chooses the top ten trades according to one-day return.
+%% The third portfolio manager considers both alpha and one-day return
+%% and choose her favorite trades by examining both.  
+
+%% Portfolio manager three believes in buying equities which have had
+%% price decreases of greater than 4\% during the previous trading day.
+%% Consequently, she would buy HPQ, SUNW, and AET.  She would fill her
+%% remaining orders using the top 7 trades according to alpha.
+
+%% How would the third portfolio manager write a function that expresses
+%% her trading preferences?  What if some days she acted like the first
+%% portfolio manager and on other days like the second portfolio manager?
+%% How would she account for a change in preference for one of the sorts?
+
+%% Our solution allows any of these portfolio managers to express her
+%% trading preferences without having to write a function that relates
+%% the different measures of desirability.  Instead, she would use the
+%% weighting function that the \texttt{portfolio} package provides.  She
+%% would examine the trade list created using different weighting schemes
+%% and adjust the weights until the  utility derived from the
+%% last candidate traded was greater than the  cost of the first
+%% trade \emph{not} made.
+
+%% For example, the portfolio manager may decide that YHOO is a better
+%% reversal trade than the last alpha trade and revise the weighting
+%% scheme so that she makes one less alpha trade and one more reversal
+%% trade.
+
+%% \begin{table}[!htbp]
+%%   \begin{tabular}[c]{|r|r|r|r|r|r|}
+%%     \hline
+%%     symbol & raw rank & alpha & symbol & raw rank  & ret.1.d \\
+%%       \hline
+%%      IBM   &  1  & 1.57  &  HPQ &  1 & -0.063 \\
+%%      MS    &  2  & 1.26  & SUNW &  2 & -0.056 \\
+%%      EBAY  &  3  & 1.24  &  AET &  3 & -0.041 \\ 
+%%      CBBO  &  4  & 1.21  & YHOO &  4 & -0.036 \\ \cline{5-5}
+%%      SCHW  &  5  & 1.15  &    T &  5 & -0.014 \\ 
+%%      PAYX  &  6  & 1.12  &  CVX &  6 & -0.011 \\ \cline{2-2}
+%%      HAL   &  7  & 1.12  & GOOG &  7 & -0.011 \\ 
+%%      AMD   &  8  & 1.10  & PAYX &  8 & -0.002 \\
+%%      MSFT  &  9  & 0.99  & CBBO &  9 &  0.003 \\
+%%      CVX   & 10  & 0.96  &  HAL & 10 &  0.009 \\
+%%      AET   & 11  & 0.92  & QCOM & 11 &  0.011 \\
+%%      HPQ   & 12  & 0.81  & EBAY & 12 &  0.014 \\
+%%      QCOM  & 13  & 0.77  & SCHW & 13 &  0.029 \\
+%%      GOOG  & 14  & 0.65  & AAPL & 14 &  0.036 \\
+%%      YHOO  & 15  & 0.64  &   MS & 15 &  0.041 \\
+%%      \hline  
+%%   \end{tabular}
+%%   \caption[Trading Preferences II]{Portfolio manager 3 revises her
+%%   trading preferences.\label{theory_table_2}}
+%% \end{table}
+
+%% What ultimately matters is the last candidate we decide to trade and
+%% the first candidate we decide not to trade.  By using rank orders
+%% instead of underlying values, we do not have to combine the different
+%% sorts.  Instead, we can express our preferences for different,
+%% possibly unrelated criteria through the use of a weighting scheme we
+%% provide in \texttt{portfolio}.  
+
+%% \subsection{Pairing trades}
+
+%% Let us return to discussing trade list construction.  In practise,
+%% most equity portfolios must be maintained at a specific market value.
+%% One logical way to achieve this result would be to pair desirable buys
+%% and sells of equal market value, and this is what we do in the
+%% \texttt{portfolio} package.  We call these pairings of buys and sells
+%% a swap:
+
+%% \begin{description}
+
+%%   \item{\bf{swap}}: A pairing of a buy and sell or short and cover of
+%%   similar market market value and desirability.
+
+%% \end{description}
+
+%% We have already created the framework to create this swaps; we break
+%% the candidates into chunks of similar market value and then rank these
+%% chunks individually.  If our candidate trades included buys and sells,
+%% we would simply match the most desirable buys with the most desirable
+%% sells.  However, our candidate trades are all buys, and we want to
+%% increase the market value of our portfolio by \$1,000.
+
+%% \subsubsection{Dummy chunks}
+
+%% If we want to increase the market value of the portfolio, we must buy
+%% more than we sell.  Therefore, we do not want to pair a buy with a
+%% sell.  We just want buys.  The situation where we just want buys or
+%% sells is a special case.  The \texttt{portfolio} package is structured
+%% so that we must also trade in pairs.  To work within the package
+%% framework we introduce the concept of \emph{dummy chunks}:
+
+%% \begin{description}
+
+%%   \item{\bf{dummy chunk}}: A \emph{fake} buy or sell chunk that we pair with
+%%   a real buy or sell chunk in situations where we want to increase or
+%%   decrease the market value of the portfolio.
+
+%% \end{description}
+
+%% As our example only contains buys, we have paired every buy with a
+%% dummy sell.\protect\footnote{We only show the head of the swaps table.}
+
+%% <<swaps table>>=
+%% head(tl@swaps[, c("tca.rank.enter", "tca.rank.exit",
+%% "rank.gain")])
+%% @ 
+
+%% In the table above, the row names express the chunk ticker symbols
+%% that form the swap.  To the left of the comma is an enter chunk, and
+%% to the right of the comma is an exit chunk.\protect\footnote{Enter
+%% chunks are either a buy or short.  A buy allows us to take a long
+%% position and a short allows us to take a short position.  Exit chunks
+%% are either sells or covers.  A sell allows us to exit a long position
+%% and a cover allows us to exit a short position.}  The exit chunks all
+%% have a symbol \texttt{NA.0} because they are dummy sells.  The
+%% \texttt{tca.rank.enter} column expresses the trade-cost adjusted rank
+%% of the enter chunk, the buy, and the \texttt{tca.rank.exit} column
+%% expresses the trade-cost adjusted rank of the exit chunk, the dummy
+%% sell.  The \texttt{rank.gain} column expresses the difference in
+%% trade-cost adjusted rank between the enter and the exit, the buy and
+%% dummy sell.  
+
+%% We have spent considerable time discussing the generation of all types
+%% of ranks for buys, but we have not yet discussed ranking sells.  For
+%% sells, better ranks are more negative.  Therefore, a great sell might
+%% have a synthetic rank of -3.5.  In section \ref{}, we discuss how
+%% we generate the ranks for the sells.  For now, just note that better
+%% sells have more negative ranks.
+
+%% Recall that our goal is to make the trades which yield the most
+%% utility.  In spending our \$1,000, we want to trade the best chunks.
+%% So that we make the best buys when increasing the market value of the
+%% portfolio, we assign the dummy sells an arbitrarily high rank.  In the
+%% table above, the dummy sells have a trade-cost adjusted rank of
+%% -10,000.  We match the best the buys and sells by calculating rank
+%% gain.  As no real sells will yield the same rank gain that the pairing
+%% of buy and a dummy sell yields, we create pairs with all the dummy
+%% sells before even considering other sells.  As there are no sells in
+%% this example, all the swaps consist of a buy and a dummy sell.
+
+%% Let's quickly review why we create swaps.  We want to maximise utility
+%% by making the candidate trades or portions of candidate trades that
+%% yield the greatest  utility.  Generally, we want to maintain
+%% the portfolio equity at a constant level.  A logical way to do this
+%% involves pairing buys and sells of similar market value.  To maximise
+%% utility, we should pair the most best ranked buys and sells.  In
+%% special cases, we want to increase or decrease the market value
+%% of our portfolio.  In order to do this, we must make more of one type
+%% of trade.  However, this would require that we have swaps that contain
+%% only a buy or sell.  Since we cannot have a swap of only one trade, we
+%% introduce dummy trades.  As dummy trades have an arbitrarily high
+%% synthetic rank they pair with the best buys and sells to ensure that
+%% we choose the most useful candidates in changing the market value of
+%% the portfolio.
+
+%% \subsection{Accounting for turnover}
+
+%% As we stated in section \ref{}, holding period would be endogenous if
+%% we could always set it to maximise risk-adjusted return.  However,
+%% most real world portfolios have a set holding period and consequently,
+%% a set turnover.  There is no real concept of turnover or holding
+%% period in this example.  We have \$1,000 to invest in our portfolio
+%% over the course of a single day.  Although this additional investment
+%% does not represent turnover, we can view our \$1,000 as representing a
+%% daily turnover of \$1,000.  We want to make the best ranked trades
+%% until the cumulative market value of these trades exceeds the money we
+%% have to invest.  Analogously, we would say that we want to make the
+%% best ranked trades until we exceed turnover.
+
+%% As our turnover in this example is \$\Sexpr{tl@turnover}, all of our
+%% trades will not have a market value greater than
+%% \$\Sexpr{tl@turnover}:
+
+%% <<>>=
+%% tl@swaps.actual[, c("tca.rank.enter", "tca.rank.exit",
+%% "rank.gain")]
+%% @ 
+
+%% MSFT is the the best ranked trade.  Consequently, we choose swaps of
+%% MSFT before choosing other swaps.  We make
+%% \Sexpr{nrow(tl@swaps.actual)} because each swap has a value of
+%% approximately \$\Sexpr{tl@chunk.usd}, and our turnover is
+%% \$\Sexpr{tl@turnover}.
+
+%% \subsection{Actual orders}
+
+%% We do not want to submit two orders for 8 shares of MSFT.  Before
+%% submitting the trade list, we must roll-up the swaps into larger
+%% orders.  We first remove the dummy chunks:
+
+%% <<remove idiots>>=
+
+%% tl@chunks.actual[, c("side", "mv", "alpha", "ret.1.d", "rank.t",
+%%               "chunk.shares", "chunk.mv", "tca.rank")]
+%% @ 
+
+%% Then we combine the chunks to form a single order per candidate:
+
+%% <<>>=
+%% tl@actual[, !names(tl@actual) %in% c("id")]
+%% @
+
+%% We now have an order for \Sexpr{tl@actual[1,"shares"]} shares of
+%% \Sexpr{tl@actual[1,"id"]}, which is the sum of the chunks of
+%% \Sexpr{tl@actual[1,"id"]}.  Having discussed in words the process of
+%% trade list creation, we describe, step-by-step, the process of
+%% building a \texttt{tradelist} object in R.
+
+\section{Creating a long-only tradelist in R}
+\label{a long-only tradelist}
+
+\SweaveOpts{echo=TRUE, quiet=TRUE}
+
+<<echo=FALSE>>=
+
+## Clears the search list.
+
+rm(list = ls())
+load("tradelist.RData")
+
+## prepares data for this example
+
+p.current <- portfolios[["p.current.lo"]]
+p.target <- portfolios[["p.target.lo"]]
+data <- data.list[["data.lo"]]
+
+## Original Equity, Target Equity
+
+oe <- portfolio:::mvShort(p.current) + portfolio:::mvLong(p.current)
+te <- portfolio:::mvShort(p.target) + portfolio:::mvLong(p.target)
+
+## Creates the sorts list
+
+sorts <- list(alpha = 1, ret.1.d = 1.1)
+
+## Creates the tradelist so we can use different measures
+
+tl <- new("tradelist", orig = p.current, target = p.target, chunk.usd
+= 2000, sorts = sorts, turnover = 30250, target.equity = te, data =
+data)
+
+## Necessary turnover to make all the candidate trades
+
+nt <- mvCandidates(tl)
+
+@ 
+
+To create a \texttt{tradelist}, we need four main pieces.  The first
+two pieces necessary to create a \texttt{tradelist} are
+\texttt{portfolio} objects.  One of these portfolios is our current
+portfolio.
+
+Our current portfolio is a superset of the previous holdings.  The
+major difference between the two portfolios is that the current
+portfolio in this example includes positions that we sell.  This
+\texttt{portfolio}, named \texttt{p.current}, consists of
+\Sexpr{nrow(p.current@shares)} positions and has a market value of
+\$\Sexpr{prettyNum(oe,big.mark=",")}.
+
+<<prep-p.current.shares, echo=FALSE>>=
+p.current.shares <- p.current@shares[, c("shares", "price")]
+@ 
+
+<<p.current.shares>>=
+p.current.shares
+@ 
+
+The target portfolio is a superset of the previous target portfolio.
+It contains \Sexpr{nrow(p.current.shares)} positions and has a market
+value of \$\Sexpr{prettyNum(te,big.mark=",")}.
+
+<<echo=FALSE>>=
+p.target.shares <- p.target@shares[, c("shares", "price")]
+@
+
+<<>>=
+p.target.shares
+@ 
+
+We calculate the portfolio difference to determine the candidate
+trades.\protect\footnote{The data frame is a subset of the
+\texttt{candidates} data frame.  We often take subsets of data frames
+so that they fit better on the page.  If we do so we indicate this by
+prepending the name of the data frame with \texttt{sub}.}
+
+<<echo=false>>=
+sub.candidates <- tl@candidates[,!names(tl@candidates) %in% "id"]
+@ 
+
+<<long-only candidates>>=
+sub.candidates
+@ 
+
+The candidate buys are the same as before and we have 3 candidate
+sells.  The market value is signed and expresses the net effect a
+candidate has on the dollar value of a portfolio.  
+
+\subsection{Assigning weights}
+
+We assign weights to the sorts by creating a list.
+
+<<>>=
+sorts <- list(alpha = 1, ret.1.d = 1.1)
+@ 
+
+We assign a weight of 1 to alpha and a weight of 1.1 to one-day
+return.
+
+\subsection{Passing additional information to \texttt{tradelist}}
+\label{paitt}
+
+The fourth item is a data frame.  The \texttt{portfolio} package
+requires that this data frame contain columns for \texttt{id},
+\texttt{volume}, \texttt{price.usd}, and the sorts:
+
+<<echo=false>>=
+row.names(data) <- data$id
+sub.data <- data[, c("id", "volume", "price.usd", "alpha", "ret.1.d")]
+@ 
+
+<<necessary data>>=
+sub.data
+@
+
+\texttt{volume} expresses some measure of average trading volume.
+\texttt{price.usd} is the most recent price of the security in US
+dollars. We must also include the sorts we define in \texttt{sorts},
+\texttt{alpha} and \texttt{ret.1.d}.
+
+\subsection{Calling \texttt{new}}
+\label{lo new}
+
+We use \texttt{p.current}, \texttt{p.target}, the \texttt{sorts}, and
+\texttt{data} as arguments to \texttt{new}.
+
+<<new long-only tl>>=
+
+tl <- new("tradelist", orig = p.current, target = p.target, chunk.usd
+= 2000, sorts = sorts, turnover = 30250, data = data)
+
+@ 
+
+<<echo=false>>=
+
+tl <- new("tradelist", orig = p.current, target = p.target, chunk.usd
+= 2000, sorts = sorts, turnover = 30250, target.equity = 47500, data =
+data)
+
+@ 
+
+In this call, the \texttt{new} method for \texttt{tradelist} accepts 8
+parameters:\footnote{The \texttt{new} method of \texttt{tradelist} can
+accept more parameters, but they are optional.}  The first argument,
+\texttt{"tradelist"}, specifies the name of the object that we want to
+create.  The argument to the \texttt{orig} parameter,
+\texttt{p.current}, is the current portfolio.  The argument to the
+\texttt{target} parameter, \texttt{p.current}, is the target
+portfolio.  The \texttt{sorts} parameter accepts the \texttt{sorts}
+list we created earlier.  We create chunks with a granularity of of
+\$\Sexpr{prettyNum(tl@chunk.usd,big.mark=",")}.  The \texttt{data}
+parameter accepts the data frame we created earlier with columns for
+\texttt{id}, \texttt{volume}, \texttt{price.usd}, and the sorts.
+
+The \texttt{turnover} parameter accepts an integer argument which
+expresses the maximum market value all orders made in one session.  In
+the previous example we only had \$1,000 with which we could buy
+stocks.  In this example, we can both buy and sell equities.  We might
+sell an equity and use the proceeds to buy another equity.  However,
+the turnover restriction applies to sells just as much as buys.  If we
+have a turnover of \$1,000, we may make \$1,000 worth of buys, \$1,000
+worth of sells, or something in between.  For this example, we have
+set the turnover equal to the unsigned market value of all the
+candidate trades.  This means that we take the absolute value of all
+market values, which is \$\Sexpr{prettyNum(nt,big.mark=",")}.  Having
+set \texttt{turnover} to this value, we complete every candidate
+trade.
+
+
+We have demonstrated how to create a simple \texttt{tradelist} in R.
+In the next section we examine the \texttt{tradelist} that we have
+constructed.  In doing so, we learn how the \texttt{tradelist}
+generation algorithm works.
+
+\section{The \texttt{tradelist} algorithm}
+\label{the tradelist algorithm}
+                                                                                  
+The \texttt{tradelist} code provides an algorithm, divisible into
+seven smaller steps, that generates a set of trades that will move the
+current, original portfolio towards an ideal, target portfolio.  The
+seven steps in the algorithm correspond to the following methods of
+the \texttt{tradelist} class: \texttt{calcCandidates},
+\texttt{calcRanks}, \texttt{calcChunks}, \texttt{calcSwaps},
+\texttt{calcSwapsActual}, \texttt{calcChunksActual}, and
+\texttt{calcActual}. 
+
+The user never needs to directly call any of these methods when using
+the \texttt{portfolio} package.  A call to the \texttt{new} method of
+the \texttt{tradelist} class invokes the \texttt{initialize} method of
+\texttt{tradelist}.  The \texttt{initialize} method then calls the
+seven methods serially.  The first step of the \texttt{tradelist}
+algorithm involves determining which types of orders we must make in
+order to trade towards the target portfolio.
+
+\subsection{The \texttt{calcCandidates} method}
+\label{the calcCandidates method}
+
+As stated in our simplifying assumption, we only consider trades that
+bring us closer to the target portfolio. To determine candidate trades
+we calculate which positions have changed.  If a position has changed,
+we determine what type of trade the candidate is (buy or sell) by
+taking the portfolio difference to generate a list of candidate
+trades.
+
+<<tl@candidates>>=
+tl@candidates
+@ 
+
+Given the data stored in the \texttt{candidates} data frame and the
+\texttt{data} data frame, the \texttt{portfolio} package can generate
+the trade list.
+
+\subsection{The \texttt{calcRanks} Method}
+\label{calcranks}
+\label{the calcRanks method}
+
+Ranking the trades is possibly the most complicated task delegated to
+the \texttt{tradelist} class.  When the rank-generating algorithm
+returns, the \texttt{ranks} data frame \texttt{tradelist} will contain
+the synthetic rank, \texttt{rank.t}, for each trade.
+
+\subsubsection{Interpretation of sort values}
+
+When we define a sort, we express our preference for purchasing
+different stocks.  Lesser values express a preference for selling or
+shorting a position and greater values express a preference for buying
+or covering a position.  In the previous example we only saw positive
+alpha values because all the candidates were buys.  If the values were
+not positive, we might question why the trade was even a candidate.
+Recall our first simplifying assumption that all of the can\-di\-dates
+are de\-sir\-able and the \texttt{portfolio} package only helps us to
+determine which are the most desirable.
+
+In real life, we want to create a sort using meaningful values that
+express our trading preferences.  One such value is one-day return.
+
+\subsubsection{Creating raw ranks for a long-only portfolio}
+\label{Creating raw ranks for a long-only portfolio}
+
+The first step in creating ranks is generating raw ranks.  We break
+the trades into separate data frames by side and rank the trades
+within each side because one type of trade is no than another type
+of trade.  
+
+<<echo=false>>=
+
+ranks <- tl@rank.sorts$ret.1.d
+ranks <- split(ranks, ranks$side)
+ranks$B$rank <- 1:nrow(ranks$B)
+ranks$S$rank <- 1:nrow(ranks$S)
+ranks
+
+@ 
+
+The \texttt{\$B} data frame shows the buys ranked with other buys and
+the \texttt{\$S} data frame shows the sells ranked with other sells.
+The most desirable buys are those associated with the greatest values
+in \texttt{ret.1.d}.  The most desirable sells are those associated
+with the least value in \texttt{ret.1.d}.  Therefore,
+\Sexpr{ranks[["B"]][1,]} ranked 1 amongst buys, is the most desirable
+buy, and \Sexpr{ranks[["S"]][1,]}, ranked 1 amongst sells, is the most
+desirable sell.\footnote{We have taken the inverse of all the one-day
+return values so that the \texttt{portfolio} package interprets them
+correctly.  If we believe one-day reversal, the best buys have
+negative one-day returns and the best sells have positive one-day
+returns.  Buy low, sell high.  However, the \texttt{portfolio} package
+interprets greater values as indicative of the best buys and lesser
+values as indicate of the best sells.}
+
+\subsubsection{Interleaving}
+\label{interleaving}
+
+We now have two tables of ranks and there are still multiple trades at
+each rank: a buy and sell ranked number one, number two and so on.
+Combining the two tables of ranks by type leaves us with duplicates:
+
+<<echo=false>>=
+tmp <- rbind(ranks$B, ranks$S)[order(rbind(ranks$B, ranks$S)[["rank"]]),]
+tmp[,!names(tmp) %in% "id"]
+@ 
+
+We argue that there is no natural way to choose between the best buy
+and best sell.  To deal with this ambiguity, we always break ties in
+rank between a buy and sell by assigning the buy the higher rank.  In
+the following table, we create new raw ranks to eliminate the
+duplicates.
+
+<<echo=false>>=
+tl@rank.sorts[["alpha"]][,!names(tl@rank.sorts[["alpha"]]) %in% "id"]
+@ 
+
+Notice that each candidate has a unique rank and that the rows
+alternate between buy and sell candidates.  The best ranked candidate
+trade is a buy because we broke the tie for first between the best
+ranked buy and sell by assigning the buy the higher rank.  This
+pattern repeats throughout the data frame because we have ties at
+every rank except the last.  We call this process of alternating
+between the best ranked buys and sells \emph{interleaving}.
+
+\begin{description}
+
+\item{\bf{interleaving}}: The process of breaking the trades up by
+  side and ranking them with other trades of the same type, thereby
+  yielding multiple trades at each rank.  We always break ties in rank
+  with the following ordering: Buys, Sells, Covers, Shorts (B, S, C,
+  X).
+
+\end{description}
+
+\subsubsection{Weighted ranks}
+\label{lo weighted ranks}
+
+Having interleaved the candidates, we divide the new raw ranks by the
+weight assigned to one-day return, \Sexpr{sorts[["ret.1.d"]]}.
+
+<<lo weighted ranks, echo=false>>=
+ranks <- tl@rank.sorts[["ret.1.d"]]
+ranks[["rank"]] <- ranks[["rank"]]/sorts[["ret.1.d"]]
+ranks
+@ 
+
+We assigned alpha a weight of 1 so the ranks remain the same.  
+
+<<>>=
+tl@rank.sorts[["alpha"]]
+@ 
+
+We combine the alpha and one-day return ranks into a single data
+frame.
+
+<<prep-duplicates, echo=false>>=
+
+alpha <- tl@rank.sorts[["alpha"]]
+ret.1.d <- tl@rank.sorts[["ret.1.d"]]
+
+alpha <- alpha[,!names(alpha) %in% "alpha"]
+ret.1.d <- ret.1.d[,!names(ret.1.d) %in% "ret.1.d"]
+
+duplicates <- rbind(alpha, ret.1.d)
+duplicates <- duplicates[order(duplicates$id),]
+row.names(duplicates) <- 1:nrow(duplicates)
+
+@ 
+
+<<duplicates, echo=false>>=
+duplicates
+@ 
+
+To remove duplicates, we assign each candidate the best weighted rank
+associated with it by any sort.  
+
+<<prep-top.ranks, echo=false>>=
+tl.ranks <- tl@ranks
+@ 
+
+<<top.ranks, echo=false>>=
+top.ranks <- aggregate(duplicates[c("rank")], by = list(id = duplicates$id), min)
+tl.ranks$rank <- top.ranks$rank[match(tl.ranks$id, top.ranks$id)]
+tl.ranks[order(tl.ranks$rank), !names(tl@ranks) %in% c("id", "alpha", "ret.1.d", "rank.t")]
+@ 
+
+And we re-rank the candidates.
+
+<<echo=false>>=
+
+tl.ranks$rank <- rank(tl.ranks$rank)
+tl.ranks <- tl.ranks[, !names(tl.ranks) %in% c("id", "alpha", "ret.1.d")]
+
+tl.ranks[order(tl.ranks$rank), !names(tl@ranks) %in% c("id", "alpha", "ret.1.d", "rank.t")]
+@ 
+
+\subsubsection{Mapping to the truncated normal distribution}
+
+Having weighted the ranks we create synthetic ranks from a truncated
+normal distribution.  When we only have buys, we scale the weighted
+ranks to $[0.85,1)$.  This gives us the positive tail of the normal
+distribution.  We associate more negative values with better sells so
+we want to map sells to the negative tail of the normal distribution.
+To do this, we scale sells to the interval $(0,0.15]$.
+
+<<scaled.ranks.lo, echo=false>>=
+misc$scaled.ranks.lo
+@ 
+
+We map the scaled ranks to the normal distribution.
+
+<<pre.rank.t, echo=false>>=
+tl.ranks <- tl@ranks[order(tl@ranks$rank.t),!names(tl.ranks) %in% "id"]
+@ 
+
+<<rank.t>>=
+tl.ranks
+@ 
+
+\texttt{rank.t} expresses the synthetic rank.  All of the
+sells have a negative \texttt{rank.t} because they have been mapped to
+the negative tail of the normal distribution, while all of the buys
+have a positive \texttt{rank.t} because they have been mapped to the
+other tail.  As described in section \ref{Synthetic rank and
+trade-cost adjustment of large portfolios}, the synthetic ranks do not
+fall at the extreme tail of the normal distribution.  
+
+\subsection{The \texttt{calcChunks} Method}
+\label{calcChunks lo}
+
+Having calculated synthetic ranks, the \texttt{portfolio} package
+creates the chunks table.  We defined the market value of each chunk
+by specifying the \texttt{chunk.usd} parameter in the call to
+\texttt{new}.  The addition of sells does not have a dramatic effect
+on the manner in which we generate the chunk table besides
+contributing negative trade-cost adjusted ranks.
+
+<<prep-chunks, echo=false>>=
+sub.chunks <- tl@chunks[, c("side", "rank.t", "chunk.shares",
+                           "chunk.mv", "tca.rank")]
+@ 
+
+<<chunks>>=
+sub.chunks
+@ 
+
+Most chunks have an unsigned market value of approximately
+\$\Sexpr{prettyNum(tl@chunk.usd,big.mark=",")}.  The only chunks of
+market value significantly less than
+\$\Sexpr{prettyNum(tl@chunk.usd,big.mark=",")} are the final chunks of
+a candidate.  These chunks are the remainders left after dividing the
+rest of the order into \$\Sexpr{prettyNum(tl@chunk.usd,big.mark=",")}
+chunks.
+
+
+
+If we order the chunks by \texttt{tca.rank}, the second chunk of GM
+has been severely penalised for trade costs.
+
+<<ordered chunks>>=
+head(sub.chunks[order(sub.chunks[["tca.rank"]]),])
+@ 
+
+GM has a more negative \texttt{tca.rank} than any of the buys or sells,
+indicating that this is the last chunk we would trade.
+
+\subsection{The \texttt{calcSwaps} Method}
+\label{calcSwaps long-only}
+
+The \texttt{calcSwaps} works in as it did in the previous example, the
+main difference being that we pair real buy chunks with real sell
+chunks.  We determine which trades to pair for a swap by
+calculating \emph{rank gain}. 
+
+\begin{description}
+
+\item{\bf{rank gain}}: The difference in \texttt{tca.rank} between a
+buy and a sell.  As the most desirable buys have a very positive
+\texttt{tca.rank} and the most desirable sells have a very negative
+\texttt{tca.rank}, the best swaps have great \texttt{rank.gain}
+values.
+
+\end{description}
+
+Buys with high \texttt{tca.rank} have been matched with sells with low
+\texttt{tca.rank}.
+
+<<prep-swaps,echo=FALSE>>=
+swaps.sub <- tl@swaps[, c("side.enter", "tca.rank.enter", "side.exit", "tca.rank.exit",
+"rank.gain")]
+@
+
+<<>>=
+swaps.sub
+@ 
+
+We have paired almost all of the buy chunks with real sell chunks.
+The only buy we have not paired with a real sell chunk is the second
+chunk of GM.  As the target portfolio
+(\$\Sexpr{prettyNum(te,big.mark=",")}) has approximately the same
+market value as the current portfolio
+(\$\Sexpr{prettyNum(oe,big.mark=",")}), we will not introduce any
+dummy chunks to account for over or under-investment.  We pair GM with
+a dummy chunk only because we have run out of real sell chunks to
+match it with.  As we would rather make swaps which contain a real buy
+and sell chunk, we assign the dummy sell chunk a poor
+\texttt{tca.rank} which yields a low \texttt{rank.gain} value.
+Consequently, we will not consider this trade until we have considered
+all of the other trades.
+
+\subsection{The \texttt{calcSwapsActual} Method}
+\label{calcSwapsActual}
+
+The remaining steps of the \texttt{tradelist} algorithm clean up the
+\texttt{tradelist} for final use.  In the \texttt{calcSwapsActual}
+method we remove the most poorly ranked swaps that exceed turnover.
+When we created the \texttt{tradelist}, we set \texttt{turnover} to be
+\$\Sexpr{prettyNum(tl@turnover,big.mark=",")}, the unsigned market
+value of all the candidate trades.  A \texttt{turnover} of
+\$\Sexpr{prettyNum(tl@turnover,big.mark=",")} will allow us to
+complete every trade.
+
+<<prep-swaps.actual, echo=FALSE>>=
+
+sub.swaps.actual <- tl@swaps.actual[, c("side.enter", "tca.rank.enter", "side.exit", "tca.rank.exit",
+"rank.gain")]
+
+@ 
+
+<<swaps.actual>>=
+sub.swaps.actual
+@
+
+Right now, turnover does not cause any swaps to be dropped because it
+is greater than the unsigned market value of all the candidate trades,
+which is \$\Sexpr{prettyNum(nt,big.mark=",")}.
+  
+We can cause some swaps to be dropped by setting \texttt{turnover} to
+a value less than \$\Sexpr{prettyNum(nt,big.mark=",")}.
+
+<<pre-turnover.text, echo=false>>=
+tl.bak <- tl
+@ 
+
+<<>>=
+tl@turnover <- 30250 - tl@chunk.usd
+@ 
+
+<<echo=FALSE>>=
+
+tl <- portfolio:::calcSwapsActual(tl)
+sub.swaps.actual <- tl@swaps.actual[, c("side.enter", "tca.rank.enter", "side.exit", "tca.rank.exit",
+"rank.gain")]
+
+@ 
+
+When we set turnover to a value equal to one chunk less
+(\Sexpr{tl@chunk.usd} than the difference in market value between the
+original and target portfolios, the \texttt{calcSwapsActual} method
+excises the swap with the lowest \texttt{tca.rank}.
+
+<<sub.swaps.actual>>=
+sub.swaps.actual
+@ 
+
+<<restores tl, echo=false>>=
+tl <- tl.bak
+@ 
+
+We have removed the third chunk of GM from the list.
+
+\subsection{The \texttt{calcChunksActual} Method}
+\label{calcChunksActual}
+
+Our \texttt{tradelist} is almost complete, but first we must change
+the swaps back into chunks.  In addition, we do not want to include
+any orders for dummy chunks, so we will remove those when we turn the
+swaps back into chunks.  
+
+<<echo=FALSE>>=
+sub.chunks.actual <- tl@chunks.actual[,!names(tl@chunks.actual)
+%in% c("id", "orig", "target", "shares", "mv")]
+@ 
+
+<<sub.chunks.actual>>=
+sub.chunks.actual
+@ 
+
+All of the dummy chunks have been removed.
+
+\subsection{The Final Step: Actual Orders}
+
+In the last step of \texttt{tradelist} generation, we ``roll-up'' the
+actual chunks for each security to form one order per security.
+
+<<prep-tl.actual, echo=false>>=
+tl.actual <- tl@actual[, !names(tl@actual) %in% c("id")]
+@ 
+
+<<tl.actual>>=
+tl.actual
+@ 
+
+No rows for chunks remain in the \texttt{actual} data frame.
+
+\section{A Long-Short Example}
+
+<<echo=FALSE>>=
+
+## clear the workspace for this example
+
+rm(list = ls())
+load("tradelist.RData")
+
+## Set portfolios for long-short example
+p.current <- portfolios[["p.current.ls"]]
+p.target <- portfolios[["p.target.ls"]]
+
+## retrieves data for the long-short portfolio
+data <- data.list$data.ls
+
+## Creates the sorts list
+
+sorts <- list(alpha = 1, ret.1.d = 1/2)
+
+## Original Equity, Target Equity
+
+oe <- portfolio:::mvShort(p.current) + portfolio:::mvLong(p.current)
+te <- portfolio:::mvShort(p.target) + portfolio:::mvLong(p.target)
+
+## Creates the tradelist so we can use different measures
+
+tl <- new("tradelist", orig = p.current, target = p.target, chunk.usd
+= 2500, sorts = sorts, turnover = 36825, target.equity = te, data =
+data)
+
+## Necessary turnover to make all the candidate trades
+
+ nt <- mvCandidates(tl)
+@ 
+
+For the most part, the \texttt{portfolio} package treats one-sided and
+long-short portfolios similarly.  The major difference is that we now
+have to take four types of trades into consideration, buys, sells,
+shorts, and covers.
+
+\subsection{Current and target portfolios}
+
+Our current portfolio is a superset of the holdings in the previous
+example.  This example's current portfolio includes positions that we
+will short and cover.  The current portfolio, \texttt{p.current},
+consists of \Sexpr{nrow(p.current@shares)} positions and has a market
+value of \$\Sexpr{prettyNum(oe,big.mark=",")}.
+
+<<prep-p.current.shares, echo=false>>=
+p.current.shares <- p.current@shares[, !names(p.current@shares) %in% "id"]
+@ 
+
+<<>>=
+p.current.shares
+@
+
+The target portfolio is a superset of the target portfolio we used
+in the two previous examples.  It contains all the positions in the
+previous target portfolio plus positions that we short or cover.
+
+<<prep-p.target.shares, echo=false>>=
+p.target.shares <- p.target@shares[, !names(p.target@shares) %in% "id"]
+@
+
+<<p.target.shares>>=
+p.target.shares
+@ 
+
+The target portfolio, \texttt{p.target}, contains
+\Sexpr{nrow(p.target@shares)} positions and has a market value of
+\$\Sexpr{prettyNum(te,big.mark=",")}.  We assume that we have the
+additional funds necessary to increase the market value of the
+portfolio.
+
+\subsection{Candidate trades}
+
+We calculate the portfolio difference to determine what the candidate
+trades will be:
+
+<<prep-sub.candidates, echo=false>>=
+sub.candidates <- tl@candidates[,!names(tl@candidates) %in% "id"]
+@ 
+
+<<sub.candidates>>=
+sub.candidates
+@
+
+We now have buy, sell, cover, and short candidates (B, S, C, X).
+Buys and covers have positive market values because they increase the
+value of the portfolio, and sells and shorts have negative market
+values because they decrease the value of the portfolio.  Notice that
+all the candidate trades necessary to reach the target positions for
+HAL and YHOO are not on the candidate list.  We do not include all the
+candidate trades to reach these positions because they involve side
+changes.
+
+\subsubsection{Side changes and restrictions}
+
+A side change occurs when a position changes from long to short or
+short to long.  The \texttt{portfolio} package does not allow a side
+change to occur during a single trading session.\footnote{Writing code
+so that we make a side change without creating a box position is hard.
+We will address this in future versions of the \texttt{portfolio}
+package} For a side change to occur, we must make two types of trades.
+We must either sell first, then short, or cover first, then buy.  We
+only allow the first of one of these trades to occur during a single
+trading session.  The second trade is added to the restricted list so
+that it may be performed during a later session.  The two trades that
+involve side changes have been added to the \texttt{restricted} list.
+
+<<prep-restricted, echo=FALSE>>=
+row.names(tl@restricted) <- 1:nrow(tl@restricted)
+@ 
+
+<<restricted>>=
+tl@restricted
+@ 
+
+We have added the buy candidates for HAL and YHOO to the restricted
+data frame so that we do not accidentally enter a box position.  The
+\texttt{reason} column explains why these candidates have been added
+to \texttt{restricted}.  During this trading session we will attempt
+to exit the short positions for HAL and YHOO by covering these
+positions.  In a subsequent trading session we will attempt to enter a
+long position by buying these equities.
+
+\subsection{Creating sorts and assigning them weights}
+
+Like in the previous example, we name the sorts and assign them
+weights by creating a list.
+
+<<>>=
+sorts <- list(alpha = 1, ret.1.d = 1/2)
+@ 
+
+We assigned a weight of \Sexpr{sorts[["alpha"]]} to alpha and a weight
+of \Sexpr{sorts[["ret.1.d"]]} to one-day return.
+
+\subsection{Passing additional information to \texttt{tradelist}}
+
+We must pass a data frame with columns for \texttt{id},
+\texttt{price.usd}, \texttt{volume}, \texttt{alpha}, and
+\texttt{ret.1.d} in the call to \texttt{new}:
+
+<<echo=false>>=
+row.names(data) <- data$id
+sub.data <- data[, c("id", "volume", "price.usd", "alpha", "ret.1.d")]
+@ 
+
+<<necessary data>>=
+sub.data
+@
+
+Aside from having information about additional equities, this data
+frame does not differ greatly from the one we passed to new in section
+\ref{lo new}.
+
+\subsection{Calling \texttt{new}}
+\label{ls new}
+
+Having gathered the components necessary to build a tradelist
+\texttt{tradelist}, we make a call to \texttt{new}:
+
+<<new ls tradelist>>=
+
+tl <- new("tradelist", orig = p.current, target = p.target, chunk.usd
+= 2000, sorts = sorts, turnover = 36825, data = data)
+
+@ 
+
+<<echo=false>>=
+tl <- new("tradelist", orig = p.current, target = p.target, chunk.usd
+= 2000, sorts = sorts, turnover = 36825, target.equity = te, data =
+data)
+@
+
+We pass 8 arguments as parameters to the \texttt{new} method.  The
+parameters are similar to those in section \ref{lo new} with the
+exception of turnover which we have set to
+\$\Sexpr{prettyNum(tl@turnover,big.mark=",")}.  The value of the
+candidate trades in this example is greater than the value of the
+candidate trades in the previous example so we must set
+\texttt{turnover} higher if we want to complete all of the candidate
+trades.
+
+\section{The \texttt{tradelist} algorithm, long-short}
+
+The way the \texttt{portfolio} package builds a long-short
+\texttt{tradelist} is similar to the way it builds a long-only
+\texttt{tradelist}.  We will walk through the process
+of creating a long-short \texttt{tradelist} with \texttt{portfolio}
+and discuss the differences between creating long-only and long-short
+trade list.
+
+\subsection{Calculating ranks}
+ 
+We calculate the ranks for a long-short portfolio in much the same way
+we do so for a long-only portfolio.  The main difference we must take
+into is the need to rank four types of trades with other trades of the
+same type.  In previous examples we ranked buys and sells separately.
+Now we rank buys, sells, covers, and shorts separately.
+
+\subsubsection{Raw ranks with a long-short \texttt{tradelist}}
+
+As per our third simplifying assumption, we do not favour one type of
+trade over another type of trade.  As a consequence, we split and rank
+the trades separately.
+
+<<echo=false>>=
+
+ranks <- tl@rank.sorts$alpha
+ranks <- split(ranks, ranks$side)
+ranks$B$rank <- 1:nrow(ranks$B)
+ranks$S$rank <- 1:nrow(ranks$S)
+ranks$X$rank <- 1:nrow(ranks$X)
+ranks
+
+@
+
+Like on page \pageref{Creating raw ranks for a long-only portfolio},
+the \texttt{\$B} data frame shows the buys ranked with other buys and
+the \texttt{\$S} data frame shows the sells ranked with other sells.
+The \texttt{\$C} and \texttt{\$X} data frames show covers and shorts
+ranked with other shorts.
+
+\subsubsection{Interleaving}
+
+The last step left us with \Sexpr{length(ranks)} sets of ranks, one
+for each type of trade.  Up to four trades will share each rank when
+we combine these data frames to form a list of overall rankings and
+the trades will be interleaved using groups of up to
+four.\protect\footnote{Some of the groups may not include one trade of
+every type.}
+
+<<echo=false>>=
+tmp <- do.call(rbind, lapply(ranks, function(x) {x}))
+tmp <- tmp[order(tmp$rank),]
+tmp[,!names(tmp) %in% "id"]
+@ 
+
+As per the third simplifying assumption, there is no natural way to
+choose between the best buy, sell, cover, or short.  To deal with this
+ambiguity, we always break ties in rank between a buy, sell, cover,
+and short by assigning the buy the highest rank, the sell the second
+highest rank, the cover the third highest rank, and the short the
+worst rank:
+
+<<echo=false>>=
+tl@rank.sorts[["alpha"]][,!names(tl@rank.sorts[["alpha"]]) %in% "id"]
+@ 
+
+Once again, each candidate has a unique rank and the rows appear in
+groups of buys, sells, covers, and shorts.  The pattern repeats
+throughout he data frame because we have ties at every rank except for
+the last.  There is no tie at the last rank because we have an odd
+number of candidates.
+
+\subsubsection{Weighted ranks}
+
+Having interleaved the separate rankings by type, we calculate
+weighted ranks.
+
+<<ls weighted ranks, echo=false>>=
+ranks <- tl@rank.sorts[["alpha"]]
+ranks[["rank"]] <- ranks[["rank"]]/sorts[["alpha"]]
+ranks
+@
+
+We double the one-day return ranks to reflect that one-day return is
+less important than alpha.  (Recall that lesser ranks are better.)
+
+<<>>=
+tl@rank.sorts[["ret.1.d"]]
+@ 
+
+We assign each candidate the best weighted rank from either sort.  We
+combine the data frame of the candidates ranked by alpha with the data
+frame of the candidates ranked by one-day return:
+
+<<prep-duplicates, echo=false>>=
+
+alpha <- tl@rank.sorts[["alpha"]]
+ret.1.d <- tl@rank.sorts[["ret.1.d"]]
+
+alpha <- alpha[,!names(alpha) %in% "alpha"]
+ret.1.d <- ret.1.d[,!names(ret.1.d) %in% "ret.1.d"]
+
+duplicates <- rbind(alpha, ret.1.d)
+duplicates <- duplicates[order(duplicates$id),]
+row.names(duplicates) <- 1:nrow(duplicates)
+
+@ 
+
+<<duplicates, echo=false>>=
+duplicates
+@ 
+
+To remove duplicates, we assign each candidate the best weighted rank
+associated with it by any sort.  
+
+<<prep-top.ranks, echo=false>>=
+tl.ranks <- tl@ranks
+@ 
+
+<<top.ranks, echo=false>>=
+top.ranks <- aggregate(duplicates[c("rank")], by = list(id = duplicates$id), min)
+tl.ranks$rank <- top.ranks$rank[match(tl.ranks$id, top.ranks$id)]
+tl.ranks[order(tl.ranks$rank), !names(tl@ranks) %in% c("id", "alpha", "ret.1.d", "rank.t")]
+@ 
+
+Once again we generate raw ranks:
+
+<<echo=false>>=
+
+tl.ranks$rank <- rank(tl.ranks$rank)
+tl.ranks <- tl.ranks[, !names(tl.ranks) %in% c("id", "alpha", "ret.1.d")]
+
+tl.ranks[order(tl.ranks$rank), !names(tl.ranks) %in% c("id", "alpha", "ret.1.d", "rank.t")]
+@ 
+
+Having created weighted ranks, we prepare for the creation of
+synthetic ranks.
+
+\subsubsection{Mapping to the truncated normal distribution}
+
+We create synthetic ranks from by mapping the ranks to a truncated
+normal distribution.  We scale buys and covers to the the $85^{th}$
+percentile and above and sells and shorts to the $15^{th}$ percentile
+and below ($(0, 0.15]\cup[0.85,1)$).
+
+<<scaled.ranks.ls, echo=false>>=
+misc$scaled.ranks.ls
+@ 
+
+Finally, we map the values to the truncated normal distribution:
+
+<<pre.rank.t, echo=false>>=
+tl.ranks <- tl@ranks[order(tl@ranks$rank.t),!names(tl.ranks) %in% "id"]
+@ 
+
+<<rank.t>>=
+tl.ranks
+@ 
+
+
+\subsection{Calculating chunks}
+
+Calculating chunks for a long-short portfolio functions in almost the
+same manner as it would for a long-only portfolio.  We set the market
+value of each chunk to be \Sexpr{prettyNum(tl@chunk.usd,big.mark=",")}
+in the call to \texttt{new}.
+
+<<prep-chunks, echo=false>>=
+sub.chunks <- tl@chunks[, c("side", "rank.t", "chunk.shares",
+                           "chunk.mv", "tca.rank")]
+@ 
+
+<<chunks>>=
+sub.chunks
+@
+
+Aside from the addition of cover and short chunks, the chunk table
+should appear exactly as it does in section \ref{calcChunks lo}.
+
+
+\subsection{Calculating Swaps}
+
+Swaps work slightly differently with a long-short tradelist than with
+a long-only tradelist.  In a long-only tradelist we only have to pair
+buys and sells, but in a long-short tradelist we have to pair buys,
+sells, shorts, and covers.  The \texttt{calcSwaps} method accounts for
+this by matching trades within a side.  We pair shorts with covers and
+buys with sells:
+
+<<prep-swaps,echo=FALSE>>=
+swaps.sub <- tl@swaps[, c("side.enter", "tca.rank.enter", "side.exit",
+                          "tca.rank.exit", "rank.gain")]
+@
+
+<<>>=
+swaps.sub
+@
+
+In the \texttt{side.enter} column we list buys (\texttt{B}) and shorts
+(\texttt{X}) because the only way to enter a side is by initially
+buying or shorting a stock.  Sells and covers move us closer to
+exiting the position which is why we put these trades in the
+\texttt{side.exit} column.  Like in previous examples, the labels
+describe the swaps.  The value to the left of the comma is the name of
+buy or short and the name to the right of the comma is the name of a
+sell or cover.  The number following the period is the chunk number of
+the stock involved in the trade.
+
+Dummy chunks work similarly for long-short portfolios as they do for
+long-only portfolios.  The main difference is that we must create
+dummy shorts and covers to pair with real covers and shorts.  We
+create \Sexpr{length(grep("NA.0",row.names(swaps.sub)))} dummy chunks.
+The dummy chunks at the head of the swaps table exist because the
+current portfolio has a lesser market value than the target portfolio.
+To increase the market value of the current portfolio we want to make
+more buys and covers than sells.  The dummy chunks at the tail of the
+table were created because we ran out of shorts and buys to match with
+real covers and sells.  We assign this type of dummy trade a poor
+trade-cost adjusted rank.
+
+\subsection{The \texttt{calcSwapsActual} Method}
+
+The \texttt{calcSwapsActual} method works in almost exactly the same
+way as it does for a long-only tradelist.
+
+<<>>=
+sub.swaps.actual <- tl@swaps.actual[, c("side.enter", "tca.rank.enter", "side.exit",
+                                        "tca.rank.exit", "rank.gain")]
+@ 
+
+<<>>=
+sub.swaps.actual
+@ 
+
+We do not remove any swaps because we set the \texttt{turnover} equal
+to the unsigned market value of the candidate trades.  If we
+decrease \texttt{turnover}, some of the swaps will be excised.
+
+<<echo=false>>=
+tl.bak <- tl
+@ 
+
+<<>>=
+tl@turnover <- nt - tl@chunk.usd
+@ 
+
+We set turnover to equal the turnover necessary to complete all of the
+candidate trades (\texttt{nt}), minus the maximum size of a chunk.
+This guarantees that we do not make trade the worst swap, in this case
+\Sexpr{row.names(tl@swaps)[nrow(tl@swaps)]}.  By lowering
+\texttt{turnover} we caused the worst ranked swap to be removed.
+
+<<echo=false>>=
+tl <- portfolio:::calcSwapsActual(tl)
+@ 
+
+<<echo=false>>=
+sub.swaps.actual <- tl@swaps.actual[, c("side.enter", "tca.rank.enter", "side.exit",
+                                        "tca.rank.exit", "rank.gain")]
+@ 
+
+<<>>=
+sub.swaps.actual
+@
+
+<<echo=false>>=
+
+## restores tl to pre-swaps value
+
+tl <- tl.bak
+@ 
+
+
+
+\subsection{Calculating actual chunks}
+
+The \texttt{calcchunksActual} method works similarly to the way it
+does for a long-only tradelist:
+
+<<echo=FALSE>>=
+sub.chunks.actual <- tl@chunks.actual[,!names(tl@chunks.actual)
+%in% c("id", "orig", "target", "shares", "mv")]
+@ 
+
+<<sub.chunks.actual>>=
+sub.chunks.actual
+@ 
+
+We have changed the swaps back into chunks.  The additional work for a
+long-short portfolio involves converting buy/sell and short/cover
+swaps into chunks instead of just dealing with buy/sell chunks.
+
+\subsection{The \texttt{calcActual} Method}
+
+The \texttt{calcActual} method works almost exactly the same way it
+does for a long-only tradelist: 
+
+<<>>=
+
+tl@actual
+
+@ 
+
+We ``roll-up'' all the chunks into single orders.
+
+\section{Conclusion}
+
+With intelligently defined sorts, the \texttt{portfolio} package is a
+powerful tool for managing equity portfolios.  Nonetheless, the
+\texttt{tradelist} code could stand for improvement in certain areas,
+particularly the area of trade-cost adjustment.  The current method of
+using discrete and static boundaries for determining trade-adjusted
+rank should be replaced by a trade-cost adjustment function.
+Nonetheless, we believe that our package makes the difficult problem
+of trading a little bit easier.
+
+\end{document}
+
+%% \subsection{Expressing preferences amongst trades}
+
+%% We want to buy stocks that will increase in price.  Buy low, sell
+%% high.  We maintain a list of stocks which we believe will increase in
+%% price.  With each stock we associate a value, \emph{alpha}, which
+%% predicts future changes in price.  
+
+%% \begin{table}[!htbp]
+%%   \begin{tabular}[c]{rr|rr}
+%%     stock & alpha & stock & alpha \\
+%%     \hline
+%%     EBAY &  2.50 & AMD  &  -3.02  \\
+%%     MSFT &  2.49 & AET  &  -2.84  \\
+%%     SCHW &  2.12 & QCOM &  -2.20  \\
+%%     GOOG &  1.85 & HAL  &         \\
+%%     GM   &  1.57 & AAPL &         \\
+%%     IBM  &  0.75 & HPQ  &         \\
+%%     YHOO &  0.23 & SUNW &         \\
+%%     \hline
+%%   \end{tabular}
+%% \end{table}
+
+%% Table \ref{portfolio difference} shows our current portfolio, target
+%% portfolio, and the diffence between the two.  
+
+%% \begin{table}[!htbp]
+%%   \begin{tabular}[c]{rrr|rrr|rr}
+
+%%     stock & shares & price & stock & shares & price & stock & $\Delta$ shares \\
+%%     \hline
+%%     IBM   &  10  & 10 & IBM   &  20  & 10 & EBAY  & 10  \\
+%%     GM    &  10  & 15 & GM    &  20  & 15 & GM    & 10  \\
+%%     EBAY  &  10  & 20 & EBAY  &  20  & 20 & GOOG  & 10  \\
+%%     GOOG  &  40  & 10 & GOOG  &  50  & 10 & IBM   & 10  \\
+%%     MSFT  &  10  & 15 & MSFT  &  20  & 15 & MSFT  & 10  \\
+%%     SCHW  &   0  & 20 & SCHW  &  15  & 20 & SCHW  & 15  \\
+%%     \hline
+%%   \end{tabular}
+%%   \caption[portfolio difference]{Current portfolio, target portfolio,
+%%   and portfolio difference (right, center, left).\label{portfolio
+%%   difference}}
+%% \end{table}

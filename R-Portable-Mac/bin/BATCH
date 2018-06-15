@@ -1,0 +1,65 @@
+#
+# ${R_HOME}/bin/BATCH
+
+revision='$Rev: 74001 $'
+version=`set - ${revision}; echo ${2}`
+version="R batch front end: ${R_VERSION} (r${version})
+
+Copyright (C) 2000--2018 The R Core Team.
+This is free software; see the GNU General Public License version 2
+or later for copying conditions.  There is NO warranty."
+
+opts="--restore --save --no-readline"
+
+usage="Usage: R CMD BATCH [options] infile [outfile]
+
+Run R non-interactively with input from infile and place output (stdout
+and stderr) to another file.  If not given, the name of the output file
+is the one of the input file, with a possible '.R' extension stripped,
+and '.Rout' appended.
+
+Options:
+  -h, --help		print short help message and exit
+  -v, --version		print version info and exit
+  --no-timing           do not report the timings
+  --			end processing of options
+
+Further arguments starting with a '-' are considered as options as long
+as '--' was not encountered, and are passed on to the R process, which
+by default is started with '$opts'.
+See also help('BATCH') inside R.
+
+Report bugs at <https://bugs.R-project.org>."
+
+while test -n "${1}"; do
+  case ${1} in
+    -h|--help)
+      echo "${usage}"; exit 0 ;;
+    -v|--version)
+      echo "${version}"; exit 0 ;;
+    --no-timing)
+      timing=no; shift ;;
+    --) shift; break ;;
+    -d|-g) opts="${opts} ${1} ${2}"; shift; shift ;;
+    -*) opts="${opts} ${1}"; shift ;;
+    *)  break ;;
+  esac
+done
+
+in=${1}
+out=${2-`basename ${1} .R`.Rout}
+
+if test -z "${timing}"; then
+  R_BATCH=${$}
+  export R_BATCH
+fi
+## this used to set options(echo=TRUE), but that is the default
+## except for --slave, and why inhibit the latter?
+
+## need to put -f first in case user does --args
+${R_HOME}/bin/R -f ${in} ${opts} ${R_BATCH_OPTIONS} >${out} 2>&1
+
+### Local Variables: ***
+### mode: sh ***
+### sh-indentation: 2 ***
+### End: ***

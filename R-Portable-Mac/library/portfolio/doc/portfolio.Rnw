@@ -1,0 +1,395 @@
+\documentclass[a4paper]{report}
+\usepackage[round]{natbib}
+
+\usepackage{Rnews}
+\usepackage{fancyvrb}
+\usepackage{Sweave}  
+
+\DefineVerbatimEnvironment{Sinput}{Verbatim}{fontsize=\small,fontshape=sl}
+\DefineVerbatimEnvironment{Soutput}{Verbatim}{fontsize=\small}
+\DefineVerbatimEnvironment{Scode}{Verbatim}{fontsize=\small,fontshape=sl}
+
+%% \SweaveOpts{prefix.string=graphics/portfolio}
+
+\bibliographystyle{abbrvnat}
+
+\begin{document}
+\begin{article}
+\title{Analysing equity portfolios in \R{}}
+\subtitle{Using the \pkg{portfolio} package}
+\author{by David Kane and Jeff Enos}
+
+%%\VignetteIndexEntry{Using the portfolio package}
+%%\VignetteDepends{portfolio}
+
+<<echo=FALSE>>=
+op <- options(width = 50, digits = 4, scipen = 5)
+@
+
+\maketitle
+
+
+\section*{Introduction\footnote{The original version of this article, which included historical analyses no longer included in \pkg{portfolio}, was published in volume 6/2 of R News and is available at \url{http://CRAN.R-project.org/doc/Rnews}.}}
+
+\R{} is used by major financial institutions around the world to
+manage billions of dollars in equity (stock) portfolios.
+Unfortunately, there is no open source \R{} package for facilitating
+this task. The \pkg{portfolio} package is meant to fill that gap.
+Using \pkg{portfolio}, an analyst can create an object of class
+\texttt{portfolioBasic} (weights only) or \texttt{portfolio} (weights
+and shares), examine its \emph{exposures} to various factors,
+calculate its \emph{performance} over time, and determine the
+\emph{contributions} to performance from various categories of stocks.
+Exposures, performance and contributions are the basic building blocks
+of portfolio analysis.
+
+\section*{One Period, Long-Only}
+
+Consider a simple long-only portfolio formed from the universe of 30
+stocks in the Dow Jones Industrial Average (DJIA) in January, 2005.
+Start by loading and examining the input data.
+
+<<>>=
+library(portfolio)
+data(dow.jan.2005)
+summary(dow.jan.2005)
+head(dow.jan.2005)
+@ 
+
+The DJIA consists of exactly 30 large US stocks. We provide a minimal
+set of information for constructing a long-only portfolio. Note that
+\texttt{cap.bil} is market capitalization in billions of dollars,
+\texttt{price} is the per share closing price on December 31, 2004,
+and \texttt{month.ret} is the one month return from December 31, 2004
+through January 31, 2005.
+
+In order to create an object of class \texttt{portfolioBasic}, we can
+use this data and form a portfolio on the basis of a ``nonsense''
+variable like \texttt{price}.
+
+<<echo=FALSE>>=
+options(digits = 3)
+@
+
+<<>>=
+p <- new("portfolioBasic", 
+         instant = as.Date("2004-12-31"),
+         id.var  = "symbol",
+         in.var  = "price",
+         sides   = "long", 
+         ret.var = "month.ret", 
+         data    = dow.jan.2005)
+summary(p)
+@ 
+
+In other words, we have formed a portfolio of the highest priced 6
+stocks out of the 30 stocks in the DJIA. The \texttt{id.var} argument
+causes the portfolio to use \texttt{symbol} as the key for identifying
+securities throughout the analysis. \texttt{in.var} selects the
+variable by which stocks are ranked in terms of desirability.
+\texttt{sides} set to \texttt{long} specifies that we want a long-only
+portfolio. \texttt{ret.var} selects the return variable for measuring
+performance. In this case, we are interested in how the portfolio does
+for the month of January 2005.
+
+The default arguments to \texttt{portfolioBasic} form equal-weighted
+positions; in this case, each of the 6 stocks has 16.67\% of the
+resulting portfolio. The defaults also lead to a portfolio made up of
+the best 20\% (or \texttt{quintile}) of the universe of stocks
+provided to the \texttt{data} argument. Since 20\% of 30 is 6, there
+are 6 securities in the resulting portfolio.
+
+
+\subsection*{Exposures}
+
+Once we have a portfolio, the next step is to analyse its exposures.
+These can be calculated with respect to both numeric or factor
+variables.  The method \texttt{exposure} will accept a vector of
+variable names.
+
+<<>>=
+exposure(p, exp.var = c("price", "sector"))
+@ 
+
+The weighted average price of the portfolio is 85. In other words,
+since the portfolio is equal-weighted, the average share price of AIG,
+CAT, IBM, JNJ, MMM, and UTX is 85. This is a relatively high price,
+but makes sense since we explicitly formed the portfolio by taking the
+6 highest priced stocks out of the DJIA.
+
+Each of the 6 stocks is assigned a sector and 3 of them are
+Industrials. This compares to the 20\% of the entire universe of 30
+stocks that are in this sector. In other words, the portfolio has a
+much higher exposure to Industrials than the universe as a whole.
+Similarly, the portfolio has no stocks from the Communications,
+Cyclicals or Energy sectors despite the fact that these make up almost
+27\% of the DJIA universe. 
+
+\subsection*{Performance}
+
+Time plays two roles in the \texttt{portfolio} class. First, there is
+the moment of portfolio formation. This is the instant when all of the
+data, except for future returns, is correct. After this moment, of
+course, things change. The price of AIG on December 31, 2004 was
+\$65.67, but by January 5, 2005 it was \$67.35.
+
+The second role played by time on the \texttt{portfolio} class
+concerns future returns. \texttt{ret.var} specifies a return variable
+which measures the performance of individual stocks going forward.
+These returns can be of any duration --- an hour, a day, a month, a
+year --- but should generally start from the moment of portfolio
+formation. In this example, we are using one month forward returns.
+Now that we know the portfolio's exposures at the start of the time
+period, we can examine its performance for the month of January.
+
+<<>>=
+performance(p)
+@ 
+
+The portfolio lost 1.7\% of its value in January. The worst performing
+stock was CAT (Caterpillar), down more than 8\%. The best performing
+stock was MMM (3M), up almost 3\%. The \texttt{contrib} (contribution)
+of each stock to the overall performance of the portfolio is simply
+its weight in the portfolio multiplied by its return. The sum of the 6
+individual contributions yields -1.7\%.
+
+
+\subsection*{Contributions}
+
+The contributions of individual stocks are not that interesting in and
+of themselves. More important is to examine summary statistics of the
+contributions across different categories of stocks. Consider the use
+of the \texttt{contribution} method:
+
+<<>>=
+contribution(p, contrib.var = c("sector"))
+@ 
+
+\texttt{contribution}, like \texttt{exposure}, accepts a vector of
+variable names.  In the case of \texttt{sector}, the contribution
+object displays the 10 possible values, the total weight of the stocks
+for each level and the sum of the contributions for those stocks. Only
+4 of the 10 levels are represented by the stocks in the portfolio. The
+other 6 levels have zero weight and, therefore, zero contributions.
+
+The sector with the biggest weight is Industrials, with half of the
+portfolio. Those 3 stocks did poorly, on average, in January and are
+therefore responsible for -1.3\% in total losses. There is only a
+single Technology stock in the portfolio, IBM. Because it was down 5\%
+for the month, its contribution was -0.87\%. Since IBM is the only
+stock in its sector in the portfolio, the contribution for the sector
+is the same as the contribution for IBM.
+
+The last column in the display shows the \texttt{roic} --- the return
+on invested capital --- for each level. This captures the fact that
+raw contributions are a function of both the total size of positions
+and their return. For example, the reason that the total contribution
+for Industrials is so large is mostly because they account for such a
+large proportion of the portfolio. The individual stocks performed
+poorly, on average, but not that poorly. Much worse was the
+performance of the Technology stock. Although the total contribution
+from Technology was only 60\% of that of Industrials, this was on a
+total position weight only 1/3 as large. In other words, the return on
+total capital was \emph{much worse} in Technology than in Industrials
+even though Industrials accounted for a larger share of the total
+losses.
+
+Think about \texttt{roic} as useful in determining contributions on
+the margin. Imagine that you have the chance to move \$1 out of one
+sector and into another. Where should that initial dollar come from?
+Not from the sector with the worst total contribution. Instead, the
+marginal dollar should come from the sector with the worst
+\texttt{roic} and should be placed into the sector with the best
+\texttt{roic}. In this example, we should move money out of Technology
+and into Staples.
+
+\texttt{contribution} can also work with numeric variables.
+
+<<>>=
+contribution(p, contrib.var = c("cap.bil"))
+@ 
+
+Analysing contributions only makes sense in the context of categories
+into which each position can be placed. So, we need to break up a
+numeric variable like \texttt{cap} into discrete, exhaustive
+categories. The \texttt{contribution} function provides various
+options for doing so, but most users will be satisfied with the
+default behavior of forming 5 equal sized quintiles based on the
+distribution of the variable in the entire universe.
+
+In this example, we see that there are no portfolio holdings among the
+biggest 20\% of stocks in the DJIA. Half the portfolio comes from
+stocks in the second largest quintile. Within each category, the
+analysis is the same as that above for sectors. The worst performing
+category in terms of total contribution is the smallest quintile.
+This category also has the lowest \texttt{roic}.
+
+
+
+\section*{One Period Long-Short}
+
+Having examined a very simple long-only portfolio in order to explain
+the concepts behind \emph{exposures}, \emph{performance} and
+\emph{contributions}, it is time to consider a more complex case, a
+long-short portfolio which uses the same underlying data.
+
+
+<<>>=
+p <- new("portfolioBasic",
+         instant = as.Date("2004-12-31"),
+         id.var  = "symbol",
+         in.var  = "price",
+         type    = "linear",
+         sides   = c("long", "short"),
+         ret.var = "month.ret",
+         data    = dow.jan.2005)
+summary(p)
+@ 
+
+Besides changing to a long-short portfolio, we have also provided a
+value of ``linear'' to the \texttt{type} argument. As the summary
+above shows, this yields a portfolio in which the weights on the
+individual positions are (linearly) proportional to their share
+prices. At the end of 2004, the lowest priced stock in the DJIA was
+HPQ (Hewlett-Packard) at \$20.97. Since we are using price as our
+measure of desirability, HPQ is the biggest short position. Since we
+have not changed the default value for \texttt{size} from
+``quintile,'' there are still 6 positions per side.
+
+Figure \ref{figure:plot.portfolio} shows the result of calling
+\texttt{plot} on this portfolio object.  The top plot displays the
+relationship between position weights and their corresponding
+\texttt{in.var} values, while the bottom plot shows a histogram of
+position weights.
+
+\begin{figure}
+\centering
+\vspace*{.1in}
+<<fig=TRUE>>=
+plot(p)
+@ 
+\caption{\label{figure:plot.portfolio}
+Plot of a portfolioBasic object.}
+\end{figure}
+
+The display for the exposure object is now somewhat different to
+accommodate the structure of a long-short portfolio. 
+
+<<>>=
+exposure(p, exp.var = c("price", "sector"))
+@ 
+
+The \texttt{long} exposure to price is simply the weighted average of
+price on the long side of the portfolio, where the weighting is done
+in proportion to the size of the position in each stock. The same is
+true on the short side.  Since a linear weighting used here emphasises
+the tail of the distribution, the long exposure is greater than the
+long exposure of the equal weighted portfolio considered above, \$93
+versus \$85.
+
+Since the weights on the short side are actually negative --- in the
+sense that we are negatively exposed to positive price changes in
+these stocks --- the weighted average on the short side for a positive
+variable like price is also negative.  Another way to read this is to
+note that the weighted average price on the short side is about \$24
+but that the portfolio has a negative exposure to this number because
+these positions are all on the short side.
+
+One reason for the convention of using a negative sign for short side
+exposures is that doing so makes the overall exposure of the portfolio
+into a simple summation of the long and short exposures. (Note the
+assumption that the weights on both sides are equal. In future
+versions of the \pkg{portfolio} package, we hope to weaken these and
+other requirements.) For this portfolio, the overall exposure is 68.
+Because the portfolio is long the high priced stocks and short the low
+priced ones, the portfolio has a positive exposure to the price
+factor. Colloquially, we are ``long price.''
+
+A similar analysis applies to sector exposures. We have 62\% of our
+long holdings in Industrials but zero of our short holdings. We are,
+therefore, 62\% long Industrials. We have 24\% of the longs holdings
+in Technology, but 67\% of the short holdings; so we are 43\% short
+Technology.
+
+Calling \texttt{plot} on the exposure object produces a bar chart for
+each exposure category, as seen in Figure \ref{figure:plot.exposure}.  Since all
+numeric exposures are grouped together, a plot of numeric exposure may
+only make sense if all numeric variables are on the same scale.  In
+this example, the only numeric exposure we have calculated is that to
+\texttt{price}.
+
+\begin{figure}
+\centering
+\vspace*{.1in}
+<<fig=TRUE>>=
+plot(exposure(p, exp.var = c("price", "sector")))
+@ 
+\caption{\label{figure:plot.exposure} Plot of an exposure object for a
+single period.  Bar charts are sorted by exposure.}
+\end{figure}
+
+The performance object is similar for a long-short portfolio.
+
+<<>>=
+performance(p)
+@ 
+
+The portfolio was up 2.2\% in January. By default, the summary of the
+\texttt{performance} object only provides the 5 worst and best
+contributions to return. HPQ was the biggest winner because, though it
+was only down 7\% for the month, its large weighting caused it to
+contribute almost 2\% to overall performance. The 19\% weight of CAT
+in the portfolio placed it as only the third largest position on the
+long side, but its -8\% return for the month made it the biggest drag
+on performance.
+
+The \texttt{contribution} function provides similar output for a
+long-short portfolio.
+
+<<>>=
+contribution(p, contrib.var = c("cap.bil", "sector"))
+@ 
+
+As in the last example, the \texttt{weight} column reflects the
+proportion of the portfolio invested in each category.  In this case,
+we have 45\% of the total capital (or weight) of the long and short
+sides \emph{considered together} invested in the Technology sector. We
+know from the exposure results above that most of this is invested on
+the short side, but in the context of contributions, it does not
+matter on which side the capital is deployed.
+
+Plotting objects of class \texttt{contribution} produces output
+similar to plotting exposures, as can be seen in Figure
+\ref{figure:plot.contribution}.  This time, however, we see values of
+\texttt{roic} plotted against the categories that make up each
+\texttt{contrib.var}.  For numeric variables, \texttt{roic} for each
+interval is shown; numeric intervals will always appear in order.
+
+\begin{figure}
+\centering
+\vspace*{.1in}
+<<fig=TRUE>>=
+plot(contribution(p, contrib.var = c("cap.bil", "sector")))
+@ 
+\caption{\label{figure:plot.contribution} Plot of a contribution object for a
+single period.}
+\end{figure}
+
+\section*{Conclusion}
+
+The current release of the portfolio package is meant to serve as a
+proof-of-concept. Relatively sophisticated portfolio analytics are
+possible using an open source package. Although money management is
+largely a zero-sum game --- every dollar that I make is a dollar that
+someone else has lost --- there is no reason why we might not
+cooperate on the tools that we all use.
+
+\address{David Kane and Jeff Enos\\
+ Kane Capital Management, Cambridge, Massachusetts, USA\\
+ \email{david@kanecap.com} and  \email{jeff@kanecap.com}}
+\end{article}
+\end{document}
+
+<<echo=FALSE>>=
+options(op)
+@

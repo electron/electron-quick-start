@@ -1,0 +1,115 @@
+% File src/library/grid/vignettes/sharing.Rnw
+% Part of the R package, https://www.R-project.org
+% Copyright 2001-13 Paul Murrell and the R Core Team
+% Distributed under GPL 2 or later
+
+\documentclass[a4paper]{article}
+%\VignetteIndexEntry{Modifying multiple grobs simultaneously}
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\pkg}[1]{{\normalfont\fontseries{b}\selectfont #1}}
+\newcommand{\grid}{\pkg{grid}}
+\newcommand{\R}{{\sffamily R}}
+\setlength{\parindent}{0in}
+\setlength{\parskip}{.1in}
+\title{An Example of ``Linking'' Graphical Objects in \grid{}}
+\author{Paul Murrell}
+
+\begin{document}
+\maketitle
+
+<<echo=FALSE, results=hide>>=
+library(grDevices)
+library(graphics)
+library(stats) # for rnorm
+library(grid)
+ps.options(pointsize = 12)
+options(width = 60)
+@
+Suppose that I am drawing two graphs on a page, which are the results
+from two subjects in an experiment.  I want the graphs to have the same
+axes to aid in comparison of the subjects.
+
+First of all, I will split the page up into two bits for the two graphs.
+
+<<axes1, eval=FALSE, results=hide>>=
+pushViewport(viewport(layout = grid.layout(1, 2, respect = TRUE)))
+@
+Now I generate some data and draw the first plot.
+
+<<axes2, eval=FALSE, results=hide>>=
+x <- 1:10
+y1 <- rnorm(10)
+vp1a <- viewport(layout.pos.col = 1)
+vp1b <- viewport(width = 0.6, height = 0.6,
+                 xscale = c(0, 11), yscale = c(-4, 4))
+pushViewport(vp1a, vp1b)
+grid.xaxis(name = "xaxis")
+grid.yaxis(name = "yaxis")
+grid.points(x, y1)
+popViewport(2)
+@
+Notice that I have named the graphical objects for the axes.
+When I draw the second plot I will use the same names for the
+axis objects.
+
+<<axes3, eval=FALSE, results=hide>>=
+y2 <- rnorm(10)
+vp2a <- viewport(layout.pos.col = 2)
+vp2b <- viewport(width = 0.6, height = 0.6,
+                 xscale = c(0, 11), yscale = c(-4, 4))
+pushViewport(vp2a, vp2b)
+grid.xaxis
+grid.xaxis(name = "xaxis")
+grid.yaxis(name = "yaxis")
+grid.points(x, y2)
+popViewport(2)
+@
+The output looks like the figure below.
+
+<<shared, results=hide, fig=TRUE, echo=FALSE, width=4, height=2, include=FALSE>>=
+<<axes1>>
+<<axes2>>
+<<axes3>>
+
+@
+\begin{center}
+\includegraphics[width=4in, height=2in]{sharing-shared}
+\end{center}
+@
+
+Because I have used the same name for the axis objects in both plots,
+ I can edit the axes for both plots
+simultaneously rather than having to edit each one in turn.
+For example ...
+
+<<axesedit, eval=FALSE, results=hide>>=
+grid.edit("xaxis", at = c(1, 5, 9), global = TRUE)
+
+@
+The output now looks like the figure below.
+
+<<shared2, results=hide, echo=FALSE>>=
+postscript("shared2-%02d.eps", onefile = FALSE, paper = "special",
+           width = 4, height = 2)
+<<axes1>>
+<<axes2>>
+<<axes3>>
+<<axesedit>>
+dev.off()
+
+pdf("shared2-%02d.pdf", onefile = FALSE, width = 4, height = 2)
+<<axes1>>
+<<axes2>>
+<<axes3>>
+<<axesedit>>
+dev.off()
+@
+\begin{center}
+\includegraphics[width=4in, height=2in]{shared2-02}
+\end{center}
+@
+
+This might seem a very small gain in this example, but it is
+potentially of great use in, for example, the implementation of a scatterplot
+matrix.
+\end{document}

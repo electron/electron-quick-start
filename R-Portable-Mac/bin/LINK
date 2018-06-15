@@ -1,0 +1,54 @@
+##
+## ${R_HOME}/bin/LINK
+
+revision='$Rev: 74001 $'
+version=`set - ${revision}; echo ${2}`
+version="R linker front end: ${R_VERSION} (r${version})
+
+Copyright (C) 2000-2018 The R Core Team.
+This is free software; see the GNU General Public License version 2
+or later for copying conditions.  There is NO warranty."
+
+usage="Usage: R CMD LINK [options] linkcmd
+
+Perform the specified linkcmd by passing it through GNU libtool and
+setting a few useful R-related options.  Use in particular when creating
+executables linked against the R shared library.
+
+Options:
+  -h, --help            print short help message and exit
+  -v, --version         print version info and exit
+
+Currently only is useful when creating executables, using the C or C++
+compiler for linking.  If FORTRAN code is to be linked, it needs to be
+manually ensured that the linker flags for the FORTRAN are included.
+
+Report bugs at <https://bugs.R-project.org>."
+
+args=
+while test -n "${1}"; do
+  case ${1} in
+    -h|--help)
+      echo "${usage}"; exit 0 ;;
+    -v|--version)
+      echo "${version}"; exit 0 ;;
+    *)
+      args="${args} ${1}" ;;
+  esac
+  shift
+done
+
+if test -z "${R_HOME}"; then
+  echo "Fatal error: R_HOME was not set"
+  exit 1
+fi
+
+Rexeclibdir="${R_HOME}/lib${R_ARCH}"
+linkopts="-avoid-version -rpath ${Rexeclibdir}"
+
+exec ${R_HOME}/bin/libtool --mode=link ${args} ${linkopts}
+
+### Local Variables: ***
+### mode: sh ***
+### sh-indentation: 2 ***
+### End: ***

@@ -8,23 +8,33 @@ const path = require('path')
 const url = require('url')
 const port = "9191"
 const child = require('child_process');
+const MACOS = "darwin"
+const WINDOWS = "win32"
 //const cmdStr = ".\\R-Portable\\bin\\RScript.exe -e \"shiny::runApp('shinyApp.R', port="+port+")\"";
 //ShinyProjects\MarketSizing\Market_sizing_Cardinal-master-b823f3aa918475f5d56f01aec9763ed860715158\mrktsiz_no_crosstalk
-const killStr = "taskkill /im Rscript.exe /f"
 
+var killStr = ""
+var appPath = path.join(app.getAppPath(), "app.R" )
 var execPath = "RScript"
-if(process.platform == "win32"){
-  execPath = path.join(app.getAppPath(), "R-Portable", "bin", "RScript.exe" )
+if(process.platform == WINDOWS){
+  killStr = "taskkill /im Rscript.exe /f"
+  appPath = appPath.replace(/\\/g, "\\\\");
+  execPath = path.join(app.getAppPath(), "R-Portable-Win", "bin", "RScript.exe" )
+} else if(process.platform == MACOS){
+  //killStr = 'pkill -9 "R"'
+  execPath = path.join(app.getAppPath(), "R-Portable-Mac", "bin", "Rscript" )
+} else {
+  console.log("not on windows or macos?")
+  throw new Error("not on windows or macos?")
 }
 
-var appPath = path.join(app.getAppPath(), "app.R" )
-appPath = appPath.replace(/\\/g, "\\\\");
+
 const childProcess = child.spawn(execPath, ["-e", "shiny::runApp(file.path('"+appPath+"'), port="+port+")"])
 childProcess.stdout.on('data', (data) => {
   console.log(`stdout:${data}`)
 })
 childProcess.stderr.on('data', (data) => {
-  console.log(`stdout:${data}`)
+  console.log(`stderr:${data}`)
 })
 
 // Keep a global reference of the window object, if you don't, the window will
@@ -51,9 +61,15 @@ function createWindow () {
 
       mainWindow.webContents.once('dom-ready', () => {
         console.log(new Date().toISOString()+'::mainWindow loaded')
-        mainWindow.show()
-        loading.hide()
-        loading.close()
+        setTimeout( () => {
+          mainWindow.show()
+          if(process.platform=MACOS){
+            mainWindow.reload()
+            loading.hide()
+            loading.close()
+          }
+        }, 500)
+
       })
       console.log(port)
       // long loading html
@@ -102,7 +118,8 @@ function cleanUpApplication(){
     try{
       childProcess.kill();
       console.log('killed.')
-      child.execSync(killStr)
+      if(killStr != "")
+        child.execSync(killStr)
     } catch(ex){
       console.log(ex)
     }

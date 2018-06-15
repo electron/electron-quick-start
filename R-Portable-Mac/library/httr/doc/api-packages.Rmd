@@ -1,0 +1,419 @@
+---
+title: "Best practices for API packages"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Best practices for API packages}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+library(httr)
+knitr::opts_chunk$set(comment = "#>", collapse = TRUE)
+```
+
+So you want to write an R client for a web API? This document walks through the key issues involved in writing API wrappers in R. If you're new to working with web APIs, you may want to start by reading "[An introduction to APIs](https://zapier.com/learn/apis)" by zapier.
+
+## Overall design
+
+APIs vary widely. Before starting to code, it is important to understand how the API you are working with handles important issues so that you can implement a complete and coherent R client for the API. 
+
+The key features of any API are the structure of the requests and the structure of the responses. An HTTP request consists of the following parts:
+
+1. HTTP verb (`GET`, `POST`, `DELETE`, etc.)
+1. The base URL for the API
+1. The URL path or endpoint
+1. URL query arguments (e.g., `?foo=bar`)
+1. Optional headers
+1. An optional request body
+
+An API package needs to be able to generate these components in order to perform the desired API call, which will typically involve some sort of authentication. 
+
+For example, to request that the GitHub API provides a list of all issues for the httr repo, we send an HTTP request that looks like:
+
+```
+-> GET /repos/hadley/httr HTTP/1.1
+-> Host: api.github.com
+-> Accept: application/vnd.github.v3+json
+```
+
+Here we're using a `GET` request to the host `api.github.com`. The url is `/repos/hadley/httr`, and we send an accept header that tells GitHub what sort of data we want.
+
+In response to this request, the API will return an HTTP response that includes:
+
+1. An HTTP status code.
+1. Headers, key-value pairs.
+1. A body typically consisting of XML, JSON, plain text, HTML, 
+   or some kind of binary representation. 
+   
+An API client needs to parse these responses, turning API errors into R errors, and return a useful object to the end user. For the previous HTTP request, GitHub returns:
+
+```
+<- HTTP/1.1 200 OK
+<- Server: GitHub.com
+<- Content-Type: application/json; charset=utf-8
+<- X-RateLimit-Limit: 5000
+<- X-RateLimit-Remaining: 4998
+<- X-RateLimit-Reset: 1459554901
+<- 
+<- {
+<-   "id": 2756403,
+<-   "name": "httr",
+<-   "full_name": "hadley/httr",
+<-   "owner": {
+<-     "login": "hadley",
+<-     "id": 4196,
+<-     "avatar_url": "https://avatars.githubusercontent.com/u/4196?v=3",
+<-     ...
+<-   },
+<-   "private": false,
+<-   "html_url": "https://github.com/hadley/httr",
+<-   "description": "httr: a friendly http package for R",
+<-   "fork": false,
+<-   "url": "https://api.github.com/repos/hadley/httr",
+<-   ...
+<-   "network_count": 1368,
+<-   "subscribers_count": 64
+<- }
+```
+
+Designing a good API client requires identifying how each of these API features is used to compose a request and what type of response is expected for each. It's best practice to insulate the end user from *how* the API works so they only need to understand how to use an R function, not the details of how APIs work. It's your job to suffer so that others don't have to!
+
+## First steps
+
+### Send a simple request
+
+First, find a simple API endpoint that doesn't require authentication: this lets you get the basics working before tackling the complexities of authentication. For this example, we'll use the list of httr issues which requires sending a GET request to `repos/hadley/httr`:
+
+```{R}
+library(httr)
+github_api <- function(path) {
+  url <- modify_url("https://api.github.com", path = path)
+  GET(url)
+}
+
+resp <- github_api("/repos/hadley/httr")
+resp
+```
+
+### Parse the response
+
+Next, you need to take the response returned by the API and turn it into a useful object. Any API will return an HTTP response that consists of headers and a body. While the response can come in multiple forms (see above), two of the most common structured formats are XML and JSON. 
+
+Note that while most APIs will return only one or the other, some, like the colour lovers API, allow you to choose which one with a url parameter:
+
+```{r}
+GET("http://www.colourlovers.com/api/color/6B4106?format=xml")
+GET("http://www.colourlovers.com/api/color/6B4106?format=json")
+```
+
+Others use [content negotiation](http://en.wikipedia.org/wiki/Content_negotiation) to determine what sort of data to send back. If the API you're wrapping does this, then you'll need to include one of `accept_json()` and `accept_xml()` in your request. 
+
+If you have a choice, choose json: it's usually much easier to work with than xml.
+
+Most APIs will return most or all useful information in the response body, which can be accessed using `content()`. To determine what type of information is returned, you can use `http_type()`
+
+```{r}
+http_type(resp)
+```
+
+I recommend checking that the type is as you expect in your helper function. This will ensure that you get a clear error message if the API changes:
+
+```{r}
+github_api <- function(path) {
+  url <- modify_url("https://api.github.com", path = path)
+  
+  resp <- GET(url)
+  if (http_type(resp) != "application/json") {
+    stop("API did not return json", call. = FALSE)
+  }
+  
+  resp
+}
+```
+
+NB: some poorly written APIs will say the content is type A, but it will actually be type B. In this case you should complain to the API authors, and until they fix the problem, simply drop the check for content type.
+
+Next we need to parse the output into an R object. httr provides some default parsers with `content(..., as = "auto")` but I don't recommend using them inside a package. Instead it's better to explicitly parse it yourself:
+
+1. To parse json, use `jsonlite` package.
+1. To parse xml, use the `xml2` package. 
+
+```{r}
+github_api <- function(path) {
+  url <- modify_url("https://api.github.com", path = path)
+  
+  resp <- GET(url)
+  if (http_type(resp) != "application/json") {
+    stop("API did not return json", call. = FALSE)
+  }
+  
+  jsonlite::fromJSON(content(resp, "text"), simplifyVector = FALSE)
+}
+```
+
+### Return a helpful object
+
+Rather than simply returning the response as a list, I think it's a good practice to make a simple S3 object. That way you can return the response and parsed object, and provide a nice print method. This will make debugging later on much much much more pleasant.
+
+```{r}
+github_api <- function(path) {
+  url <- modify_url("https://api.github.com", path = path)
+  
+  resp <- GET(url)
+  if (http_type(resp) != "application/json") {
+    stop("API did not return json", call. = FALSE)
+  }
+  
+  parsed <- jsonlite::fromJSON(content(resp, "text"), simplifyVector = FALSE)
+  
+  structure(
+    list(
+      content = parsed,
+      path = path,
+      response = resp
+    ),
+    class = "github_api"
+  )
+}
+
+print.github_api <- function(x, ...) {
+  cat("<GitHub ", x$path, ">\n", sep = "")
+  str(x$content)
+  invisible(x)
+}
+
+github_api("/users/hadley")
+```
+
+The API might return invalid data, but this should be rare, so you can just rely on the parser to provide a useful error message.
+
+### Turn API errors into R errors
+
+Next, you need to make sure that your API wrapper throws an error if the request failed. Using a web API introduces additional possible points of failure into R code aside from those occurring in R itself. These include:
+
+- Client-side exceptions
+- Network / communication exceptions
+- Server-side exceptions
+
+You need to make sure these are all converted into regular R errors. You can figure out if there's a problem with `http_error()`, which checks the HTTP status code. Status codes in the 400 range usually mean that you've done something wrong. Status codes in the 500 range typically mean that something has gone wrong on the server side.
+
+Often the API will provide information about the error in the body of the response: you should use this where available. If the API returns special errors for common problems, you might want to provide more detail in the error. For example, if you run out of requests and are [rate limited](https://developer.github.com/v3/#rate-limiting) you might want to tell the user how long to wait until they can make the next request (or even automatically wait that long!).
+
+```{r, error = TRUE}
+github_api <- function(path) {
+  url <- modify_url("https://api.github.com", path = path)
+  
+  resp <- GET(url)
+  if (http_type(resp) != "application/json") {
+    stop("API did not return json", call. = FALSE)
+  }
+  
+  parsed <- jsonlite::fromJSON(content(resp, "text"), simplifyVector = FALSE)
+  
+  if (http_error(resp)) {
+    stop(
+      sprintf(
+        "GitHub API request failed [%s]\n%s\n<%s>", 
+        status_code(resp),
+        parsed$message,
+        parsed$documentation_url
+      ),
+      call. = FALSE
+    )
+  }
+  
+  structure(
+    list(
+      content = parsed,
+      path = path,
+      response = resp
+    ),
+    class = "github_api"
+  )
+}
+github_api("/user/hadley")
+```
+
+> Some poorly written APIs will return different types of response based on 
+> whether or not the request succeeded or failed. If your API does this you'll 
+> need to make your request function check the `status_code()` before parsing 
+> the response.
+
+For many APIs, the common approach is to retry API calls that return something in the 500 range. However, when doing this, it's **extremely** important to make sure to do this with some form of exponential backoff: if something's wrong on the server-side, hammering the server with retries may make things worse, and may lead to you exhausting quota (or hitting other sorts of rate limits). A common policy is to retry up to 5 times, starting at 1s, and each time doubling and adding a small amount of jitter (plus or minus up to, say, 5% of the current wait time). 
+
+### Set a user agent
+
+While we're in this function, there's one important header that you should set for every API wrapper: the user agent. The user agent is a string used to identify the client. This is most useful for the API owner as it allows them to see who is using the API. It's also useful for you if you have a contact on the inside as it often makes it easier for them to pull your requests from their logs and see what's going wrong. If you're hitting a commercial API, this also makes it easier for internal R advocates to see how many people are using their API via R and hopefully assign more resources.
+
+A good default for an R API package wrapper is to make it the URL to your GitHub repo:
+
+```{r}
+ua <- user_agent("http://github.com/hadley/httr")
+ua
+
+github_api <- function(path) {
+  url <- modify_url("https://api.github.com", path = path)
+  
+  resp <- GET(url, ua)
+  if (http_type(resp) != "application/json") {
+    stop("API did not return json", call. = FALSE)
+  }
+  
+  parsed <- jsonlite::fromJSON(content(resp, "text"), simplifyVector = FALSE)
+  
+  if (status_code(resp) != 200) {
+    stop(
+      sprintf(
+        "GitHub API request failed [%s]\n%s\n<%s>", 
+        status_code(resp),
+        parsed$message,
+        parsed$documentation_url
+      ),
+      call. = FALSE
+    )
+  }
+  
+  structure(
+    list(
+      content = parsed,
+      path = path,
+      response = resp
+    ),
+    class = "github_api"
+  )
+}
+```
+
+### Passing parameters
+
+Most APIs work by executing an HTTP method on a specified URL with some additional parameters. These parameters can be specified in a number of ways, including in the URL path, in URL query arguments, in HTTP headers, and in the request body itself.  These parameters can be controlled using httr functions:
+
+1. URL path: `modify_url()`
+2. Query arguments: The `query` argument to `GET()`, `POST()`, etc.
+3. HTTP headers: `add_headers()` 
+4. Request body: The `body` argument to `GET()`, `POST()`, etc.
+
+[RESTful APIs](https://en.wikipedia.org/wiki/Representational_state_transfer) also use the HTTP verb to communicate arguments (e.g., `GET` retrieves a file, `POST` adds a file, `DELETE` removes a file, etc.). We can use the helpful [httpbin service](http://httpbin.org) to show how to send arguments in each of these ways.
+
+```{r, eval = FALSE}
+# modify_url
+POST(modify_url("https://httpbin.org", path = "/post"))
+
+# query arguments
+POST("http://httpbin.org/post", query = list(foo = "bar"))
+
+# headers
+POST("http://httpbin.org/post", add_headers(foo = "bar"))
+
+# body
+## as form
+POST("http://httpbin.org/post", body = list(foo = "bar"), encode = "form")
+## as json
+POST("http://httpbin.org/post", body = list(foo = "bar"), encode = "json")
+```
+
+Many APIs will use just one of these forms of argument passing, but others will use multiple of them in combination. Best practice is to insulate the user from how and where the various arguments are used by the API and instead simply expose relevant arguments via R function arguments, some of which might be used in the URL, in the headers, in the body, etc.
+
+If a parameter has a small fixed set of possible values that are allowed by the API, you can use list them in the default arguments and then use `match.arg()` to ensure that the caller only supplies one of those values. (This also allows the user to supply the short unique prefixes.)
+
+```{r}
+f <- function(x = c("apple", "banana", "orange")) {
+  match.arg(x)
+}
+f("a")
+```
+
+It is good practice to explicitly set default values for arguments that are not required to `NULL`. If there is a default value, it should be the first one listed in the vector of allowed arguments. 
+
+## Authentication
+
+Many APIs can be called without any authentication (just as if you called them in a web browser). However, others require authentication to perform particular requests or to avoid rate limits and other limitations. The most common forms of authentication are OAuth and HTTP basic authentication:
+
+1. *"Basic" authentication*: This requires a username and password (or 
+    sometimes just a username). This is passed as part of the HTTP request. 
+    In httr, you can do: 
+    `GET("http://httpbin.org", authenticate("username", "password"))`
+
+2.  *Basic authentication with an API key*: An alternative provided by many APIs 
+    is an API "key" or "token" which is passed as part of the request. It is 
+    better than a username/password combination because it can be 
+    regenerated independent of the username and password. 
+    
+    This API key can be specified in a number of different ways: in a URL query
+    argument, in an HTTP header such as the `Authorization` header, or in an
+    argument inside the request body.
+    
+3. *OAuth*: OAuth is a protocol for generating a user- or session-specific
+    authentication token to use in subsequent requests. (An early standard, 
+    OAuth 1.0, is not terribly common any more. See `oauth1.0_token()` for 
+    details.) The current OAuth 2.0 standard is very common in modern web apps. 
+    It involves a round trip between the client and server to establish if the 
+    API client has the authority to access the data. See `oauth2.0_token()`. 
+    It's ok to publish the app ID and app "secret" - these are not actually
+    important for security of user data. 
+
+> Some APIs describe their authentication processes inaccurately, so
+> care needs to be taken to understand the true authentication mechanism
+> regardless of the label used in the API docs.
+
+It is possible to specify the key(s) or token(s) required for basic or OAuth authentication in a number of different ways (see Appendix for a detailed discussion). You may also need some way to preserve user credentials between function calls so that end users do not need to specify them each time. A good start is to use an environment variable. Here is an example of how to write a function that checks for the presence of a GitHub personal access token and errors otherwise:
+
+```{r}
+github_pat <- function() {
+  pat <- Sys.getenv('GITHUB_PAT')
+  if (identical(pat, "")) {
+    stop("Please set env var GITHUB_PAT to your github personal access token",
+      call. = FALSE)
+  }
+
+  pat
+}
+```
+
+## Pagination (handling multi-page responses)
+
+One particularly frustrating aspect of many APIs is dealing with paginated responses. This is common in APIs that offer search functionality and have the potential to return a very large number of responses. Responses might be paginated because there is a large number of response elements or because elements are updated frequently. Often they will be sorted by an explicit or implicit argument specified in the request. 
+
+When a response is paginated, the API response will typically respond with a header or value specified in the body that contains one of the following:
+
+1. The total number of pages of responses
+2. The total number of response elements (with multiple elements per page)
+3. An indicator for whether any further elements or pages are available.
+4. A URL containing the next page
+
+These values can then be used to make further requests. This will either involve specifying a specific page of responses or specifying a "next page token" that returns the next page of results. How to deal with pagination is a difficult question and a client could implement any of the following:
+
+1. Return one page only by default with an option to return additional specific pages
+2. Return a specified page (defaulting to 1) and require the end user to handle pagination
+3. Return all pages by writing an internal process of checking for further pages and combining the results
+
+The choice of which to use depends on your needs and goals and the rate limits of the API.
+
+### Rate limiting
+
+Many APIs are rate limited, which means that you can only send a certain number of requests per hour. Often if your request is rate limited, the error message will tell you how long you should wait before performing another request. You might want to expose this to the user, or even include a wall to `Sys.sleep()` that waits long enough.
+
+For example, we could implement a `rate_limit()` function that tells you how many calls against the github API are available to you.
+
+```{r}
+rate_limit <- function() {
+  github_api("/rate_limit")
+}
+rate_limit()
+```
+
+After getting the first version working, you'll often want to polish the output to be more user friendly. For this example, we can parse the unix timestamps into more useful date types.
+
+```{r}
+rate_limit <- function() {
+  req <- github_api("/rate_limit")
+  core <- req$content$resources$core
+
+  reset <- as.POSIXct(core$reset, origin = "1970-01-01")
+  cat(core$remaining, " / ", core$limit,
+    " (Resets at ", strftime(reset, "%H:%M:%S"), ")\n", sep = "")
+}
+
+rate_limit()
+```

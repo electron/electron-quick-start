@@ -1,0 +1,343 @@
+
+R version 3.5.0 RC (2018-04-15 r74605) -- "Joy in Playing"
+Copyright (C) 2018 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> library(grid)
+> 
+> # Test hole in DL (deleted grob)
+> grid.lines(name="foo")
+> grid.lines(x=1:0, name="foo2")
+> grid.ls()
+foo
+foo2
+> grid.remove("foo")
+> grid.ls()
+foo2
+> # New blank page
+> grid.newpage()
+> 
+> 
+> #######
+> # GROBS
+> #######
+> # Plain grob
+> grid.ls(grob(name="g1"))
+g1
+> # gList
+> grid.ls(gList(grob(name="gl1"), grob(name="gl2")))
+gl1
+gl2
+> # gTree
+> grid.ls(gTree(children=gList(grob(name="child")),
++               name="parent"))
+parent
+  child
+> grid.ls(gTree(children=gList(grob(name="child1"), grob(name="child1")),
++               name="parent"))
+parent
+  child1
+  child1
+> 
+> ###########
+> # VIEWPORTS
+> ###########
+> # Plain viewport
+> grid.ls(viewport(name="vp1"),
++         view=TRUE)
+vp1
+> # vpList
+> grid.ls(vpList(viewport(name="vpl1")),
++         view=TRUE)
+vpl1
+> grid.ls(vpList(viewport(name="vpl1"), viewport(name="vpl2")),
++         view=TRUE)
+vpl1
+  1
+vpl2
+> grid.ls(vpList(viewport(name="vpl1"), viewport(name="vpl2"),
++                viewport(name="vpl3")),
++         view=TRUE)
+vpl1
+  1
+vpl2
+  1
+vpl3
+> # vpStack
+> grid.ls(vpStack(viewport(name="vps1"), viewport(name="vps2")),
++         view=TRUE)
+vps1
+  vps2
+> grid.ls(vpStack(viewport(name="vps1"), viewport(name="vps2"),
++                 viewport(name="vps3")),
++         view=TRUE)
+vps1
+  vps2
+    vps3
+> # vpTrees
+> grid.ls(vpTree(viewport(name="parentvp"), vpList(viewport(name="childvp"))),
++         view=TRUE)
+parentvp
+  childvp
+> grid.ls(vpTree(viewport(name="parentvp"),
++                vpList(viewport(name="cvp1"), viewport(name="cvp2"))),
++         view=TRUE)
+parentvp
+  cvp1
+    1
+  cvp2
+> # vpPaths
+> grid.ls(vpPath("A"),
++         view=TRUE)
+A
+> grid.ls(vpPath("A", "B"),
++         view=TRUE)
+A
+  B
+> grid.ls(vpPath("A", "B", "C"),
++         view=TRUE)
+A
+  B
+    C
+> 
+> ##########
+> # MIXTURES
+> ##########
+> # grob with vp viewport
+> g1 <- grob(vp=viewport(name="gvp"), name="g1")
+> grid.ls(g1, view=TRUE, full=TRUE)
+viewport[gvp]
+  grob[g1]
+  upViewport[1]
+> grid.ls(g1, view=TRUE, full=TRUE, grob=FALSE)
+viewport[gvp]
+  upViewport[1]
+> # grob with vp vpList
+> grid.ls(grob(vp=vpList(viewport(name="vpl")), name="g1"),
++         view=TRUE, full=TRUE)
+viewport[vpl]
+  grob[g1]
+  upViewport[1]
+> grid.ls(grob(vp=vpList(viewport(name="vpl1"), viewport(name="vpl2")),
++              name="g1"),
++         view=TRUE, full=TRUE)
+viewport[vpl1]
+  upViewport[1]
+viewport[vpl2]
+  grob[g1]
+  upViewport[1]
+> # grob with vp vpStack
+> grid.ls(grob(vp=vpStack(viewport(name="vps1"), viewport(name="vps2")),
++              name="g1"),
++         view=TRUE, full=TRUE)
+viewport[vps1]
+  viewport[vps2]
+    grob[g1]
+    upViewport[2]
+> grid.ls(grob(vp=vpStack(viewport(name="vps1"), viewport(name="vps2"),
++                viewport(name="vps3")),
++              name="g1"),
++         view=TRUE)
+vps1
+  vps2
+    vps3
+      g1
+      3
+> # grob with vp vpTree
+> grid.ls(grob(vp=vpTree(viewport(name="parentvp"),
++                vpList(viewport(name="cvp"))),
++              name="g1"),
++         view=TRUE, full=TRUE)
+viewport[parentvp]
+  viewport[cvp]
+    grob[g1]
+    upViewport[2]
+> grid.ls(grob(vp=vpTree(viewport(name="parentvp"),
++                vpList(viewport(name="cvp1"), viewport(name="cvp2"))),
++              name="g1"),
++         view=TRUE, full=TRUE)
+viewport[parentvp]
+  viewport[cvp1]
+    upViewport[1]
+  viewport[cvp2]
+    grob[g1]
+    upViewport[2]
+> # gTree with vp viewport
+> # and child grob with vp viewport
+> grid.ls(gTree(children=gList(grob(vp=viewport(name="childvp"), name="cg1"),
++                 grob(name="cg2")),
++               name="parent",
++               vp=viewport(name="parentvp")),
++         view=TRUE)
+parentvp
+  parent
+    childvp
+      cg1
+      1
+    cg2
+  1
+> # gTree with childrenvp viewport
+> grid.ls(gTree(childrenvp=viewport(name="vp"), name="gtree"),
++         view=TRUE, full=TRUE)
+gTree[gtree]
+  viewport[vp]
+    upViewport[1]
+> grid.ls(gTree(childrenvp=viewport(name="vp"), name="gtree"),
++         view=TRUE, full=TRUE, grob=FALSE)
+viewport[vp]
+  upViewport[1]
+> grid.ls(gTree(children=gList(grob(name="child")),
++               name="parent",
++               childrenvp=viewport(name="vp")),
++         view=TRUE, full=TRUE)
+gTree[parent]
+  viewport[vp]
+    upViewport[1]
+  grob[child]
+> grid.ls(gTree(children=gList(grob(name="child1"), grob(name="child2")),
++               name="parent",
++               childrenvp=viewport(name="vp")),
++         view=TRUE, full=TRUE)
+gTree[parent]
+  viewport[vp]
+    upViewport[1]
+  grob[child1]
+  grob[child2]
+> grid.ls(gTree(children=gList(grob(name="child")),
++               childrenvp=viewport(name="vp"),
++               name="parent"), 
++         view=TRUE, full=TRUE)
+gTree[parent]
+  viewport[vp]
+    upViewport[1]
+  grob[child]
+> grid.ls(gTree(children=gList(grob(name="child1"), grob(name="child2")),
++               name="parent",
++               childrenvp=viewport(name="vp")),
++         view=TRUE, full=TRUE, grob=FALSE)
+viewport[vp]
+  upViewport[1]
+> # gTree with childrenvp vpTree
+> grid.ls(gTree(childrenvp=vpTree(parent=viewport(name="vp1"),
++                 children=vpList(viewport(name="vp2"))),
++               name="gtree"),
++         view=TRUE, full=TRUE)
+gTree[gtree]
+  viewport[vp1]
+    viewport[vp2]
+      upViewport[2]
+> grid.ls(gTree(children=gList(grob(name="child")),
++               name="parent",
++               childrenvp=vpTree(parent=viewport(name="vp1"),
++                 children=vpList(viewport(name="vp2")))),
++         view=TRUE, full=TRUE)
+gTree[parent]
+  viewport[vp1]
+    viewport[vp2]
+      upViewport[2]
+  grob[child]
+> # gTree with childrenvp vpTree
+> # and child grob with vp vpPath
+> # A gTree, called "parent", with childrenvp vpTree (vp2 within vp1)
+> # and child grob, called "child", with vp vpPath (down to vp2)
+> sampleGTree <- gTree(name="parent",
++                      children=gList(grob(name="child", vp="vp1::vp2")),
++                      childrenvp=vpTree(parent=viewport(name="vp1"),
++                                        children=vpList(viewport(name="vp2"))))
+> grid.ls(sampleGTree)
+parent
+  child
+> # Show viewports too
+> grid.ls(sampleGTree, view=TRUE)
+parent
+  vp1
+    vp2
+      2
+  vp1
+    vp2
+      child
+      2
+> # Only show viewports
+> grid.ls(sampleGTree, view=TRUE, grob=FALSE)
+vp1
+  vp2
+    2
+vp1
+  vp2
+    2
+> # Alternate displays
+> # nested listing, custom indent
+> grid.ls(sampleGTree, view=TRUE, print=nestedListing, gindent="--")
+parent
+--vp1
+----vp2
+------2
+--vp1
+----vp2
+------child
+------2
+> # path listing
+> grid.ls(sampleGTree, view=TRUE, print=pathListing)
+            | parent
+vp1
+vp1::vp2
+vp1::vp2::2
+vp1
+vp1::vp2
+vp1::vp2    | parent::child
+vp1::vp2::2
+> # path listing, without grobs aligned
+> grid.ls(sampleGTree, view=TRUE, print=pathListing, gAlign=FALSE)
+ | parent
+vp1
+vp1::vp2
+vp1::vp2::2
+vp1
+vp1::vp2
+vp1::vp2 | parent::child
+vp1::vp2::2
+> # grob path listing 
+> grid.ls(sampleGTree, view=TRUE, print=grobPathListing)
+         | parent
+vp1::vp2 | parent::child
+> # path listing, grobs only
+> grid.ls(sampleGTree, print=pathListing)
+ | parent
+ | parent::child
+> # path listing, viewports only
+> grid.ls(sampleGTree, view=TRUE, grob=FALSE, print=pathListing)
+vp1
+vp1::vp2
+vp1::vp2::2
+vp1
+vp1::vp2
+vp1::vp2::2
+> # raw flat listing
+> str(grid.ls(sampleGTree, view=TRUE, print=FALSE))
+List of 6
+ $ name   : chr [1:8] "parent" "vp1" "vp2" "2" ...
+ $ gDepth : num [1:8] 0 1 1 1 1 1 1 1
+ $ vpDepth: num [1:8] 0 0 1 2 0 1 2 2
+ $ gPath  : chr [1:8] "" "parent" "parent" "parent" ...
+ $ vpPath : chr [1:8] "" "" "vp1" "vp1::vp2" ...
+ $ type   : chr [1:8] "gTreeListing" "vpListing" "vpListing" "vpUpListing" ...
+ - attr(*, "class")= chr "flatGridListing"
+> 
+> 
+> 
+> 
+> proc.time()
+   user  system elapsed 
+  0.279   0.033   0.299 

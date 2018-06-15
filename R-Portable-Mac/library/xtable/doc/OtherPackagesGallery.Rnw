@@ -1,0 +1,322 @@
+%\VignetteIndexEntry{xtable List of Tables Gallery}
+%\VignetteDepends{xtable, spdep, splm, sphet}
+%\VignetteKeywords{LaTeX, HTML, table}
+%\VignettePackage{xtable}
+% !Rnw weave = knitr
+% \VignetteEngine{knitr::knitr}
+%**************************************************************************
+\documentclass{article}
+\usepackage[a4paper, height=24cm]{geometry} % geometry first
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{parskip}
+\usepackage{rotating}
+\usepackage{tabularx}
+\usepackage{titlesec}
+\usepackage{hyperref} % hyperref last
+\titleformat\subsubsection{\bfseries\itshape}{}{0pt}{}
+\newcommand\p{\vspace{2ex}}
+\newcommand\code[1]{\texttt{#1}}
+\newcommand\pkg[1]{\textbf{#1}}
+\setcounter{tocdepth}{2}
+\begin{document}
+
+\title{\bfseries\Large The Other Packages Gallery}
+\author{\bfseries David J. Scott}
+\maketitle
+
+\tableofcontents
+
+\newpage
+
+\section{Introduction}
+This document represents a test of the functions in \pkg{xtable} which
+deal with other packages.
+
+<<set, include=FALSE>>=
+library(knitr)
+opts_chunk$set(fig.path = 'Figures/other', debug = TRUE, echo = TRUE)
+opts_chunk$set(out.width = '0.9\\textwidth')
+@
+
+The first step is to load the package and set some options for this document.
+<<package, results='asis'>>=
+library(xtable)
+options(xtable.floating = FALSE)
+options(xtable.timestamp = "")
+options(width = 60)
+set.seed(1234)
+@
+
+\section{The packages \pkg{spdep}, \pkg{splm}, and \pkg{sphet}}
+
+Code for supporting these packages and most of the examples used in
+this section was originally provided by Martin Gubri
+(\url{martin.gubri@framasoft.org}).
+
+\subsection{The package \pkg{spdep}}
+\label{sec:package-pkgspdep}
+
+First load the package and create some objects.
+<<dataspdep>>=
+library(spdep)
+data("oldcol", package = "spdep")
+COL.lag.eig <- lagsarlm(CRIME ~ INC + HOVAL, data = COL.OLD[],
+                        nb2listw(COL.nb))
+class(COL.lag.eig)
+COL.errW.GM <- GMerrorsar(CRIME ~ INC + HOVAL, data = COL.OLD,
+                          nb2listw(COL.nb, style = "W"),
+                          returnHcov = TRUE)
+class(COL.errW.GM)
+COL.lag.stsls <- stsls(CRIME ~ INC + HOVAL, data = COL.OLD,
+                       nb2listw(COL.nb))
+class(COL.lag.stsls)
+
+p1 <- predict(COL.lag.eig, newdata = COL.OLD[45:49,],
+              listw = nb2listw(COL.nb))
+class(p1)
+p2 <- predict(COL.lag.eig, newdata = COL.OLD[45:49,],
+              pred.type = "trend", type = "trend")
+#type option for retrocompatibility with spdep 0.5-92
+class(p2)
+
+imp.exact <- impacts(COL.lag.eig, listw = nb2listw(COL.nb))
+class(imp.exact)
+imp.sim <- impacts(COL.lag.eig, listw = nb2listw(COL.nb), R = 200)
+class(imp.sim)
+@ %def
+
+
+\subsubsection{\code{sarlm} objects}
+\label{sec:codesarlm-objects}
+
+There is an \code{xtable} method for objects of this type.
+<<xtablesarlm, results = 'asis'>>=
+xtable(COL.lag.eig)
+@ %def
+
+The method for \code{xtable} actually uses the summary of the object,
+and an identical result is obtained when using the summary of the
+object, even if the summary contains more additional information.
+
+<<xtablesarlmsumm, results = 'asis'>>=
+xtable(summary(COL.lag.eig, correlation = TRUE))
+@ %def
+
+This same pattern applies to the other objects from this group of packages.
+
+Note that additional prettying of the resulting table is possible, as
+for any table produced using \code{xtable}. For example using the
+\pkg{booktabs} package we get:
+
+<<xtablesarlmbooktabs, results = 'asis'>>=
+print(xtable(COL.lag.eig), booktabs = TRUE)
+@ %def
+
+\subsubsection{\code{gmsar} objects}
+\label{sec:codegmsar-objects}
+
+
+<<xtablegmsar, results = 'asis'>>=
+xtable(COL.errW.GM)
+@ %def
+
+\subsubsection{\code{stsls} objects}
+\label{sec:codestsls-objects}
+
+
+<<xtablestsls, results = 'asis'>>=
+xtable(COL.lag.stsls)
+@ %def
+
+\subsubsection{\code{sarlm.pred} objects}
+\label{sec:codesarlmpred-objects}
+
+\code{xtable} has a method for predictions of \code{sarlm} models.
+
+<<xtablesarlmpred, results = 'asis'>>=
+xtable(p1)
+@ %def
+
+This method transforms the \code{sarlm.pred} objects into data frames,
+allowing any number of attributes vectors which may vary according to
+predictor types.
+
+<<xtablesarlmpred2, results = 'asis'>>=
+xtable(p2)
+@ %def
+
+\subsubsection{\code{lagImpact} objects}
+\label{sec:codelagimpact-objects}
+
+The \code{xtable} method returns the values of direct, indirect and
+total impacts for all the variables in the model. The class
+\code{lagImpact} has two different sets of attributes according to if
+simulations are used. But the \code{xtable} method always returns the
+three components of the non-simulation case.
+
+<<xtablelagimpactexact, results = 'asis'>>=
+xtable(imp.exact)
+@ %def
+
+\p
+<<xtablelagimpactmcmc, results = 'asis'>>=
+xtable(imp.sim)
+@ %def
+
+
+\subsubsection{\code{spautolm} objects}
+\label{sec:codespautolm-objects}
+
+The need for an \code{xtable} method for \code{spautolm} was expressed
+by Guido Schulz (\url{schulzgu@student.hu-berlin.de}), who also
+provided an example of an object of this type. The required code was
+implemented by David Scott (\url{d.scott@auckland.ac.nz}).
+
+First create an object of the required type.
+
+<<minimalexample, results = 'hide'>>=
+library(spdep)
+example(NY_data)
+spautolmOBJECT <- spautolm(Z ~ PEXPOSURE + PCTAGE65P,data = nydata,
+                           listw = listw_NY, family = "SAR",
+                           method = "eigen", verbose = TRUE)
+summary(spautolmOBJECT, Nagelkerke = TRUE)
+@ %def
+
+\p
+<<spautolmclass>>=
+class(spautolmOBJECT)
+@ %def
+
+
+<<xtablespautolm, results = 'asis'>>=
+xtable(spautolmOBJECT,
+       display = c("s",rep("f", 3), "e"), digits = 4)
+@ %def
+
+
+
+\subsection{The package \pkg{splm}}
+\label{sec:package-pkgsplm}
+
+First load the package and create some objects.
+<<datasplm>>=
+library(splm)
+data("Produc", package = "plm")
+data("usaww",  package = "splm")
+fm <- log(gsp) ~ log(pcap) + log(pc) + log(emp) + unemp
+respatlag <- spml(fm, data = Produc, listw = mat2listw(usaww),
+                   model="random", spatial.error="none", lag=TRUE)
+class(respatlag)
+GM <- spgm(log(gsp) ~ log(pcap) + log(pc) + log(emp) + unemp, data = Produc,
+           listw = usaww, moments = "fullweights", spatial.error = TRUE)
+class(GM)
+
+imp.spml <- impacts(respatlag, listw = mat2listw(usaww, style = "W"), time = 17)
+class(imp.spml)
+@ %def
+
+
+\subsubsection{\code{splm} objects}
+\label{sec:codesplm-objects}
+
+<<xtablesplm, results = 'asis'>>=
+xtable(respatlag)
+@ %def
+
+
+\p
+<<xtablesplm1, results = 'asis'>>=
+xtable(GM)
+@ %def
+
+
+
+The \code{xtable} method works the same on impacts of \code{splm} models.
+
+<<xtablesplmimpacts, results = 'asis'>>=
+xtable(imp.spml)
+@ %def
+
+\subsection{The package \pkg{sphet}}
+\label{sec:package-pkgsphet}
+
+First load the package and create some objects.
+<<datasphet>>=
+library(sphet)
+data("columbus", package = "spdep")
+listw <- nb2listw(col.gal.nb)
+data("coldis", package = "sphet")
+res.stsls <- stslshac(CRIME ~ HOVAL + INC, data = columbus, listw = listw,
+                      distance = coldis, type = 'Triangular')
+class(res.stsls)
+
+res.gstsls <- gstslshet(CRIME ~ HOVAL + INC, data = columbus, listw = listw)
+class(res.gstsls)
+
+imp.gstsls <- impacts(res.gstsls, listw = listw)
+class(imp.gstsls)
+@ %def
+
+
+\subsubsection{\code{sphet} objects}
+\label{sec:codesphet-objects}
+
+<<xtablesphet, results = 'asis'>>=
+xtable(res.stsls)
+@ %def
+
+\p
+<<xtablesphet1, results = 'asis'>>=
+xtable(res.gstsls)
+@ %def
+
+
+\code{sphet} also provides a method for computing impacts.
+
+<<xtablesphetimpacts, results = 'asis'>>=
+xtable(imp.gstsls)
+@ %def
+
+\section{The \pkg{zoo} package}
+\label{sec:pkgzoo-package}
+
+
+<<zoo, results = 'asis'>>=
+library(zoo)
+xDate <- as.Date("2003-02-01") + c(1, 3, 7, 9, 14) - 1
+as.ts(xDate)
+x <- zoo(rnorm(5), xDate)
+xtable(x)
+@ %def
+
+
+\p
+
+<<zoots, results = 'asis'>>=
+tempTs <- ts(cumsum(1 + round(rnorm(100), 0)),
+              start = c(1954, 7), frequency = 12)
+tempTable <- xtable(tempTs, digits = 0)
+tempTable
+tempZoo <- as.zoo(tempTs)
+xtable(tempZoo, digits = 0)
+@ %def
+
+
+\section{The \pkg{survival} package}
+\label{sec:pkgsurvival-package}
+
+
+<<survival, results = 'asis'>>=
+library(survival)
+test1 <- list(time=c(4,3,1,1,2,2,3),
+              status=c(1,1,1,0,1,1,0),
+              x=c(0,2,1,1,1,0,0),
+              sex=c(0,0,0,0,1,1,1))
+coxFit <- coxph(Surv(time, status) ~ x + strata(sex), test1)
+xtable(coxFit)
+@ %def
+
+\end{document}

@@ -1,0 +1,515 @@
+% dimensions(x) returns number of spatial dimensions
+% y = transform(x, "proj4string")
+% bbox(x)
+% coordinates(x) ; <-
+% rings(x) ; <-
+% method to retrieve lines? --> Lines()?
+% gridded(x)  ; <-
+% 
+\documentclass{article}
+% \VignetteIndexEntry{sp: classes and methods for spatial data}
+
+\usepackage{graphicx}
+\usepackage[colorlinks=true,urlcolor=blue]{hyperref}
+
+\usepackage{color}
+
+\usepackage{Sweave}
+\newcommand{\strong}[1]{{\normalfont\fontseries{b}\selectfont #1}}
+\let\pkg=\strong
+\newcommand{\code}[1]{{\tt #1}}
+\newcommand{\proglang}[1]{{\bf #1}}
+
+\title{ Classes and Methods for Spatial Data:\\
+the \pkg{sp} Package }
+\author{Edzer Pebesma\footnote{Institute for Geoinformatics,
+University of Muenster, Heisenbergstra{\ss}e 2, 48149 M\"{u}nster, Germany.
+\code{edzer.pebesma@uni-muenster.de}}
+\and 
+Roger S.\ Bivand\footnote{Economic Geography Section, Department of Economics, %
+Norwegian School of Economics and Business Administration, %
+Breiviksveien 40, N-5045 Bergen, Norway; \code{Roger.Bivand@nhh.no}}}
+\date{Feb 2005}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+
+\section{Introduction}
+
+The \pkg{sp} package provides classes and methods for dealing
+with spatial data in \proglang{R}\footnote{
+The motivation to write this package was born on a
+\href{http://spatial.nhh.no/meetings/vienna/index.html}{pre-conference
+spatial data workshop} during
+\href{http://www.ci.tuwien.ac.at/Conferences/DSC-2003/}{DSC 2003}.
+At that time, the advantage of having multiple R packages for spatial
+statistics seemed to be hindered by a lack of a uniform interface for
+handling spatial data. Each package had its own conventions on how
+spatial data were stored and returned. With this package, and packages
+supporting the classes provided here, we hope that \proglang{R} with its extension
+packages becomes more coherent for analyzing different types of spatial data.
+}. The spatial data structures implemented
+include points, lines, polygons and grids; each of them with or
+without attribute data.  We have chosen to use S4 classes and
+methods style (Chambers, 1998) to allow validation of objects
+created. Although we mainly aim at using spatial data in the
+geographical (two-dimensional) domain, the data structures that
+have a straightforward implementation in higher dimensions (points,
+grids) do allow this.
+
+From the package home page on CRAN,
+\url{https://cran.r-project.org/package=sp}, links to a graph
+gallery with R code, and the development source tree are found.
+
+This vignette describes the classes, methods and functions provided
+by \pkg{sp}. Instead of manipulating the class slots (components)
+directly\footnote{which is possible, but not recommended because
+validity of resulting objects is no longer verified}, we provide
+methods and functions to create or modify the classes from elementary
+types such as matrices, {\tt data.frame}s or lists and convert them back
+to any of these types. Also, coercion (type casting) from one class
+to the other is provided, where relevant.
+
+Package \pkg{sp} is loaded by 
+<<>>= 
+library(sp)
+@
+
+<<echo=FALSE,print=FALSE>>= 
+set.seed(13331)
+# library(lattice)
+@
+
+\section{Spatial data classes}
+
+The spatial data classes implemented are points, grids, lines,
+rings and polygons. Package \pkg{sp} provides classes for the
+spatial-only information (the topology), e.g. \code{SpatialPoints},
+and extensions for the case where attribute information stored in
+a \code{data.frame} is available for each spatial entity (e.g. for
+points, the \code{SpatialPointsDataFrame}). The available data
+classes are:
+
+\begin{center}
+\begin{tabular}{lllll}
+data type & class                        & attributes  & contains \\ \hline
+points    & \code{SpatialPoints}          & No           &\code{Spatial} \\
+points    & \code{SpatialPointsDataFrame} & \code{data.frame} &\code{SpatialPoints} \\
+multipoints    & \code{SpatialMultiPoints}          & No           &\code{Spatial} \\
+multipoints    & \code{SpatialMultiPointsDataFrame} & \code{data.frame} &\code{SpatialMultiPoints} \\
+pixels    & \code{SpatialPixels}          & No           &\code{SpatialPoints} \\
+pixels    & \code{SpatialPixelsDataFrame} & \code{data.frame} &\code{SpatialPixels} \\
+          &                              &              &\code{SpatialPointsDataFrame} \\
+full grid & \code{SpatialGrid  }          & No           &\code{SpatialPixels} \\
+full grid & \code{SpatialGridDataFrame}   & \code{data.frame}  &\code{SpatialGrid} \\
+line      & \code{Line}                   & No           & \\
+lines     & \code{Lines}                  & No           & \code{Line} list \\
+lines     & \code{SpatialLines}           & No           & \code{Spatial}, \code{Lines} list \\
+lines     & \code{SpatialLinesDataFrame}  & \code{data.frame} &\code{SpatialLines} \\
+polygons  & \code{Polygon}                & No           &\code{Line} \\
+polygons  & \code{Polygons}               & No           &\code{Polygon} list \\
+polygons  & \code{SpatialPolygons}        & No           &\code{Spatial}, \code{Polygons} list \\
+polygons  & \code{SpatialPolygonsDataFrame} & \code{data.frame} &\code{SpatialPolygons} \\
+\end{tabular}
+\end{center}
+
+The class \code{Spatial} only holds metadata common to all derived
+classes (bounding box, coordinate reference system), and is of
+convenient for defining methods that are common to all derived
+classes.  In the following sections we will show how we can create
+objects of these classes from scratch or from other objects, and
+which methods and functions are available to them.
+
+\section{Manipulating spatial objects}
+
+Although entries in spatial objects are in principle accessible through
+their slot name, e.g. \code{x@coords} contains the coordinates of an object
+of class or extending \code{SpatialPoints}, we strongly encourage users
+to access the data by using functions and methods, in this case {\tt
+coordinates(x)} to retrieve the coordinates.
+
+\subsection{Standard methods}
+
+Selecting, retrieving or replacing certain attributes in spatial objects
+with attributes is done using standard methods
+\begin{itemize}
+\item \verb|[| select "rows" (features) and/or columns in the data attribute
+table; e.g. \code{meuse[1:2, "zinc"]} returns a \code{SpatialPointsDataFrame}
+with the first two points and an attribute table with only variable "zinc".
+\item \verb|[[| extracts a column from the data attribute table
+\item \verb|[[<-| assign or replace a column in the data attribute
+table.
+\end{itemize}
+Other methods available are: \code{plot}, \code{summary}, \code{print},
+\code{dim} and \code{names} (operate on the data.frame part), {\tt
+as.data.frame}, \code{as.matrix} and \code{image} (for gridded data),
+\code{lines} (for line data), \code{points} (for point data), \code{subset}
+(points and grids), \code{stack} (point and grid data.frames), \code{over}
+for spatial joins, 
+\code{spplot}, and \code{length} (number of features).
+
+\subsection{Spatial methods}
+A number of spatial methods are available for the classes in \pkg{sp}:
+\begin{itemize}
+\item \code{dimensions(x)} returns number of spatial dimensions
+\item \code{y = spTransform(x, CRS("+proj=longlat +datum=WGS84"))}
+convert or transform from one coordinate reference system (geographic projection) 
+to another (requires package rgdal to be installed)
+\item \code{bbox(x)} returns a matrix with the coordinates bounding box;
+the dimensions form rows, min/max form the columns
+\item \code{coordinates(x)} returns a matrix with the spatial coordinates 
+%\item \code{rings(x)} retrieve the spatial rings (polygons) of an
+%object deriving from \code{SpatialPolygons}
+% \item \code{method to retrieve lines? --> Lines()?
+\item \code{gridded(x)} tells whether \code{x} derives from SpatialPixels, or when
+used in assignment, coerces a \code{SpatialPoints} object into a \code{SpatialPixels} object.
+\item \code{spplot(x)} plots attributes, possibly in combination with
+other types of data (points, lines, grids, polygons), and possibly in
+as a conditioning plot for multiple attributes
+\item \code{over(x, y)} retrieve index or attributes of \code{y} corresponding
+(intersecting) with spatial locations of \code{x}.
+\item \code{spsample(x)} samples point coordinates in the continuous space 
+of \code{SpatialPolygons}, a gridded area, or along a \code{SpatialLines}. Subsetting
+and \code{sample} can be used to randomly subsample full spatial entities.
+\item \code{geometry(x)} strips the \code{data.frame}, and returns the geometry-only
+object
+\end{itemize}
+
+\section{Spatial points}
+
+\subsection{Points without attributes}
+
+We can generate a set of 10 points on the unit square $[0,1] \times
+[0,1]$ by
+<<echo=TRUE,print=FALSE>>= 
+xc = round(runif(10), 2)
+yc = round(runif(10), 2)
+xy = cbind(xc, yc)
+xy
+@
+this $10 \times 2$ matrix can be converted into a \code{SpatialPoints}
+object by
+
+<<echo=TRUE,print=FALSE,fig=FALSE>>= 
+xy.sp = SpatialPoints(xy)
+xy.sp
+plot(xy.sp, pch = 2)
+@
+The plot is shown in figure \ref{fig:points}.
+
+\begin{figure}
+\begin{center}
+<<echo=FALSE,print=FALSE,fig=TRUE>>= 
+plot(xy.sp, pch = 2)
+@
+\end{center}
+\caption{plot of \code{SpatialPoints} object; aspect ratio of x and y axis units is 1}
+\label{fig:points}
+\end{figure}
+
+We can retrieve the coordinates from \code{xy.sp} by
+<<echo=TRUE>>=
+xy.cc = coordinates(xy.sp)
+class(xy.cc)
+dim(xy.cc)
+@
+and other methods retrieve the bounding box, the dimensions, select points
+(not dimensions or columns), coerce to a data.frame, or print a summary:
+<<echo=TRUE>>=
+bbox(xy.sp)
+dimensions(xy.sp)
+xy.sp[1:2]
+xy.df = as.data.frame(xy.sp)
+class(xy.df)
+dim(xy.df)
+summary(xy.sp)
+@
+
+\subsection{Points with attributes}
+
+One way of creating a \code{SpatialPointsDataFrame} object is by building
+it from a a \code{SpatialPoints} object and a data.frame containing
+the attributes:
+<<echo=TRUE>>=
+df = data.frame(z1 = round(5 + rnorm(10), 2), z2 = 20:29)
+df
+xy.spdf = SpatialPointsDataFrame(xy.sp, df)
+xy.spdf
+summary(xy.spdf)
+dimensions(xy.spdf)
+xy.spdf[1:2, ] # selects row 1 and 2
+xy.spdf[1] # selects attribute column 1, along with the coordinates
+xy.spdf[1:2, "z2"] # select row 1,2 and attribute "z2"
+xy.df = as.data.frame(xy.spdf)
+xy.df[1:2,]
+xy.cc = coordinates(xy.spdf)
+class(xy.cc)
+dim(xy.cc)
+@
+A note on selection with \verb|[|: the behaviour is as much as possible
+copied from that of \code{data.frame}s, but coordinates are always
+sticky and a \code{SpatialPointsDataFrame} is always returned; {\tt
+drop=FALSE} is not allowed. If coordinates should be dropped, use the
+\code{as.data.frame} method and select the non-coordinate data, or use
+\verb|[[| to select a single attribute column (example below).
+
+\code{SpatialPointsDataFrame} objects can be created directly from 
+data.frames by specifying which columns contain the coordinates:
+<<echo=TRUE>>=
+df1 = data.frame(xy, df)
+coordinates(df1) = c("xc", "yc")
+df1
+@
+or
+<<echo=TRUE>>=
+df2 = data.frame(xy, df)
+coordinates(df2) = ~xc+yc
+df2[1:2,]
+as.data.frame(df2)[1:2,]
+@
+Note that in this form, \code{coordinates} by setting (specifying) the
+coordinates promotes its argument, an object of class \code{data.frame}
+to an object of class \code{SpatialPointsDataFrame}. The method {\tt
+as.data.frame} coerces back to the original \code{data.frame}. When used
+on a right-hand side of an equation, \code{coordinates} {\em retrieves}
+the matrix with coordinates:
+<<>>=
+coordinates(df2)[1:2,]
+@
+Elements (columns) in the data.frame part of an object can be manipulated
+(retrieved, assigned) directly:
+<<>>=
+df2[["z2"]]
+df2[["z2"]][10] = 20
+df2[["z3"]] = 1:10
+summary(df2)
+@
+Plotting attribute data can be done by using either \code{spplot} to
+colour symbols, or \code{bubble} which uses symbol size:
+<<eval=FALSE,echo=TRUE,print=FALSE>>=
+bubble(df2, "z1", key.space = "bottom")
+spplot(df2, "z1", key.space = "bottom")
+@
+the resulting plots are shown in figure \ref{fig:spdf}.
+
+\begin{figure}
+\begin{center}
+<<echo=FALSE,print=FALSE,fig=TRUE>>= 
+print(bubble(df2, "z1", key.space = "bottom"), split = c(1,1,2,1), more=TRUE)
+print(spplot(df2, "z1", key.space = "bottom"), split =  c(2,1,2,1), more=FALSE)
+@
+\end{center}
+\caption{plot of \code{SpatialPointsDataFrame} object, using symbol 
+size (\code{bubble}, top) or colour (\code{spplot}, bottom) }
+\label{fig:spdf}
+\end{figure}
+
+\section{Grids}
+Package \pkg{sp} has two classes for grid topology: \code{SpatialPixels}
+and \code{SpatialGrid}. The pixels form stores coordinates and is for
+partial grids, or unordered points; the \code{SpatialGrid} form does not
+store coordinates but holds full grids (i.e., \code{SpatialGridDataFrame}
+holds attribute values for each grid cell). Objects can be coerced from
+one representation to the other.
+
+\subsection{Creating grids from topology}
+When we know the offset, the cell sizes and the dimensions of a grid, we
+can specify this by using the function \code{GridTopology}:
+<<>>=
+gt = GridTopology(cellcentre.offset = c(1,1,2), cellsize=c(1,1,1), cells.dim = c(3,4,6))
+grd = SpatialGrid(gt)
+summary(grd)
+@
+
+The grid parameters can be retrieved by the function
+<<>>=
+gridparameters(grd)
+@
+
+\subsection{Creating grids from points}
+In the following example a three-dimensional grid is constructed from
+a set of point coordinates:
+<<>>=
+pts = expand.grid(x = 1:3, y = 1:4, z=2:7)
+grd.pts = SpatialPixels(SpatialPoints(pts))
+summary(grd.pts)
+grd = as(grd.pts, "SpatialGrid")
+summary(grd)
+@
+Note that when passed a points argument, SpatialPixels accepts a tolerance
+(default 10 * .Machine\$double.eps) to specify how close the points have
+to be to being exactly on a grid. For very large coordinates, this value
+may have to be increased. A warning is issued if full rows and/or columns
+are missing.
+
+\subsection{Gridded data with attributes}
+
+Spatial, gridded data are data with coordinates on a regular lattice.
+To form such a grid we can go from coordinates:
+<<>>=
+attr = expand.grid(xc = 1:3, yc = 1:3)
+grd.attr = data.frame(attr, z1 = 1:9, z2 = 9:1)
+coordinates(grd.attr) = ~xc+yc
+gridded(grd.attr)
+gridded(grd.attr) = TRUE
+gridded(grd.attr)
+summary(grd.attr)
+@
+
+Package \pkg{raster} provides dedicated methods to deal with raster data,
+and can deal with grids that are too large to be stored in memory.
+
+\subsection{Are grids stored as points or as matrix/array?}
+
+The form in which gridded data comes depends on whether the grid was
+created from a set of points or from a matrix or external grid format
+(e.g. read through rgdal). Retrieving the form, or conversion to another
+can be done by \code{as(x, "class")}, or by using the function \code{fullgrid}:
+<<>>=
+fullgrid(grd)
+fullgrid(grd.pts)
+fullgrid(grd.attr)
+fullgrid(grd.pts) = TRUE
+fullgrid(grd.attr) = TRUE
+fullgrid(grd.pts)
+fullgrid(grd.attr)
+@
+
+The advantage of having grids in cell form is that when a large part
+of the grid contains missing values, these cells are not
+stored. In addition, no ordering of grid cells is required. For plotting by
+a grid with \code{levelplot}, this form is required and \code{spplot}
+(for grids a front-end to \code{levelplot}) will convert grids that are
+not in this form.  In contrast, \code{image} requires a slightly altered
+version of the the full grid form.  A disadvantage of the cell form is
+that the coordinates for each point have to be stored, which may be
+prohibitive for large grids.  Grids in cell form do have an index to
+allow for fast transformation to the full grid form.
+
+Besides \code{print}, \code{summary}, \code{plot},
+objects of class \code{SpatialGridDataFrame} have methods for
+\begin{itemize}
+\item \verb|[| select rows (points) and/or columns (variables)
+\item \verb|[[| extract a column from the attribute table
+\item \verb|[[<-| assign or replace a column in the attribute table
+\item \code{coordinates} retrieve the coordinates of grid cells
+\item \code{as.matrix}, \code{as.array} retrieve the data as a matrix or array. The first index (rows) is the
+x-column, the second index (columns) the y-coordinate, different attributes the third index. Row index 1 is the smallest
+x-coordinate; column index 1 is the larges y-coordinate (top-to-bottom).
+\item \code{as} coercion methods for \code{data.frame}, \code{SpatialPointsDataFrame}
+\item\code{image} plot an image of the grid
+\end{itemize}
+Finally, \code{spplot}, a front-end to \code{levelplot} allows the
+plotting of a single grid plot or a lattice of grid plots.
+
+\subsection{Row and column selection of a region}
+Rows/columns selection can be done when gridded data is in the full grid
+form (as \code{SpatialGridDataFrame}). In this form also rows and/or columns
+can be de-selected (in which case a warning is issued):
+<<>>=
+fullgrid(grd.attr) = FALSE
+grd.attr[1:5, "z1"]
+fullgrid(grd.attr) = TRUE
+grd.attr[1:2,-2, c("z2","z1")]
+@
+
+\section{Lines}
+
+\subsection{Building line objects from scratch}
+In many instances, line coordinates will be retrieved from external
+sources.  The following example shows how to build an object of class
+\code{SpatialLines} from scratch. Note that the \code{Lines} objects have to be given character ID values, and that these values must be unique for \code{Lines} objects combined in a \code{SpatialLines} object.
+
+% build line objects
+<<fig=TRUE>>=
+l1 = cbind(c(1,2,3),c(3,2,2))
+l1a = cbind(l1[,1]+.05,l1[,2]+.05)
+l2 = cbind(c(1,2,3),c(1,1.5,1))
+Sl1 = Line(l1)
+Sl1a = Line(l1a)
+Sl2 = Line(l2)
+S1 = Lines(list(Sl1, Sl1a), ID="a")
+S2 = Lines(list(Sl2), ID="b")
+Sl = SpatialLines(list(S1,S2))
+summary(Sl)
+plot(Sl, col = c("red", "blue"))
+@
+
+\subsection{Building line objects with attributes}
+
+The class \code{SpatialLinesDataFrame} is designed for holding
+lines data that have an attribute table (data.frame) attached
+to it:
+<<>>=
+df = data.frame(z = c(1,2), row.names=sapply(slot(Sl, "lines"), function(x) slot(x, "ID")))
+Sldf = SpatialLinesDataFrame(Sl, data = df)
+summary(Sldf)
+@
+Not many useful methods for it are available yet.  The \code{plot} method
+only plots the lines, ignoring attribute table values. Suggestions for
+useful methods are welcome.
+
+\section{Polygons}
+
+\subsection{Building from scratch}
+The following example shows how a set of polygons are built from scratch.
+Note that \code{Sr4} has the opposite direction (anti-clockwise) as the other three (clockwise);
+it is meant to represent a hole in the \code{Sr3} polygon. The default value for the hole colour \code{pbg} is \code{"transparent}, which will not show, but which often does not matter, because another polygon fills the hole --- here it is set to \code{"white"}. Note that the \code{Polygons} objects have to be given character ID values, and that these values must be unique for \code{Polygons} objects combined in a \code{SpatialPolygons} object.
+<<fig=TRUE>>=
+Sr1 = Polygon(cbind(c(2,4,4,1,2),c(2,3,5,4,2)))
+Sr2 = Polygon(cbind(c(5,4,2,5),c(2,3,2,2)))
+Sr3 = Polygon(cbind(c(4,4,5,10,4),c(5,3,2,5,5)))
+Sr4 = Polygon(cbind(c(5,6,6,5,5),c(4,4,3,3,4)), hole = TRUE)
+
+Srs1 = Polygons(list(Sr1), "s1")
+Srs2 = Polygons(list(Sr2), "s2")
+Srs3 = Polygons(list(Sr3, Sr4), "s3/4")
+SpP = SpatialPolygons(list(Srs1,Srs2,Srs3), 1:3)
+plot(SpP, col = 1:3, pbg="white")
+# plot(SpP)
+@
+
+\subsection{Polygons with attributes}
+Polygons with attributes, objects of class \code{SpatialPolygonsDataFrame},
+are built from the \code{SpatialPolygons} object (topology) and the attributes
+(data.frame). The \code{row.names} of the attributes data frame are matched with the ID slots of the \code{SpatialPolygons} object, and the rows of the data frame will be re-ordered if necessary.
+<<>>=
+attr = data.frame(a=1:3, b=3:1, row.names=c("s3/4", "s2", "s1"))
+SrDf = SpatialPolygonsDataFrame(SpP, attr)
+as(SrDf, "data.frame")
+spplot(SrDf)
+@
+
+<<fig=TRUE,echo=FALSE>>=
+print(spplot(SrDf))
+@
+
+or, as another way to create the \code{SpatialPolygonsDataFrame} object:
+<<>>=
+SrDf = attr
+polygons(SrDf) = SpP
+@
+
+\section{Importing and exporting data}
+
+Data import and export from external data sources and file formats
+is handled inthe \pkg{rgdal} package in the first instance, using the
+available OGR/GDAL drivers for vector and raster data. This keeps the
+range of drivers up to date, and secures code maintenance through working
+closely with the open source geospatial community. Mac OSX users unable
+or unwilling to install \pkg{rgdal} from source after installing its
+external dependencies will find some functions in the \pkg{maptools}
+package to import and export a limited range of formats.
+
+
+\section*{References}
+\begin{description}
+\item Chambers, J.M., 1998, Programming with data, a guide to the S language.
+Springer, New York.
+\end{description}
+
+\end{document}
+
+% vim:syntax=tex

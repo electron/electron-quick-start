@@ -1,0 +1,1088 @@
+\documentclass{A}
+
+\usepackage{amsfonts,thumbpdf,alltt}
+\newenvironment{smallverbatim}{\small\verbatim}{\endverbatim}
+\newenvironment{smallexample}{\begin{alltt}\small}{\end{alltt}}
+
+\SweaveOpts{engine=R,eps=FALSE}
+%\VignetteIndexEntry{kernlab - An S4 Package for Kernel Methods in R}
+%\VignetteDepends{kernlab}
+%\VignetteKeywords{kernel methods, support vector machines, quadratic programming, ranking, clustering, S4, R}
+%\VignettePackage{kernlab}
+
+<<preliminaries,echo=FALSE,results=hide>>=
+library(kernlab)
+options(width = 70)
+@
+
+\title{\pkg{kernlab} -- An \proglang{S4} Package for Kernel Methods in \proglang{R}}
+\Plaintitle{kernlab - An S4 Package for Kernel Methods in R}
+
+\author{Alexandros Karatzoglou\\Technische Universit\"at Wien
+   \And Alex Smola\\Australian National University, NICTA
+   \And Kurt Hornik\\Wirtschaftsuniversit\"at Wien
+}
+\Plainauthor{Alexandros Karatzoglou, Alex Smola, Kurt Hornik}
+
+\Abstract{
+  \pkg{kernlab} is an extensible package for kernel-based machine
+  learning methods in \proglang{R}.  It takes
+  advantage of \proglang{R}'s new \proglang{S4} object model and provides a
+  framework for creating and using kernel-based algorithms.  The package
+  contains dot product primitives (kernels), implementations of support
+  vector machines and the relevance vector machine, Gaussian processes,
+  a ranking algorithm, kernel PCA, kernel CCA, kernel feature analysis,
+  online kernel methods and a spectral clustering
+  algorithm.  Moreover it provides a general purpose quadratic
+  programming solver, and an incomplete Cholesky decomposition method.
+}
+
+
+\Keywords{kernel methods, support vector machines, quadratic
+programming, ranking, clustering, \proglang{S4}, \proglang{R}}
+\Plainkeywords{kernel methods, support vector machines, quadratic
+programming, ranking, clustering, S4, R}
+
+\begin{document}
+
+\section{Introduction}
+
+Machine learning is all about extracting structure from data, but it is
+often difficult to solve problems like classification, regression and
+clustering
+in the space in which the underlying observations have been made.
+
+Kernel-based learning methods use an implicit mapping of the input data
+into a high dimensional feature space defined by a kernel function,
+i.e., a function returning the inner product $ \langle \Phi(x),\Phi(y)
+\rangle$ between the images of two data points $x, y$ in the feature
+space.  The learning then takes place in the feature space, provided the
+learning algorithm can be entirely rewritten so that the data points
+only appear inside dot products with other points.  This is often
+referred to as the ``kernel trick''
+\citep{kernlab:Schoelkopf+Smola:2002}.  More precisely, if a projection
+$\Phi: X \rightarrow H$ is used, the dot product
+$\langle\Phi(x),\Phi(y)\rangle$ can be represented by a kernel
+function~$k$
+\begin{equation} \label{eq:kernel}
+k(x,y)= \langle \Phi(x),\Phi(y) \rangle,
+\end{equation}
+which is computationally simpler than explicitly projecting $x$ and $y$
+into the feature space~$H$.
+
+One interesting property of kernel-based systems is that, once a valid
+kernel function has been selected, one can practically work in spaces of
+any dimension without paying any computational cost, since feature
+mapping is never effectively performed. In fact, one does not even need
+to know which features are being used.
+
+Another advantage is the that one can design and use a kernel for a
+particular problem that could be applied directly to the data without
+the need for a feature extraction process.  This is particularly
+important in problems where a lot of structure of the data is lost by
+the feature extraction process (e.g., text processing).  The inherent
+modularity of kernel-based learning methods allows one to use any valid
+kernel on a kernel-based algorithm.
+
+\subsection{Software review}
+
+The most prominent kernel based learning algorithm is without doubt the
+support vector machine (SVM), so the existence of many support vector
+machine packages comes as little surprise.  Most of the existing SVM
+software is written in \proglang{C} or \proglang{C++}, e.g.\ the award
+winning
+\pkg{libsvm}\footnote{\url{http://www.csie.ntu.edu.tw/~cjlin/libsvm/}}
+\citep{kernlab:Chang+Lin:2001},
+\pkg{SVMlight}\footnote{\url{http://svmlight.joachims.org}}
+\citep{kernlab:joachim:1999},
+\pkg{SVMTorch}\footnote{\url{http://www.torch.ch}}, Royal Holloway
+Support Vector Machines\footnote{\url{http://svm.dcs.rhbnc.ac.uk}},
+\pkg{mySVM}\footnote{\url{http://www-ai.cs.uni-dortmund.de/SOFTWARE/MYSVM/index.eng.html}},
+and \pkg{M-SVM}\footnote{\url{http://www.loria.fr/~guermeur/}} with
+many packages providing interfaces to \proglang{MATLAB} (such as
+\pkg{libsvm}), and even some native \proglang{MATLAB}
+toolboxes\footnote{
+  \url{http://www.isis.ecs.soton.ac.uk/resources/svminfo/}}\,\footnote{
+  \url{http://asi.insa-rouen.fr/~arakotom/toolbox/index}}\,\footnote{
+  \url{http://www.cis.tugraz.at/igi/aschwaig/software.html}}.
+
+Putting SVM specific software aside and considering the abundance of
+other kernel-based algorithms published nowadays, there is little
+software available implementing a wider range of kernel methods with
+some exceptions like the
+\pkg{Spider}\footnote{\url{http://www.kyb.tuebingen.mpg.de/bs/people/spider/}}
+software which provides a \proglang{MATLAB} interface to various
+\proglang{C}/\proglang{C++} SVM libraries and \proglang{MATLAB}
+implementations of various kernel-based algorithms,
+\pkg{Torch} \footnote{\url{http://www.torch.ch}} which also includes more
+traditional machine learning algorithms, and the occasional
+\proglang{MATLAB} or \proglang{C} program found on a personal web page where
+an author includes code from a published paper.
+
+\subsection[R software]{\proglang{R} software}
+
+The \proglang{R} package \pkg{e1071} offers an interface to the award
+winning \pkg{libsvm} \citep{kernlab:Chang+Lin:2001}, a very efficient
+SVM implementation.  \pkg{libsvm} provides a robust and fast SVM
+implementation and produces state of the art results on most
+classification and regression problems
+\citep{kernlab:Meyer+Leisch+Hornik:2003}.  The \proglang{R} interface
+provided in \pkg{e1071} adds all standard \proglang{R} functionality like
+object orientation and formula interfaces to \pkg{libsvm}.  Another
+SVM related \proglang{R} package which was made recently available is
+\pkg{klaR} \citep{kernlab:Roever:2004} which includes an interface to
+\pkg{SVMlight}, a popular SVM implementation along with other
+classification tools like Regularized Discriminant Analysis.
+
+However, most of the \pkg{libsvm} and \pkg{klaR} SVM code is in
+\proglang{C++}.  Therefore, if one would like to extend or enhance the
+code with e.g.\ new kernels or different optimizers, one would have to
+modify the core \proglang{C++} code.
+
+\section[kernlab]{\pkg{kernlab}}
+
+\pkg{kernlab} aims to provide the \proglang{R} user with basic kernel
+functionality (e.g., like computing a kernel matrix using a particular
+kernel), along with some utility functions commonly used in kernel-based
+methods like a quadratic programming solver, and modern kernel-based
+algorithms based on the functionality that the package provides. Taking
+advantage of the inherent modularity of kernel-based methods,
+\pkg{kernlab} aims to allow the user to switch between kernels on an
+existing algorithm and even create and use own kernel functions for the
+kernel methods provided in the package.
+
+
+\subsection[S4 objects]{\proglang{S4} objects}
+
+\pkg{kernlab} uses \proglang{R}'s new object model described in
+``Programming with Data'' \citep{kernlab:Chambers:1998} which is known
+as the \proglang{S4} class system and is implemented in the
+\pkg{methods} package.
+
+In contrast with the older \proglang{S3} model for objects in \proglang{R},
+classes, slots, and methods relationships must be declared explicitly
+when using the \proglang{S4} system.  The number and types of slots in an
+instance of a class have to be established at the time the class is
+defined.  The objects from the class are validated against this
+definition and have to comply to it at any time.  \proglang{S4} also
+requires formal declarations of methods, unlike the informal system of
+using function names to identify a certain method in \proglang{S3}.
+
+An \proglang{S4} method is declared by a call to \code{setMethod} along
+with the name and a ``signature'' of the arguments.  The signature is
+used to identify the classes of one or more arguments of the method.
+Generic functions can be declared using the \code{setGeneric}
+function.  Although such formal declarations require package authors to
+be more disciplined than when using the informal \proglang{S3} classes,
+they provide assurance that each object in a class has the required
+slots and that the names and classes of data in the slots are
+consistent.
+
+An example of a class used in \pkg{kernlab} is shown below.
+Typically, in a return object we want to include information on the
+result of the method along with additional information and parameters.
+Usually \pkg{kernlab}'s classes include slots for the kernel function
+used and the results and additional useful information.
+\begin{smallexample}
+setClass("specc",
+          representation("vector",  # the vector containing the cluster
+                          centers="matrix",     # the cluster centers
+                          size="vector",        # size of each cluster
+                          kernelf="function",   # kernel function used
+                          withinss = "vector"), # within cluster sum of squares
+          prototype = structure(.Data = vector(), 
+                                centers = matrix(),
+                                size = matrix(),
+                                kernelf = ls,
+                                withinss = vector()))
+\end{smallexample}
+
+Accessor and assignment function are defined and used to access the
+content of each slot which can be also accessed with the \verb|@|
+operator.
+
+\subsection{Namespace}
+
+Namespaces were introduced in \proglang{R} 1.7.0 and provide a means for
+packages to control the way global variables and methods are being made
+available.  Due to the number of assignment and accessor function
+involved, a namespace is used to control the methods which are being
+made visible outside the package.  Since \proglang{S4} methods are being
+used, the \pkg{kernlab} namespace also imports methods and variables
+from the \pkg{methods} package.
+
+\subsection{Data}
+
+The \pkg{kernlab} package also includes data set which will be used
+to illustrate the methods included in the package.  The \code{spam}
+data set \citep{kernlab:Hastie:2001} set collected at Hewlett-Packard
+Labs contains data on 2788 and 1813 e-mails classified as non-spam and
+spam, respectively. The 57 variables of
+each data vector indicate the frequency of certain words and characters
+in the e-mail.
+
+Another data set included in \pkg{kernlab}, the \code{income} data
+set \citep{kernlab:Hastie:2001}, is taken by a marketing survey in the
+San Francisco Bay concerning the income of shopping mall customers.  It
+consists of 14 demographic attributes (nominal and ordinal variables)
+including the income and 8993 observations.
+
+The \code{ticdata} data set \citep{kernlab:Putten:2000} was used in
+the 2000 Coil Challenge and contains information on customers of an
+insurance company.  The data consists of 86 variables and includes
+product usage data and socio-demographic data derived from zip area
+codes.  The data was collected to answer the following question: Can you
+predict who would be interested in buying a caravan insurance policy and
+give an explanation why?
+
+The \code{promotergene} is a data set of
+E. Coli promoter gene sequences (DNA) with 106 observations and 58
+variables available at the UCI Machine Learning repository.
+Promoters have a region where a protein (RNA polymerase) must make
+contact and the helical DNA sequence must have a valid conformation so that
+the two pieces of the contact region spatially align. The data contains
+DNA sequences of promoters and non-promoters.
+
+The \code{spirals} data set was created by the
+\code{mlbench.spirals} function in the \pkg{mlbench} package
+\citep{kernlab:Leisch+Dimitriadou}.  This two-dimensional data set with
+300 data points consists of two spirals where Gaussian noise is added to
+each data point.
+
+\subsection{Kernels}
+
+A kernel function~$k$ calculates the inner product of two vectors $x$,
+$x'$ in a given feature mapping $\Phi: X \rightarrow H$.  The notion of
+a kernel is obviously central in the making of any kernel-based
+algorithm and consequently also in any software package containing
+kernel-based methods.
+
+Kernels in \pkg{kernlab} are \proglang{S4} objects of class
+\code{kernel} extending the \code{function} class with one
+additional slot containing a list with the kernel hyper-parameters.
+Package \pkg{kernlab} includes 7 different kernel classes which all
+contain the class \code{kernel} and are used to implement the existing
+kernels.  These classes are used in the function dispatch mechanism of
+the kernel utility functions described below.  Existing kernel functions
+are initialized by ``creator'' functions.  All kernel functions take two
+feature vectors as parameters and return the scalar dot product of the
+vectors.  An example of the functionality of a kernel in
+\pkg{kernlab}:
+
+<<rbf1,echo=TRUE>>=
+## create a RBF kernel function with sigma hyper-parameter 0.05 
+rbf <- rbfdot(sigma = 0.05)
+rbf
+## create two random feature vectors
+x <- rnorm(10)
+y <- rnorm(10)
+## compute dot product between x,y
+rbf(x, y)
+@
+The package includes implementations of the following kernels:
+
+\begin{itemize}
+ \item the linear \code{vanilladot} kernel implements the simplest of all
+  kernel functions
+  \begin{equation}
+    k(x,x') = \langle x, x' \rangle
+  \end{equation}
+  which is useful specially when dealing with large sparse data
+  vectors~$x$ as is usually the case in text categorization.
+  
+ \item the Gaussian radial basis function \code{rbfdot}
+  \begin{equation}
+    k(x,x') = \exp(-\sigma \|x - x'\|^2)
+  \end{equation} 
+  which is a general purpose kernel and is typically used when no
+  further prior knowledge is available about the data.
+
+ \item the polynomial kernel \code{polydot}
+  \begin{equation}
+    k(x, x') = 
+    \left(
+      \mathrm{scale} \cdot \langle x, x' \rangle + 
+      \mathrm{offset}
+    \right)^\mathrm{degree}.
+  \end{equation}
+  which is used in classification of images.
+
+ \item the hyperbolic tangent kernel \code{tanhdot}
+  \begin{equation}
+    k(x, x') = 
+    \tanh 
+    \left(
+      \mathrm{scale} \cdot \langle x, x' \rangle + \mathrm{offset}
+    \right)
+  \end{equation}
+  which is mainly used as a proxy for neural networks.
+  
+ \item the Bessel function of the first kind kernel \code{besseldot}
+  \begin{equation}
+    k(x, x') = 
+    \frac{\mathrm{Bessel}_{(\nu+1)}^n(\sigma \|x - x'\|)}
+    {(\|x-x'\|)^{-n(\nu+1)}}.
+  \end{equation}
+  is a general purpose kernel and is typically used when no further
+  prior knowledge is available and mainly popular in the Gaussian
+  process community.
+
+ \item the Laplace radial basis kernel \code{laplacedot}
+  \begin{equation}
+    k(x, x') = \exp(-\sigma \|x - x'\|)
+  \end{equation}
+  which is a general purpose kernel and is typically used when no
+  further prior knowledge is available.
+
+ \item the ANOVA radial basis kernel \code{anovadot} performs well in multidimensional regression problems
+  \begin{equation}
+    k(x, x') = \left(\sum_{k=1}^{n}\exp(-\sigma(x^k-{x'}^k)^2)\right)^{d}
+  \end{equation}
+  where $x^k$ is the $k$th component of $x$.
+\end{itemize}
+
+\subsection{Kernel utility methods}
+
+The package also includes methods for computing commonly used kernel
+expressions (e.g., the Gram matrix).  These methods are written in such
+a way that they take functions (i.e., kernels) and matrices (i.e.,
+vectors of patterns) as arguments.  These can be either the kernel
+functions already included in \pkg{kernlab} or any other function
+implementing a valid dot product (taking two vector arguments and
+returning a scalar).  In case one of the already implemented kernels is
+used, the function calls a vectorized implementation of the
+corresponding function.  Moreover, in the case of symmetric matrices
+(e.g., the dot product matrix of a Support Vector Machine) they only
+require one argument rather than having to pass the same matrix twice
+(for rows and columns).
+
+The computations for the kernels already available in the package are
+vectorized whenever possible which guarantees good performance and
+acceptable memory requirements.  Users can define their own kernel by
+creating a function which takes two vectors as arguments (the data
+points) and returns a scalar (the dot product).  This function can then
+be based as an argument to the kernel utility methods.  For a user
+defined kernel the dispatch mechanism calls a generic method
+implementation which calculates the expression by passing the kernel
+function through a pair of \code{for} loops.  The kernel methods
+included are:
+
+\begin{description}
+  
+ \item[\code{kernelMatrix}] This is the most commonly used function.
+  It computes $k(x, x')$, i.e., it computes the matrix $K$ where $K_{ij}
+  = k(x_i, x_j)$ and $x$ is a \emph{row} vector.  In particular,
+\begin{verbatim}
+K <- kernelMatrix(kernel, x)
+\end{verbatim}
+  computes the matrix $K_{ij} = k(x_i, x_j)$ where the $x_i$ are the
+  columns of $X$ and
+\begin{verbatim}
+K <- kernelMatrix(kernel, x1, x2)
+\end{verbatim}
+  computes the matrix $K_{ij} = k(x1_i, x2_j)$.
+  
+  \item[\code{kernelFast}]
+  This method is different to \code{kernelMatrix} for \code{rbfdot}, \code{besseldot}, 
+  and the \code{laplacedot} kernel, which are all RBF kernels. 
+  It is identical to \code{kernelMatrix}, 
+  except that it also requires the squared norm of the 
+  first argument as additional input.
+  It is mainly used in kernel algorithms, where columns
+  of the kernel matrix are computed per invocation. In these cases,
+  evaluating the norm of each column-entry as it is done on a \code{kernelMatrix} 
+  invocation on an RBF kernel, over and over again would cause
+  significant computational overhead. Its invocation is via
+\begin{verbatim}
+K = kernelFast(kernel, x1, x2, a)
+\end{verbatim}
+  Here $a$ is a vector containing the squared norms of $x1$.
+
+ \item[\code{kernelMult}] is a convenient way of computing kernel
+  expansions.  It returns the vector $f = (f(x_1), \dots, f(x_m))$ where
+  \begin{equation}
+    f(x_i) = \sum_{j=1}^{m} k(x_i, x_j) \alpha_j, 
+    \mbox{~hence~} f = K \alpha.
+  \end{equation}
+  The need for such a function arises from the fact that $K$ may
+  sometimes be larger than the memory available.  Therefore, it is
+  convenient to compute $K$ only in stripes and discard the latter after
+  the corresponding part of $K \alpha$ has been computed.  The parameter
+  \code{blocksize} determines the number of rows in the stripes.  In
+  particular,
+\begin{verbatim}
+f <- kernelMult(kernel, x, alpha)
+\end{verbatim}
+  computes $f_i = \sum_{j=1}^m k(x_i, x_j) \alpha_j$ and
+\begin{verbatim}
+f <- kernelMult(kernel, x1, x2, alpha)
+\end{verbatim}
+  computes $f_i = \sum_{j=1}^m k(x1_i, x2_j) \alpha_j$. 
+
+ \item[\code{kernelPol}]
+  is a method very similar to \code{kernelMatrix} with the only
+  difference that rather than computing $K_{ij} = k(x_i, x_j)$ it
+  computes $K_{ij} = y_i y_j k(x_i, x_j)$.  This means that 
+\begin{verbatim}
+K <- kernelPol(kernel, x, y)
+\end{verbatim}
+  computes the matrix $K_{ij} = y_i y_j k(x_i, x_j)$ where the $x_i$ are
+  the columns of $x$ and $y_i$ are elements of the vector~$y$.  Moreover,
+\begin{verbatim}
+K <- kernelPol(kernel, x1, x2, y1, y2)
+\end{verbatim}
+  computes the matrix $K_{ij} = y1_i y2_j k(x1_i, x2_j)$.  Both
+  \code{x1} and \code{x2} may be matrices and \code{y1} and
+  \code{y2} vectors.
+\end{description}
+
+An example using these functions :
+<<kernelMatrix,echo=TRUE>>=
+## create a RBF kernel function with sigma hyper-parameter 0.05 
+poly <- polydot(degree=2)
+## create artificial data set
+x <- matrix(rnorm(60), 6, 10)
+y <- matrix(rnorm(40), 4, 10)
+## compute kernel matrix
+kx <- kernelMatrix(poly, x)
+kxy <- kernelMatrix(poly, x, y)
+@
+
+\section{Kernel methods}
+
+Providing a solid base for creating kernel-based methods is part of what
+we are trying to achieve with this package, the other being to provide a
+wider range of kernel-based methods in \proglang{R}.  In the rest of the
+paper we present the kernel-based methods available in \pkg{kernlab}.
+All the methods in \pkg{kernlab} can be used with any of the kernels
+included in the package as well as with any valid user-defined kernel.
+User defined kernel functions can be passed to existing kernel-methods
+in the \code{kernel} argument.
+
+\subsection{Support vector machine}
+
+Support vector machines \citep{kernlab:Vapnik:1998} have gained
+prominence in the field of machine learning and pattern classification
+and regression.  The solutions to classification and regression problems
+sought by kernel-based algorithms such as the SVM are linear functions
+in the feature space:
+\begin{equation}
+f(x) = w^\top \Phi(x)
+\end{equation} 
+for some weight vector $w \in F$.  The kernel trick can be exploited in
+this whenever the weight vector~$w$ can be expressed as a linear
+combination of the training points, $w = \sum_{i=1}^{n} \alpha_i
+\Phi(x_i)$, implying that $f$ can be written as
+\begin{equation}
+f(x) = \sum_{i=1}^{n}\alpha_i k(x_i, x)
+\end{equation}
+
+A very important issue that arises is that of choosing a kernel~$k$ for
+a given learning task.  Intuitively, we wish to choose a kernel that
+induces the ``right'' metric in the space.  Support Vector Machines
+choose a function $f$ that is linear in the feature space by optimizing
+some criterion over the sample.  In the case of the 2-norm Soft Margin
+classification the optimization problem takes the form:
+ \begin{eqnarray} \nonumber
+    \mathrm{minimize} 
+    && t(w,\xi) = \frac{1}{2}{\|w\|}^2+\frac{C}{m}\sum_{i=1}^{m}\xi_i \\
+    \mbox{subject to~}
+    && y_i ( \langle x_i , w \rangle +b ) \geq 1- \xi_i \qquad (i=1,\dots,m)\\
+    \nonumber && \xi_i \ge 0 \qquad (i=1,\dots, m)
+\end{eqnarray}
+Based on similar methodology, SVMs deal with the problem of novelty
+detection (or one class classification) and regression.
+
+\pkg{kernlab}'s implementation of support vector machines,
+\code{ksvm}, is based on the optimizers found in
+\pkg{bsvm}\footnote{\url{http://www.csie.ntu.edu.tw/~cjlin/bsvm}}
+\citep{kernlab:Hsu:2002} and \pkg{libsvm}
+\citep{kernlab:Chang+Lin:2001} which includes a very efficient version
+of the Sequential Minimization Optimization (SMO).  SMO decomposes the
+SVM Quadratic Problem (QP) without using any numerical QP optimization
+steps.  Instead, it chooses to solve the smallest possible optimization
+problem involving two elements of $\alpha_i$ because they must obey one
+linear equality constraint.  At every step, SMO chooses two $\alpha_i$
+to jointly optimize and finds the optimal values for these $\alpha_i$
+analytically, thus avoiding numerical QP optimization, and updates the
+SVM to reflect the new optimal values.
+
+The SVM implementations available in \code{ksvm} include the C-SVM
+classification algorithm along with the $\nu$-SVM classification
+formulation which is equivalent to the former but has a more natural
+($\nu$) model parameter taking values in $[0,1]$ and is proportional to
+the fraction of support vectors found in the data set and the training
+error.
+
+For classification problems which include more than two classes
+(multi-class) a one-against-one or pairwise classification method
+\citep{kernlab:Knerr:1990, kernlab:Kressel:1999} is used.  This method
+constructs ${k \choose 2}$ classifiers where each one is trained on data
+from two classes.  Prediction is done by voting where each classifier
+gives a prediction and the class which is predicted more often wins
+(``Max Wins'').  This method has been shown to produce robust results
+when used with SVMs \citep{kernlab:Hsu2:2002}.  Furthermore the
+\code{ksvm} implementation provides the ability to produce class
+probabilities as output instead of class labels.  This is done by an
+improved implementation \citep{kernlab:Lin:2001} of Platt's posteriori
+probabilities \citep{kernlab:Platt:2000} where a sigmoid function
+\begin{equation}
+  P(y=1\mid f) = \frac{1}{1+ e^{Af+B}}
+\end{equation}
+is fitted on the decision values~$f$ of the binary SVM classifiers, $A$
+and $B$ are estimated by minimizing the negative log-likelihood
+function.  To extend the class probabilities to the multi-class case,
+each binary classifiers class probability output is combined by the
+\code{couple} method which implements methods for combing class
+probabilities proposed in \citep{kernlab:Wu:2003}.
+
+Another approach for multIn order to create a similar probability output for regression, following
+\cite{kernlab:Weng:2004}, we suppose that the SVM is trained on data from the model 
+\begin{equation}
+y_i = f(x_i) + \delta_i
+\end{equation}
+where $f(x_i)$ is the underlying function and $\delta_i$ is independent and identical distributed
+random noise. Given a test data $x$ the distribution of $y$ given $x$ and allows 
+one to draw probabilistic inferences about $y$ e.g. one can construct 
+a predictive interval $\Phi = \Phi(x)$ such that $y \in \Phi$ with a certain probability. 
+If $\hat{f}$ is the estimated (predicted) function of the SVM on new data
+then $\eta = \eta(x) = y - \hat{f}(x)$ is the prediction error and $y \in \Phi$ is equivalent to 
+$\eta \in \Phi $. Empirical observation shows that the distribution of the residuals $\eta$ can be 
+modeled both by a Gaussian and a Laplacian distribution with zero mean. In this implementation the 
+Laplacian with zero mean is used :
+\begin{equation}
+p(z)  = \frac{1}{2\sigma}e^{-\frac{|z|}{\sigma}}
+\end{equation} 
+
+Assuming that $\eta$ are independent the scale parameter $\sigma$ is estimated by maximizing the
+likelihood. The data for the estimation is produced by a three-fold cross-validation.
+For the Laplace distribution the maximum likelihood estimate is :
+\begin{equation}
+\sigma = \frac{\sum_{i=1}^m|\eta_i|}{m}
+\end{equation}
+
+i-class classification supported by the
+\code{ksvm} function is the one proposed in
+\cite{kernlab:Crammer:2000}.  This algorithm works by solving a single
+optimization problem including the data from all classes:
+
+\begin{eqnarray} \nonumber
+  \mathrm{minimize}
+  && t(w_n,\xi) =
+  \frac{1}{2}\sum_{n=1}^k{\|w_n\|}^2+\frac{C}{m}\sum_{i=1}^{m}\xi_i \\
+  \mbox{subject to~}
+  && \langle x_i , w_{y_i} \rangle - \langle x_i , w_{n} \rangle  \geq
+  b_i^n - \xi_i \qquad (i=1,\dots,m) \\ 
+  \mbox{where} && b_i^n = 1 - \delta_{y_i,n} 
+\end{eqnarray}
+where the decision function is 
+\begin{equation}
+  \mathrm{argmax}_{m=1,\dots,k} \langle x_i , w_{n} \rangle
+\end{equation}
+
+This optimization problem is solved by a decomposition method proposed
+in \cite{kernlab:Hsu:2002} where optimal working sets are found (that
+is, sets of $\alpha_i$ values which have a high probability of being
+non-zero).  The QP sub-problems are then solved by a modified version of
+the
+\pkg{TRON}\footnote{\url{http://www-unix.mcs.anl.gov/~more/tron/}}
+\citep{kernlab:more:1999} optimization software.
+
+One-class classification or novelty detection
+\citep{kernlab:Williamson:1999, kernlab:Tax:1999}, where essentially an
+SVM detects outliers in a data set, is another algorithm supported by
+\code{ksvm}.  SVM novelty detection works by creating a spherical
+decision boundary around a set of data points by a set of support
+vectors describing the spheres boundary. The $\nu$ parameter is used to
+control the volume of the sphere and consequently the number of outliers
+found.  Again, the value of $\nu$ represents the fraction of outliers
+found.  Furthermore, $\epsilon$-SVM \citep{kernlab:Vapnik2:1995} and
+$\nu$-SVM \citep{kernlab:Smola1:2000} regression are also available.
+
+The problem of model selection is partially addressed by an empirical
+observation for the popular Gaussian RBF kernel
+\citep{kernlab:Caputo:2002}, where the optimal values of the
+hyper-parameter of sigma are shown to lie in between the 0.1 and 0.9
+quantile of the $\|x- x'\| $ statistics.  The \code{sigest} function
+uses a sample of the training set to estimate the quantiles and returns
+a vector containing the values of the quantiles.  Pretty much any value
+within this interval leads to good performance.
+
+An example for the \code{ksvm} function is shown below. 
+
+<<ksvm, echo = TRUE>>=
+## simple example using the promotergene data set
+data(promotergene)
+## create test and training set
+tindex <- sample(1:dim(promotergene)[1],5)
+genetrain <- promotergene[-tindex, ]
+genetest <- promotergene[tindex,]
+## train a support vector machine
+gene <- ksvm(Class~.,data=genetrain,kernel="rbfdot",kpar="automatic",C=60,cross=3,prob.model=TRUE)
+gene
+predict(gene, genetest)
+predict(gene, genetest, type="probabilities")
+@
+
+\begin{figure}
+\centering
+<<fig=TRUE,echo=TRUE,width=10,height=10,results=hide>>=
+set.seed(123)
+x <- rbind(matrix(rnorm(120),,2),matrix(rnorm(120,mean=3),,2))
+y <- matrix(c(rep(1,60),rep(-1,60)))
+
+svp <- ksvm(x,y,type="C-svc")
+plot(svp,data=x)
+@  
+\caption{A contour plot of the SVM decision values for a toy binary classification problem using the
+  \code{plot} function}
+\label{fig:ksvm Plot}
+\end{figure}
+
+\subsection{Relevance vector machine}
+
+The relevance vector machine \citep{kernlab:Tipping:2001} is a
+probabilistic sparse kernel model identical in functional form to the
+SVM making predictions based on a function of the form
+\begin{equation}
+  y(x) = \sum_{n=1}^{N} \alpha_n K(\mathbf{x},\mathbf{x}_n) + a_0
+\end{equation}
+where $\alpha_n$ are the model ``weights'' and $K(\cdotp,\cdotp)$ is a
+kernel function.  It adopts a Bayesian approach to learning, by
+introducing a prior over the weights $\alpha$
+\begin{equation}
+  p(\alpha, \beta) = 
+  \prod_{i=1}^m N(\beta_i \mid 0 , a_i^{-1})
+  \mathrm{Gamma}(\beta_i\mid \beta_\beta , \alpha_\beta) 
+\end{equation}
+governed by a set of hyper-parameters $\beta$, one associated with each
+weight, whose most probable values are iteratively estimated for the
+data.  Sparsity is achieved because in practice the posterior
+distribution in many of the weights is sharply peaked around zero.
+Furthermore, unlike the SVM classifier, the non-zero weights in the RVM
+are not associated with examples close to the decision boundary, but
+rather appear to represent ``prototypical'' examples.  These examples
+are termed \emph{relevance vectors}.
+
+\pkg{kernlab} currently has an implementation of the RVM based on a
+type~II maximum likelihood method which can be used for regression.
+The functions returns an \proglang{S4} object containing the model
+parameters along with indexes for the relevance vectors and the kernel
+function and hyper-parameters used.
+
+<<rvm,echo=FALSE>>=
+x <- seq(-20, 20, 0.5)
+y <- sin(x)/x + rnorm(81, sd = 0.03)
+y[41] <- 1
+@
+<<rvm2,echo=TRUE>>=
+rvmm <- rvm(x, y,kernel="rbfdot",kpar=list(sigma=0.1))
+rvmm
+ytest <- predict(rvmm, x)
+@
+
+\begin{figure}
+\centering
+<<fig=TRUE,echo=FALSE,width=12,height=7>>=
+plot(x, y, cex=0.5)
+lines(x, ytest, col = "red")
+points(x[RVindex(rvmm)],y[RVindex(rvmm)],pch=21)
+@  
+\caption{Relevance vector regression on data points created by the
+  $sinc(x)$ function, relevance vectors are shown circled.}
+\label{fig:RVM sigmoid}
+\end{figure}
+
+
+\subsection{Gaussian processes}
+
+Gaussian processes \citep{kernlab:Williams:1995} are based on the
+``prior'' assumption that adjacent observations should convey
+information about each other. In particular, it is assumed that the
+observed variables are normal, and that the coupling between them takes
+place by means of the covariance matrix of a normal distribution. Using
+the kernel matrix as the covariance matrix is a convenient way of
+extending Bayesian modeling of linear estimators to nonlinear
+situations.  Furthermore it represents the counterpart of the ``kernel
+trick'' in methods minimizing the regularized risk.
+
+For regression estimation we assume that rather than observing $t(x_i)$
+we observe $y_i = t(x_i) + \xi_i$ where $\xi_i$ is assumed to be
+independent Gaussian distributed noise with zero mean.  The posterior
+distribution is given by
+\begin{equation}
+  p(\mathbf{y}\mid \mathbf{t}) =
+  \left[ \prod_ip(y_i - t(x_i)) \right]
+  \frac{1}{\sqrt{(2\pi)^m \det(K)}} 
+  \exp \left(\frac{1}{2}\mathbf{t}^T K^{-1} \mathbf{t} \right)
+\end{equation}
+and after substituting $\mathbf{t} = K\mathbf{\alpha}$ and taking
+logarithms
+\begin{equation}
+\ln{p(\mathbf{\alpha} \mid \mathbf{y})} = - \frac{1}{2\sigma^2}\| \mathbf{y} - K \mathbf{\alpha} \|^2 -\frac{1}{2}\mathbf{\alpha}^T K \mathbf{\alpha} +c
+\end{equation}
+and maximizing $\ln{p(\mathbf{\alpha} \mid \mathbf{y})}$ for
+$\mathbf{\alpha}$ to obtain the maximum a posteriori approximation
+yields
+\begin{equation}
+  \mathbf{\alpha} = (K + \sigma^2\mathbf{1})^{-1} \mathbf{y}
+\end{equation}
+Knowing $\mathbf{\alpha}$ allows for prediction of $y$ at a new location
+$x$ through $y = K(x,x_i){\mathbf{\alpha}}$.  In similar fashion
+Gaussian processes can be used for classification.
+
+\code{gausspr} is the function in \pkg{kernlab} implementing Gaussian
+processes for classification and regression.
+
+
+\subsection{Ranking}
+
+The success of Google has vividly demonstrated the value of a good
+ranking algorithm in real world problems.  \pkg{kernlab} includes a
+ranking algorithm based on work published in \citep{kernlab:Zhou:2003}.
+This algorithm exploits the geometric structure of the data in contrast
+to the more naive approach which uses the Euclidean distances or inner
+products of the data.  Since real world data are usually highly
+structured, this algorithm should perform better than a simpler approach
+based on a Euclidean distance measure.
+
+First, a weighted network is defined on the data and an authoritative
+score is assigned to every point.  The query points act as source nodes
+that continually pump their scores to the remaining points via the
+weighted network, and the remaining points further spread the score to
+their neighbors.  The spreading process is repeated until convergence
+and the points are ranked according to the scores they received.
+
+Suppose we are given a set of data points $X = {x_1, \dots, x_{s},
+  x_{s+1}, \dots, x_{m}}$ in $\mathbf{R}^n$ where the first $s$ points
+are the query points and the rest are the points to be ranked.  The
+algorithm works by connecting the two nearest points iteratively until a
+connected graph $G = (X, E)$ is obtained where $E$ is the set of edges.
+The affinity matrix $K$ defined e.g.\ by $K_{ij} = \exp(-\sigma\|x_i -
+x_j \|^2)$ if there is an edge $e(i,j) \in E$ and $0$ for the rest and
+diagonal elements.  The matrix is normalized as $L = D^{-1/2}KD^{-1/2}$
+where $D_{ii} = \sum_{j=1}^m K_{ij}$, and
+ \begin{equation}
+   f(t+1) = \alpha Lf(t) + (1 - \alpha)y
+\end{equation}
+is iterated until convergence, where $\alpha$ is a parameter in $[0,1)$.
+The points are then ranked according to their final scores $f_{i}(t_f)$.
+
+\pkg{kernlab} includes an \proglang{S4} method implementing the ranking
+algorithm.  The algorithm can be used both with an edge-graph where the
+structure of the data is taken into account, and without which is
+equivalent to ranking the data by their distance in the projected space.
+
+\begin{figure}
+\centering
+<<ranking,echo =TRUE,fig=TRUE,width=12,height=7>>=
+data(spirals)
+ran <- spirals[rowSums(abs(spirals) < 0.55) == 2,]
+ranked <- ranking(ran, 54, kernel = "rbfdot", kpar = list(sigma = 100), edgegraph = TRUE)
+ranked[54, 2] <- max(ranked[-54, 2])
+c<-1:86
+op <- par(mfrow = c(1, 2),pty="s")
+plot(ran)
+plot(ran, cex=c[ranked[,3]]/40)
+@
+\caption{The points on the left are ranked according to their similarity
+  to the upper most left point.  Points with a higher rank appear
+  bigger. Instead of ranking the points on simple Euclidean distance the
+  structure of the data is recognized and all points on the upper
+  structure are given a higher rank although further away in distance
+  than points in the lower structure.}
+\label{fig:Ranking}
+\end{figure}
+
+\subsection{Online learning with kernels}
+
+The \code{onlearn} function in \pkg{kernlab} implements the online kernel algorithms 
+for classification, novelty detection and regression described in \citep{kernlab:Kivinen:2004}.
+In batch learning, it is typically assumed that all the examples are immediately 
+available and are drawn independently from some distribution $P$. One natural measure 
+of quality for some $f$ in that case is the expected risk 
+\begin{equation}
+R[f,P] := E_{(x,y)~P}[l(f(x),y)]
+\end{equation}  
+Since usually $P$ is unknown a standard approach is to instead minimize the empirical risk 
+\begin{equation}
+R_{emp}[f,P] := \frac{1}{m}\sum_{t=1}^m l(f(x_t),y_t)
+\end{equation}
+Minimizing $R_{emp}[f]$ may lead to overfitting (complex functions that fit well on the training
+data but do not generalize to unseen data). One way to avoid this is to penalize complex functions by 
+instead minimizing the regularized risk.
+\begin{equation}
+R_{reg}[f,S] := R_{reg,\lambda}[f,S] := R_{emp}[f] = \frac{\lambda}{2}\|f\|_{H}^2
+\end{equation}
+where $\lambda > 0$ and $\|f\|_{H} = {\langle f,f \rangle}_{H}^{\frac{1}{2}}$ does indeed measure
+the complexity of $f$ in a sensible way. The constant $\lambda$ needs to be chosen appropriately for each problem.
+Since in online learning one is interested in dealing with one example at the time the definition 
+of an instantaneous regularized risk on a single example is needed
+\begin{equation}
+R_inst[f,x,y] := R_{inst,\lambda}[f,x,y] := R_{reg,\lambda}[f,((x,y))]
+\end{equation}
+
+The implemented algorithms are classical stochastic gradient descent algorithms performing gradient
+descent on the instantaneous risk. The general form of the update rule is :
+\begin{equation}
+f_{t+1} = f_t - \eta \partial_f R_{inst,\lambda}[f,x_t,y_t]|_{f=f_t}
+\end{equation} 
+where $f_i \in H$ and $\partial_f$< is short hand for $\partial \ \partial f$ 
+(the gradient with respect to $f$) and $\eta_t > 0$ is the learning rate. 
+Due to the learning taking place in a \textit{reproducing kernel Hilbert space} $H$ 
+the kernel $k$ used has the property $\langle f,k(x,\cdotp)\rangle_H = f(x)$ 
+and therefore 
+\begin{equation}
+\partial_f l(f(x_t)),y_t) = l'(f(x_t),y_t)k(x_t,\cdotp)
+\end{equation} 
+where $l'(z,y) := \partial_z l(z,y)$. Since $\partial_f\|f\|_H^2 = 2f$ the update becomes
+\begin{equation}
+f_{t+1} := (1 - \eta\lambda)f_t -\eta_t \lambda '( f_t(x_t),y_t)k(x_t,\cdotp)
+\end{equation}
+
+The \code{onlearn} function implements the online learning algorithm for regression, classification and novelty 
+detection. The online nature of the algorithm requires a different approach to the use of the function. An object 
+is used to store the state of the algorithm at each iteration $t$ this object is passed to the function as an 
+argument and is returned at each iteration $t+1$ containing the model parameter state at this step. 
+An empty object of class \code{onlearn} is initialized using the \code{inlearn} function. 
+<<onlearn, echo = TRUE>>=
+## create toy data set
+x <- rbind(matrix(rnorm(90),,2),matrix(rnorm(90)+3,,2))
+y <- matrix(c(rep(1,45),rep(-1,45)),,1)
+
+## initialize onlearn object
+on <- inlearn(2,kernel="rbfdot",kpar=list(sigma=0.2),type="classification")
+ind <- sample(1:90,90)
+## learn one data point at the time
+for(i in ind)
+on <- onlearn(on,x[i,],y[i],nu=0.03,lambda=0.1)
+sign(predict(on,x))
+@ 
+
+\subsection{Spectral clustering}
+
+Spectral clustering \citep{kernlab:Ng:2001} is a recently emerged promising alternative to
+common clustering algorithms. In this method one
+uses the top eigenvectors of a matrix created by some similarity measure
+to cluster the data.  Similarly to the ranking algorithm, an affinity
+matrix is created out from the data as
+\begin{equation}
+  K_{ij}=\exp(-\sigma\|x_i - x_j \|^2) 
+\end{equation}
+and normalized as $L = D^{-1/2}KD^{-1/2}$ where $D_{ii} = \sum_{j=1}^m
+K_{ij}$.  Then the top $k$ eigenvectors (where $k$ is the number of
+clusters to be found) of the affinity matrix are used to form an $n
+\times k$ matrix $Y$ where each column is normalized again to unit
+length.  Treating each row of this matrix as a data point,
+\code{kmeans} is finally used to cluster the points.
+
+\pkg{kernlab} includes an \proglang{S4} method called \code{specc}
+implementing this algorithm which can be used through an formula
+interface or a matrix interface.  The \proglang{S4} object returned by the
+method extends the class ``vector'' and contains the assigned cluster
+for each point along with information on the centers size and
+within-cluster sum of squares for each cluster.  In case a Gaussian RBF
+kernel is being used a model selection process can be used to determine
+the optimal value of the $\sigma$ hyper-parameter.  For a good value of
+$\sigma$ the values of $Y$ tend to cluster tightly and it turns out that
+the within cluster sum of squares is a good indicator for the
+``quality'' of the sigma parameter found.  We then iterate through the
+sigma values to find an optimal value for $\sigma$.
+
+\begin{figure}
+\centering
+<<fig=TRUE,echo=TRUE,width=7,height=7>>=
+data(spirals)
+sc <- specc(spirals, centers=2)
+plot(spirals, pch=(23 - 2*sc))
+@  
+\caption{Clustering the two spirals data set with \code{specc}}
+\label{fig:Spectral Clustering}
+\end{figure}
+
+\subsection{Kernel principal components analysis}
+
+Principal component analysis (PCA) is a powerful technique for
+extracting structure from possibly high-dimensional datasets.  PCA is an
+orthogonal transformation of the coordinate system in which we describe
+the data.  The new coordinates by which we represent the data are called
+principal components.  Kernel PCA \citep{kernlab:Schoelkopf:1998}
+performs a nonlinear transformation of the coordinate system by finding
+principal components which are nonlinearly related to the input
+variables.  Given a set of centered observations $x_k$, $k=1,\dots,M$,
+$x_k \in \mathbf{R}^N$, PCA diagonalizes the covariance matrix $C =
+\frac{1}{M}\sum_{j=1}^Mx_jx_{j}^T$ by solving the eigenvalue problem
+$\lambda\mathbf{v}=C\mathbf{v}$.  The same computation can be done in a
+dot product space $F$ which is related to the input space by a possibly
+nonlinear map $\Phi:\mathbf{R}^N \rightarrow F$, $x \mapsto \mathbf{X}$.
+Assuming that we deal with centered data and use the covariance matrix
+in $F$,
+\begin{equation}
+\hat{C}=\frac{1}{C}\sum_{j=1}^N \Phi(x_j)\Phi(x_j)^T
+\end{equation}
+the kernel principal components are then computed by taking the
+eigenvectors of the centered kernel matrix $K_{ij} = \langle
+\Phi(x_j),\Phi(x_j) \rangle$.
+
+\code{kpca}, the the function implementing KPCA in \pkg{kernlab}, can
+be used both with a formula and a matrix interface, and returns an
+\proglang{S4} object of class \code{kpca} containing the principal
+components the corresponding eigenvalues along with the projection of
+the training data on the new coordinate system.  Furthermore, the
+\code{predict} function can be used to embed new data points into the
+new coordinate system.
+
+\begin{figure}
+\centering
+<<kpca,echo =TRUE,fig=TRUE,width=7,height=7>>=
+data(spam)
+train <- sample(1:dim(spam)[1],400)
+kpc <- kpca(~.,data=spam[train,-58],kernel="rbfdot",kpar=list(sigma=0.001),features=2)
+kpcv <- pcv(kpc)
+plot(rotated(kpc),col=as.integer(spam[train,58]),xlab="1st Principal Component",ylab="2nd Principal Component")
+@
+\caption{Projection of the spam data on two kernel principal components
+  using an RBF kernel}
+\label{fig:KPCA}
+\end{figure}
+
+\subsection{Kernel feature analysis}
+
+Whilst KPCA leads to very good results there are nevertheless some issues to be addressed. 
+First the computational complexity of the standard version of KPCA, the algorithm scales
+$O(m^3)$ and secondly the resulting feature extractors are given as a dense expansion in terms
+of the of the training patterns. 
+Sparse solutions are often achieved in supervised learning settings by using an $l_1$ penalty on the 
+expansion coefficients. An algorithm can be derived using the same approach in feature extraction 
+requiring only $n$ basis functions to compute the first $n$ feature.
+Kernel feature analysis \citep{kernlab:Olvi:2000} is computationally simple and scales approximately
+ one order of magnitude better on large data sets than standard KPCA.    
+Choosing $\Omega [f] = \sum_{i=1}^m |\alpha_i |$ 
+this yields 
+\begin{equation}
+F_{LP} =  \{  \mathbf{w} \vert  \mathbf{w} = \sum_{i=1}^m \alpha_i \Phi(x_i) \mathrm{with} \sum_{i=1}^m |\alpha_i | \leq 1 \}
+\end{equation}
+
+This setting leads to the first ``principal vector'' in the $l_1$ context
+\begin{equation}
+\mathbf{\nu}^1 = \mathrm{argmax}_{\mathbf{\nu} \in F_{LP}} \frac{1}{m} \sum_{i=1}^m \langle \mathbf{\nu},\mathbf{\Phi}(x_i) - \frac{1}{m}\sum_{j=1}^m\mathbf{\Phi}(x_i)  \rangle^2 
+\end{equation}
+
+Subsequent ``principal vectors'' can be defined by enforcing optimality with respect to the remaining 
+orthogonal subspaces. Due to the $l_1$ constrain the solution has the favorable property of being 
+sparse in terms of the coefficients $\alpha_i$.
+
+The function \code{kfa} in \pkg{kernlab} implements Kernel Feature Analysis by using a projection 
+pursuit technique on a sample of the data. Results are then returned in an \proglang{S4} object. 
+
+\begin{figure}
+\centering
+<<kfa, echo = TRUE,fig=TRUE,width=7,height=7>>=
+data(promotergene)
+f <- kfa(~.,data=promotergene,features=2,kernel="rbfdot",kpar=list(sigma=0.013))
+plot(predict(f,promotergene),col=as.numeric(promotergene[,1]),xlab="1st Feature",ylab="2nd Feature")
+@ 
+\caption{Projection of the spam data on two features using an RBF kernel}
+\label{fig:KFA}
+\end{figure}
+
+\subsection{Kernel canonical correlation analysis}
+
+Canonical correlation analysis (CCA) is concerned with describing the
+linear relations between variables.  If we have two data sets $x_1$ and
+$x_2$, then the classical CCA attempts to find linear combination of the
+variables which give the maximum correlation between the combinations.
+I.e., if
+\begin{eqnarray*}
+  && y_1 = \mathbf{w_1}\mathbf{x_1} = \sum_j w_1 x_{1j} \\
+  && y_2 = \mathbf{w_2}\mathbf{x_2} = \sum_j w_2 x_{2j}
+\end{eqnarray*}
+one wishes to find those values of $\mathbf{w_1}$ and $\mathbf{w_2}$
+which maximize the correlation between $y_1$ and $y_2$.  Similar to the
+KPCA algorithm, CCA can be extended and used in a dot product space~$F$
+which is related to the input space by a possibly nonlinear map
+$\Phi:\mathbf{R}^N \rightarrow F$, $x \mapsto \mathbf{X}$ as
+\begin{eqnarray*}
+  && y_1 = \mathbf{w_1}\mathbf{\Phi(x_1)} = \sum_j w_1 \Phi(x_{1j}) \\
+  && y_2 = \mathbf{w_2}\mathbf{\Phi(x_2)} = \sum_j w_2 \Phi(x_{2j})
+\end{eqnarray*}
+
+Following \citep{kernlab:kuss:2003}, the \pkg{kernlab} implementation of
+a KCCA projects the data vectors on a new coordinate system using KPCA
+and uses linear CCA to retrieve the correlation coefficients.  The
+\code{kcca} method in \pkg{kernlab} returns an \proglang{S4} object
+containing the correlation coefficients for each data set and the
+corresponding correlation along with the kernel used.
+ 
+
+\subsection{Interior point code quadratic optimizer}
+
+In many kernel based algorithms, learning implies the minimization of
+some risk function.  Typically we have to deal with quadratic or general
+convex problems for support vector machines of the type
+\begin{equation}
+  \begin{array}{ll}
+    \mathrm{minimize} & f(x) \\
+    \mbox{subject to~} & c_i(x) \leq 0 \mbox{~for all~} i \in [n].
+  \end{array}
+\end{equation}
+$f$ and $c_i$ are convex functions and $n \in \mathbf{N}$.
+\pkg{kernlab} provides the \proglang{S4} method \code{ipop} implementing
+an optimizer of the interior point family \citep{kernlab:Vanderbei:1999}
+which solves the quadratic programming problem
+\begin{equation}
+  \begin{array}{ll}
+    \mathrm{minimize} & c^\top x+\frac{1}{2}x^\top H x \\
+    \mbox{subject to~} & b \leq Ax \leq b + r\\
+    & l \leq x \leq u \\
+  \end{array}
+\end{equation}
+
+This optimizer can be used in regression, classification, and novelty
+detection in SVMs.
+
+\subsection{Incomplete cholesky decomposition}
+
+When dealing with kernel based algorithms, calculating a full kernel
+matrix should be avoided since it is already a $O(N^2)$ operation.
+Fortunately, the fact that kernel matrices are positive semidefinite is
+a strong constraint and good approximations can be found with small
+computational cost.  The Cholesky decomposition factorizes a positive
+semidefinite $N \times N$ matrix $K$ as $K=ZZ^T$, where $Z$ is an upper
+triangular $N \times N$ matrix.  Exploiting the fact that kernel
+matrices are usually of low rank, an \emph{incomplete Cholesky
+  decomposition} \citep{kernlab:Wright:1999} finds a matrix $\tilde{Z}$
+of size $N \times M$ where $M\ll N$ such that the norm of
+$K-\tilde{Z}\tilde{Z}^T$ is smaller than a given tolerance $\theta$.
+The main difference of incomplete Cholesky decomposition to the standard
+Cholesky decomposition is that pivots which are below a certain
+threshold are simply skipped.  If $L$ is the number of skipped pivots,
+we obtain a $\tilde{Z}$ with only $M = N - L$ columns.  The algorithm
+works by picking a column from $K$ to be added by maximizing a lower
+bound on the reduction of the error of the approximation.  \pkg{kernlab}
+has an implementation of an incomplete Cholesky factorization called
+\code{inc.chol} which computes the decomposed matrix $\tilde{Z}$ from
+the original data for any given kernel without the need to compute a
+full kernel matrix beforehand.  This has the advantage that no full
+kernel matrix has to be stored in memory.
+
+\section{Conclusions}
+
+In this paper we described \pkg{kernlab}, a flexible and extensible
+kernel methods package for \proglang{R} with existing modern kernel
+algorithms along with tools for constructing new kernel based
+algorithms.  It provides a unified framework for using and creating
+kernel-based algorithms in \proglang{R} while using all of \proglang{R}'s
+modern facilities, like \proglang{S4} classes and namespaces.  Our aim for
+the future is to extend the package and add more kernel-based methods as
+well as kernel relevant tools. Sources and binaries for 
+the latest version of \pkg{kernlab} are available at CRAN\footnote{\url{http://CRAN.R-project.org}} 
+under the GNU Public License.
+
+A shorter version of this introduction to the \proglang{R} package \pkg{kernlab}
+is published as \cite{kernlab:Karatzoglou+Smola+Hornik:2004} in the
+\emph{Journal of Statistical Software}.
+
+\bibliography{jss}
+
+\end{document}

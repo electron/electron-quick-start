@@ -1,0 +1,67 @@
+#!/bin/sh
+#
+# ${R_HOME}/bin/Rcmd
+
+## Shell script wrapper for all R CMD commands.
+## For internal use only.
+
+R_CMD="${R_HOME}/bin/Rcmd"
+export R_CMD
+
+R_VERSION=3.5.0
+export R_VERSION
+
+R_OSTYPE="unix"
+export R_OSTYPE
+
+## Append 'share/texmf/...' to TeX's input search path.
+if test -z "${TEXINPUTS}"; then
+  TEXINPUTS=".:${R_SHARE_DIR}/texmf/tex/latex:"
+else
+  TEXINPUTS=".:${TEXINPUTS}:${R_SHARE_DIR}/texmf/tex/latex:"
+fi
+export TEXINPUTS
+if test -z "${BIBINPUTS}"; then
+  BIBINPUTS=".:${R_SHARE_DIR}/texmf/bibtex/bib:"
+else
+  BIBINPUTS=".:${BIBINPUTS}:${R_SHARE_DIR}/texmf/bibtex/bib:"
+fi
+export BIBINPUTS
+if test -z "${BSTINPUTS}"; then
+  BSTINPUTS=".:${R_SHARE_DIR}/texmf/bibtex/bst:"
+else
+  BSTINPUTS=".:${BSTINPUTS}:${R_SHARE_DIR}/texmf/bibtex/bst:"
+fi
+export BSTINPUTS
+
+. "${R_HOME}/etc${R_ARCH}/Renviron"
+export `sed 's/^ *#.*//; s/^\(.*\)=.*/\1/' "${R_HOME}/etc${R_ARCH}/Renviron"`
+
+extra=
+case "${1}" in
+## this was a separate command prior to 2.10.0
+  Rd2txt)
+    cmd="${R_HOME}/bin/Rdconv"
+    extra="-t txt"
+    ;;
+## removed in 2.15.0
+  Rd2dvi)
+    echo "R CMD Rd2dvi is defunct: use Rd2pdf instead"
+    exit 1
+    ;;
+  *)
+    if test -x "${R_HOME}/bin/${1}"; then
+      cmd="${R_HOME}/bin/${1}"
+    else
+      cmd="${1}"
+    fi
+    ;;
+esac
+shift
+
+exec "${cmd}" ${extra} "${@}"
+
+### Local Variables: ***
+### mode: sh ***
+### sh-indentation: 2 ***
+### End: ***

@@ -1,0 +1,34 @@
+# ${R_HOME}/bin/INSTALL -*- sh -*- for installing add-on packages
+
+if test -z "${R_INSTALL_VANILLA}"
+then vanilla_install=false
+else vanilla_install=true
+fi
+
+## Note: Almost all "--<args>" are now handled in R !
+args=
+while test -n "${1}"; do
+  case ${1} in
+    --no-vanilla)
+	  vanilla_install=false ;;
+    --use-vanilla)
+	  vanilla_install=true ;;
+
+  *)
+  ## quote each argument here, unquote in R code.
+  args="${args}nextArg${1}"
+  ;;
+  esac
+  shift
+done
+
+Rcmds=
+if [ $vanilla_install = true ]
+then ## get the user's  .libPaths()[1]:
+     args="${args}nextArg--maybe-get-user-libPaths"
+     myArgs='--vanilla'
+else myArgs='--no-restore'
+fi
+
+## NB: Apple's ICU needs LC_COLLATE set when R is started.
+echo 'tools:::.install_packages()' | R_DEFAULT_PACKAGES= LC_COLLATE=C "${R_HOME}/bin/R" $myArgs --slave --args ${args}

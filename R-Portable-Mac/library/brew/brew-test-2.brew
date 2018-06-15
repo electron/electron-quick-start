@@ -1,0 +1,89 @@
+<% 
+hrefify <- function(title) gsub('[\\.()]','_',title,perl=TRUE)
+scrub <- function(obj){ 
+	if (is.null(obj)) return('NULL')
+	if (length(obj) == 0) return ('length 0 objing')
+	if (typeof(obj) == 'closure')
+		obj <- paste(deparse(obj),collapse='\n')
+	else 
+		obj <- as.character(obj)
+	obj <- gsub('&','&amp;',obj); obj <- gsub('@','_at_',obj); 
+	obj <- gsub('<','&lt;',obj); obj <- gsub('>','&gt;',obj); 
+	if (length(obj) == 0 || is.null(obj) || obj == '')
+		obj <- '&nbsp;' 
+	obj
+}
+cl<-'e' 
+zebelem <- function(n,v) {
+	cl <<- ifelse(cl=='e','o','e')
+	cat('<tr class="',cl,'">')
+	if(!is.na(n)) cat('<td class="l">',n,'</td>')
+	cat('<td>');
+	if (length(v)>1) zebra(NULL,v)
+	else cat(scrub(v))
+	cat('</td></tr>\n');
+}
+zebra <- function(title,l){
+	if (!is.null(title)) cat('<h2><a name="',hrefify(title),'"> </a>',title,'</h2>',sep='')
+	cat('<table><tbody>',sep='')
+	n <- names(l)
+	mapply(zebelem,if(is.null(n)) rep(NA,length(l)) else n, l)
+	cat('</tbody></table>\n')
+}
+zebrifyPackage <-function(package){
+	zebra(package,unclass(packageDescription(package)))
+	cat('<br/><hr/>\n')
+}
+-%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "DTD/xhtml1-transitional.dtd">
+<html><head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<style type="text/css">
+body { font-family: "lucida grande",verdana,sans-serif; margin-left: 210px; margin-right: 18px; }
+table { border: 1px solid #8897be; border-spacing: 0px; font-size: 10pt; }
+td { border-bottom:1px solid #d9d9d9; border-left:1px solid #d9d9d9; border-spacing: 0px; padding: 3px 8px; }
+td.l { font-weight: bold; width: 10%; }
+tr.e { background-color: #eeeeee; border-spacing: 0px; }
+tr.o { background-color: #ffffff; border-spacing: 0px; }
+div a { text-decoration: none; color: white; }
+a:hover { color: #8897be; background: white; }
+tr:hover { background: #8897be; /* color: white;*/ }
+img.map { position: fixed; border: 0px; left: 50px; right: auto; top: 10px; }
+div.map { background: #8897be; font-weight: bold; color: white; position: fixed; bottom: 30px; height: auto; left: 15px; right: auto; top: 110px; width: 150px; padding: 0 13px; text-align: right; font-size: 12pt; }
+div.map p { font-size: 10pt; font-family: serif; font-style: italic; }
+div.h { font-size: 20pt; font-weight: bold; }
+hr {background-color: #cccccc; border: 0px; height: 1px; color: #000000;}
+</style>
+<title>Everything You Wanted To Know About Your R Session</title>
+</head>
+<body>
+<a name="Top"> </a>
+<a href="http://www.r-project.org/"><img class="map" alt="R Language Home Page" src="http://www.r-project.org/Rlogo.jpg"/></a>
+<div class="h">Everything You Wanted To Know About Your R Session</div>
+<div class="map">
+<p>jump to:</p>
+<a href="#Top">Top</a><br/><hr/>
+<a href="#<%=hrefify("R.version")%>">R.version</a><br/>
+<a href="#<%=hrefify("search()")%>">search()</a><br/>
+<a href="#<%=hrefify(".libPaths()")%>">.libPaths()</a><br/>
+<a href="#<%=hrefify("options()")%>">options()</a><br/>
+<a href="#<%=hrefify("Sys.getenv()")%>">Sys.getenv()</a><br/>
+<a href="#<%=hrefify("Sys.info()")%>">Sys.info()</a><br/>
+<a href="#<%=hrefify(".Machine")%>">.Machine</a><br/>
+<a href="#<%=hrefify(".Platform")%>">.Platform</a><br/><hr/>
+<a href="#Attached_Packages">Attached Packages</a><br/><hr/>
+<a href="#Installed_Packages">Installed Packages</a><br/><hr/>
+</div>
+<% zebra('R.version',R.version) %><br/><hr/>
+<% zebra('search()',search()) %><br/><hr/>
+<% zebra('.libPaths()',.libPaths()) %><br/><hr/>
+<% zebra('options()',options()) %><br/><hr/>
+<% zebra('Sys.getenv()',as.list(Sys.getenv())) %><br/><hr/>
+<% zebra('Sys.info()',as.list(Sys.info())) %><br/><hr/>
+<% zebra('.Machine',.Machine) %><br/><hr/>
+<% zebra('.Platform',.Platform) %><br/><hr/>
+<h1><a name="Attached_Packages"></a>Attached Packages</h1>
+<% lapply(sub('package:','',search()[grep('package:',search())]),zebrifyPackage) %>
+<h1><a name="Installed_Packages"></a>Installed Packages</h1>
+<% lapply(attr(installed.packages(),'dimnames')[[1]],zebrifyPackage) %>
+</body></html>

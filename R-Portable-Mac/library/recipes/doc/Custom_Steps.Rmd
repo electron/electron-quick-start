@@ -1,0 +1,277 @@
+---
+title: "Creating Custom Step Functions"
+vignette: >
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteIndexEntry{Custom Steps}
+  %\VignetteEncoding{UTF-8}  
+output:
+  knitr:::html_vignette:
+    toc: yes
+---
+
+```{r ex_setup, include=FALSE}
+knitr::opts_chunk$set(
+  message = FALSE,
+  digits = 3,
+  collapse = TRUE,
+  comment = "#>"
+  )
+options(digits = 3)
+```
+
+The `recipes` package contains a number of different operations:
+
+```{r step_list}
+library(recipes)
+ls("package:recipes", pattern = "^step_")
+```
+
+You might need to define your own operations; this page describes how to do that. If you are looking for good examples of existing steps, I would suggest looking at the code for [centering](https://github.com/topepo/recipes/blob/master/R/center.R) or [PCA](https://github.com/topepo/recipes/blob/master/R/pca.R) to start. 
+
+For checks, the process is very similar. Notes on this are given at the end of this document. 
+
+
+# A new step definition
+
+At an example, let's create a step that replaces the value of a variable with its percentile from the training set. The date that I'll use is from the `recipes` package:
+
+```{r initial}
+data(biomass)
+str(biomass)
+
+biomass_tr <- biomass[biomass$dataset == "Training",]
+biomass_te <- biomass[biomass$dataset == "Testing",]
+```
+
+To illustrate the transformation with the `carbon` variable, the training set distribution of that variables is shown below with a vertical line for the first value of the test set. 
+
+```{r carbon_dist}
+library(ggplot2)
+theme_set(theme_bw())
+ggplot(biomass_tr, aes(x = carbon)) + 
+  geom_histogram(binwidth = 5, col = "blue", fill = "blue", alpha = .5) + 
+  geom_vline(xintercept = biomass_te$carbon[1], lty = 2)
+```
+
+Based on the training set, `r round(mean(biomass_tr$carbon <= biomass_te$carbon[1])*100, 1)`% of the data are less than a value of `r biomass_te$carbon[1]`. There are some applications where it might be advantageous to represent the predictor values as percentiles rather than their original values. 
+
+Our new step will do this computation for any numeric variables of interest. We will call this `step_percentile`. The code below is designed for illustration and not speed or best practices. I've left out a lot of error trapping that we would want in a real implementation.  
+
+# Create the initial function. 
+
+The user-exposed function `step_percentile` is just a simple wrapper around an internal function called `add_step`. This function takes the same arguments as your function and simply adds it to a new recipe. The `...` signifies the variable selectors that can be used.
+
+```{r initial_def}
+step_percentile <- function(
+  recipe, ..., 
+  role = NA, 
+  trained = FALSE, 
+  ref_dist = NULL,
+  approx = FALSE, 
+  options = list(probs = (0:100)/100, names = TRUE),
+  skip = FALSE
+  ) {
+## The variable selectors are not immediately evaluated by using
+## the `quos` function in `rlang`
+  terms <- rlang::quos(...) 
+  if(length(terms) == 0)
+    stop("Please supply at least one variable specification. See ?selections.")
+  add_step(
+    recipe, 
+    step_percentile_new(
+      terms = terms, 
+      trained = trained,
+      role = role, 
+      ref_dist = ref_dist,
+      approx = approx,
+      options = options,
+      skip = skip))
+}
+```
+
+You should always keep the first four arguments (`recipe` though `trained`) the same as listed above. Some notes:
+
+ * the `role` argument is used when you either 1) create new variables and want their role to be pre-set or 2) replace the existing variables with new values. The latter is what we will be doing and using `role = NA` will leave the existing role intact. 
+ * `trained` is set by the package when the estimation step has been run. You should default your function definition's argument to `FALSE`. 
+ * `skip` is a logical. Whenever a recipe is prepped, each step is trained and then baked. However, there are some steps that should not be applied when a call to `bake` is used. For example, if a step is applied to the variables with roles of "outcomes", these data would not be available for new samples. 
+
+I've added extra arguments specific to this step. In order to calculate the percentile, the training data for the relevant columns will need to be saved. This data will be saved in the `ref_dist` object. 
+However, this might be problematic if the data set is large. `approx` would be used when you want to save a grid of pre-computed percentiles from the training set and use these to estimate the percentile for a new data point. If `approx = TRUE`, the argument `ref_dist` will contain the grid for each variable. 
+
+We will use the `stats::quantile` to compute the grid. However, we might also want to have control over the granularity of this grid, so the `options` argument will be used to define how that calculations is done. We could just use the ellipses (aka `...`) so that any options passed to `step_percentile` that are not one of its arguments will then be passed to `stats::quantile`. We recommend making a separate list object with the options and use these inside the function. 
+
+
+# Initialization of new objects
+
+Next, you can utilize the internal function `step` that sets the class of new objects. Using `subclass = "percentile"` will set the class of new objects to `"step_percentile". 
+
+```{r initialize}
+step_percentile_new <- function(
+  terms = NULL, 
+  role = NA, 
+  trained = FALSE, 
+  ref_dist = NULL, 
+  approx = NULL, 
+  options = NULL,
+  skip = FALSE
+) {
+  step(
+    subclass = "percentile", 
+    terms = terms,
+    role = role,
+    trained = trained,
+    ref_dist = ref_dist,
+    approx = approx,
+    options = options,
+    skip = skip
+  )
+}
+```
+
+# Define the estimation procedure
+
+You will need to create a new `prep` method for your step's class. To do this, three arguments that the method should have:
+
+```r
+function(x, training, info = NULL)
+```
+
+where
+
+ * `x` will be the `step_percentile` object
+ * `training` will be a _tibble_ that has the training set data
+ * `info` will also be a tibble that has information on the current set of data available. This information is updated as each step is evaluated by its specific `prep` method so it may not have the variables from the original data. The columns in this tibble are `variable` (the variable name), `type` (currently either "numeric" or "nominal"), `role` (defining the variable's role), and `source` (either "original" or "derived" depending on where it originated).
+
+You can define other options. 
+
+The first thing that you might want to do in the `prep` function is to translate the specification listed in the `terms` argument to column names in the current data. There is an internal function called `terms_select` that can be used to obtain this. 
+
+```{r prep_1, eval = FALSE}
+prep.step_percentile <- function(x, training, info = NULL, ...) {
+  col_names <- terms_select(terms = x$terms, info = info) 
+}
+```
+
+Once we have this, we can either save the original data columns or estimate the approximation grid. For the grid, we will use a helper function that enables us to run `do.call` on a list of arguments that include the `options` list.  
+
+```{r prep_2}
+get_pctl <- function(x, args) {
+  args$x <- x
+  do.call("quantile", args)
+}
+
+prep.step_percentile <- function(x, training, info = NULL, ...) {
+  col_names <- terms_select(terms = x$terms, info = info) 
+  ## You can add error trapping for non-numeric data here and so on.
+  ## We'll use the names later so
+  if(x$options$names == FALSE)
+    stop("`names` should be set to TRUE", call. = FALSE)
+  
+  if(!x$approx) {
+    x$ref_dist <- training[, col_names]
+  } else {
+    pctl <- lapply(
+      training[, col_names],  
+      get_pctl, 
+      args = x$options
+    )
+    x$ref_dist <- pctl
+  }
+  ## Always return the updated step
+  x
+}
+```
+
+# Create the `bake` method
+
+Remember that the `prep` function does not _apply_ the step to the data; it only estimates any required values such as `ref_dist`. We will need to create a new method for our `step_percentile` class. The minimum arguments for this are
+
+```r
+function(object, newdata, ...)
+```
+
+where `object` is the updated step function that has been through the corresponding `prep` code and `newdata` is a tibble of data to be processed. 
+
+Here is the code to convert the new data to percentiles. Two initial helper functions handle the two cases (approximation or not). We always return a tibble as the output. 
+
+```{r bake}
+## Two helper functions
+pctl_by_mean <- function(x, ref) mean(ref <= x)
+
+pctl_by_approx <- function(x, ref) {
+  ## go from 1 column tibble to vector
+  x <- getElement(x, names(x))
+  ## get the percentiles values from the names (e.g. "10%")
+  p_grid <- as.numeric(gsub("%$", "", names(ref))) 
+  approx(x = ref, y = p_grid, xout = x)$y/100
+}
+
+bake.step_percentile <- function(object, newdata, ...) {
+  require(tibble)
+  ## For illustration (and not speed), we will loop through the affected variables
+  ## and do the computations
+  vars <- names(object$ref_dist)
+  
+  for(i in vars) {
+    if(!object$approx) {
+      ## We can use `apply` since tibbles do not drop dimensions:
+      newdata[, i] <- apply(newdata[, i], 1, pctl_by_mean, 
+                            ref = object$ref_dist[, i])
+    } else 
+      newdata[, i] <- pctl_by_approx(newdata[, i], object$ref_dist[[i]])
+  }
+  ## Always convert to tibbles on the way out
+  as_tibble(newdata)
+}
+```
+
+# Running the example
+
+Let's use the example data to make sure that it works: 
+
+```{r example}
+rec_obj <- recipe(HHV ~ ., data = biomass_tr[, -(1:2)])
+rec_obj <- rec_obj %>%
+  step_percentile(all_predictors(), approx = TRUE) 
+
+rec_obj <- prep(rec_obj, training = biomass_tr)
+
+percentiles <- bake(rec_obj, biomass_te)
+percentiles
+```
+
+The plot below shows how the original data line up with the percentiles for each split of the data for one of the predictors:
+
+```{r cdf_plot, echo = FALSE}
+grid_pct <- rec_obj$steps[[1]]$options$probs
+plot_data <- data.frame(
+  carbon = c(
+    quantile(biomass_tr$carbon, probs = grid_pct), 
+    biomass_te$carbon
+  ),
+  percentile = c(grid_pct, percentiles$carbon),
+  dataset = rep(
+    c("Training", "Testing"), 
+    c(length(grid_pct), nrow(percentiles))
+  )
+)
+
+ggplot(plot_data, 
+       aes(x = carbon, y = percentile, col = dataset)) + 
+  geom_point(alpha = .4, cex = 2) + 
+  theme(legend.position = "top")
+```
+
+# Custom check operations
+
+The process here is exactly the same as steps; the internal functions have a similar naming convention: 
+
+ * `add_check` instead of `add_step`
+ * `check` instead of `step`, and so on. 
+ 
+It is strongly recommended that:
+ 
+ 1. The operations start with `check_` (i.e. `check_range` and `check_range_new`)
+ 1. The check uses `stop(..., call. = FALSE)` when the conditions are not met
+ 1. The original data are returned (unaltered) by the check when the conditions are satisfied. 
+

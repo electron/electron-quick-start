@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+
+
+<title>Combining promises</title>
+
+
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+div.sourceCode { overflow-x: auto; }
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code > span.dt { color: #902000; } /* DataType */
+code > span.dv { color: #40a070; } /* DecVal */
+code > span.bn { color: #40a070; } /* BaseN */
+code > span.fl { color: #40a070; } /* Float */
+code > span.ch { color: #4070a0; } /* Char */
+code > span.st { color: #4070a0; } /* String */
+code > span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code > span.ot { color: #007020; } /* Other */
+code > span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code > span.fu { color: #06287e; } /* Function */
+code > span.er { color: #ff0000; font-weight: bold; } /* Error */
+code > span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+code > span.cn { color: #880000; } /* Constant */
+code > span.sc { color: #4070a0; } /* SpecialChar */
+code > span.vs { color: #4070a0; } /* VerbatimString */
+code > span.ss { color: #bb6688; } /* SpecialString */
+code > span.im { } /* Import */
+code > span.va { color: #19177c; } /* Variable */
+code > span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code > span.op { color: #666666; } /* Operator */
+code > span.bu { } /* BuiltIn */
+code > span.ex { } /* Extension */
+code > span.pp { color: #bc7a00; } /* Preprocessor */
+code > span.at { color: #7d9029; } /* Attribute */
+code > span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+</style>
+
+
+
+<link href="data:text/css;charset=utf-8,body%20%7B%0Abackground%2Dcolor%3A%20%23fff%3B%0Amargin%3A%201em%20auto%3B%0Amax%2Dwidth%3A%20700px%3B%0Aoverflow%3A%20visible%3B%0Apadding%2Dleft%3A%202em%3B%0Apadding%2Dright%3A%202em%3B%0Afont%2Dfamily%3A%20%22Open%20Sans%22%2C%20%22Helvetica%20Neue%22%2C%20Helvetica%2C%20Arial%2C%20sans%2Dserif%3B%0Afont%2Dsize%3A%2014px%3B%0Aline%2Dheight%3A%201%2E35%3B%0A%7D%0A%23header%20%7B%0Atext%2Dalign%3A%20center%3B%0A%7D%0A%23TOC%20%7B%0Aclear%3A%20both%3B%0Amargin%3A%200%200%2010px%2010px%3B%0Apadding%3A%204px%3B%0Awidth%3A%20400px%3B%0Aborder%3A%201px%20solid%20%23CCCCCC%3B%0Aborder%2Dradius%3A%205px%3B%0Abackground%2Dcolor%3A%20%23f6f6f6%3B%0Afont%2Dsize%3A%2013px%3B%0Aline%2Dheight%3A%201%2E3%3B%0A%7D%0A%23TOC%20%2Etoctitle%20%7B%0Afont%2Dweight%3A%20bold%3B%0Afont%2Dsize%3A%2015px%3B%0Amargin%2Dleft%3A%205px%3B%0A%7D%0A%23TOC%20ul%20%7B%0Apadding%2Dleft%3A%2040px%3B%0Amargin%2Dleft%3A%20%2D1%2E5em%3B%0Amargin%2Dtop%3A%205px%3B%0Amargin%2Dbottom%3A%205px%3B%0A%7D%0A%23TOC%20ul%20ul%20%7B%0Amargin%2Dleft%3A%20%2D2em%3B%0A%7D%0A%23TOC%20li%20%7B%0Aline%2Dheight%3A%2016px%3B%0A%7D%0Atable%20%7B%0Amargin%3A%201em%20auto%3B%0Aborder%2Dwidth%3A%201px%3B%0Aborder%2Dcolor%3A%20%23DDDDDD%3B%0Aborder%2Dstyle%3A%20outset%3B%0Aborder%2Dcollapse%3A%20collapse%3B%0A%7D%0Atable%20th%20%7B%0Aborder%2Dwidth%3A%202px%3B%0Apadding%3A%205px%3B%0Aborder%2Dstyle%3A%20inset%3B%0A%7D%0Atable%20td%20%7B%0Aborder%2Dwidth%3A%201px%3B%0Aborder%2Dstyle%3A%20inset%3B%0Aline%2Dheight%3A%2018px%3B%0Apadding%3A%205px%205px%3B%0A%7D%0Atable%2C%20table%20th%2C%20table%20td%20%7B%0Aborder%2Dleft%2Dstyle%3A%20none%3B%0Aborder%2Dright%2Dstyle%3A%20none%3B%0A%7D%0Atable%20thead%2C%20table%20tr%2Eeven%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0A%7D%0Ap%20%7B%0Amargin%3A%200%2E5em%200%3B%0A%7D%0Ablockquote%20%7B%0Abackground%2Dcolor%3A%20%23f6f6f6%3B%0Apadding%3A%200%2E25em%200%2E75em%3B%0A%7D%0Ahr%20%7B%0Aborder%2Dstyle%3A%20solid%3B%0Aborder%3A%20none%3B%0Aborder%2Dtop%3A%201px%20solid%20%23777%3B%0Amargin%3A%2028px%200%3B%0A%7D%0Adl%20%7B%0Amargin%2Dleft%3A%200%3B%0A%7D%0Adl%20dd%20%7B%0Amargin%2Dbottom%3A%2013px%3B%0Amargin%2Dleft%3A%2013px%3B%0A%7D%0Adl%20dt%20%7B%0Afont%2Dweight%3A%20bold%3B%0A%7D%0Aul%20%7B%0Amargin%2Dtop%3A%200%3B%0A%7D%0Aul%20li%20%7B%0Alist%2Dstyle%3A%20circle%20outside%3B%0A%7D%0Aul%20ul%20%7B%0Amargin%2Dbottom%3A%200%3B%0A%7D%0Apre%2C%20code%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0Aborder%2Dradius%3A%203px%3B%0Acolor%3A%20%23333%3B%0Awhite%2Dspace%3A%20pre%2Dwrap%3B%20%0A%7D%0Apre%20%7B%0Aborder%2Dradius%3A%203px%3B%0Amargin%3A%205px%200px%2010px%200px%3B%0Apadding%3A%2010px%3B%0A%7D%0Apre%3Anot%28%5Bclass%5D%29%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0A%7D%0Acode%20%7B%0Afont%2Dfamily%3A%20Consolas%2C%20Monaco%2C%20%27Courier%20New%27%2C%20monospace%3B%0Afont%2Dsize%3A%2085%25%3B%0A%7D%0Ap%20%3E%20code%2C%20li%20%3E%20code%20%7B%0Apadding%3A%202px%200px%3B%0A%7D%0Adiv%2Efigure%20%7B%0Atext%2Dalign%3A%20center%3B%0A%7D%0Aimg%20%7B%0Abackground%2Dcolor%3A%20%23FFFFFF%3B%0Apadding%3A%202px%3B%0Aborder%3A%201px%20solid%20%23DDDDDD%3B%0Aborder%2Dradius%3A%203px%3B%0Aborder%3A%201px%20solid%20%23CCCCCC%3B%0Amargin%3A%200%205px%3B%0A%7D%0Ah1%20%7B%0Amargin%2Dtop%3A%200%3B%0Afont%2Dsize%3A%2035px%3B%0Aline%2Dheight%3A%2040px%3B%0A%7D%0Ah2%20%7B%0Aborder%2Dbottom%3A%204px%20solid%20%23f7f7f7%3B%0Apadding%2Dtop%3A%2010px%3B%0Apadding%2Dbottom%3A%202px%3B%0Afont%2Dsize%3A%20145%25%3B%0A%7D%0Ah3%20%7B%0Aborder%2Dbottom%3A%202px%20solid%20%23f7f7f7%3B%0Apadding%2Dtop%3A%2010px%3B%0Afont%2Dsize%3A%20120%25%3B%0A%7D%0Ah4%20%7B%0Aborder%2Dbottom%3A%201px%20solid%20%23f7f7f7%3B%0Amargin%2Dleft%3A%208px%3B%0Afont%2Dsize%3A%20105%25%3B%0A%7D%0Ah5%2C%20h6%20%7B%0Aborder%2Dbottom%3A%201px%20solid%20%23ccc%3B%0Afont%2Dsize%3A%20105%25%3B%0A%7D%0Aa%20%7B%0Acolor%3A%20%230033dd%3B%0Atext%2Ddecoration%3A%20none%3B%0A%7D%0Aa%3Ahover%20%7B%0Acolor%3A%20%236666ff%3B%20%7D%0Aa%3Avisited%20%7B%0Acolor%3A%20%23800080%3B%20%7D%0Aa%3Avisited%3Ahover%20%7B%0Acolor%3A%20%23BB00BB%3B%20%7D%0Aa%5Bhref%5E%3D%22http%3A%22%5D%20%7B%0Atext%2Ddecoration%3A%20underline%3B%20%7D%0Aa%5Bhref%5E%3D%22https%3A%22%5D%20%7B%0Atext%2Ddecoration%3A%20underline%3B%20%7D%0A%0Acode%20%3E%20span%2Ekw%20%7B%20color%3A%20%23555%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Edt%20%7B%20color%3A%20%23902000%3B%20%7D%20%0Acode%20%3E%20span%2Edv%20%7B%20color%3A%20%2340a070%3B%20%7D%20%0Acode%20%3E%20span%2Ebn%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Efl%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Ech%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Est%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Eco%20%7B%20color%3A%20%23888888%3B%20font%2Dstyle%3A%20italic%3B%20%7D%20%0Acode%20%3E%20span%2Eot%20%7B%20color%3A%20%23007020%3B%20%7D%20%0Acode%20%3E%20span%2Eal%20%7B%20color%3A%20%23ff0000%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Efu%20%7B%20color%3A%20%23900%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%20code%20%3E%20span%2Eer%20%7B%20color%3A%20%23a61717%3B%20background%2Dcolor%3A%20%23e3d2d2%3B%20%7D%20%0A" rel="stylesheet" type="text/css" />
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Combining promises</h1>
+
+
+
+<p>So far, all of our examples have involved chaining operations onto a single promise. In practice, you’ll often find yourself needing to perform tasks that require the results of more than one promise. These are some patterns you may find useful:</p>
+<ul>
+<li><a href="#gathering"><strong>Gathering:</strong></a> Combining multiple independent promises into a single computation</li>
+<li><a href="#nesting"><strong>Nesting:</strong></a> Using the result of one promise to affect the input or execution of another async operation</li>
+<li><a href="#racing"><strong>Racing:</strong></a> Using the fastest of multiple promises</li>
+<li><a href="#mapping"><strong>Mapping:</strong></a> Applying an async function to each of a list’s elements and collecting the results</li>
+<li><a href="#reducing"><strong>Reducing:</strong></a> Applying an async function to each of a list’s elements and reducing</li>
+</ul>
+<div id="gathering" class="section level2">
+<h2>Gathering</h2>
+<p>The most common pattern for combining promises is gathering, where you have two or more promises in hand and you want to use all of their results in a computation. The <code>promise_all</code> function is designed for this. Its signature looks like this:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">promise_all</span>(..., <span class="dt">.list =</span> <span class="ot">NULL</span>)</code></pre></div>
+<p><code>promise_all</code> takes any number of promises as named arguments, and returns a promise of a list containing named elements with the results of those promises.</p>
+<p>Here’s an example using <code>promise_all</code> to combine the results of two async <code>read.csv</code> operations:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(promises)
+<span class="kw">library</span>(future)
+<span class="kw">plan</span>(multisession)
+
+a &lt;-<span class="st"> </span><span class="kw">future</span>(<span class="kw">read.csv</span>(<span class="st">&quot;a.csv&quot;</span>))
+b &lt;-<span class="st"> </span><span class="kw">future</span>(<span class="kw">read.csv</span>(<span class="st">&quot;b.csv&quot;</span>))
+
+result &lt;-<span class="st"> </span><span class="kw">promise_all</span>(<span class="dt">a =</span> a, <span class="dt">b =</span> b) <span class="op">%...&gt;%</span><span class="st"> </span>{
+  <span class="kw">rbind</span>(.<span class="op">$</span>a, .<span class="op">$</span>b)
+}</code></pre></div>
+<p>In this example, the value of <code>.</code> within the curly braces is a list whose elements <code>a</code> and <code>b</code> are both data frames. We use <code>rbind</code> to combine them.</p>
+<p>The <code>.$</code> prefix is a bit inelegant, so we recommend the use of the base R function <code>with</code>, which lets you skip the prefix. Here’s the same example, with <code>with</code>:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(promises)
+<span class="kw">library</span>(future)
+<span class="kw">plan</span>(multisession)
+
+a &lt;-<span class="st"> </span><span class="kw">future</span>(<span class="kw">read.csv</span>(<span class="st">&quot;a.csv&quot;</span>))
+b &lt;-<span class="st"> </span><span class="kw">future</span>(<span class="kw">read.csv</span>(<span class="st">&quot;b.csv&quot;</span>))
+
+<span class="kw">promise_all</span>(<span class="dt">a =</span> a, <span class="dt">b =</span> b) <span class="op">%...&gt;%</span>
+<span class="st">  </span><span class="kw">with</span>({
+    <span class="kw">rbind</span>(a, b)
+  })</code></pre></div>
+<p>(Note that since the <code>promise_all</code> argument names are the same as the variable names (<code>a = a</code>, <code>b = b</code>), the original variables are masked: inside the <code>with</code> block, <code>a</code> now refers to the <em>result</em> of the promise <code>a</code>, not the promise object itself. If you find this confusing, you can just choose a different argument name, like <code>promise_all(a_result = a, …)</code>.)</p>
+<p>The combination of <code>promise_all</code> and <code>with</code> is a concise and powerful way to gather the results of multiple promises.</p>
+<p><code>promise_all</code> also gives you two other options for passing input promises. First, if you would rather your result list be unnamed, you can pass in promises as unnamed arguments: <code>promise_all(a, b)</code> would yield <code>list(1, 2)</code>. Second, if you have a list of promises already in hand, you can pass the list as a single argument using <code>promise_all(.list = x)</code> (instead of, say, using <code>do.call(promise_all, x)</code>).</p>
+</div>
+<div id="nesting" class="section level2">
+<h2>Nesting</h2>
+<p>Gathering is easy and convenient, but sometimes not flexible enough. For example, if you use the result of promise <code>a</code> to decide whether to launch a second async task, whose result you then use in combination with the result of <code>a</code>.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(promises)
+<span class="kw">library</span>(future)
+<span class="kw">plan</span>(multisession)
+
+a &lt;-<span class="st"> </span><span class="kw">future</span>(<span class="dv">1</span>)
+
+a <span class="op">%...&gt;%</span><span class="st"> </span>(<span class="cf">function</span>(a) {
+  b &lt;-<span class="st"> </span><span class="kw">future</span>(<span class="dv">2</span>)
+  b <span class="op">%...&gt;%</span><span class="st"> </span>(<span class="cf">function</span>(b) {
+    a <span class="op">+</span><span class="st"> </span>b
+  })
+})</code></pre></div>
+<p>(We use anonymous functions here to mask the names of the original promises–i.e. once inside the first anonymous function, the symbol <code>a</code> now refers to the result of the promise <code>a</code>.)</p>
+<p>The nesting pattern is effective and flexible. The main downside is the physical nesting of the source code; if you use this pattern to a depth of more than a couple of promises, your code will be quite indented (in programming jargon this is referred to as the “pyramid of doom”).</p>
+</div>
+<div id="racing" class="section level2">
+<h2>Racing</h2>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(promises)
+<span class="kw">library</span>(future)
+<span class="kw">plan</span>(multisession)
+
+a &lt;-<span class="st"> </span><span class="kw">future</span>({ <span class="kw">Sys.sleep</span>(<span class="dv">1</span>); <span class="dv">1</span> })
+b &lt;-<span class="st"> </span><span class="kw">future</span>({ <span class="kw">Sys.sleep</span>(<span class="fl">0.5</span>); <span class="dv">2</span> })
+
+first &lt;-<span class="st"> </span><span class="kw">promise_race</span>(a, b)</code></pre></div>
+<p><code>promise_race</code> takes multiple promises and returns a new promise that will be fulfilled with the first promise that succeeds. In the example above, <code>first</code> is a promise that will be fulfilled with <code>2</code> after 0.5 seconds.</p>
+<p>If one of the input promises rejects before any succeed, then the returned promise will be rejected.</p>
+<p>Note that promises does not currently support cancellation. So losing promises will attempt to run to completion even after the race ends.</p>
+</div>
+<div id="mapping" class="section level2">
+<h2>Mapping</h2>
+<p>Use <code>promise_map</code> to run an async operation on each element of a list or vector, and collect the results in a list. It’s very similar to <code>lapply</code> or <code>purrr::map</code>, except that the function to apply can return a promise, and the return value is also a promise.</p>
+<p>In the example below, we iterate over a named vector of package names. For each package name, we launch an async task to download the package’s description file from CRAN pick out the last published date.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(promises)
+<span class="kw">library</span>(future)
+<span class="kw">plan</span>(multisession)
+
+get_pub_date &lt;-<span class="st"> </span><span class="cf">function</span>(pkg) {
+  desc_url &lt;-<span class="st"> </span><span class="kw">paste0</span>(<span class="st">&quot;https://cran.r-project.org/web/packages/&quot;</span>, pkg, <span class="st">&quot;/DESCRIPTION&quot;</span>)
+  <span class="kw">future</span>({
+    <span class="kw">read.dcf</span>(<span class="kw">url</span>(desc_url))[, <span class="st">&quot;Date/Publication&quot;</span>] <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">unname</span>()
+  })
+}
+
+packages &lt;-<span class="st"> </span><span class="kw">setNames</span>(, <span class="kw">c</span>(<span class="st">&quot;ggplot2&quot;</span>, <span class="st">&quot;dplyr&quot;</span>, <span class="st">&quot;knitr&quot;</span>))
+
+pkg_dates &lt;-<span class="st"> </span><span class="kw">promise_map</span>(packages, get_pub_date)
+
+pkg_dates <span class="op">%...&gt;%</span><span class="st"> </span><span class="kw">print</span>()</code></pre></div>
+<p>The resulting output looks like this:</p>
+<pre><code>$ggplot2
+[1] &quot;2016-12-30 22:45:17&quot;
+
+$dplyr
+[1] &quot;2017-09-28 20:43:29 UTC&quot;
+
+$knitr
+[1] &quot;2018-01-29 11:01:22 UTC&quot;</code></pre>
+<p><code>promise_map</code> works serially; each time it calls the given function on an element of the list/vector, it will wait for the returned promise to resolve before proceeding to the next element. Furthermore, any error or rejected promise will cause the entire <code>promise_map</code> operation to reject.</p>
+<p>If you want behavior that’s similar to <code>promise_map</code> but for all the async operations to occur in parallel, you can achieve that with a combination of a regular <code>purrr::map</code> and <code>promise_all</code>:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">pkg_dates &lt;-<span class="st"> </span>purrr<span class="op">::</span><span class="kw">map</span>(packages, get_pub_date) <span class="op">%&gt;%</span>
+<span class="st">  </span><span class="kw">promise_all</span>(<span class="dt">.list =</span> .)
+
+pkg_dates <span class="op">%...&gt;%</span><span class="st"> </span><span class="kw">print</span>()</code></pre></div>
+</div>
+<div id="reducing" class="section level2">
+<h2>Reducing</h2>
+<p>Use <code>promise_reduce</code> when you have a list where you want to run an async operation on each of the elements, and to do so serially (i.e. only one async operation runs at a time). This can be helpful when you’re searching through some elements using an async operation and want to terminate early when your search succeeds.</p>
+<p>The signature of <code>promise_reduce</code> is as follows:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">promise_reduce</span>(x, func, <span class="dt">init =</span> <span class="ot">NULL</span>)</code></pre></div>
+<p>If you’ve worked with <code>base::Reduce()</code> or <code>purr:::reduce()</code>, this should seem reasonably familiar: <code>x</code> is a vector or list; <code>func</code> is a function that takes two arguments, the accumulated value and the “next” value; and <code>init</code> is the default accumulated value.</p>
+<p>The main difference between <code>promise_reduce</code> and <code>purrr:::reduce</code> is that with <code>promise_reduce</code>, your <code>func</code> can return a promise. If it does, <code>promise_reduce</code> will wait for it to resolve before updating the accumulated value and invoking <code>func</code> on the next element. The result returned from <code>promise_reduce</code> is a promise that resolves to the ultimate accumulated value.</p>
+<p>The following example loops through a partial list of CRAN mirrors, returning the first one that passes whatever check <code>http::http_error</code> performs.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(promises)
+<span class="kw">library</span>(future)
+<span class="kw">plan</span>(multisession)
+
+cran_mirrors &lt;-<span class="st"> </span><span class="kw">c</span>(
+  <span class="st">&quot;https://cloud.r-project.org&quot;</span>,
+  <span class="st">&quot;https://cran.usthb.dz&quot;</span>,
+  <span class="st">&quot;https://cran.csiro.au&quot;</span>,
+  <span class="st">&quot;https://cran.wu.ac.at&quot;</span>
+)
+
+<span class="kw">promise_reduce</span>(cran_mirrors, <span class="cf">function</span>(result, mirror) {
+  <span class="cf">if</span> (<span class="op">!</span><span class="kw">is.null</span>(result)) {
+    result
+  } <span class="cf">else</span> {
+    <span class="kw">future</span>({
+      <span class="co"># Test the URL; return the URL on success, or NULL on failure</span>
+      <span class="cf">if</span> (<span class="op">!</span>httr<span class="op">::</span><span class="kw">http_error</span>(mirror)) mirror
+    })
+  }
+}, <span class="dt">.init =</span> <span class="ot">NULL</span>) <span class="op">%...&gt;%</span><span class="st"> </span><span class="kw">print</span>()</code></pre></div>
+</div>
+
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<meta name="author" content="Hadley Wickham" />
+
+
+<title>Implementing a new backend</title>
+
+
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+div.sourceCode { overflow-x: auto; }
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code > span.dt { color: #902000; } /* DataType */
+code > span.dv { color: #40a070; } /* DecVal */
+code > span.bn { color: #40a070; } /* BaseN */
+code > span.fl { color: #40a070; } /* Float */
+code > span.ch { color: #4070a0; } /* Char */
+code > span.st { color: #4070a0; } /* String */
+code > span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code > span.ot { color: #007020; } /* Other */
+code > span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code > span.fu { color: #06287e; } /* Function */
+code > span.er { color: #ff0000; font-weight: bold; } /* Error */
+code > span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+code > span.cn { color: #880000; } /* Constant */
+code > span.sc { color: #4070a0; } /* SpecialChar */
+code > span.vs { color: #4070a0; } /* VerbatimString */
+code > span.ss { color: #bb6688; } /* SpecialString */
+code > span.im { } /* Import */
+code > span.va { color: #19177c; } /* Variable */
+code > span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code > span.op { color: #666666; } /* Operator */
+code > span.bu { } /* BuiltIn */
+code > span.ex { } /* Extension */
+code > span.pp { color: #bc7a00; } /* Preprocessor */
+code > span.at { color: #7d9029; } /* Attribute */
+code > span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+</style>
+
+
+
+<link href="data:text/css;charset=utf-8,body%20%7B%0Abackground%2Dcolor%3A%20%23fff%3B%0Amargin%3A%201em%20auto%3B%0Amax%2Dwidth%3A%20700px%3B%0Aoverflow%3A%20visible%3B%0Apadding%2Dleft%3A%202em%3B%0Apadding%2Dright%3A%202em%3B%0Afont%2Dfamily%3A%20%22Open%20Sans%22%2C%20%22Helvetica%20Neue%22%2C%20Helvetica%2C%20Arial%2C%20sans%2Dserif%3B%0Afont%2Dsize%3A%2014px%3B%0Aline%2Dheight%3A%201%2E35%3B%0A%7D%0A%23header%20%7B%0Atext%2Dalign%3A%20center%3B%0A%7D%0A%23TOC%20%7B%0Aclear%3A%20both%3B%0Amargin%3A%200%200%2010px%2010px%3B%0Apadding%3A%204px%3B%0Awidth%3A%20400px%3B%0Aborder%3A%201px%20solid%20%23CCCCCC%3B%0Aborder%2Dradius%3A%205px%3B%0Abackground%2Dcolor%3A%20%23f6f6f6%3B%0Afont%2Dsize%3A%2013px%3B%0Aline%2Dheight%3A%201%2E3%3B%0A%7D%0A%23TOC%20%2Etoctitle%20%7B%0Afont%2Dweight%3A%20bold%3B%0Afont%2Dsize%3A%2015px%3B%0Amargin%2Dleft%3A%205px%3B%0A%7D%0A%23TOC%20ul%20%7B%0Apadding%2Dleft%3A%2040px%3B%0Amargin%2Dleft%3A%20%2D1%2E5em%3B%0Amargin%2Dtop%3A%205px%3B%0Amargin%2Dbottom%3A%205px%3B%0A%7D%0A%23TOC%20ul%20ul%20%7B%0Amargin%2Dleft%3A%20%2D2em%3B%0A%7D%0A%23TOC%20li%20%7B%0Aline%2Dheight%3A%2016px%3B%0A%7D%0Atable%20%7B%0Amargin%3A%201em%20auto%3B%0Aborder%2Dwidth%3A%201px%3B%0Aborder%2Dcolor%3A%20%23DDDDDD%3B%0Aborder%2Dstyle%3A%20outset%3B%0Aborder%2Dcollapse%3A%20collapse%3B%0A%7D%0Atable%20th%20%7B%0Aborder%2Dwidth%3A%202px%3B%0Apadding%3A%205px%3B%0Aborder%2Dstyle%3A%20inset%3B%0A%7D%0Atable%20td%20%7B%0Aborder%2Dwidth%3A%201px%3B%0Aborder%2Dstyle%3A%20inset%3B%0Aline%2Dheight%3A%2018px%3B%0Apadding%3A%205px%205px%3B%0A%7D%0Atable%2C%20table%20th%2C%20table%20td%20%7B%0Aborder%2Dleft%2Dstyle%3A%20none%3B%0Aborder%2Dright%2Dstyle%3A%20none%3B%0A%7D%0Atable%20thead%2C%20table%20tr%2Eeven%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0A%7D%0Ap%20%7B%0Amargin%3A%200%2E5em%200%3B%0A%7D%0Ablockquote%20%7B%0Abackground%2Dcolor%3A%20%23f6f6f6%3B%0Apadding%3A%200%2E25em%200%2E75em%3B%0A%7D%0Ahr%20%7B%0Aborder%2Dstyle%3A%20solid%3B%0Aborder%3A%20none%3B%0Aborder%2Dtop%3A%201px%20solid%20%23777%3B%0Amargin%3A%2028px%200%3B%0A%7D%0Adl%20%7B%0Amargin%2Dleft%3A%200%3B%0A%7D%0Adl%20dd%20%7B%0Amargin%2Dbottom%3A%2013px%3B%0Amargin%2Dleft%3A%2013px%3B%0A%7D%0Adl%20dt%20%7B%0Afont%2Dweight%3A%20bold%3B%0A%7D%0Aul%20%7B%0Amargin%2Dtop%3A%200%3B%0A%7D%0Aul%20li%20%7B%0Alist%2Dstyle%3A%20circle%20outside%3B%0A%7D%0Aul%20ul%20%7B%0Amargin%2Dbottom%3A%200%3B%0A%7D%0Apre%2C%20code%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0Aborder%2Dradius%3A%203px%3B%0Acolor%3A%20%23333%3B%0Awhite%2Dspace%3A%20pre%2Dwrap%3B%20%0A%7D%0Apre%20%7B%0Aborder%2Dradius%3A%203px%3B%0Amargin%3A%205px%200px%2010px%200px%3B%0Apadding%3A%2010px%3B%0A%7D%0Apre%3Anot%28%5Bclass%5D%29%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0A%7D%0Acode%20%7B%0Afont%2Dfamily%3A%20Consolas%2C%20Monaco%2C%20%27Courier%20New%27%2C%20monospace%3B%0Afont%2Dsize%3A%2085%25%3B%0A%7D%0Ap%20%3E%20code%2C%20li%20%3E%20code%20%7B%0Apadding%3A%202px%200px%3B%0A%7D%0Adiv%2Efigure%20%7B%0Atext%2Dalign%3A%20center%3B%0A%7D%0Aimg%20%7B%0Abackground%2Dcolor%3A%20%23FFFFFF%3B%0Apadding%3A%202px%3B%0Aborder%3A%201px%20solid%20%23DDDDDD%3B%0Aborder%2Dradius%3A%203px%3B%0Aborder%3A%201px%20solid%20%23CCCCCC%3B%0Amargin%3A%200%205px%3B%0A%7D%0Ah1%20%7B%0Amargin%2Dtop%3A%200%3B%0Afont%2Dsize%3A%2035px%3B%0Aline%2Dheight%3A%2040px%3B%0A%7D%0Ah2%20%7B%0Aborder%2Dbottom%3A%204px%20solid%20%23f7f7f7%3B%0Apadding%2Dtop%3A%2010px%3B%0Apadding%2Dbottom%3A%202px%3B%0Afont%2Dsize%3A%20145%25%3B%0A%7D%0Ah3%20%7B%0Aborder%2Dbottom%3A%202px%20solid%20%23f7f7f7%3B%0Apadding%2Dtop%3A%2010px%3B%0Afont%2Dsize%3A%20120%25%3B%0A%7D%0Ah4%20%7B%0Aborder%2Dbottom%3A%201px%20solid%20%23f7f7f7%3B%0Amargin%2Dleft%3A%208px%3B%0Afont%2Dsize%3A%20105%25%3B%0A%7D%0Ah5%2C%20h6%20%7B%0Aborder%2Dbottom%3A%201px%20solid%20%23ccc%3B%0Afont%2Dsize%3A%20105%25%3B%0A%7D%0Aa%20%7B%0Acolor%3A%20%230033dd%3B%0Atext%2Ddecoration%3A%20none%3B%0A%7D%0Aa%3Ahover%20%7B%0Acolor%3A%20%236666ff%3B%20%7D%0Aa%3Avisited%20%7B%0Acolor%3A%20%23800080%3B%20%7D%0Aa%3Avisited%3Ahover%20%7B%0Acolor%3A%20%23BB00BB%3B%20%7D%0Aa%5Bhref%5E%3D%22http%3A%22%5D%20%7B%0Atext%2Ddecoration%3A%20underline%3B%20%7D%0Aa%5Bhref%5E%3D%22https%3A%22%5D%20%7B%0Atext%2Ddecoration%3A%20underline%3B%20%7D%0A%0Acode%20%3E%20span%2Ekw%20%7B%20color%3A%20%23555%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Edt%20%7B%20color%3A%20%23902000%3B%20%7D%20%0Acode%20%3E%20span%2Edv%20%7B%20color%3A%20%2340a070%3B%20%7D%20%0Acode%20%3E%20span%2Ebn%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Efl%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Ech%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Est%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Eco%20%7B%20color%3A%20%23888888%3B%20font%2Dstyle%3A%20italic%3B%20%7D%20%0Acode%20%3E%20span%2Eot%20%7B%20color%3A%20%23007020%3B%20%7D%20%0Acode%20%3E%20span%2Eal%20%7B%20color%3A%20%23ff0000%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Efu%20%7B%20color%3A%20%23900%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%20code%20%3E%20span%2Eer%20%7B%20color%3A%20%23a61717%3B%20background%2Dcolor%3A%20%23e3d2d2%3B%20%7D%20%0A" rel="stylesheet" type="text/css" />
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Implementing a new backend</h1>
+<h4 class="author"><em>Hadley Wickham</em></h4>
+
+
+
+<p>The goal of this document is to help you implement a new backend for DBI.</p>
+<p>If you are writing a package that connects a database to R, I highly recommend that you make it DBI compatible because it makes your life easier by spelling out exactly what you need to do. The consistent interface provided by DBI makes it easier for you to implement the package (because you have fewer arbitrary choices to make), and easier for your users (because it follows a familiar pattern). In addition, the <code>DBItest</code> package provides test cases which you can easily incorporate in your package.</p>
+<p>I’ll illustrate the process using a fictional database called Kazam.</p>
+<div id="getting-started" class="section level2">
+<h2>Getting started</h2>
+<p>Start by creating a package. It’s up to you what to call the package, but following the existing pattern of <code>RSQLite</code>, <code>RMySQL</code>, <code>RPostgres</code> and <code>ROracle</code> will make it easier for people to find it. For this example, I’ll call my package <code>RKazam</code>.</p>
+<p>In your <code>DESCRIPTION</code>, make sure to include:</p>
+<div class="sourceCode"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span class="fu">Imports:</span>
+  DBI (&gt;= 0.3.0),
+  methods
+<span class="fu">Suggests:</span>
+  DBItest, testthat</code></pre></div>
+<p>Importing <code>DBI</code> is fine, because your users are not supposed to <em>attach</em> your package anyway; the preferred method is to attach <code>DBI</code> and use explicit qualification via <code>::</code> to access the driver in your package (which needs to be done only once).</p>
+</div>
+<div id="testing" class="section level2">
+<h2>Testing</h2>
+<p>Why testing at this early stage? Because testing should be an integral part of the software development cycle. Test right from the start, add automated tests as you go, finish faster (because tests are automated) while maintaining superb code quality (because tests also check corner cases that you might not be aware of). Don’t worry: if some test cases are difficult or impossible to satisfy, or take too long to run, you can just turn them off.</p>
+<p>Take the time now to head over to the <code>DBItest</code> vignette. You will find a vast amount of ready-to-use test cases that will help you in the process of implementing your new DBI backend.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">vignette</span>(<span class="st">&quot;test&quot;</span>, <span class="dt">package =</span> <span class="st">&quot;DBItest&quot;</span>)</code></pre></div>
+<p>Add custom tests that are not covered by <code>DBItest</code> at your discretion, or enhance <code>DBItest</code> and file a pull request if the test is generic enough to be useful for many DBI backends.</p>
+</div>
+<div id="driver" class="section level2">
+<h2>Driver</h2>
+<p>Start by making a driver class which inherits from <code>DBIDriver</code>. This class doesn’t need to do anything, it’s just used to dispatch other generics to the right method. Users don’t need to know about this, so you can remove it from the default help listing with <code>@keywords internal</code>:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co">#' Driver for Kazam database.</span>
+<span class="co">#' </span>
+<span class="co">#' @keywords internal</span>
+<span class="co">#' @export</span>
+<span class="co">#' @import DBI</span>
+<span class="co">#' @import methods</span>
+<span class="kw">setClass</span>(<span class="st">&quot;KazamDriver&quot;</span>, <span class="dt">contains =</span> <span class="st">&quot;DBIDriver&quot;</span>)</code></pre></div>
+<p>The driver class was more important in older versions of DBI, so you should also provide a dummy <code>dbUnloadDriver()</code> method.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co">#' @export</span>
+<span class="co">#' @rdname Kazam-class</span>
+<span class="kw">setMethod</span>(<span class="st">&quot;dbUnloadDriver&quot;</span>, <span class="st">&quot;KazamDriver&quot;</span>, <span class="cf">function</span>(drv, ...) {
+  <span class="ot">TRUE</span>
+})
+<span class="co">#&gt; [1] &quot;dbUnloadDriver&quot;</span></code></pre></div>
+<p>If your package needs global setup or tear down, do this in the <code>.onLoad()</code> and <code>.onUnload()</code> functions.</p>
+<p>You might also want to add a show method so the object prints nicely:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">setMethod</span>(<span class="st">&quot;show&quot;</span>, <span class="st">&quot;KazamDriver&quot;</span>, <span class="cf">function</span>(object) {
+  <span class="kw">cat</span>(<span class="st">&quot;&lt;KazamDriver&gt;</span><span class="ch">\n</span><span class="st">&quot;</span>)
+})
+<span class="co">#&gt; [1] &quot;show&quot;</span></code></pre></div>
+<p>Next create <code>Kazam()</code> which instantiates this class.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co">#' @export</span>
+Kazam &lt;-<span class="st"> </span><span class="cf">function</span>() {
+  <span class="kw">new</span>(<span class="st">&quot;KazamDriver&quot;</span>)
+}
+
+<span class="kw">Kazam</span>()
+<span class="co">#&gt; &lt;KazamDriver&gt;</span></code></pre></div>
+</div>
+<div id="connection" class="section level2">
+<h2>Connection</h2>
+<p>Next create a connection class that inherits from <code>DBIConnection</code>. This should store all the information needed to connect to the database. If you’re talking to a C api, this will include a slot that holds an external pointer.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co">#' Kazam connection class.</span>
+<span class="co">#' </span>
+<span class="co">#' @export</span>
+<span class="co">#' @keywords internal</span>
+<span class="kw">setClass</span>(<span class="st">&quot;KazamConnection&quot;</span>, 
+  <span class="dt">contains =</span> <span class="st">&quot;DBIConnection&quot;</span>, 
+  <span class="dt">slots =</span> <span class="kw">list</span>(
+    <span class="dt">host =</span> <span class="st">&quot;character&quot;</span>, 
+    <span class="dt">username =</span> <span class="st">&quot;character&quot;</span>, 
+    <span class="co"># and so on</span>
+    <span class="dt">ptr =</span> <span class="st">&quot;externalptr&quot;</span>
+  )
+)</code></pre></div>
+<p>Now you have some of the boilerplate out of the way, you can start work on the connection. The most important method here is <code>dbConnect()</code> which allows you to connect to a specified instance of the database. Note the use of <code>@rdname Kazam</code>. This ensures that <code>Kazam()</code> and the connect method are documented together.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co">#' @param drv An object created by \code{Kazam()} </span>
+<span class="co">#' @rdname Kazam</span>
+<span class="co">#' @export</span>
+<span class="co">#' @examples</span>
+<span class="co">#' \dontrun{</span>
+<span class="co">#' db &lt;- dbConnect(RKazam::Kazam())</span>
+<span class="co">#' dbWriteTable(db, &quot;mtcars&quot;, mtcars)</span>
+<span class="co">#' dbGetQuery(db, &quot;SELECT * FROM mtcars WHERE cyl == 4&quot;)</span>
+<span class="co">#' }</span>
+<span class="kw">setMethod</span>(<span class="st">&quot;dbConnect&quot;</span>, <span class="st">&quot;KazamDriver&quot;</span>, <span class="cf">function</span>(drv, ...) {
+  <span class="co"># ...</span>
+  
+  <span class="kw">new</span>(<span class="st">&quot;KazamConnection&quot;</span>, <span class="dt">host =</span> host, ...)
+})
+<span class="co">#&gt; [1] &quot;dbConnect&quot;</span></code></pre></div>
+<ul>
+<li><p>Replace <code>...</code> with the arguments needed to connect to your database. You’ll always need to include <code>...</code> in the arguments, even if you don’t use it, for compatibility with the generic.</p></li>
+<li><p>This is likely to be where people first come for help, so the examples should show how to connect to the database, and how to query it. (Obviously these examples won’t work yet.) Ideally, include examples that can be run right away (perhaps relying on a publicly hosted database), but failing that surround in <code>\dontrun{}</code> so people can at least see the code.</p></li>
+</ul>
+<p>Next, implement <code>show()</code> and <code>dbDisconnect()</code> methods.</p>
+</div>
+<div id="results" class="section level2">
+<h2>Results</h2>
+<p>Finally, you’re ready to implement the meat of the system: fetching results of a query into a data frame. First define a results class:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co">#' Kazam results class.</span>
+<span class="co">#' </span>
+<span class="co">#' @keywords internal</span>
+<span class="co">#' @export</span>
+<span class="kw">setClass</span>(<span class="st">&quot;KazamResult&quot;</span>, 
+  <span class="dt">contains =</span> <span class="st">&quot;DBIResult&quot;</span>,
+  <span class="dt">slots =</span> <span class="kw">list</span>(<span class="dt">ptr =</span> <span class="st">&quot;externalptr&quot;</span>)
+)</code></pre></div>
+<p>Then write a <code>dbSendQuery()</code> method. This takes a connection and SQL string as arguments, and returns a result object. Again <code>...</code> is needed for compatibility with the generic, but you can add other arguments if you need them.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co">#' Send a query to Kazam.</span>
+<span class="co">#' </span>
+<span class="co">#' @export</span>
+<span class="co">#' @examples </span>
+<span class="co">#' # This is another good place to put examples</span>
+<span class="kw">setMethod</span>(<span class="st">&quot;dbSendQuery&quot;</span>, <span class="st">&quot;KazamConnection&quot;</span>, <span class="cf">function</span>(conn, statement, ...) {
+  <span class="co"># some code</span>
+  <span class="kw">new</span>(<span class="st">&quot;KazamResult&quot;</span>, ...)
+})
+<span class="co">#&gt; [1] &quot;dbSendQuery&quot;</span></code></pre></div>
+<p>Next, implement <code>dbClearResult()</code>, which should close the result set and free all resources associated with it:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co">#' @export</span>
+<span class="kw">setMethod</span>(<span class="st">&quot;dbClearResult&quot;</span>, <span class="st">&quot;KazamResult&quot;</span>, <span class="cf">function</span>(res, ...) {
+  <span class="co"># free resources</span>
+  <span class="ot">TRUE</span>
+})
+<span class="co">#&gt; [1] &quot;dbClearResult&quot;</span></code></pre></div>
+<p>The hardest part of every DBI package is writing the <code>dbFetch()</code> method. This needs to take a result set and (optionally) number of records to return, and create a dataframe. Mapping R’s data types to those of your database may require a custom implementation of the <code>dbDataType()</code> method for your connection class:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co">#' Retrieve records from Kazam query</span>
+<span class="co">#' @export</span>
+<span class="kw">setMethod</span>(<span class="st">&quot;dbFetch&quot;</span>, <span class="st">&quot;KazamResult&quot;</span>, <span class="cf">function</span>(res, <span class="dt">n =</span> <span class="op">-</span><span class="dv">1</span>, ...) {
+  ...
+})
+<span class="co">#&gt; [1] &quot;dbFetch&quot;</span>
+
+<span class="co"># (optionally)</span>
+
+<span class="co">#' Find the database data type associated with an R object</span>
+<span class="co">#' @export</span>
+<span class="kw">setMethod</span>(<span class="st">&quot;dbDataType&quot;</span>, <span class="st">&quot;KazamConnection&quot;</span>, <span class="cf">function</span>(dbObj, obj, ...) {
+  ...
+})
+<span class="co">#&gt; [1] &quot;dbDataType&quot;</span></code></pre></div>
+<p>Next, implement <code>dbHasCompleted()</code> which should return a <code>logical</code> indicating if there are any rows remaining to be fetched.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co">#' @export</span>
+<span class="kw">setMethod</span>(<span class="st">&quot;dbHasCompleted&quot;</span>, <span class="st">&quot;KazamResult&quot;</span>, <span class="cf">function</span>(res, ...) { 
+  
+})
+<span class="co">#&gt; [1] &quot;dbHasCompleted&quot;</span></code></pre></div>
+<p>With these four methods in place, you can now use the default <code>dbGetQuery()</code> to send a query to the database, retrieve results if available and then clean up. Spend some time now making sure this works with an existing database, or relax and let the <code>DBItest</code> package do the work for you.</p>
+</div>
+<div id="sql-methods" class="section level2">
+<h2>SQL methods</h2>
+<p>You’re now on the home stretch, and can make your wrapper substantially more useful by implementing methods that wrap around variations in SQL across databases:</p>
+<ul>
+<li><p><code>dbQuoteString()</code> and <code>dbQuoteIdentifer()</code> are used to safely quote strings and identifiers to avoid SQL injection attacks. Note that the former must be vectorized, but not the latter.</p></li>
+<li><p><code>dbWriteTable()</code> creates a database table given an R dataframe. I’d recommend using the functions prefixed with <code>sql</code> in this package to generate the SQL. These functions are still a work in progress so please let me know if you have problems.</p></li>
+<li><p><code>dbReadTable()</code>: a simple wrapper around <code>SELECT * FROM table</code>. Use <code>dbQuoteIdentifer()</code> to safely quote the table name and prevent mismatches between the names allowed by R and the database.</p></li>
+<li><p><code>dbListTables()</code> and <code>dbExistsTable()</code> let you determine what tables are available. If not provided by your database’s API, you may need to generate sql that inspects the system tables.</p></li>
+<li><p><code>dbListFields()</code> shows which fields are available in a given table.</p></li>
+<li><p><code>dbRemoveTable()</code> wraps around <code>DROP TABLE</code>. Start with <code>SQL::sqlTableDrop()</code>.</p></li>
+<li><p><code>dbBegin()</code>, <code>dbCommit()</code> and <code>dbRollback()</code>: implement these three functions to provide basic transaction support. This functionality is currently not tested in the <code>DBItest</code> package.</p></li>
+</ul>
+</div>
+<div id="metadata-methods" class="section level2">
+<h2>Metadata methods</h2>
+<p>There are a lot of extra metadata methods for result sets (and one for the connection) that you might want to implement. They are described in the following.</p>
+<ul>
+<li><p><code>dbIsValid()</code> returns if a connection or a result set is open (<code>TRUE</code>) or closed (<code>FALSE</code>). All further methods in this section are valid for result sets only.</p></li>
+<li><p><code>dbGetStatement()</code> returns the issued query as a character value.</p></li>
+<li><p><code>dbColumnInfo()</code> lists the names and types of the result set’s columns.</p></li>
+<li><p><code>dbGetRowCount()</code> and <code>dbGetRowsAffected()</code> returns the number of rows returned or altered in a <code>SELECT</code> or <code>INSERT</code>/<code>UPDATE</code> query, respectively.</p></li>
+<li><p><code>dbBind()</code> allows using parametrised queries. Take a look at <code>sqlInterpolate()</code> and <code>sqlParseVariables()</code> if your SQL engine doesn’t offer native parametrised queries.</p></li>
+</ul>
+</div>
+<div id="full-dbi-compliance" class="section level2">
+<h2>Full DBI compliance</h2>
+<p>By now, your package should implement all methods defined in the DBI specification. If you want to walk the extra mile, offer a read-only mode that allows your users to be sure that their valuable data doesn’t get destroyed inadvertently.</p>
+</div>
+
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

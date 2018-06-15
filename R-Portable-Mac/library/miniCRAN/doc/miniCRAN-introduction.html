@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<meta name="author" content="Andrie de Vries and Alex Chubaty" />
+
+<meta name="date" content="2018-01-15" />
+
+<title>Using miniCRAN to create a local CRAN repository</title>
+
+
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+div.sourceCode { overflow-x: auto; }
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code > span.dt { color: #902000; } /* DataType */
+code > span.dv { color: #40a070; } /* DecVal */
+code > span.bn { color: #40a070; } /* BaseN */
+code > span.fl { color: #40a070; } /* Float */
+code > span.ch { color: #4070a0; } /* Char */
+code > span.st { color: #4070a0; } /* String */
+code > span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code > span.ot { color: #007020; } /* Other */
+code > span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code > span.fu { color: #06287e; } /* Function */
+code > span.er { color: #ff0000; font-weight: bold; } /* Error */
+code > span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+code > span.cn { color: #880000; } /* Constant */
+code > span.sc { color: #4070a0; } /* SpecialChar */
+code > span.vs { color: #4070a0; } /* VerbatimString */
+code > span.ss { color: #bb6688; } /* SpecialString */
+code > span.im { } /* Import */
+code > span.va { color: #19177c; } /* Variable */
+code > span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code > span.op { color: #666666; } /* Operator */
+code > span.bu { } /* BuiltIn */
+code > span.ex { } /* Extension */
+code > span.pp { color: #bc7a00; } /* Preprocessor */
+code > span.at { color: #7d9029; } /* Attribute */
+code > span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+</style>
+
+
+
+<link href="data:text/css;charset=utf-8,body%20%7B%0Abackground%2Dcolor%3A%20%23fff%3B%0Amargin%3A%201em%20auto%3B%0Amax%2Dwidth%3A%20700px%3B%0Aoverflow%3A%20visible%3B%0Apadding%2Dleft%3A%202em%3B%0Apadding%2Dright%3A%202em%3B%0Afont%2Dfamily%3A%20%22Open%20Sans%22%2C%20%22Helvetica%20Neue%22%2C%20Helvetica%2C%20Arial%2C%20sans%2Dserif%3B%0Afont%2Dsize%3A%2014px%3B%0Aline%2Dheight%3A%201%2E35%3B%0A%7D%0A%23header%20%7B%0Atext%2Dalign%3A%20center%3B%0A%7D%0A%23TOC%20%7B%0Aclear%3A%20both%3B%0Amargin%3A%200%200%2010px%2010px%3B%0Apadding%3A%204px%3B%0Awidth%3A%20400px%3B%0Aborder%3A%201px%20solid%20%23CCCCCC%3B%0Aborder%2Dradius%3A%205px%3B%0Abackground%2Dcolor%3A%20%23f6f6f6%3B%0Afont%2Dsize%3A%2013px%3B%0Aline%2Dheight%3A%201%2E3%3B%0A%7D%0A%23TOC%20%2Etoctitle%20%7B%0Afont%2Dweight%3A%20bold%3B%0Afont%2Dsize%3A%2015px%3B%0Amargin%2Dleft%3A%205px%3B%0A%7D%0A%23TOC%20ul%20%7B%0Apadding%2Dleft%3A%2040px%3B%0Amargin%2Dleft%3A%20%2D1%2E5em%3B%0Amargin%2Dtop%3A%205px%3B%0Amargin%2Dbottom%3A%205px%3B%0A%7D%0A%23TOC%20ul%20ul%20%7B%0Amargin%2Dleft%3A%20%2D2em%3B%0A%7D%0A%23TOC%20li%20%7B%0Aline%2Dheight%3A%2016px%3B%0A%7D%0Atable%20%7B%0Amargin%3A%201em%20auto%3B%0Aborder%2Dwidth%3A%201px%3B%0Aborder%2Dcolor%3A%20%23DDDDDD%3B%0Aborder%2Dstyle%3A%20outset%3B%0Aborder%2Dcollapse%3A%20collapse%3B%0A%7D%0Atable%20th%20%7B%0Aborder%2Dwidth%3A%202px%3B%0Apadding%3A%205px%3B%0Aborder%2Dstyle%3A%20inset%3B%0A%7D%0Atable%20td%20%7B%0Aborder%2Dwidth%3A%201px%3B%0Aborder%2Dstyle%3A%20inset%3B%0Aline%2Dheight%3A%2018px%3B%0Apadding%3A%205px%205px%3B%0A%7D%0Atable%2C%20table%20th%2C%20table%20td%20%7B%0Aborder%2Dleft%2Dstyle%3A%20none%3B%0Aborder%2Dright%2Dstyle%3A%20none%3B%0A%7D%0Atable%20thead%2C%20table%20tr%2Eeven%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0A%7D%0Ap%20%7B%0Amargin%3A%200%2E5em%200%3B%0A%7D%0Ablockquote%20%7B%0Abackground%2Dcolor%3A%20%23f6f6f6%3B%0Apadding%3A%200%2E25em%200%2E75em%3B%0A%7D%0Ahr%20%7B%0Aborder%2Dstyle%3A%20solid%3B%0Aborder%3A%20none%3B%0Aborder%2Dtop%3A%201px%20solid%20%23777%3B%0Amargin%3A%2028px%200%3B%0A%7D%0Adl%20%7B%0Amargin%2Dleft%3A%200%3B%0A%7D%0Adl%20dd%20%7B%0Amargin%2Dbottom%3A%2013px%3B%0Amargin%2Dleft%3A%2013px%3B%0A%7D%0Adl%20dt%20%7B%0Afont%2Dweight%3A%20bold%3B%0A%7D%0Aul%20%7B%0Amargin%2Dtop%3A%200%3B%0A%7D%0Aul%20li%20%7B%0Alist%2Dstyle%3A%20circle%20outside%3B%0A%7D%0Aul%20ul%20%7B%0Amargin%2Dbottom%3A%200%3B%0A%7D%0Apre%2C%20code%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0Aborder%2Dradius%3A%203px%3B%0Acolor%3A%20%23333%3B%0Awhite%2Dspace%3A%20pre%2Dwrap%3B%20%0A%7D%0Apre%20%7B%0Aborder%2Dradius%3A%203px%3B%0Amargin%3A%205px%200px%2010px%200px%3B%0Apadding%3A%2010px%3B%0A%7D%0Apre%3Anot%28%5Bclass%5D%29%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0A%7D%0Acode%20%7B%0Afont%2Dfamily%3A%20Consolas%2C%20Monaco%2C%20%27Courier%20New%27%2C%20monospace%3B%0Afont%2Dsize%3A%2085%25%3B%0A%7D%0Ap%20%3E%20code%2C%20li%20%3E%20code%20%7B%0Apadding%3A%202px%200px%3B%0A%7D%0Adiv%2Efigure%20%7B%0Atext%2Dalign%3A%20center%3B%0A%7D%0Aimg%20%7B%0Abackground%2Dcolor%3A%20%23FFFFFF%3B%0Apadding%3A%202px%3B%0Aborder%3A%201px%20solid%20%23DDDDDD%3B%0Aborder%2Dradius%3A%203px%3B%0Aborder%3A%201px%20solid%20%23CCCCCC%3B%0Amargin%3A%200%205px%3B%0A%7D%0Ah1%20%7B%0Amargin%2Dtop%3A%200%3B%0Afont%2Dsize%3A%2035px%3B%0Aline%2Dheight%3A%2040px%3B%0A%7D%0Ah2%20%7B%0Aborder%2Dbottom%3A%204px%20solid%20%23f7f7f7%3B%0Apadding%2Dtop%3A%2010px%3B%0Apadding%2Dbottom%3A%202px%3B%0Afont%2Dsize%3A%20145%25%3B%0A%7D%0Ah3%20%7B%0Aborder%2Dbottom%3A%202px%20solid%20%23f7f7f7%3B%0Apadding%2Dtop%3A%2010px%3B%0Afont%2Dsize%3A%20120%25%3B%0A%7D%0Ah4%20%7B%0Aborder%2Dbottom%3A%201px%20solid%20%23f7f7f7%3B%0Amargin%2Dleft%3A%208px%3B%0Afont%2Dsize%3A%20105%25%3B%0A%7D%0Ah5%2C%20h6%20%7B%0Aborder%2Dbottom%3A%201px%20solid%20%23ccc%3B%0Afont%2Dsize%3A%20105%25%3B%0A%7D%0Aa%20%7B%0Acolor%3A%20%230033dd%3B%0Atext%2Ddecoration%3A%20none%3B%0A%7D%0Aa%3Ahover%20%7B%0Acolor%3A%20%236666ff%3B%20%7D%0Aa%3Avisited%20%7B%0Acolor%3A%20%23800080%3B%20%7D%0Aa%3Avisited%3Ahover%20%7B%0Acolor%3A%20%23BB00BB%3B%20%7D%0Aa%5Bhref%5E%3D%22http%3A%22%5D%20%7B%0Atext%2Ddecoration%3A%20underline%3B%20%7D%0Aa%5Bhref%5E%3D%22https%3A%22%5D%20%7B%0Atext%2Ddecoration%3A%20underline%3B%20%7D%0A%0Acode%20%3E%20span%2Ekw%20%7B%20color%3A%20%23555%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Edt%20%7B%20color%3A%20%23902000%3B%20%7D%20%0Acode%20%3E%20span%2Edv%20%7B%20color%3A%20%2340a070%3B%20%7D%20%0Acode%20%3E%20span%2Ebn%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Efl%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Ech%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Est%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Eco%20%7B%20color%3A%20%23888888%3B%20font%2Dstyle%3A%20italic%3B%20%7D%20%0Acode%20%3E%20span%2Eot%20%7B%20color%3A%20%23007020%3B%20%7D%20%0Acode%20%3E%20span%2Eal%20%7B%20color%3A%20%23ff0000%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Efu%20%7B%20color%3A%20%23900%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%20code%20%3E%20span%2Eer%20%7B%20color%3A%20%23a61717%3B%20background%2Dcolor%3A%20%23e3d2d2%3B%20%7D%20%0A" rel="stylesheet" type="text/css" />
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Using miniCRAN to create a local CRAN repository</h1>
+<h4 class="author"><em>Andrie de Vries and Alex Chubaty</em></h4>
+<h4 class="date"><em>January 15, 2018</em></h4>
+
+
+
+<p>Start by creating the recursive dependency tree for your target packages.</p>
+<p>For example, imagine a scenario where you want to create a repository that consists of the package <code>foreach</code> and its dependencies.</p>
+<p>Start by creating the dependency list:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(<span class="st">&quot;miniCRAN&quot;</span>)
+
+<span class="co"># use Revolution Analytics CRAN mirror</span>
+revolution &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="dt">CRAN =</span> <span class="st">&quot;http://cran.microsoft.com&quot;</span>)
+
+<span class="co"># Specify list of packages to download</span>
+pkgs &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;foreach&quot;</span>)
+pkgList &lt;-<span class="st"> </span><span class="kw">pkgDep</span>(pkgs, <span class="dt">repos =</span> revolution, <span class="dt">type =</span> <span class="st">&quot;source&quot;</span>, <span class="dt">suggests =</span> <span class="ot">FALSE</span>, 
+                  <span class="dt">availPkgs =</span> cranJuly2014)
+pkgList</code></pre></div>
+<pre><code>## [1] &quot;foreach&quot;   &quot;codetools&quot; &quot;iterators&quot;</code></pre>
+<p>Next, create a repository with the function <code>makeRepo()</code>. In this example, get the required files for <code>source</code> packages as well as windows binaries:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># Create temporary folder for miniCRAN</span>
+<span class="kw">dir.create</span>(pth &lt;-<span class="st"> </span><span class="kw">file.path</span>(<span class="kw">tempdir</span>(), <span class="st">&quot;miniCRAN&quot;</span>))
+
+<span class="co"># Make repo for source and win.binary</span>
+<span class="kw">makeRepo</span>(pkgList, <span class="dt">path =</span> pth, <span class="dt">repos =</span> revolution, <span class="dt">type =</span> <span class="kw">c</span>(<span class="st">&quot;source&quot;</span>, <span class="st">&quot;win.binary&quot;</span>))</code></pre></div>
+<p>Investigate the repository file structure:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># List all files in miniCRAN</span>
+<span class="kw">list.files</span>(pth, <span class="dt">recursive =</span> <span class="ot">TRUE</span>, <span class="dt">full.names =</span> <span class="ot">FALSE</span>)</code></pre></div>
+<p>Use <code>pkgAvail</code> to list available packages in your repository:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># Check for available packages</span>
+<span class="kw">pkgAvail</span>(<span class="dt">repos =</span> pth, <span class="dt">type =</span> <span class="st">&quot;win.binary&quot;</span>)[, <span class="kw">c</span>(<span class="dv">1</span><span class="op">:</span><span class="dv">3</span>, <span class="dv">5</span>)]</code></pre></div>
+<div id="install-packages-from-your-local-repository" class="section level1">
+<h1>Install packages from your local repository</h1>
+<p>To install packages from a local repository, you need to use the URI convention <code>file:///</code> to point to your file lcoation.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">install.packages</span>(pkgs, 
+                 <span class="dt">repos =</span> <span class="kw">paste0</span>(<span class="st">&quot;file:///&quot;</span>, pth),
+                 <span class="dt">type =</span> <span class="st">&quot;source&quot;</span>)</code></pre></div>
+</div>
+<div id="adding-packages-to-an-existing-minicran-repository" class="section level1">
+<h1>Adding packages to an existing miniCRAN repository</h1>
+<div id="adding-new-packages-from-cran" class="section level2">
+<h2>Adding new packages from CRAN</h2>
+<p>After creating a local miniCRAN repository, additional packages and their dependencies can easily be added. This mechanism can also be used to re-add an existing package to the miniCRAN repo.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># Add new packages (from CRAN) to the miniCRAN repo</span>
+<span class="kw">addPackage</span>(<span class="st">&quot;Matrix&quot;</span>, <span class="dt">path =</span> pth, <span class="dt">repos =</span> revolution, <span class="dt">type =</span> <span class="kw">c</span>(<span class="st">&quot;source&quot;</span>, <span class="st">&quot;win.binary&quot;</span>))
+<span class="kw">pkgAvail</span>(<span class="dt">repos =</span> pth, <span class="dt">type =</span> <span class="st">&quot;win.binary&quot;</span>)[, <span class="kw">c</span>(<span class="dv">1</span><span class="op">:</span><span class="dv">3</span>, <span class="dv">5</span>)]</code></pre></div>
+<p>The value that is returned (invisibly) via <code>addPackage</code> is the number of packages written to the index file, <em>i.e.</em>, the total number of packages in the repo of that type.</p>
+</div>
+<div id="adding-an-older-version-of-a-package-from-cran" class="section level2">
+<h2>Adding an older version of a package from CRAN</h2>
+<p>To add a specific version of a package from CRAN (or another CRAN-like repository), we can easily download the source packages from the CRAN archives. Dependencies for old package versions cannot be determined automatically and must be specified by the user.</p>
+<p><em>Note:</em> in order to to add binaries of older packages, you will need to download the source and build the binaries on the intended platform yourself. You will need the appropriate R development tools installed in order to build package binaries from source.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># create a data frame with the package and version info</span>
+oldVers &lt;-<span class="st"> </span><span class="kw">data.frame</span>(
+  <span class="dt">package =</span> <span class="kw">c</span>(<span class="st">&quot;foreach&quot;</span>, <span class="st">&quot;codetools&quot;</span>, <span class="st">&quot;iterators&quot;</span>),
+  <span class="dt">version =</span> <span class="kw">c</span>(<span class="st">&quot;1.4.0&quot;</span>, <span class="st">&quot;0.2-7&quot;</span>, <span class="st">&quot;1.0.5&quot;</span>),
+  <span class="dt">stringsAsFactors =</span> <span class="ot">FALSE</span>
+)
+
+<span class="co"># download old source package version and create repo index</span>
+<span class="kw">addOldPackage</span>(pkgList, <span class="dt">path =</span> pth, <span class="dt">vers =</span> oldVers<span class="op">$</span>version, <span class="dt">repos =</span> revolution, <span class="dt">type =</span> <span class="st">&quot;source&quot;</span>)</code></pre></div>
+<p>You will get a warning whenever there are multiple versions of a package saved in the repository. Currently, you need to manually remove duplicate versions before rebuilding the repository’s package index.</p>
+<p>Note: This last step is important, otherwise you may end up with a repo in an inconsistent state.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># List package versions in the miniCRAN repo (produces warning about duplicates)</span>
+pkgVersionsSrc &lt;-<span class="st"> </span><span class="kw">checkVersions</span>(pkgList, <span class="dt">path =</span> pth, <span class="dt">type =</span> <span class="st">&quot;source&quot;</span>)
+pkgVersionsBin &lt;-<span class="st"> </span><span class="kw">checkVersions</span>(pkgList, <span class="dt">path =</span> pth, <span class="dt">type =</span> <span class="st">&quot;win.binary&quot;</span>)
+
+<span class="co"># After inspecting package versions, remove old versions</span>
+<span class="kw">basename</span>(pkgVersionsSrc) <span class="co"># duplicate versions</span>
+<span class="kw">basename</span>(pkgVersionsBin)
+
+<span class="kw">file.remove</span>(pkgVersionsSrc[<span class="kw">c</span>(<span class="dv">2</span>,<span class="dv">4</span>,<span class="dv">6</span>)])
+
+<span class="co"># rebuild the package index after removing duplicate package versions</span>
+<span class="kw">updateRepoIndex</span>(pth, <span class="dt">type =</span> <span class="kw">c</span>(<span class="st">&quot;source&quot;</span>, <span class="st">&quot;win.binary&quot;</span>))</code></pre></div>
+<p>To see the updated list of packages available in the miniCRAN repo:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">pkgAvail</span>(pth, <span class="dt">type =</span> <span class="st">&quot;source&quot;</span>)[, <span class="kw">c</span>(<span class="dv">1</span><span class="op">:</span><span class="dv">3</span>, <span class="dv">5</span>)] <span class="co"># contains the old versions</span>
+<span class="kw">pkgAvail</span>(pth, <span class="dt">type =</span> <span class="st">&quot;win.binary&quot;</span>)[, <span class="kw">c</span>(<span class="dv">1</span><span class="op">:</span><span class="dv">3</span>, <span class="dv">5</span>)] <span class="co"># contains the current versions</span></code></pre></div>
+</div>
+<div id="adding-packages-from-other-sources" class="section level2">
+<h2>Adding packages from other sources</h2>
+<p>This feature will be implemented in a future release.</p>
+</div>
+</div>
+<div id="updating-the-packages-in-a-minicran-repository" class="section level1">
+<h1>Updating the packages in a miniCRAN repository</h1>
+<p>Checking for updated versions of the packages currently stored in the miniCRAN repository:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># Check if updated packages are available</span>
+<span class="kw">oldPackages</span>(<span class="dt">path =</span> pth, <span class="dt">repos =</span> revolution, <span class="dt">type =</span> <span class="st">&quot;source&quot;</span>)[, <span class="dv">1</span><span class="op">:</span><span class="dv">3</span>] <span class="co"># should need update</span>
+<span class="kw">oldPackages</span>(<span class="dt">path =</span> pth, <span class="dt">repos =</span> revolution, <span class="dt">type =</span> <span class="st">&quot;win.binary&quot;</span>)[, <span class="dv">1</span><span class="op">:</span><span class="dv">3</span>] <span class="co"># should be current</span></code></pre></div>
+<p>Update the versions of the packages currently stored in the miniCRAN repository. By default, a prompt is given to confirm the update for each package. This prompt can be suppressed using <code>ask = FALSE</code>, which will update all packages. Be careful using this option if you want to keep certain packages at an older version.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># Update available packages</span>
+<span class="kw">updatePackages</span>(<span class="dt">path =</span> pth, <span class="dt">repos =</span> revolution, <span class="dt">type =</span> <span class="st">&quot;source&quot;</span>, <span class="dt">ask =</span> <span class="ot">FALSE</span>) <span class="co"># should need update</span>
+<span class="kw">updatePackages</span>(<span class="dt">path =</span> pth, <span class="dt">repos =</span> revolution, <span class="dt">type =</span> <span class="st">&quot;win.binary&quot;</span>, <span class="dt">ask =</span> <span class="ot">FALSE</span>) <span class="co"># should be current</span></code></pre></div>
+</div>
+
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

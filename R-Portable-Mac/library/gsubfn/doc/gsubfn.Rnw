@@ -1,0 +1,827 @@
+\documentclass[nojss]{jss}
+\DeclareGraphicsExtensions{.pdf,.eps}
+
+%% need no \usepackage{Sweave}
+
+\author{Gabor Grothendieck\\GKX Associates Inc.}
+\Plainauthor{Gabor Grothendieck}
+
+\title{\pkg{gsubfn}: Utilities for Strings and for Function Arguments.}
+
+\Plaintitle{gsubfn: Utilities for Strings and for Function Arguments.}
+
+\Keywords{gsub, strings, \proglang{R}}
+\Plainkeywords{gsub, strings, R}
+
+\Abstract{
+\pkg{gsubfn} is an \proglang{R} package 
+used for string matching, substitution and parsing.  
+A seemingly small
+generalization of \code{gsub}, namely allow the
+replacement string to be a replacement function, formula
+or \pkg{proto} object, can result in significantly
+increased power and applicability.  
+The resulting function, \code{gsubfn} is the namesake of this package.
+Built on top of \code{gsubfn} is
+\code{strapply} 
+which is similar to \code{gsubfn} except that it returns
+the output of the function rather than substituting it back into
+the source string.  
+In the case of a replacement
+formula the formula is interpreted as a function
+as explained in the text.
+In the case of a replacement \pkg{proto} object
+the object space is used to store persistant data
+to be communicated from one function invocation to the
+next as well as to store the replacement function/method itself.
+
+The ability to have formula arguments that represent
+functions can be used not only in the functions of the
+\pkg{gsubfn}
+package but can also be used with any \proglang{R}
+function without modifying its source.  Just preface
+any \proglang{R} function with \code{fn\$} and subject
+to certain rules which are intended to distinguish which
+formulas are intended to be functions and which are not,
+the formula arguments will be translated to
+functions, e.g. \code{fn\$integrate(\~{} x\^{}2/, 0, 1)}.
+This facility has widespread applicability right across
+\proglang{R} and its packages.  \code{match.funfn}, 
+is provided to allow developers to readily
+build this functionality
+into their own functions so that even the \code{fn\$} 
+prefix need not be used.
+}
+
+\Address{
+ Gabor Grothendieck\\
+ GKX Associates Inc.\\
+ E-mail: \email{ggrothendieck@gmail.com}
+}
+
+\begin{document}
+
+\SweaveOpts{engine=R,eps=FALSE}
+%\VignetteIndexEntry{gsubfn: Utilities for Strings and for Function Arguments.}
+%\VignetteDepends{proto}
+%\VignetteKeywords{gsub, strings, R}
+%\VignettePackage{gsubfn}
+
+
+<<preliminaries,echo=FALSE,results=hide>>=
+library("gsubfn")
+library("proto")
+@
+
+\section{Introduction} \label{sec:intro}
+
+The \proglang{R} system for statistical computing
+%% \citep[\url{http://www.R-project.org/}]{zoo:R:2005}
+contains a powerful function for string substitution
+called \code{gsub} which takes a regular expression,
+replacement string and source string and replaces all
+matches of the regular expression in the source string
+with the replacement
+string.  Parenthesized items in the regular expression,
+called back references, can be referred to in the 
+replacement string further increasing the range of
+applications that \code{gsub} can address.
+
+The key function and namesake of the \pkg{gsubfn}
+package is a function which is similar to \code{gsub}
+but the replacement string can optionally be a replacement
+function, formula (representing a function) or replacement \code{proto} object.
+
+Associated functions built on top of \code{gsubfn}
+are \code{strapply} which is an \code{apply} style
+function that is like \code{gsubfn} except that it returns
+the output of the replacement function rather than substituting
+it back into the string and \code{strapplyc} which is a faster version
+specialized to use \code{c} rather than a general function.
+
+In the case that a
+function is passed to \code{gsubfn}, for each
+match of the regular expression in the source string, the replacement 
+function
+is called with one argument per backreference or if no backreferences
+with the match (unless instructed otherwise 
+by the \code{backref} argument). 
+The output of the replacement function is 
+substituted back into the string replacing the match.
+In those cases where persistance
+is needed between invocations of the function a \code{proto} object
+containing a replacement method (a method is another name for function in
+this context)
+can be used and the object itself can
+be used by the replacement method as a repository for 
+data that is to persist between calls to the replacement method.
+Such persistant data might be counts, prior matches and so on.
+Also \code{gsubfn} automatically places
+the argument values that \code{gsubfn} was called with as well
+as a \code{count} representing the number of matches so far
+into the object for use by the function.  \code{pre} and \code{post}
+functions can also be entered into the object and are triggerred
+at the beginning and end, respectively, of each string.   
+
+The idea of using a replacement function is also found in the
+\proglang{Lua} language 
+\url{http://www.lua.org/manual/5.1/manual.html#pdf-string.gsub}.
+%% need to figure out how to to bibtex stuff
+%% \citep{gsubfn:Ierusalimschy:2003}
+.
+\pkg{gsubfn} follows that idea and builds on it with \pkg{proto}
+objects, formulas and associated function \code{strapply}.
+
+The remainder of this article is organized as follows:
+Section~\ref{sec:gsubfn with functions} explains the use \code{gsubfn}
+with replacement functions.  
+Section~\ref{sec:gsubfn with proto objects} explains the use \code{gsubfn}
+with \pkg{proto} objects for applications requiring persistance between
+calls.
+Section~\ref{sec:strapply} explains the use \code{strapply}
+and Section~\ref{sec:Misc} explains the use
+of \code{cat0} and \code{paste0}.
+
+The functions specified in \code{gsubfn} can be specified as
+functions or using a formula notation.  Facilities are included 
+for using that notation with any \proglang{R} function, not just
+the ones in the \pkg{gsubfn} package.
+Section~\ref{sec:fn} explains this facility 
+even if the function in question, e.g. \code{apply}, \code{integrate}
+was not so written
+and 
+Section~\ref{sec:match.funfn} explains how developers can 
+embed this into their own functions.
+
+\textit{Prerequisites}.
+The reader should be familiar with \proglang{R} and, in particular
+the \proglang{R}
+\code{gsub} function.  Within \proglang{R}, help on \code{gsub}
+is found via the 
+\code{?gsub} command and on the net it can be found at
+\begin{itemize}
+\item{\url{http://stat.ethz.ch/R-manual/R-patched/library/base/html/grep.html}}
+\end{itemize}
+The reader should also be familiar with regular expressions.
+Within \proglang{R}, help on regular expressions is found via the
+command
+\code{?regex} and on the net it can be found at
+\begin{itemize}
+\item{\url{http://stat.ethz.ch/R-manual/R-patched/library/base/html/regex.html}}
+\end{itemize}
+Other Internet sources of information on 
+regular expressions not specifically concerned with \proglang{R} are
+\begin{itemize}
+\item{Perl compatible regular expressions.
+\url{http://www.pcre.org/}}
+\item{Regular expressions. \url{http://www.regular-expressions.info/}}
+\item{Wikipedia.
+\url{http://en.wikipedia.org/wiki/Regular_expression}}
+\end{itemize}
+The discussions of passing \pkg{proto}
+objects to \code{gsubfn} and \code{strapply} require a minimal
+understanding of \proglang{R} environments using the 
+\proglang{R} help command \code{?environment}
+and the \proglang{R} Language Manual
+found online at 
+
+\begin{itemize}
+\item{\url{http://stat.ethz.ch/R-manual/R-patched/library/base/html/environment.html}}
+\item{\url{http://finzi.psych.upenn.edu/R/doc/manual/R-lang.html#Environment-objects}}
+\end{itemize}
+Since the use of the \pkg{proto} package itself is relatively restricted
+we will include sufficient information so that outside reference to
+the \pkg{proto} package will be unnecessary for the restricted
+purpose of using
+it here.\footnote{
+More about \pkg{proto} is available
+in on the \pkg{proto} home page:
+\url{http://r-proto.googlecode.com} .}
+
+\section[The gsubfn Function]{The \code{gsubfn} Function}
+\label{sec:gsubfn with functions}
+
+\textit{Introduction}. The \code{gsubfn} function has a similar calling sequence to the 
+\proglang{R} \code{gsub} function.  The first argument
+is a 
+regular expression, the second argument is a replacement string, replacement
+function,
+replacement formula representing a function or a replacement 
+\pkg{proto} object.
+The third argument is the source string or a vector of such strings.
+In this section we are mainly concerned with replacement
+functions and
+replacement formulas representing replacement functions.
+In this case the 
+replacement function is called for each match.  The match and 
+back references are passed as arguments. 
+The input string is then copied to the output with the 
+match being replaced with the output of the replacement function. 
+
+\textit{Replacement function}. 
+The replacement function can be specified by a formula in which
+the left hand side of the formula are the arguments separated by
+\code{"+"} (or any other valid formula symbol) while the right
+hand side represents the body.  The environment of the formula
+will be used as the environment of the generated funciton.
+If the arguments on the left hand side are omitted then the free 
+variables on the
+right hand side are used as arguments in the order encountered.
+
+\textit{Back References}. 
+If the \code{backref} argument is not specified then 
+all backreferences are passed to the function as separate
+arguments.  If \code{backref} is \code{0} then no back references
+are passed and the entire match is passed.  
+If \code{backref} is a postive integer, $n$, then the
+match and the first $n$ back references are passed.  If \code{backref}
+is a negative integer then the match is not passed and the absolute
+value of \code{backref} is used as the number of back references to
+pass.  Since \code{gsubfn} uses a potentially time consuming trial and error
+algorithm to automatically determine the number of back references
+the performance can be sped up somewhat by specifying \code{backref}
+even if all back references are to be passed.
+
+\textit{Example}. This example below replaces \code{x:y} pairs in \code{s} with their sum.
+The formula in this example is equivalent to specifying the
+function \code{function(x, y) as.numeric(x) + as.numeric(y)} :
+
+<<gsubfn-xypair>>=
+   s <- 'abc 10:20 def 30:40 50'
+   gsubfn('([0-9]+):([0-9]+)', ~ as.numeric(x) + as.numeric(y), s)
+@
+
+\section[gsubfn with lists]{\code{gsubfn} with \code{list} objects}
+\label{sec:gsubfn with list objects}
+
+\textit{Example}. 
+If the replacement object is a list then the match is matched against the
+names of the list and the corresponding value is returned. If no name
+matches then the first unnamed list component is returned.  If there is
+still no match then the string to be matched is returned so that effectively
+the lookup is ignored.
+
+For example:
+
+<<gsubfn-si>>=
+   dat <- c('3.5G', '88P', '19') # test data
+   gsubfn('[MGP]$', list(M = 'e6', G = 'e9', P = 'e12'), dat) 
+@
+
+\section[gsubfn with proto objects]{\code{gsubfn} with \pkg{proto} objects}
+\label{sec:gsubfn with proto objects}
+
+\textit{Introduction}.
+In some applications one may need information from prior matches
+on current matches.  This may be as simple as a count or as comprehensive
+as all prior matches.  This is accomplished by passing a \pkg{proto}
+object whose object space can contain variables to be shared among
+the invocations of the matching function.  The matching function itself
+is also be stored in the object as are the arguments to \code{gsubfn}
+and a special variable \code{count} which is automatically set to 
+the match number.
+
+
+\textit{Proto}.
+A \pkg{proto} object is an \proglang{R} environment with an \proglang{S3} 
+class of \code{c("proto", "environment")}.   
+A \pkg{proto} object is created by calling the \code{"proto"}
+function with the components to be inserted given as arguments.  This is
+very similar to the way lists are constructed in \proglang{R} except
+that unlike a list a \pkg{proto} object represents an \proglang{R} environment.
+
+\textit{Example}.
+The use of \pkg{proto} objects is best introduced via example.  
+In the following example \code{p} is a \pkg{proto}
+object which contains one function \code{fun}.  A function component of
+a \pkg{proto} object is called a method and we will use this terminology
+henceforth.   
+In this example after the \code{proto} command to create \code{p}
+we examine the class of \code{p} and check the components of
+\code{p} using \code{ls}.  Also we display the \code{fun}
+component itself. These are some of the basic operations on
+\pkg{proto} objects.
+Finally we run \code{gsubfn} using the regular expression 
+\code{\textbackslash\textbackslash{}w+}
+and the \pkg{proto} object \code{p}.  \code{gsubfn} looks for 
+a component called \code{fun} in \code{p} and uses that as the replacement
+method/function.
+The arguments to \code{fun} are always the object itself,
+often represented by the formal argument \code{this}, \code{self} 
+or just \code{.},
+followed by the match and back references.  In this example there are
+no back references.
+Here \code{fun} simply returns
+the match suffixed by the count of the match.  The \code{count}
+variable is automatically placed into \code{p} by \code{gsubfn}.
+This has the effect of
+suffixing the first word with 
+with \code{{1}}, the second with \code{{2}} and so on.
+After running \code{gsubfn} we examine \code{p} again noticing 
+all the components that were added by \code{gsubfn} and we also
+examine the \code{count} component which shows how many matches
+were found.
+Note that use of \code{paste0} which is like \code{paste} but
+has a default \code{sep} of \code{""}.
+
+<<gsubfn-proto-intro>>=
+   p <- proto(fun = function(this, x) paste0(x, "{", count, "}"))
+   class(p)
+   ls(p)
+   with(p, fun)
+   s <- c("the dog and the cat are in the house", "x y x")
+   gsubfn("\\w+", p, s)
+   ls(p)
+   p$count
+@
+
+\textit{\code{pre} and \code{post}}.
+\code{gsubfn} knows about three methods: \code{fun} which we
+have already seen as well as \code{pre} and \code{post}.  The
+latter two are optional and are run before each string and after each string
+respectively.  
+Suppose we wish to suffix each word not by the count of all
+words but just by the count of that word.  Thus the third
+occurrence of \code{"the"} will be suffixed with \code{{3}}
+rather than \code{{8}}.  In that case we will set up
+a \code{words} list in the \code{pre} method.  This method
+will be invoked at the start of each of the two strings in
+\code{s}. The \code{words} list itself
+is stored in the \code{pwords} \pkg{proto} object.
+Since all the methods of a \code{proto} object can
+share its contents \code{fun} can also make use of it.
+In the example below, each time we match a word, \code{pwords\$fun}
+adds it to the list \code{words}, if not already there,
+and increments it
+so that words[["the"]] will be \code{1} after \code{"the"}
+is encountered for the first time, \code{2} after the second
+time and so on.  At the end of the example we look at what 
+variables are in \code{pwords} and also check the contents of 
+the \code{words} list.
+
+<<gsubfn-words>>=
+pwords <- proto(
+	pre = function(this) { this$words <- list() },
+	fun = function(this, x) {
+		if (is.null(words[[x]])) this$words[[x]] <- 0
+		this$words[[x]] <- words[[x]] + 1
+		paste0(x, "{", words[[x]], "}")
+	}
+)
+gsubfn("\\w+", pwords, "the dog and the cat are in the house")
+ls(pwords)
+dput(pwords$words)
+@
+
+Additional examples of the use of \pkg{proto} objects with \code{gsubfn}
+are available via the command \code{demo("gsubfn-proto")}.
+
+\section[strapply]{\code{strapply}}
+\label{sec:strapply}
+
+\textit{Introduction}.
+The strapply function is similar to the \code{gsubfn} function 
+but instead of replacing the matched strings it returns the output of the function in a list or 
+simplified structure. A typical use would be to split a string based on 
+content rather than on delimiters.   The arguments are analogous to the
+arguments in \code{apply}.  In both the object to be applied over
+is the first argument.
+A modifier,
+which is an index for \code{apply} and a regular expression for \code{strapply}
+is the second argument.
+The third argument is a function in both cases although in strapply, in analogy
+to \code{gsubfn} it can also be a \pkg{proto} object.
+By default \code{strapply} uses the \code{tcl} regular expression engine but
+if the argument \code{engine="R"} is used or if the function is a proto 
+object then the \code{R} regular expression engine is used instead.  The
+\code{tcl} engine is much faster.  (\code{tcl} regular expressions are largely
+identical to regular expressions in R.  See 
+this link \url{https://www.tcl.tk/man/tcl8.5/TclCmd/re_syntax.htm} for 
+details.)
+The \code{simplify} argument is similar to the \code{simplify} argument in
+\code{sapply} and, in fact, is passed to \code{sapply} if it is \code{logical}.
+If \code{simplify} is a function or a formula representing a function then the
+output of \code{strapply} is passed as \code{output} to it via
+\code{do.call(simplify, output)}.
+
+\textit{Example}.
+To separate out the initial digits from the rest returning the 
+the initial digits and the rest as two separate fields we can write this:
+
+<<gsubfn-strapply-initdigits>>=
+   s <- c('123abc', '12cd34', '1e23')
+   strapply(s, '^([[:digit:]]+)(.*)', c, simplify = rbind)
+@
+
+In this example we calculate the midpoint of each interval.  
+(Note to myself.  The following code works if we enter it into R but not in
+the vignette.  Figure out what is wrong.  In the meantime we only show the
+source and but don't run it.)
+<<gsubfn-strapply-midpoint>>=
+as.num <- function(x) if (x == "NA") NA else as.numeric(x)
+rn <- c("[-11.9,-10.6]", "(NA,9.3]", "(9.3,8e01]", "(8.01,Inf]")
+colMeans(strapply(rn, "[^][(),]+", as.num, simplify = TRUE))
+@
+
+\code{combine}. The
+\code{combine} argument can be specified as a function which is to be
+applied to the output of the replacement function after each call.  
+It defaults to \code{c}. Another
+popular choice is \code{list}.
+The following example illustrates the difference:
+   
+<<gsubfn-strapply-combine>>=
+
+s <- c('a:b c:d', 'e:f')
+
+dput(strapply(s, '(.):(.)', c))
+
+dput(strapply(s, '(.):(.)', c, combine = list))
+
+@
+
+
+\code{strapply} and \code{proto}.  \code{strapply} can be used with \pkg{proto} in the same way as
+as \code{gsubfn}.  For example, suppose we wish to extract the words from a string together with
+their ordinal occurrence number.   Previously we did this with \code{gsubfn} and
+inserted the
+number back into the string.  This time we want to extract it. 
+(Note to myself.  The following code works if we enter it into R and even
+works as part of the vignette if we use R CMD Sweave but if we use R CMD build
+then it does not work.  Figure out what is wrong.  In the meantime we only 
+show the source and but don't run it.)
+<<gsubfn-strapply-words>>=
+pwords2 <- proto(
+	pre = function(this) { this$words <- list() },
+	fun = function(this, x) {
+		if (is.null(words[[x]])) this$words[[x]] <- 0
+		this$words[[x]] <- words[[x]] + 1
+		list(x, words[[x]])
+	}
+)
+strapply("the dog and the cat are in the house", "\\w+", pwords2, 
+	combine = list, simplify = x ~ do.call(rbind, x) )
+ls(pwords2)
+dput(pwords2$words)
+@
+
+\section[Miscellaneous]{Miscellaneous}
+\label{sec:Misc}
+The \code{cat0} and \code{paste0}
+function are like \code{cat} and \code{paste} they have
+a default \code{sep} of \code{""}.
+
+Here is an example of using paste0.  This example
+retrieves overlapping segments consisting of a space, letter, space, letter
+and space.  Only the final space, letter, space is returned.
+Because we did not specify \code{backref} it will think there are two
+back references (since it will interpret the lookahead expression as
+an extra back reference); however, the second is empty so it does no harm in
+passing it to \code{paste0}.
+It uses the zero-lookahead perl style pattern matching expression.
+
+<<gsubfn-paste0>>=
+strapply(' a b c d e f ', ' [a-z](?=( [a-z] ))', paste0)[[1]]
+@
+
+
+\section[fn]{\code{fn}}
+\label{sec:fn}
+
+Wherever a function can be specified in \code{gsubfn} and \code{strapply}
+one can specify a formula instead as discussed previously.  This facility
+has been extended to work with any \proglang{R} function.
+Just preface the function with \code{fn\$} and 
+
+\begin{enumerate}
+\item{formula arguments will be intercepted 
+and translated to functions allowing a compact representation of the call. 
+Which formulas are actually translated to functions is dependent on rules
+to be discussed.
+The right hand side of the formula 
+represents the body of the function.
+The left hand side of the formula represents the arguments and defaults to the 
+free variables in the order encountered.  The environment of
+the function is set to the environment of the formula.
+\code{letters}, \code{LETTERS} and \code{pi} are not considered free variables
+and will not appear in arguments. }
+\item{character arguments will be intercepted and quasi-perl style string
+interpolation will be performed.  Which character strings to operate on
+are dependent on rules to be discussed.}
+\item{the \code{simplify} argument if its value is a function
+is intercepted.
+In 
+that case if \code{result} is the result of running the function without 
+the \code{simplify} argument then it returns
+\code{do.call(simplify, result)}.}
+\end{enumerate}
+The rules for determining which formulas to translate and which character
+strings to apply quasi-perl style string interpolation are as follows:
+\begin{enumerate}
+\item{any formula argument 
+that has been specified with a double \code{\~{}}, i.e.
+\code{\~{}\~{}}, is converted to a function after removing the double
+\code{\~{}} and replacing it with a single \code{\~{}}.}
+\item{any character string argument that has been specified with a first
+character of \code{\textbackslash{}1} has string interpolation applied to it
+after the \code{\textbackslash{}1} is removed.}
+\item{if there are no formulas with double \code{\~{}} and no
+character strings beginning with \code{\textbackslash{}1} then all formulas
+are converted to functions and if there are no formulas then all
+character strings have string interpolation done.}
+\end{enumerate}
+The last possibility is the actually the most commonly used and 
+almost all our examples will illustrate that case.
+For example,
+
+<<gsubfn-fn>>=
+
+fn$integrate(~ sin(x) + sin(x), 0, pi/2)
+
+fn$lapply(list(1:4, 1:5), ~ LETTERS[x])
+
+fn$mapply(~ seq_len(x) + y * z, 1:3, 4:6, 2) # list(9, 11:12, 13:15)
+
+fn$by(CO2[4:5], CO2[2], x ~ coef(lm(uptake ~ ., x)), simplify = rbind)
+
+@
+
+Here is an example where we have two formulas, one of which should
+be translated and another should not.  In this case we 
+place a double \code{\~{}} in the second formula to signify that
+one it represents a function.
+The first formula is then correctly left untranslated. This
+example places a panel number in the body of each panel.
+
+<<gsubfn-fn-lattice,eval=FALSE>>=
+library(lattice)
+library(grid)
+print(fn$xyplot(uptake ~ conc | Plant, CO2,
+      panel = ~~ { panel.xyplot(...); grid.text(panel.number(), .1, .85) }))
+@
+
+\begin{figure}[hpb]
+\begin{center}
+<<gsubfn-fn-lattice-repeat,fig=TRUE,height=4,width=6,echo=FALSE>>=
+<<gsubfn-fn-lattice>>
+@
+\caption{
+\code{
+fn\$xyplot
+}}
+\label{fig:gsubfn-fn-lattice-caption}
+\end{center}
+\end{figure}
+
+As mentioned briefly above,
+the \code{fn\$} prefix will also intercept any \code{simplify} 
+argument if that argument is a function (but will not intercept it if it is
+\code{TRUE} or \code{FALSE}).  In the case of inteception it runs the command
+then applies \code{do.call(simplify, result)} to the result of the
+command.   A typical use would be with \code{by} as in the
+following example to calculate the regression coefficients of \code{uptake}
+on \code{conc} for each \code{Treatment}.  This replaces the sligtly
+uglier \code{do.call} construct which would otherwise have been required.
+
+<<gsubfn-fn-simplify>>=
+fn$by(CO2, CO2$Treatment, d ~ coef(lm(uptake ~ conc, d)), simplify = rbind)
+@
+
+Here are some additional examples to illustrate the wide range of application.
+The first
+replaces codes with upper case letters.  Note that \code{LETTERS}
+is never interpreted as a free variable so the default argument
+is \code{x} here:
+
+<<gsubfn-fn-letters>>=
+fn$lapply(list(1:4, 1:3), ~ LETTERS[x])
+@
+
+Here is a common use of \code{aggregate} or \code{by}.  This
+calculates a weighted mean of the first column using weights in
+the second column all grouped by columns \code{A} and \code{B}.
+The \code{aggregate} example aggregates over indexes to circumvent
+the restriction of a single input to the aggregation function.
+\code{X} is a free variable and we only
+want \code{i} to be an argument so we must specify it explicitly
+(otherwise it will assume all free variables in the right hand side
+are to be arguments).
+<<gsubfn-fn-aggregate2>>=
+set.seed(1)
+X <- data.frame(X = rnorm(24), W = runif(24), A = gl(2, 1, 24), B = gl(2, 2, 24))
+fn$aggregate(1:nrow(X), X[3:4], i ~ weighted.mean(X[i,1], X[i,2]))
+
+@
+
+A number of mathematical functions take functions as arguments. Here we
+show the use of \code{fn\$} with \code{integrate} and \code{optimize}.
+
+<<gsubfn-fn-math>>=
+fn$integrate(~1/((x+1)*sqrt(x)), lower = 0, upper = Inf)
+
+fn$optimize(~ x^2, c(-1,1))
+@
+
+\proglang{S4} \code{setGeneric} and \code{setMethod} calls have
+function arguments that \code{fn\$} can be used with.  In the
+following example we create an \proglang{S4} class \code{ooc}
+whose representation contains a single variable \code{a}.
+We then define a generic function \code{incr}.  In this 
+case the function arguments cannot be deduced from the 
+body so we specify them explicitly.  Then we define an
+\code{incr} method for class \code{ooc}.  Since \code{a}
+is a free variable again we must define the arguments
+explicitly to ensure that it is not automatically included.
+Finally we illustrate the use of the \code{incr} method
+we just defined.
+
+<<gsubfn-fn-S4>>=
+setClass('ooc', representation(a = 'numeric'))
+fn$setGeneric('incr', x + value ~ standardGeneric('incr'))
+fn$setMethod('incr', 'ooc', x + value ~ {x@a <- x@a+value; x})
+oo <- new('ooc', a = 1)
+oo <- incr(oo,1)
+oo
+@
+
+One commonly used calculation in quantile regression is the
+creation of a regression plot for each of a variety of values
+of \code{tau}.  Here we plot \code{x} vs. \code{y} and then
+superimpose quantile regression lines for various \code{tau}
+values using \code{lapply} to avoid a loop.  The \code{lapply}
+function of \code{tau} is specified using a formula.  
+
+<<gsubfn-fn-quantreg-load,echo=FALSE,results=hide>>=
+library(quantreg)
+data(engel)
+plot(engel$income, engel$foodexp, xlab = 'income', ylab = 'food expenditure')
+junk <- fn$lapply(1:9/10, tau ~ abline(coef(rq(foodexp ~ income, tau, engel))))
+@
+
+<<gsubfn-fn-quantreg,eval=FALSE>>=
+plot(engel$income, engel$foodexp, xlab = 'income', ylab = 'food expenditure')
+junk <- fn$lapply(1:9/10, tau ~ abline(coef(rq(foodexp ~ income, tau, engel))))
+@
+
+
+\begin{figure}[hpb]
+\begin{center}
+<<gsubfn-fn-quantreg-repeat,fig=TRUE,height=4,width=6,echo=FALSE>>=
+<<gsubfn-fn-quantreg>>
+@
+\caption{
+\code{
+Plot \code{engel} data with quantile lines
+}
+}
+\label{fig:gsubfn-fn-quantreg-caption}
+\end{center}
+\end{figure}
+
+
+In time series we may wish to calculate a rolling summary of the
+data.  In this case we calculate a rolling midrange of the data
+using the \pkg{zoo} function \code{rollapply}:
+
+<<gsubfn-fn-zoo>>=
+library(zoo)
+fn$rollapply(LakeHuron, 12, ~ mean(range(x)))
+@
+
+A common statistical technique for assessing statistics
+is the bootstrap technique provided in
+package \pkg{boot}.  Here we compactly the bias and standard
+error of the median statistic 
+using the \code{rivers} data set and
+2000 samples.
+
+<<gsubfn-fn-zoo>>=
+library(boot)
+set.seed(1)
+fn$boot(rivers, ~ median(x[d]), R = 2000)
+@
+
+Here is a plotting application that illustrates that
+\code{pi} is automatically excluded from default arguments.
+
+<<gsubfn-fn-pi,eval=FALSE>>=
+x <- 0:50/50
+matplot(x, fn$outer(x, 1:8, ~ sin(x * k*pi)), type = 'blobcsSh')
+@
+
+\begin{figure}[hpb]
+\begin{center}
+<<gsubfn-fn-pi-repeat,fig=TRUE,height=4,width=6,echo=FALSE>>=
+<<gsubfn-fn-pi>>
+@
+\caption{
+\code{matplot(x, fn\$outer(x, 1:8, \~{} sin(x * k*pi)), type = 'blobcsSh')}
+}
+\label{fig:gsubfn-fn-pi-caption}
+\end{center}
+\end{figure}
+
+
+
+Here we define matrix multiplication in terms of two
+calls to \code{apply} and the inner product definition.
+The advantage of this is that it can easily be modified
+to use different inner products.  This illustrates
+a nested use of \code{fn\$}:
+
+<<gsubfn-fn-matmult>>=
+a <- matrix(4:1, 2); b <- matrix(1:4, 2) # test matrices
+fn$apply(b, 2, x ~ fn$apply(a, 1, y ~ sum(x*y)))
+a %*% b 
+@
+
+Another example of nesting is the following which generates all
+subsequences of \code{1:4}.
+
+<<gsubfn-fn-subseq>>=
+L <- fn$apply(fn$sapply(1:4, ~ rbind(i,i:4), simplify = cbind), 2, ~ x[1]:x[2])
+dput(L)
+@
+
+In the \proglang{Python} language there exists a convenient notation
+for expressing lists with side conditions.  For example,
+\code{[ x*x for x in range(1,11) if x\%2 == 0]}.
+To express this in \proglang{R} using \code{fn\$} we can
+write it like this which gets fairly close to the \proglang{Python}
+formulation:
+
+<<gsubfn-fn-python>>=
+fn$sapply( 1:10, ~ if (x%%2==0) x^2, simplify = c)
+@
+
+Here is an example of string interpolation:
+<<gsubfn-fn-cat>>=
+fn$cat("pi = $pi, exp = `exp(1)`\n")
+@
+
+\section[match.funfn and as.function.formula]{\code{match.funfn} and 
+\code{as.function.formula}}
+\label{sec:match.funfn}
+
+Developers who wish to add the \code{fn\$} capability to their own 
+functions (so that the user does not have to prepend them with \code{fn\$)} 
+can use the supplied \code{match.funfn} function which in turn
+uses the \code{as.function.formula} function to convert formulas to
+functions. \code{match.funfn} is like the \code{match.fun} in \proglang{R} 
+function except that it also converts formulas,
+not just character strings.
+For example with the definition of \code{sq} shown below
+the formal argument $f$ can be a formula, character string 
+or function as shown in the statements following:
+
+<<gsubfn-fn-sq>>=
+sq <- function(f, x) { f <- match.funfn(f); f(x^2) }
+
+sq(~ exp(x)/x, pi)
+
+f <- function(x) exp(x)/x
+sq('f', pi) # character string
+
+f <- function(x) exp(x)/x
+sq(f, pi)
+ 
+sq(function(x) exp(x)/x, pi)
+@
+
+
+\section{Summary} \label{sec:summary}
+
+By simply extending 
+the replacement string in \code{gsub} to functions, formulas and
+\pkg{proto} objects 
+we obtain a function which on the surface appears nearly identical
+to \code{gsub} but, in fact, has powerful ramifications for
+processing.
+
+\section*{Computational details}
+
+The results in this paper were obtained using \proglang{R}
+\Sexpr{paste(R.Version()[6:7], collapse = ".")} with the packages
+\pkg{boot} \Sexpr{gsub("-", "--", packageDescription("boot")$Version)},
+\pkg{grid} \Sexpr{gsub("-", "--", packageDescription("grid")$Version)},
+\pkg{gsubfn} \Sexpr{gsub("-", "--", packageDescription("gsubfn")$Version)},
+\pkg{lattice} \Sexpr{gsub("-", "--", packageDescription("lattice")$Version)},
+\pkg{proto} \Sexpr{gsub("-", "--", packageDescription("proto")$Version)},
+\pkg{quantreg} \Sexpr{gsub("-", "--", packageDescription("quantreg")$Version)}
+and
+
+\proglang{R} itself and all packages used are available from
+CRAN at \url{http://CRAN.R-project.org/}.
+
+
+%% \bibliography{gsubfn}
+
+%% \newpage
+
+%% \begin{appendix}
+%% \section{Reference card}
+%% \input{gsubfn-refcard-raw}
+%% \end{appendix}
+
+\end{document}
+

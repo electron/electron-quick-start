@@ -1,0 +1,414 @@
+if test -z "${R_HOME}"; then
+    echo "This command can be only executed via R CMD!"
+    exit 1
+fi
+
+## pick up configure-time settings
+. "${R_HOME}/etc${R_ARCH}/javaconf"
+
+DYLIB_EXT=`${R_HOME}/bin/R CMD config DYLIB_EXT`
+tools_classpath=${R_SHARE_DIR}/java
+
+revision='$Rev: 74361 $'
+version=`set - ${revision}; echo ${2}`
+version="R Java configurator: ${R_VERSION} (r${version})
+
+Copyright (C) 2002-2018 The R Core Team.
+This is free software; see the GNU General Public License version 2
+or later for copying conditions.  There is NO warranty."
+
+usage="
+Usage: R CMD javareconf [options]
+
+Detect current Java setup and update the corresponding configuration in R.
+
+Options:
+  -h, --help     print this help message and exit
+  -v, --version  print version info and exit
+  -n, --dry-run  perform Java detection, but don't touch any
+                 configuration files
+  -e <prog>      same as -n but exports all detected variables
+                 and runs <prog>. If -e is the last argument
+                 or <prog> is '' then a shell is used instead
+  xxx=yyy        evaluate the corresponding expression
+                 (e.g. JAVA_HOME=/usr/lib/java)
+
+Environment variables that can be used to influence the detection:
+  JAVA           path to a Java interpreter executable
+                 By default first 'java' command found on the PATH
+                 is taken (unless JAVA_HOME is also specified).
+  JAVA_HOME      home of the Java environment. If not specified,
+                 it will be detected automatically from the Java
+                 interpreter.
+  JAVAC          path to a Java compiler
+  JAVAH          path to a Java header/stub generator
+  JAR            path to a Java archive tool
+Values specified when R was configured will be used unless overridden.
+
+The following variables should be used with extreme caution. They
+must all match, so use only if you have a very special setup that
+javareconf cannot detect automatically:
+  JAVA_LD_LIBRARY_PATH library path necessary at run-time
+  JAVA_CPPFLAGS  C preprocessor flags necessary to compile JNI programs
+  JAVA_LIBS      libraries (as linker flags) necessary to compile
+                 JNI programs
+
+Report bugs at <https://bugs.R-project.org>."
+
+
+dry_run=no
+export_vars=no
+while test -n "${1}"; do
+    case ${1} in
+	-help | --help | -h) echo "${usage}"; exit 0 ;;
+	-v | --version) echo "${version}"; exit 0 ;;
+	-n | --dry-run) dry_run=yes ;;
+	-e) dry_run=yes; export_vars=yes; run_prog="${2}"; if test "$#" != 1; then shift; fi ;;
+	*=*) eval ${1} ;;
+    esac
+    shift
+done
+
+## find java compiler binaries
+if test -z "${JAVA_HOME}" ; then
+    JAVA_PATH=${PATH}
+else
+    if test ! -d "${JAVA_HOME}"; then
+	echo "*** JAVA_HOME is not a valid path, ignoring"
+	JAVA_HOME=
+	JAVA_PATH=${PATH}
+    else
+	## try jre/bin first just in case we don't have full JDK
+	JAVA_PATH=${JAVA_HOME}:${JAVA_HOME}/jre/bin:${JAVA_HOME}/bin:${JAVA_HOME}/../bin:${PATH}
+    fi
+fi
+## if 'java' is not on the PATH or JAVA_HOME, add some guesses as of
+## where java could live
+JAVA_PATH=${JAVA_PATH}:/usr/java/bin:/usr/jdk/bin:/usr/lib/java/bin:/usr/lib/jdk/bin:/usr/local/java/bin:/usr/local/jdk/bin:/usr/local/lib/java/bin:/usr/local/lib/jdk/bin
+
+if test -z "$JAVA"; then
+    save_IFS=$IFS; IFS=:
+    for dir in ${JAVA_PATH}; do
+	if test -f "$dir/java"; then
+	    JAVA="$dir/java"
+	    break
+	fi
+    done
+    IFS=${save_IFS}
+fi
+
+if test -z "$JAVA"; then
+    echo "~*** Cannot find any Java interpreter~*** Please make sure 'java' is on your PATH or set JAVA_HOME correspondingly"|${SED-sed} -e 'y/~/\n/' >&2
+    exit 1
+fi
+
+echo "Java interpreter : $JAVA"
+jires=`$JAVA -classpath ${tools_classpath} getsp -test`
+if test "$jires" != "Test1234OK"; then
+    echo "$jires"
+    echo "~*** Java interpreter doesn't work properly.~"|${SED-sed} -e 'y/~/\n/' >&2
+    exit 1
+fi
+
+if test -z "${JAVA_HOME}"; then
+    JAVA_HOME=`$JAVA -classpath ${tools_classpath} getsp java.home`
+fi
+
+if test -z "${JAVA_HOME}"; then
+    echo "~*** Cannot find Java environemnt.~*** Please set JAVA_HOME correspondingly.~"|${SED-sed} -e 'y/~/\n/' >&2
+    exit 1
+fi
+
+echo "Java version     : `$JAVA -classpath ${tools_classpath} getsp java.version 2>/dev/null`"
+echo "Java home path   : ${JAVA_HOME}"
+
+# optional parts - compiler, javah and jar
+if test -z "$JAVAC"; then
+    save_IFS=$IFS; IFS=:
+    for dir in ${JAVA_PATH}; do
+	if test -f "$dir/javac"; then
+	    JAVAC="$dir/javac"
+	    break
+	fi
+    done
+    IFS=${save_IFS}
+fi
+
+: ${TMPDIR=/tmp}
+{ tempdir=`(mktemp -d -q "${TMPDIR}/Rjavareconf.XXXXXX") 2>/dev/null` \
+	&& test -n "${tempdir}" && test -d "${tempdir}" ; } ||
+{ test -n "${RANDOM}" && tempdir=${TMPDIR}/Rjavareconf.$$-${RANDOM} \
+	&& (mkdir "${tempdir}") ; } ||
+{ tempdir=${TMPDIR}/Rjavareconf.$$-`date +%m%d%H%M%S` \
+	&& (mkdir "${tempdir}"); } ||
+{ tempdir=${TMPDIR}/Rjavareconf.$$ && (mkdir "${tempdir}") ; } ||
+    (error "cannot create temporary directory" && exit 1)
+
+# test functionality of the compiler
+javac_works='not present'
+if test -n "$JAVAC"; then
+    javac_works='not functional'
+    echo "public class A { }" > "${tempdir}/A.java"
+    if test -f "${tempdir}/A.java"; then
+	if "${JAVAC}" "${tempdir}/A.java" >/dev/null; then
+           if test -f "${tempdir}/A.class"; then
+		javac_works=yes
+	    fi
+	fi
+    fi
+fi
+if test "${javac_works}" = yes; then
+    echo "Java compiler    : ${JAVAC}"
+else
+    echo "Java compiler    : ${javac_works}"
+fi
+
+## FIXME: 
+## javah is deprecated in Java 9 and removed in 2018-03 snapshots.
+## Worse, on macOS /usr/bin/javah still exists but links to a non-existent file
+##'javac -h' replaces 'javah -d' so this needs changes in e.g. rJava.
+if test -z "$JAVAH"; then
+    save_IFS=$IFS; IFS=:
+    for dir in ${JAVA_PATH}; do
+	if test -f "$dir/javah"; then
+	    JAVAH="$dir/javah"
+	    break
+	fi
+    done
+    IFS=${save_IFS}
+fi
+echo "Java headers gen.: ${JAVAH}"
+
+if test -z "$JAR"; then
+    save_IFS=$IFS; IFS=:
+    for dir in ${JAVA_PATH}; do
+	if test -f "$dir/jar"; then
+	    JAR="$dir/jar"
+	    break
+	fi
+    done
+    IFS=${save_IFS}
+fi
+echo "Java archive tool: ${JAR}"
+
+: ${JAVA_LIBS=~autodetect~}
+: ${JAVA_CPPFLAGS=~autodetect~}
+: ${JAVA_LD_LIBRARY_PATH=~autodetect~}
+custom_JAVA_LIBS="${JAVA_LIBS}"
+custom_JAVA_CPPFLAGS="${JAVA_CPPFLAGS}"
+custom_JAVA_LD_LIBRARY_PATH="${JAVA_LD_LIBRARY_PATH}"
+
+
+# sys-dependent tweaks to JNI flags -- Darwin ones removed for R 3.5
+
+## we now look for a path to put in R_LD_LIBRARY_PATH which will
+## enable libjvm to be found at run time.  This should not be needed,
+## but it seems that libjvm is often not in the ld.so cache.
+if test "${JAVA_LIBS}" = "~autodetect~"; then
+	## we need to reset LD_LIBRARY_PATH, because Java automatically
+	## adds all LD_LIBRARY_PATH to Java path
+	save_LDLP=${LD_LIBRARY_PATH}
+	LD_LIBRARY_PATH=
+	export LD_LIBRARY_PATH
+	# remove trailing/leading : (if any)
+	java_library_path=`"$JAVA" -classpath "${tools_classpath}" getsp java.library.path| ${SED-sed} -e 's/:$//' -e 's/^://'`
+	## see if libjvm is on this path: it is not for recent Oracle Java
+	has_libjvm=no
+	save_IFS=$IFS; IFS=:
+	for dir in ${java_library_path}; do
+	    if test -f "$dir/libjvm${DYLIB_EXT}"; then
+		has_libjvm=yes
+		java_library_path="${dir}"
+		break
+	    fi
+	done
+	# Then try some heuristics using sun.boot.library.path
+	if test ${has_libjvm} = no; then
+	    boot_path=`"$JAVA" -classpath "${tools_classpath}" getsp sun.boot.library.path| ${SED-sed} -e 's/:$//' -e 's/^://'`
+	    if test -n "${boot_path}"; then
+		for dir in "${boot_path}" "${boot_path}/client" "${boot_path}/server"; do
+		    if test -f "$dir/libjvm${DYLIB_EXT}"; then
+			has_libjvm=yes
+			java_library_path="${dir}"
+			break
+		    fi
+		done
+	    fi
+	fi	
+	IFS=${save_IFS}
+	# replace occurrences of JAVA_HOME with $(JAVA_HOME)
+	# If JAVA_HOME was a link, it will be the canonical path we
+	# want to replace.  We need realpath to determine what that is.
+	if test "false" != "false"; then
+             java_home=`false "${JAVA_HOME}"`
+	else
+       	    java_home="${JAVA_HOME}"
+	fi
+	JAVA_LD_LIBRARY_PATH=`echo "${java_library_path}" | ${SED-sed} -e" s:${java_home}:\$\(JAVA_HOME\):g"`
+
+	LD_LIBRARY_PATH=${save_LDLP}
+	export LD_LIBRARY_PATH
+	# build JAVA_LIBS from the detected path
+	JAVA_LIBS=`echo ${JAVA_LD_LIBRARY_PATH}|${SED-sed} -e 's|:| -L|g'`
+	if test -n "${JAVA_LIBS}"; then JAVA_LIBS="-L${JAVA_LIBS}"; fi
+	JAVA_LIBS="${JAVA_LIBS} -ljvm"
+	# create shell-version to be used in scripts
+	JAVA_LD_LIBRARY_PATH_SH=`echo ${JAVA_LD_LIBRARY_PATH}|${SED-sed} -e 's:$(JAVA_HOME):\$\{JAVA_HOME\}:g'`
+
+        ## includes consist of two parts - jni.h and machine-dependent jni_md.h
+        jinc=''
+	JAVA_CPPFLAGS=''
+        for pinc in include ../include jre/include; do
+          if test -f "${JAVA_HOME}/${pinc}/jni.h"; then jinc="${JAVA_HOME}/${pinc}"; break; fi
+        done
+        ## only if we get jni.h we can try to find jni_md.h
+        if test -n "${jinc}"; then
+           JAVA_CPPFLAGS="-I${jinc}"
+           jmdinc=''
+           jmdirs=''
+	   ## we are not in configure, so we need to find the OS from R
+	   host_os=`echo 'cat(R.version$os)'|${R_HOME}/bin/R --vanilla --slave 2>/dev/null`
+           ## put the most probable locations for each system in the first place
+           case "${host_os}" in
+             darwin*)  jmdirs=darwin;;
+             linux*)   jmdirs=linux;;
+             bsdi*)    jmdirs=bsdos;;
+             osf*)     jmdirs=alpha;;
+             solaris*) jmdirs=solaris;;
+             freebsd*) jmdirs=freebsd; add_java_libs='-lpthread';;
+           esac
+	   ## in case host_os detection failed, add all candidates
+	   if test -z "${jmdirs}"; then jmdirs='linux solaris freebsd alpha bsdos'; fi
+           ## prepend . and append less-likely ones
+           jmdirs=". ${jmdirs} genunix ppc x86 iris hp-ux aix win32 cygwin openbsd"
+           for pimd in ${jmdirs}; do
+             if test -f "${jinc}/${pimd}/jni_md.h"; then jmdinc="${jinc}/${pimd}"; break; fi
+           done
+           if test -z "${jmdinc}"; then
+             # ultima-ratio: use find and pray that it works
+             jmdinc=`find "${jinc}/" -name jni_md.h 2> /dev/null |head -n 1 2>/dev/null`
+             if test -n "${jmdinc}"; then jmdinc=`dirname "${jmdinc}"`; fi
+           fi
+           if test -n "${jmdinc}"; then
+             if test "${jmdinc}" != "${jinc}/."; then
+               JAVA_CPPFLAGS="${JAVA_CPPFLAGS} -I${jmdinc}"
+             fi
+           fi
+	   JAVA_CPPFLAGS=`echo ${JAVA_CPPFLAGS} | ${SED-sed} -e s:${JAVA_HOME}:\$\(JAVA_HOME\):g`
+        fi
+fi
+
+if test -n "${add_java_libs}"; then JAVA_LIBS="${JAVA_LIBS} ${add_java_libs}"; fi
+
+## honor user overrides
+acx_custom_java_libs=no
+if test "${custom_JAVA_LIBS}" != '~autodetect~'; then
+  JAVA_LIBS="${custom_JAVA_LIBS}"
+  JAVA_LIBS0=`echo ${JAVA_LIBS} | ${SED-sed} -e s:${JAVA_HOME}:\$\(JAVA_HOME\):g`
+  acx_custom_java_libs=yes
+fi
+if test "${custom_JAVA_CPPFLAGS}" != '~autodetect~'; then
+  JAVA_CPPFLAGS="${custom_JAVA_CPPFLAGS}"
+fi
+if test "${custom_JAVA_LD_LIBRARY_PATH}" != '~autodetect~'; then
+  JAVA_LD_LIBRARY_PATH="${custom_JAVA_LD_LIBRARY_PATH}"
+  JAVA_LD_LIBRARY_PATH_SH=`echo ${JAVA_LD_LIBRARY_PATH}|${SED-sed} -e 's:$(JAVA_HOME):\$\{JAVA_HOME\}:g'`
+fi
+
+## Do cpmpile test in the temporary dir
+wd=${PWD}
+cd "${tempdir}"
+
+echo
+echo "trying to compile and link a JNI program "
+echo "detected JNI cpp flags    : ${JAVA_CPPFLAGS}"
+echo "detected JNI linker flags : ${JAVA_LIBS}"
+
+cat <<_ACEOF >conftest.c
+#include <jni.h>
+
+int main(void) {
+    JNI_CreateJavaVM(0, 0, 0);
+    return 0;
+}
+_ACEOF
+
+JAVA_CPPFLAGS1=`echo ${JAVA_CPPFLAGS}|${SED-sed} -e 's:$(JAVA_HOME):'"${JAVA_HOME}:g"`
+JAVA_LIBS1=`echo ${JAVA_LIBS}|${SED-sed} -e 's:$(JAVA_HOME):'"${JAVA_HOME}:g"`
+cat <<_ACEOF >Makevars
+PKG_CPPFLAGS = ${JAVA_CPPFLAGS1}
+PKG_LIBS = ${JAVA_LIBS1}
+_ACEOF
+
+## in case e.g. -k was passed in the environment
+MAKEFLAGS=
+export MAKEFLAGS
+${R_HOME}/bin/R CMD SHLIB conftest.c
+ac_status=$?
+
+if test $ac_status != 0; then
+  echo "Unable to compile a JNI program"
+  JAVA_LD_LIBRARY_PATH=
+  JAVA_LIBS=
+  JAVA_CPPFLAGS=
+fi
+
+rm -f conftest.c conftest.o conftest.so Makevars
+cd ${wd}
+rm -Rf "${tempdir}"
+
+
+echo ""
+
+if test "${export_vars}" = yes; then
+    ## we have to re-substitute $(JAVA_HOME), 
+    ## otherwise it will be replaced by R's Makeconf setting
+    ## which is highly likely different and thus not intended
+    JAVA_LD_LIBRARY_PATH=`echo ${JAVA_LD_LIBRARY_PATH}|${SED-sed} -e 's:$(JAVA_HOME):'"${JAVA_HOME}:g"`
+    JAVA_CPPFLAGS=`echo ${JAVA_CPPFLAGS}|${SED-sed} -e 's:$(JAVA_HOME):'"${JAVA_HOME}:g"`
+    JAVA_LIBS=`echo ${JAVA_LIBS}|${SED-sed} -e 's:$(JAVA_HOME):'"${JAVA_HOME}:g"`
+
+    export JAVA_HOME JAVA JAVAC JAVAH JAR JAVA_LIBS JAVA_CPPFLAGS JAVA_LD_LIBRARY_PATH
+    echo "The following Java variables have been exported:"
+    echo "JAVA_HOME JAVA JAVAC JAVAH JAR JAVA_LIBS JAVA_CPPFLAGS JAVA_LD_LIBRARY_PATH"
+    test -z "${run_prog}" && test -n "${SHELL}" && run_prog="${SHELL}"
+    test -z "${run_prog}" && run_prog=/bin/sh
+    echo "Running: ${run_prog}"
+    ${run_prog}
+    exit 0
+fi
+
+echo ""
+echo "JAVA_HOME        : ${JAVA_HOME}"
+echo "Java library path: ${JAVA_LD_LIBRARY_PATH}"
+echo "JNI cpp flags    : ${JAVA_CPPFLAGS}"
+echo "JNI linker flags : ${JAVA_LIBS}"
+
+test "${dry_run}" = yes && exit 0
+
+echo "Updating Java configuration in ${R_HOME}"
+
+## We update both the base and arch-specific versions as etc/Makefile
+## copies the first to the second (only the second is used).
+if test -n "${R_ARCH}"; then
+  files="${R_HOME}/etc/Makeconf ${R_HOME}/etc/ldpaths ${R_HOME}/etc${R_ARCH}/Makeconf ${R_HOME}/etc${R_ARCH}/ldpaths"
+else
+  files="${R_HOME}/etc/Makeconf ${R_HOME}/etc/ldpaths"
+fi
+for file in $files; do
+    ${SED-sed} -e "s|JAVA =.\{0,\}|JAVA = $JAVA|" -e "s|JAVA_HOME =.\{0,\}|JAVA_HOME = ${JAVA_HOME}|" -e "s|: \${JAVA_HOME=.\{1,\}|: \${JAVA_HOME=${JAVA_HOME}}|" -e "s|: \${R_JAVA_LD_LIBRARY_PATH=.\{1,\}|: \${R_JAVA_LD_LIBRARY_PATH=${JAVA_LD_LIBRARY_PATH_SH}}|" -e "s|JAVA_LIBS =.\{0,\}|JAVA_LIBS = ${JAVA_LIBS}|g" -e "s|JAVA_LD_LIBRARY_PATH =.\{0,\}|JAVA_LD_LIBRARY_PATH = ${JAVA_LD_LIBRARY_PATH}|" -e "s|JAVAC =.\{0,\}|JAVAC = $JAVAC|" -e "s|JAVAH =.\{0,\}|JAVAH = $JAVAH|" -e "s|JAR =.\{0,\}|JAR = $JAR|" -e "s|JAVA_CPPFLAGS =.\{0,\}|JAVA_CPPFLAGS = ${JAVA_CPPFLAGS}|g"  "${file}" > "${file}.new"
+    if test -f "${file}.new"; then
+	mv "${file}.new" "${file}"
+    else
+	echo "*** cannot create ${file}.new~*** Please run as root if required.~" | ${SED-sed} -e 'y/~/\n/' >&2
+	exit 1
+    fi
+done
+
+echo "Done."
+echo ''
+
+### Local Variables: ***
+### mode: sh ***
+### sh-indentation: 2 ***
+### End: ***

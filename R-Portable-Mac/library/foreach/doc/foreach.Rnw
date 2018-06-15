@@ -1,0 +1,567 @@
+% \VignetteIndexEntry{foreach Manual}
+% \VignetteDepends{foreach}
+% \VignettePackage{foreach}
+\documentclass[12pt]{article}
+\usepackage{amsmath}
+\usepackage[pdftex]{graphicx}
+\usepackage{color}
+\usepackage{xspace}
+\usepackage{fancyvrb}
+\usepackage{fancyhdr}
+    \usepackage[
+         colorlinks=true,
+         linkcolor=blue,
+         citecolor=blue,
+         urlcolor=blue]
+         {hyperref}
+         \usepackage{lscape}
+
+\usepackage{Sweave}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% define new colors for use
+\definecolor{darkgreen}{rgb}{0,0.6,0}
+\definecolor{darkred}{rgb}{0.6,0.0,0}
+\definecolor{lightbrown}{rgb}{1,0.9,0.8}
+\definecolor{brown}{rgb}{0.6,0.3,0.3}
+\definecolor{darkblue}{rgb}{0,0,0.8}
+\definecolor{darkmagenta}{rgb}{0.5,0,0.5}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newcommand{\bld}[1]{\mbox{\boldmath $#1$}}
+\newcommand{\shell}[1]{\mbox{$#1$}}
+\renewcommand{\vec}[1]{\mbox{\bf {#1}}}
+
+\newcommand{\ReallySmallSpacing}{\renewcommand{\baselinestretch}{.6}\Large\normalsize}
+\newcommand{\SmallSpacing}{\renewcommand{\baselinestretch}{1.1}\Large\normalsize}
+
+\newcommand{\halfs}{\frac{1}{2}}
+
+\setlength{\oddsidemargin}{-.25 truein}
+\setlength{\evensidemargin}{0truein}
+\setlength{\topmargin}{-0.2truein}
+\setlength{\textwidth}{7 truein}
+\setlength{\textheight}{8.5 truein}
+\setlength{\parindent}{0.20truein}
+\setlength{\parskip}{0.10truein}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\pagestyle{fancy}
+\lhead{}
+\chead{Using The {\tt foreach} Package}
+\rhead{}
+\lfoot{}
+\cfoot{}
+\rfoot{\thepage}
+\renewcommand{\headrulewidth}{1pt}
+\renewcommand{\footrulewidth}{1pt}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\title{Using The {\tt foreach} Package}
+\author{Steve Weston \\ doc@revolutionanalytics.com}
+
+
+\begin{document}
+
+\maketitle
+
+\thispagestyle{empty}
+
+\section{Introduction}
+
+One of R's most useful features is its interactive interpreter.  This
+makes it very easy to learn and experiment with R.  It allows you to
+use R like a calculator to perform arithmetic operations, display data
+sets, generate plots, and create models.
+
+Before too long, new R users will find a need to perform some
+operation repeatedly.  Perhaps they want to run a simulation repeatedly
+in order to find the distribution of the results.  Perhaps they need to
+execute a function with a variety a different arguments passed to it.
+Or maybe they need to create a model for many different data sets.
+
+Repeated executions can be done manually, but it becomes quite
+tedious to execute repeated operations, even with the use of command
+line editing.  Fortunately, R is much more than an interactive
+calculator.  It has its own built-in language that is intended to
+automate tedious tasks, such as repeatedly executing R calculations.
+
+R comes with various looping constructs that solve this problem.  The
+\texttt{for} loop is one of the more common looping constructs, but
+the \texttt{repeat} and \texttt{while} statements are also quite useful.
+In addition, there is the family of ``apply'' functions, which includes 
+\texttt{apply}, \texttt{lapply}, \texttt{sapply}, \texttt{eapply},
+\texttt{mapply}, \texttt{rapply}, and others. 
+
+The \texttt{foreach} package provides a new looping construct for
+executing R code repeatedly.  With the bewildering variety of existing
+looping constructs, you may doubt that there is a need for yet another
+construct.  The main reason for using the \texttt{foreach} package is
+that it supports {\em parallel execution}, that is, it can execute those
+repeated operations on multiple processors/cores on your computer, or on
+multiple nodes of a cluster.  If each operation takes over a minute, and
+you want to execute it hundreds of times, the overall runtime can take
+hours.  But using \texttt{foreach}, that operation can be executed in
+parallel on hundreds of processors on a cluster, reducing the execution
+time back down to minutes.
+
+But parallel execution is not the only reason for using the
+\texttt{foreach} package.  There are other reasons that you might choose
+to use it to execute quick executing operations, as we will see later in
+the document.
+
+\section{Getting Started}
+
+Let's take a look at a simple example use of the \texttt{foreach} package.
+Assuming that you have the \texttt{foreach} package installed, you first
+need to load it:
+
+<<loadLibs>>=
+library(foreach)
+@
+
+Note that all of the packages that \texttt{foreach} depends on will be
+loaded as well.
+
+Now I can use \texttt{foreach} to execute the \texttt{sqrt} function
+repeatedly, passing it the values 1 through 3, and returning the results
+in a list, called \texttt{x}\footnote{Of course, \texttt{sqrt} is a
+vectorized function, so you would never really do this.  But later,
+we'll see how to take advantage of vectorized functions with
+\texttt{foreach}.}:
+
+<<ex1>>=
+x <- foreach(i=1:3) %do% sqrt(i)
+x
+@
+
+This is a bit odd looking, because it looks vaguely like a \texttt{for}
+loop, but is implemented using a binary operator, called
+\texttt{\%do\%}.  Also, unlike a \texttt{for} loop, it returns a
+value.  This is quite important.  The purpose of this statement is to
+compute the list of results.  Generally, \texttt{foreach} with
+\texttt{\%do\%} is used to execute an R expression repeatedly, and return
+the results in some data structure or object, which is a list by
+default.
+
+You will note in the previous example that we used a variable \texttt{i} as
+the argument to the \texttt{sqrt} function.  We specified the values of the 
+\texttt{i} variable using a named argument to the \texttt{foreach} function.  We
+could have called that variable anything we wanted, for example, \texttt{a},
+or \texttt{b}.  We could also specify other variables to be used in the R
+expression, as in the following example:
+
+<<ex2>>=
+x <- foreach(a=1:3, b=rep(10, 3)) %do% (a + b)
+x
+@
+
+Note that parentheses are needed here.  We can also use braces:
+
+<<ex3>>=
+x <- foreach(a=1:3, b=rep(10, 3)) %do% {
+  a + b
+}
+x
+@
+
+We call \texttt{a} and \texttt{b} the {\em iteration variables}, since those are the variables that are changing during the multiple executions.  Note that
+we are iterating over them in parallel, that is, they are both changing
+at the same time.  In this case, the same number of values are being
+specified for both iteration variables, but that need not be the case.
+If we only supplied two values for \texttt{b}, the result would be a list of
+length two, even if we specified a thousand values for \texttt{a}:
+
+<<ex4>>=
+x <- foreach(a=1:1000, b=rep(10, 2)) %do% {
+  a + b
+}
+x
+@
+
+Note that you can put multiple statements between the braces, and you
+can use assignment statements to save intermediate values of
+computations.  However, if you use an assignment as a way of
+communicating between the different executions of your loop, then your
+code won't work correctly in parallel, which we will discuss later.
+
+\section{The \texttt{.combine} Option}
+
+So far, all of our examples have returned a list of results.  This is a
+good default, since a list can contain any R object.  But sometimes
+we'd like the results to be returned in a numeric vector, for example.
+This can be done by using the \texttt{.combine} option to \texttt{foreach}:
+
+<<ex5>>=
+x <- foreach(i=1:3, .combine='c') %do% exp(i)
+x
+@
+
+The result is returned as a numeric vector, because the standard R \texttt{c}
+function is being used to concatenate all the results.  Since the
+\texttt{exp} function returns numeric values, concatenating them with
+the \texttt{c} function will result in a numeric vector of length three.
+
+What if the R expression returns a vector, and we want to combine those
+vectors into a matrix?  One way to do that is with the \texttt{cbind} function:
+
+<<ex6>>=
+x <- foreach(i=1:4, .combine='cbind') %do% rnorm(4)
+x
+@
+
+This generates four vectors of four random numbers, and combines them by
+column to produce a 4 by 4 matrix.
+
+We can also use the \texttt{"+"} or \texttt{"*"} functions to combine our results:
+
+<<ex7>>=
+x <- foreach(i=1:4, .combine='+') %do% rnorm(4)
+x
+@
+
+You can also specify a user-written function to combine the results.
+Here's an example that throws away the results:
+
+<<ex7.1>>=
+cfun <- function(a, b) NULL
+x <- foreach(i=1:4, .combine='cfun') %do% rnorm(4)
+x
+@
+
+Note that this \texttt{cfun} function takes two arguments.  The
+\texttt{foreach} function knows that the functions \texttt{c}, 
+\texttt{cbind}, and \texttt{rbind} take many arguments, and 
+will call them with up to 100 arguments (by default) in order to improve 
+performance.  But if any
+other function is specified (such as \texttt{"+"}), it assumes that it only
+takes two arguments.  If the function does allow many arguments, you can
+specify that using the \texttt{.multicombine} argument:
+
+<<ex7.2>>=
+cfun <- function(...) NULL
+x <- foreach(i=1:4, .combine='cfun', .multicombine=TRUE) %do% rnorm(4)
+x
+@
+
+If you want the combine function to be called with no more than 10
+arguments, you can specify that using the \texttt{.maxcombine} option:
+
+<<ex7.2>>=
+cfun <- function(...) NULL
+x <- foreach(i=1:4, .combine='cfun', .multicombine=TRUE, .maxcombine=10) %do% rnorm(4)
+x
+@
+
+The \texttt{.inorder} option is used to specify whether the order in which the
+arguments are combined is important.  The default value is
+\texttt{TRUE}, but if the combine function is \texttt{"+"}, you could specify
+\texttt{.inorder} to be \texttt{FALSE}.  Actually, this option is important 
+only when executing the R expression in parallel, since results are always
+computed in order when running sequentially.  This is not necessarily true when
+executing in parallel, however.  In fact, if the expressions take very
+different lengths of time to execute, the results could be returned in
+any order.  Here's a contrived example, that executes the tasks in
+parallel to demonstrate the difference.  The example uses the 
+\texttt{Sys.sleep} function
+to cause the earlier tasks to take longer to execute:
+
+<<ex7.3>>=
+foreach(i=4:1, .combine='c') %dopar% {
+  Sys.sleep(3 * i)
+  i
+}
+foreach(i=4:1, .combine='c', .inorder=FALSE) %dopar% {
+  Sys.sleep(3 * i)
+  i
+}
+@
+
+The results of the first of these two examples is guaranteed to be the
+vector c(4, 3, 2, 1).  The second example will return the same values,
+but they will probably be in a different order.
+
+\section{Iterators}
+
+The values for the iteration variables don't have to be specified with
+only vectors or lists.  They can be specified with an {\em iterator}, many
+of which come with the \texttt{iterators} package.  An iterator is an
+abstract source of data.  A vector isn't itself an iterator, but the
+\texttt{foreach} function automatically creates an iterator from a
+vector, list, matrix, or data frame, for example.  You can also create
+an iterator from a file or a data base query, which are natural sources
+of data.  The \texttt{iterators} package supplies a function called
+\texttt{irnorm} which can return a specified number of random numbers
+for each time it is called.  For example:
+
+<<ex8>>=
+library(iterators)
+x <- foreach(a=irnorm(4, count=4), .combine='cbind') %do% a
+x
+@
+
+This becomes useful when dealing with large amounts of data.  Iterators
+allow the data to be generated on-the-fly, as it is needed by your
+operations, rather than requiring all of the data to be generated at the
+beginning.
+
+For example, let's say that we want to sum together a thousand random
+vectors:
+
+<<ex9>>=
+set.seed(123)
+x <- foreach(a=irnorm(4, count=1000), .combine='+') %do% a
+x
+@
+
+This uses very little memory, since it is equivalent to the following
+\texttt{while} loop:
+
+<<ex10>>=
+set.seed(123)
+x <- numeric(4)
+i <- 0
+while (i < 1000) {
+  x <- x + rnorm(4)
+  i <- i + 1
+}
+x
+@
+
+This could have been done using the \texttt{icount} function, which
+generates the values from one to 1000:
+<<ex11>>=
+set.seed(123)
+x <- foreach(icount(1000), .combine='+') %do% rnorm(4)
+x
+@
+
+but sometimes it's preferable to generate the actual data with the
+iterator (as we'll see later when we execute in parallel).
+
+In addition to introducing the \texttt{icount} function from the
+\texttt{iterators} package, the last example also used an unnamed
+argument to the \texttt{foreach} function.  This can be useful when
+we're not intending to generate variable values, but only controlling
+the number of times that the R expression is executed.
+
+There's a lot more that I could say about iterators, but for now,
+let's move on to parallel execution.
+
+\section{Parallel Execution}
+
+Although \texttt{foreach} can be a useful construct in its own right,
+the real point of the \texttt{foreach} package is to do parallel computing.
+To make any of the previous examples run in parallel, all you have to do
+is to replace \texttt{\%do\%} with \texttt{\%dopar\%}.  But for the
+kinds of quick running operations that we've been doing, there wouldn't
+be much point to executing them in parallel.  Running many tiny tasks
+in parallel will usually take more time to execute than running them
+sequentially, and if it already runs fast, there's no motivation to make
+it run faster anyway.  But if the operation that we're executing in
+parallel takes a minute or longer, there starts to be some motivation.
+
+\subsection{Parallel Random Forest}
+
+Let's take random forest as an example of an operation that can take
+a while to execute.  Let's say our inputs are the matrix \texttt{x}, and the
+factor \texttt{y}:
+
+<<ex12.data>>=
+x <- matrix(runif(500), 100)
+y <- gl(2, 50)
+@
+
+We've already loaded the \texttt{foreach} package, but we'll also need
+to load the \texttt{randomForest} package:
+
+<<ex12.load>>=
+library(randomForest)
+@
+
+If we want want to create a random forest model with a 1000 trees, and
+our computer has four cores in it, we can split up the problem into four
+pieces by executing the \texttt{randomForest} function four times, with
+the \texttt{ntree} argument set to 250.  Of course, we have to combine
+the resulting \texttt{randomForest} objects, but the
+\texttt{randomForest} package comes with a function called
+\texttt{combine} that does just that.
+
+Let's do that, but first, we'll do the work sequentially:
+
+<<ex12.seq>>=
+rf <- foreach(ntree=rep(250, 4), .combine=combine) %do%
+  randomForest(x, y, ntree=ntree)
+rf
+@
+
+To run this in parallel, we need to change \texttt{\%do\%}, but we also need to
+use another \texttt{foreach} option called \texttt{.packages} to tell
+the \texttt{foreach} package that the R expression needs to have the
+\texttt{randomForest} package loaded in order to execute successfully.
+Here's the parallel version:
+
+<<ex12.par>>=
+rf <- foreach(ntree=rep(250, 4), .combine=combine, .packages='randomForest') %dopar%
+  randomForest(x, y, ntree=ntree)
+rf
+@
+
+If you've done any parallel computing, particularly on a cluster, you
+may wonder why I didn't have to do anything special to handle \texttt{x} and
+\texttt{y}.  The reason is that the \texttt{\%dopar\%} function noticed that
+those variables were referenced, and that they were defined in the current
+environment.  In that case \text{\%dopar\%} will automatically export
+them to the parallel execution workers once, and use them for all of the
+expression evaluations for that \texttt{foreach} execution.  That is
+true for functions that are defined in the current environment as well,
+but in this case, the function is defined in a package, so we had to
+specify the package to load with the \texttt{.packages} option instead.
+
+\subsection{Parallel Apply}
+
+Now let's take a look at how to make a parallel version of the standard
+R \texttt{apply} function.  The \texttt{apply} function is written in R,
+and although it's only about 100 lines of code, it's a bit difficult to
+understand on a first reading.  However, it all really comes down two
+\texttt{for} loops, the slightly more complicated of which looks like:
+
+<<ex13.orig>>=
+applyKernel <- function(newX, FUN, d2, d.call, dn.call=NULL, ...) {
+  ans <- vector("list", d2)
+  for(i in 1:d2) {
+    tmp <- FUN(array(newX[,i], d.call, dn.call), ...)
+    if(!is.null(tmp)) ans[[i]] <- tmp
+  }
+  ans
+}
+applyKernel(matrix(1:16, 4), mean, 4, 4)
+@
+
+I've turned this into a function, because otherwise, R will complain
+that I'm using ``...'' in an invalid context.
+
+This could be executed using \texttt{foreach} as follows:
+
+<<ex13.first>>=
+applyKernel <- function(newX, FUN, d2, d.call, dn.call=NULL, ...) {
+  foreach(i=1:d2) %dopar%
+    FUN(array(newX[,i], d.call, dn.call), ...)
+}
+applyKernel(matrix(1:16, 4), mean, 4, 4)
+@
+
+But this approach will cause the entire \texttt{newX} array to be sent
+to each of the parallel execution workers.  Since each task needs only
+one column of the array, we'd like to avoid this extra data
+communication.
+
+One way to solve this problem is to use an iterator that iterates over
+the matrix by column:
+
+<<ex13.second>>=
+applyKernel <- function(newX, FUN, d2, d.call, dn.call=NULL, ...) {
+  foreach(x=iter(newX, by='col')) %dopar%
+    FUN(array(x, d.call, dn.call), ...)
+}
+applyKernel(matrix(1:16, 4), mean, 4, 4)
+@
+
+Now we're only sending any given column of the matrix to one parallel
+execution worker.  But it would be even more efficient if we sent the
+matrix in bigger chunks.  To do that, we use a function called
+\texttt{iblkcol} that returns an iterator that will return multiple columns
+of the original matrix.  That means that the R expression will need to
+execute the user's function once for every column in its submatrix.
+
+<<ex13.iter, results=hide, echo=FALSE>>=
+iblkcol <- function(a, chunks) {
+  n <- ncol(a)
+  i <- 1
+
+  nextElem <- function() {
+    if (chunks <= 0 || n <= 0) stop('StopIteration')
+    m <- ceiling(n / chunks)
+    r <- seq(i, length=m)
+    i <<- i + m
+    n <<- n - m
+    chunks <<- chunks - 1
+    a[,r, drop=FALSE]
+  }
+
+  structure(list(nextElem=nextElem), class=c('iblkcol', 'iter'))
+}
+nextElem.iblkcol <- function(obj) obj$nextElem()
+@
+
+<<ex13.third>>=
+applyKernel <- function(newX, FUN, d2, d.call, dn.call=NULL, ...) {
+  foreach(x=iblkcol(newX, 3), .combine='c', .packages='foreach') %dopar% {
+    foreach(i=1:ncol(x)) %do% FUN(array(x[,i], d.call, dn.call), ...)
+  }
+}
+applyKernel(matrix(1:16, 4), mean, 4, 4)
+@
+
+Note the use of the \texttt{\%do\%} inside the \texttt{\%dopar\%} to
+call the function on the columns of the submatrix \texttt{x}.  Now that
+we're using \texttt{\%do\%} again, it makes sense for the iterator to be
+an index into the matrix \texttt{x}, since \texttt{\%do\%} doesn't need to
+copy \texttt{x} the way that \texttt{\%dopar\%} does.
+
+\section{List Comprehensions}
+
+If you're familar with the Python programming language, it may have
+occurred to you that the \texttt{foreach} package provides something
+that is not too different from Python's {\em list comprehensions}.
+In fact, the \texttt{foreach} package also includes a function called
+\texttt{when} which can prevent some of the evaluations from happening,
+very much like the ``if'' clause in Python's list comprehensions.
+For example, you could filter out negative values of an iterator using
+\texttt{when} as follows:
+
+<<when>>=
+x <- foreach(a=irnorm(1, count=10), .combine='c') %:% when(a >= 0) %do% sqrt(a)
+x
+@
+
+I won't say much on this topic, but I can't help showing how
+\texttt{foreach} with \texttt{when} can be used to write a simple quick
+sort function, in the classic Haskell fashion:
+
+<<qsort>>=
+qsort <- function(x) {
+  n <- length(x)
+  if (n == 0) {
+    x
+  } else {
+    p <- sample(n, 1)
+    smaller <- foreach(y=x[-p], .combine=c) %:% when(y <= x[p]) %do% y
+    larger  <- foreach(y=x[-p], .combine=c) %:% when(y >  x[p]) %do% y
+    c(qsort(smaller), x[p], qsort(larger))
+  }
+}
+
+qsort(runif(12))
+@
+
+Not that I recommend this over the standard R \texttt{sort} function.
+But it's a pretty interesting example use of \texttt{foreach}.
+
+\section{Conclusion}
+
+Much of parallel computing comes to doing three things: splitting the
+problem into pieces, executing the pieces in parallel, and combining the
+results back together.  Using the \texttt{foreach} package, the
+iterators help you to split the problem into pieces, the
+\texttt{\%dopar\%} function executes the pieces in parallel, and the
+specified \texttt{.combine} function puts the results back together.
+We've demonstrated how simple things can be done in parallel quite
+easily using the \texttt{foreach} package, and given some ideas about
+how more complex problems can be solved.  But it's a fairly new package,
+and we will continue to work on ways of making it a more powerful system
+for doing parallel computing.
+
+\end{document}

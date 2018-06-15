@@ -1,0 +1,178 @@
+% \VignetteIndexEntry{iterators Manual}
+% \VignetteDepends{iterators}
+% \VignettePackage{iterators}
+\documentclass[12pt]{article}
+\usepackage{amsmath}
+\usepackage[pdftex]{graphicx}
+\usepackage{color}
+\usepackage{xspace}
+\usepackage{fancyvrb}
+\usepackage{fancyhdr}
+    \usepackage[
+         colorlinks=true,
+         linkcolor=blue,
+         citecolor=blue,
+         urlcolor=blue]
+         {hyperref}
+         \usepackage{lscape}
+
+\usepackage{Sweave}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% define new colors for use
+\definecolor{darkgreen}{rgb}{0,0.6,0}
+\definecolor{darkred}{rgb}{0.6,0.0,0}
+\definecolor{lightbrown}{rgb}{1,0.9,0.8}
+\definecolor{brown}{rgb}{0.6,0.3,0.3}
+\definecolor{darkblue}{rgb}{0,0,0.8}
+\definecolor{darkmagenta}{rgb}{0.5,0,0.5}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newcommand{\bld}[1]{\mbox{\boldmath $#1$}}
+\newcommand{\shell}[1]{\mbox{$#1$}}
+\renewcommand{\vec}[1]{\mbox{\bf {#1}}}
+
+\newcommand{\ReallySmallSpacing}{\renewcommand{\baselinestretch}{.6}\Large\normalsize}
+\newcommand{\SmallSpacing}{\renewcommand{\baselinestretch}{1.1}\Large\normalsize}
+
+\newcommand{\halfs}{\frac{1}{2}}
+
+\setlength{\oddsidemargin}{-.25 truein}
+\setlength{\evensidemargin}{0truein}
+\setlength{\topmargin}{-0.2truein}
+\setlength{\textwidth}{7 truein}
+\setlength{\textheight}{8.5 truein}
+\setlength{\parindent}{0.20truein}
+\setlength{\parskip}{0.10truein}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\pagestyle{fancy}
+\lhead{}
+\chead{Using The {\tt iterators} Package}
+\rhead{}
+\lfoot{}
+\cfoot{}
+\rfoot{\thepage}
+\renewcommand{\headrulewidth}{1pt}
+\renewcommand{\footrulewidth}{1pt}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\title{Using The {\tt iterators} Package}
+\author{Rich Calaway \\ doc@revolutionanalytics.com}
+
+
+\begin{document}
+
+\maketitle
+
+\thispagestyle{empty}
+\section{Introduction}
+
+An {\em iterator} is a special type of object that generalizes the notion of 
+a looping variable. When passed as an argument to a function that knows what 
+to do with it, the iterator supplies a sequence of values. The iterator also 
+maintains information about its state, in particular its current index. The
+\texttt{iterators} package includes a number of functions for creating 
+iterators, the simplest of which is \texttt{iter}, which takes
+virtually any R object and turns it into an iterator object. The simplest 
+function that operates on iterators is the \texttt{nextElem} function, which 
+when given an iterator, returns the next value of the iterator. For example, 
+here we create an iterator object from the sequence 1 to 10, and then use 
+\texttt{nextElem} to iterate through the values:
+<<ex1>>=
+library(iterators)
+i1 <- iter(1:10)
+nextElem(i1)
+nextElem(i1)
+@
+
+You can create iterators from matrices and data frames, using the \texttt{by} argument to specify whether to iterate by row or column:
+<<ex2>>=
+istate <- iter(state.x77, by='row')
+nextElem(istate)
+nextElem(istate)
+@
+
+Iterators can also be created from functions, in which case the iterator can be an endless source of values:
+<<ex3>>=
+ifun <- iter(function() sample(0:9, 4, replace=TRUE))
+nextElem(ifun)
+nextElem(ifun)
+@
+
+For practical applications, iterators can be paired with \texttt{foreach} to obtain parallel results quite easily:
+\begin{Schunk}
+\begin{Sinput}
+> library(foreach)
+\end{Sinput}
+\begin{Soutput}
+foreach: simple, scalable parallel programming from Revolution Analytics
+Use Revolution R for scalability, fault tolerance and more.
+http://www.revolutionanalytics.com
+\end{Soutput}
+\begin{Sinput}
+> x <- matrix(rnorm(1e+06), ncol = 10000)
+> itx <- iter(x, by = "row")
+> foreach(i = itx, .combine = c) %dopar% mean(i)
+\end{Sinput}
+\begin{Soutput}
+  [1] -0.0069652059  0.0161112989  0.0080068074 -0.0120020610  0.0017168149
+  [6]  0.0139835943 -0.0078172106 -0.0024762273 -0.0031558268 -0.0072662893
+ [11] -0.0055142639  0.0015717907 -0.0100842965 -0.0123601527  0.0136420084
+ [16] -0.0242922105 -0.0126416949 -0.0052951152  0.0216329326 -0.0262476648
+ [21]  0.0041937609  0.0121253368 -0.0110165729  0.0044267635  0.0080241894
+ [26]  0.0042995539 -0.0102826632  0.0051185628 -0.0013970812 -0.0172380786
+ [31]  0.0096079613  0.0046837729 -0.0080726970  0.0083781727 -0.0234620163
+ [36] -0.0099883966  0.0026883628  0.0029367320  0.0205825899  0.0035303940
+ [41]  0.0204990426 -0.0010804987 -0.0033665481 -0.0127492019 -0.0147443195
+ [46]  0.0027046346  0.0016449793  0.0155575490 -0.0003488394 -0.0079238019
+ [51]  0.0086390030 -0.0039033309  0.0168593825 -0.0067189572 -0.0009925288
+ [56] -0.0162907048 -0.0059171838  0.0093806072  0.0100886929 -0.0111677408
+ [61]  0.0021754963 -0.0056770907  0.0081200698 -0.0029828717 -0.0163704350
+ [66]  0.0057266267 -0.0017156156  0.0214172738 -0.0141379874 -0.0126593342
+ [71]  0.0087124575  0.0040231519  0.0038515673  0.0066066908  0.0023586046
+ [76] -0.0044167901 -0.0090543553  0.0010806096  0.0102288061  0.0039881702
+ [81] -0.0054549319 -0.0127997275 -0.0031697122 -0.0016100996 -0.0143468118
+ [86]  0.0035904125 -0.0059399479  0.0085565480 -0.0159064868  0.0054120554
+ [91] -0.0084420572  0.0194448129 -0.0103192553 -0.0062924628  0.0215069258
+ [96]  0.0015749065  0.0109657488  0.0152237842 -0.0057181022  0.0035530715
+\end{Soutput}
+\end{Schunk}
+
+\section{Some Special Iterators}
+
+The notion of an iterator is new to R, but should be familiar to users of
+languages such as Python. The \texttt{iterators} package includes a number of
+special functions that generate iterators for some common scenarios. For 
+example, the
+\texttt{irnorm} function creates an iterator for which each value is drawn
+from a specified random normal distribution:
+<<ex5>>=
+library(iterators)
+itrn <- irnorm(10)
+nextElem(itrn)
+nextElem(itrn)
+@
+
+Similarly, the \texttt{irunif}, \texttt{irbinom}, and \texttt{irpois} functions
+create iterators which drawn their values from uniform, binomial, and Poisson
+distributions, respectively.
+
+We can then use these functions just as we used \texttt{irnorm}:
+<<ex6>>=
+itru <- irunif(10)
+nextElem(itru)
+nextElem(itru)
+@
+
+The \texttt{icount} function returns an iterator that counts starting from one:
+<<ex7>>=
+it <- icount(3)
+nextElem(it)
+nextElem(it)
+nextElem(it)
+@
+
+\end{document}

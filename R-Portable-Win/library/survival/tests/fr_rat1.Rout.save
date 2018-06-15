@@ -1,0 +1,111 @@
+
+R Under development (unstable) (2015-06-04 r68474) -- "Unsuffered Consequences"
+Copyright (C) 2015 The R Foundation for Statistical Computing
+Platform: i686-pc-linux-gnu (32-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> options(na.action=na.exclude) # preserve missings
+> options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
+> library(survival)
+> 
+> # Tests using the rats data
+> #
+> #  (Female rats, from Mantel et al, Cancer Research 37,
+> #    3863-3868, November 77)
+> 
+> rfit <- coxph(Surv(time,status) ~ rx + frailty(litter), rats,
++ 	     method='breslow', subset= (sex=='f'))
+> names(rfit)
+ [1] "coefficients"      "var"               "var2"             
+ [4] "loglik"            "iter"              "linear.predictors"
+ [7] "residuals"         "means"             "concordance"      
+[10] "method"            "frail"             "fvar"             
+[13] "df"                "df2"               "penalty"          
+[16] "pterms"            "assign2"           "history"          
+[19] "coxlist1"          "printfun"          "n"                
+[22] "nevent"            "terms"             "assign"           
+[25] "wald.test"         "y"                 "formula"          
+[28] "call"             
+> rfit
+Call:
+coxph(formula = Surv(time, status) ~ rx + frailty(litter), data = rats, 
+    subset = (sex == "f"), method = "breslow")
+
+                  coef se(coef)    se2  Chisq   DF     p
+rx               0.906    0.323  0.319  7.882  1.0 0.005
+frailty(litter)                        16.888 13.8 0.253
+
+Iterations: 6 outer, 25 Newton-Raphson
+     Variance of random effect= 0.474   I-likelihood = -181.1 
+Degrees of freedom for terms=  1.0 13.9 
+Likelihood ratio test=36.3  on 14.8 df, p=0.00144  n= 150 
+> 
+> rfit$iter
+[1]  6 25
+> rfit$df
+[1]  0.975943 13.854864
+> rfit$history[[1]]
+$theta
+[1] 0.4742849
+
+$done
+c.loglik 
+    TRUE 
+
+$history
+         theta    loglik  c.loglik
+[1,] 0.0000000 -181.8451 -181.8451
+[2,] 1.0000000 -168.3683 -181.5458
+[3,] 0.5000000 -173.3117 -181.0788
+[4,] 0.3090061 -175.9446 -181.1490
+[5,] 0.4645720 -173.7590 -181.0775
+[6,] 0.4736210 -173.6431 -181.0773
+
+$c.loglik
+[1] -181.0773
+
+> 
+> rfit1 <- coxph(Surv(time,status) ~ rx + frailty(litter, theta=1), rats,
++ 	     method='breslow', subset=(sex=="f"))
+> rfit1
+Call:
+coxph(formula = Surv(time, status) ~ rx + frailty(litter, theta = 1), 
+    data = rats, subset = (sex == "f"), method = "breslow")
+
+                            coef se(coef)    se2  Chisq   DF      p
+rx                         0.918    0.327  0.321  7.851  1.0 0.0051
+frailty(litter, theta = 1                        27.245 22.7 0.2324
+
+Iterations: 1 outer, 6 Newton-Raphson
+     Variance of random effect= 1   I-likelihood = -181.5 
+Degrees of freedom for terms=  1.0 22.7 
+Likelihood ratio test=50.7  on 23.7 df, p=0.001  n= 150 
+> 
+> rfit2 <- coxph(Surv(time,status) ~ frailty(litter), rats, subset=(sex=='f'))
+> rfit2
+Call:
+coxph(formula = Surv(time, status) ~ frailty(litter), data = rats, 
+    subset = (sex == "f"))
+
+                coef se(coef) se2 Chisq   DF    p
+frailty(litter)                      18 14.6 0.24
+
+Iterations: 6 outer, 22 Newton-Raphson
+     Variance of random effect= 0.504   I-likelihood = -184.8 
+Degrees of freedom for terms= 14.6 
+Likelihood ratio test=30  on 14.6 df, p=0.0101  n= 150 
+> 
+> proc.time()
+   user  system elapsed 
+  0.216   0.028   0.237 

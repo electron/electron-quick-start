@@ -1,0 +1,120 @@
+<!--
+%\VignetteBuilder{knitr::knitr}
+%\VignetteEngine{knitr::knitr}
+%\VignetteIndexEntry{kmeans with dplyr+broom}
+-->
+
+Tidying k-means clustering
+===================================
+
+```{r, echo=FALSE}
+library(knitr)
+opts_chunk$set(message=FALSE, warning=FALSE)
+```
+
+K-means clustering serves as a very useful example of tidy data, and especially the distinction between the three tidying functions: `tidy`, `augment`, and `glance`.
+
+Let's start by generating some random 2d data with three clusters, within which points are distributed according to a multivariate gaussian:
+
+```{r}
+library(dplyr)
+
+set.seed(2014)
+centers <- data.frame(cluster=factor(1:3), size=c(100, 150, 50), x1=c(5, 0, -3), x2=c(-1, 1, -2))
+points <- centers %>% group_by(cluster) %>%
+    do(data.frame(x1=rnorm(.$size[1], .$x1[1]),
+                  x2=rnorm(.$size[1], .$x2[1])))
+
+library(ggplot2)
+ggplot(points, aes(x1, x2, color=cluster)) + geom_point()
+```
+
+This is an ideal case for k-means clustering. Let's examine what the built-in `kmeans` function returns.
+
+```{r}
+points.matrix <- cbind(x1 = points$x1, x2 = points$x2)
+kclust <- kmeans(points.matrix, 3)
+kclust
+summary(kclust)
+```
+
+The output is a list of vectors, where each component has a different length. There's one of length `r nrow(points)`: the same as our original dataset. There are a number of elements of length 3: `withinss`, `tot.withinss`, and `betweenss`- and `centers` is a matrix with 3 rows. And then there are the elements of length 1: `totss`, `tot.withinss`, `betweenss`, and `iter`.
+
+These differing lengths have a deeper meaning when we want to tidy our dataset: they signify that each type of component communicates a *different kind* of information.
+
+* `cluster` (`r nrow(points.matrix)` values) contains information about each *point*
+* `centers`, `withinss` and `size` (3 values) contain information about each *cluster*
+* `totss`, `tot.withinss`, `betweenss`, and `iter` (1 value) contain information about the *full clustering*
+
+Which of these do we want to extract? There is no right answer: each of them may be interesting to an analyst. Because they communicate entirely different information (not to mention there's no straightforward way to combine them), they are extracted by separate functions. `augment` adds the point classifications to the original dataset:
+
+```{r}
+library(broom)
+head(augment(kclust, points.matrix))
+```
+
+The `tidy` function summarizes on a per-cluster level:
+
+```{r}
+tidy(kclust)
+```
+
+And as it always does, the `glance` function extracts a single-row summary:
+
+```{r}
+glance(kclust)
+```
+
+broom and dplyr for exploratory clustering
+---------------------------------------
+
+While these summaries are useful, they would not have been too difficult to extract out from the dataset yourself. The real power comes from combining their analyses with dplyr.
+
+Let's say we want to explore the effect of different choices of `k`, from 1 to 9, on this clustering. First cluster the data 9 times, each using a different value of k:
+
+```{r}
+kclusts <- data.frame(k=1:9) %>% group_by(k) %>% do(kclust=kmeans(points.matrix, .$k))
+```
+
+Then tidy the clusterings three ways: using `tidy`, using `augment`, and using `glance`. Each of these goes into a separate dataset as they represent different types of data.
+
+```{r}
+clusters <- kclusts %>%
+    group_by(k) %>%
+    do(tidy(.$kclust[[1]]))
+
+assignments <- kclusts %>%
+    group_by(k) %>%
+    do(augment(.$kclust[[1]], points.matrix))
+
+clusterings <- kclusts %>%
+    group_by(k) %>%
+    do(glance(.$kclust[[1]]))
+```
+
+Now we can plot the original points, with each point colored according to the original cluster:
+
+```{r}
+p1 <- ggplot(assignments, aes(x1, x2)) +
+    geom_point(aes(color=.cluster)) +
+    facet_wrap(~ k)
+
+p1
+```
+
+Already we get a good sense of the proper number of clusters (3), and how the k-means algorithm functions when k is too high or too low. We can then add the centers of the cluster using the data from `tidy`:
+
+```{r}
+p2 <- p1 +
+    geom_point(data = clusters, size = 10, shape = "x")
+
+p2
+```
+
+The data from `glance` fits a different but equally important purpose: it lets you view trends of some summary statistics across values of k. Of particular interest is the total within sum of squares, saved in the `tot.withinss` column.
+
+```{r}
+ggplot(clusterings, aes(k, tot.withinss)) + geom_line()
+```
+
+This represents the variance within the clusters. It decreases as k increases, but one can notice a bend (or "elbow") right at k=3. This bend indicates that additional clusters beyond the third have little value. (See [here](http://web.stanford.edu/~hastie/Papers/gap.pdf) for a more mathematically rigorous interpretation and implementation of this method). Thus, all three methods of tidying data provided by broom are useful for summarizing clustering output.

@@ -1,0 +1,93 @@
+<!--
+%\VignetteBuilder{knitr::knitr}
+%\VignetteEngine{knitr::knitr}
+%\VignetteIndexEntry{broom and dplyr}
+-->
+
+```{r opts_chunk, echo=FALSE}
+library(knitr)
+opts_chunk$set(message=FALSE, warning=FALSE)
+```
+
+broom and dplyr
+===============
+
+While broom is useful for summarizing the result of a single analysis in a consistent format, it is really designed for high-throughput applications, where you must combine results from multiple analyses. These could be subgroups of data, analyses using different models, bootstrap replicates, permutations, and so on. In particular, it plays well with the `group_by` and `do` functions in `dplyr`.
+
+Let's try this on a simple dataset, the built-in `Orange` data.frame.
+
+```{r setup}
+library(broom)
+library(dplyr)
+data(Orange)
+
+dim(Orange)
+head(Orange)
+```
+
+This contains 35 observations of three variables: `Tree`, `age`, and `circumference`. `Tree` is a factor with five levels describing five trees. As might be expected, age and circumference are correlated:
+
+```{r}
+cor(Orange$age, Orange$circumference)
+
+library(ggplot2)
+ggplot(Orange, aes(age, circumference, color = Tree)) + geom_line()
+```
+
+Suppose you want to test for correlations individually *within* each tree. You can do this with dplyr's `group_by`:
+
+```{r}
+Orange %>% group_by(Tree) %>% summarize(correlation = cor(age, circumference))
+```
+
+(Note that the correlations are much higher than the aggregated one, and furthermore we can now see it is similar across trees).
+
+Suppose that instead of simply estimating a correlation, we want to perform a hypothesis test with `cor.test`:
+
+```{r}
+cor.test(Orange$age, Orange$circumference)
+```
+
+This contains multiple values we could want in our output. Some are vectors of length 1, such as the p-value and the estimate, and some are longer, such as the confidence interval. broom's `tidy` S3 method, combined with dplyr's `do`, makes it easy to summarize the information about each test:
+
+```{r}
+Orange %>% group_by(Tree) %>% do(tidy(cor.test(.$age, .$circumference)))
+```
+
+This becomes even more useful when applied to regressions, which give more than one row of output within each model:
+
+```{r}
+Orange %>% group_by(Tree) %>% do(tidy(lm(age ~ circumference, data=.)))
+```
+
+You can just as easily perform multiple regressions within each group, as shown here on the `mtcars` dataset. We group the data into automatic and manual cars (the `am` column), then perform the regression within each.
+
+```{r}
+data(mtcars)
+head(mtcars)
+mtcars %>% group_by(am) %>% do(tidy(lm(wt ~ mpg + qsec + gear, .)))
+```
+
+What if you want not just the `tidy` output, but the `augment` and `glance` outputs as well, while still performing each regression only once? First, save the modeling result into a column `fit`.
+
+```{r}
+regressions <- mtcars %>% group_by(cyl) %>%
+    do(fit = lm(wt ~ mpg + qsec + gear, .))
+regressions
+```
+
+This creates a rowwise data frame. Tidying methods are designed to work seamlessly with rowwise data frames, grouping them and performing tidying on each row:
+
+```{r}
+regressions %>% tidy(fit)
+regressions %>% augment(fit)
+regressions %>% glance(fit)
+```
+
+By combining the estimates and p-values across all groups into the same tidy data frame (instead of, for example, a list of output model objects), a new class of analyses and visualizations becomes straightforward. This includes
+
+* Sorting by p-value or estimate to find the most significant terms across all tests
+* P-value histograms
+* Volcano plots comparing p-values to effect size estimates
+
+In each of these cases, we can easily filter, facet, or distinguish based on the `term` column. In short, this makes the tools of tidy data analysis available for the *results* of data analysis and models, not just the inputs.

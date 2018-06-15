@@ -1,0 +1,137 @@
+Writing packages for R
+======================
+
+
+Building from a source-code library under Windows
+=================================================
+
+Instructions for installing the toolset and building packages using the
+standard methods are in the `R Installation and Administration' manual
+(which is available in various formats as R-admin.* in the doc/manual
+directory).
+
+This file contains instructions for non-standard situations:
+
+ - Using Microsoft Visual C++
+ - Using Borland C++
+ - Using other compilers and languages
+
+All the examples given here have worked at some point with 32-bit R,
+but are mainly of historical interest.
+
+
+Using Visual C++
+================
+
+You may if you prefer use Visual C++ to make the DLLs (unless they use
+Fortran source!). The notes here were tested with VC++6.
+
+First build the import library Rdll.lib by (from the sources)
+
+	make R.exp
+
+	lib /def:R.exp /out:Rdll.lib
+or, depending on your version of VC++
+	link /lib /def:R.exp /machine:x86 /out:Rdll.lib
+
+Another way to make R.exp is to use pexports.exe from mingw-utils,
+e.g. pexports R.dll > R.exp.
+
+Then you can compile the objects and build the DLL by
+
+	cl /MT /Ox /D "WIN32"  /c *.c
+	link /dll /def:mypkg.def /out:mypkg.dll *.obj Rdll.lib
+
+where you will need to create the .def file by hand listing the entry
+points to be exported.  (If there are just a few you can use /export
+flags instead.) If the C sources use R header files you will need to
+arrange for these to be searched, perhaps by including in the cl line
+
+	/I ..\..\..\include
+
+If you build a debug version of the DLL in the development
+environment, you can debug the DLL code there just by setting the
+executable to be debugged as the full path to the R front-end.
+
+Extra care is needed when referencing variables (rather than
+functions) exported from R.dll.  These must be declared
+__declspec(dllimport) (as in R's own header files).  
+
+For some applications making use of the R API headers you will need to
+build import libraries for Rblas.dll or graphapp.dll and link against
+those.
+
+VC++6 lacks some standard functions such as isnan and isfinite.  To use
+R's macros you will need
+
+#undef ISNAN
+#define ISNAN(x) _isnan(x)
+#undef R_FINITE
+#define R_FINITE(x) _finite(x)
+
+for example.  Even then, we have seen examples of IEC60559 arithmetic
+being performed incorrectly.
+
+
+Using Borland C++
+=================
+
+Borland C++5.5 is available as a free download from
+http://www.borland.com/bcppbuilder/freecompiler/ and as part of C++
+Builder 5.  The following will make convolve.dll from convolve.c (flag
+-6 optimizes for a Pentium Pro/II/III/4, and -u- removes extra underscores)
+
+bcc32 -u- -6 -O2 -WDE convolve.c
+
+You can build an import library for R.dll by
+
+make R.exp
+implib R.lib R.exp
+
+and then add R.lib to the bcc32 command line, for example (from
+Venables & Ripley's `S Programming')
+
+bcc32 -u- -6 -O2 -WDE -I\R\R-2.3.0\src\include VCrndR.c R.lib
+
+We believe that when referencing variables (rather than functions)
+exported from R.dll these must be declared __declspec(dllimport) just
+as for VC++.
+
+
+Using other compilers and languages
+===================================
+
+To use C++ see the section in the R for Windows FAQ.  You can include
+C++ code in packages and the supplied Makefiles will compile with g++
+and link the DLL using g++ (and hence link against libstdc++).  Use of
+C++ I/O may or may not work, and has been seen to crash R.
+
+To use F90 or F95, see `Writing R Extensions'.
+
+For other compilers you will need to arrange to produce a DLL with
+cdecl (also known as _cdecl or __cdecl) linkage.  The MinGW port (and
+VC++) uses no `name mangling' at all, so that if for example your
+compiler adds leading or trailing underscores you will need to use the
+transformed symbol in the call to .C in your R code.  Many compilers
+can produce cdecl DLLs by a suitable choice of flags, but if yours
+cannot you may need to write some `glue' code in C to interface to the
+DLL.
+
+If you use .Fortran this appends an underscore and does no case
+conversion at all to the symbol name.  It is normally best to use .C
+with compilers other than gfortran and map the name manually if
+necessary.
+
+Care is needed in passing character strings to and from a DLL by .C:
+they must be equivalent to the C type char** and null-terminated.  Not
+even the MinGW g77 Fortran used null-terminated strings. (g77 was in
+GCC 3.x.y, superseded by gfortran.)
+
+WARNING: DLLs made with some compilers reset the FPU in their startup
+code (Delphi has been one), and this will cause operations such as
+0./0. to crash R.  You can re-set the FPU to the correct values by a
+call to the C entry point Rwin_fpset().
+
+For some further details and Delphi examples see
+http://www.stats.uwo.ca/faculty/murdoch/software/compilingDLLs/
+

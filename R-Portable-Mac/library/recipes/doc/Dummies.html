@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+
+
+<title>How are categorical predictors handled in recipes?</title>
+
+
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+a.sourceLine { display: inline-block; line-height: 1.25; }
+a.sourceLine { pointer-events: none; color: inherit; text-decoration: inherit; }
+a.sourceLine:empty { height: 1.2em; position: absolute; }
+.sourceCode { overflow: visible; }
+code.sourceCode { white-space: pre; position: relative; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+code.sourceCode { white-space: pre-wrap; }
+a.sourceLine { text-indent: -1em; padding-left: 1em; }
+}
+pre.numberSource a.sourceLine
+  { position: relative; }
+pre.numberSource a.sourceLine:empty
+  { position: absolute; }
+pre.numberSource a.sourceLine::before
+  { content: attr(data-line-number);
+    position: absolute; left: -5em; text-align: right; vertical-align: baseline;
+    border: none; pointer-events: all;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {  }
+@media screen {
+a.sourceLine::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+</style>
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 800px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 20px;
+}
+#header {
+text-align: center;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 0;
+padding: 4px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table:not([class]) {
+margin: auto;
+min-width: 40%;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table[summary="R argblock"] {
+width: 100%;
+border: none;
+}
+table:not([class]) th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table:not([class]) td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table:not([class]), table:not([class]) th, table:not([class]) td {
+border-left-style: none;
+border-right-style: none;
+}
+table:not([class]) tr.odd {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 13px;
+padding-bottom: 1px;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f5f5f5;
+border-radius: 3px;
+color: #333;
+}
+pre {
+overflow-x: auto;
+border-radius: 3px;
+margin: 5px 0 10px 0;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: white;
+border: #f5f5f5 1px solid;
+}
+pre:not([class]) code {
+color: #444;
+background-color: white;
+}
+code {
+font-family: monospace;
+font-size: 90%;
+}
+p > code, li > code {
+padding: 2px 4px;
+color: #d14;
+border: 1px solid #e1e1e8;
+white-space: inherit;
+}
+div.figure {
+text-align: center;
+}
+table > caption, div.figure p.caption {
+font-style: italic;
+}
+table > caption span, div.figure p.caption span {
+font-style: normal;
+font-weight: bold;
+}
+p {
+margin: 0 0 10px;
+}
+table:not([class]) {
+margin: auto auto 10px auto;
+}
+img:not([class]) {
+background-color: #FFFFFF;
+padding: 2px;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+max-width: 100%;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f5f5f5;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f5f5f5;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f5f5f5;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+div.r-help-page {
+background-color: #f9f9f9;
+border-bottom: #ddd 1px solid;
+margin-bottom: 10px;
+padding: 10px;
+}
+div.r-help-page:hover {
+background-color: #f4f4f4;
+}
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">How are categorical predictors handled in <code>recipes</code>?</h1>
+
+
+<div id="TOC">
+<ul>
+<li><a href="#creating-dummy-variables">Creating Dummy Variables</a></li>
+<li><a href="#interactions-with-dummy-variables">Interactions with Dummy Variables</a></li>
+<li><a href="#warning">Warning!</a></li>
+<li><a href="#other-steps-related-to-dummy-variables">Other Steps Related to Dummy Variables</a></li>
+</ul>
+</div>
+
+<p>Recipes can be different from their base R counterparts such as <code>model.matrix</code>. This vignette describes the different methods for encoding categorical predictors with special attention to interaction terms.</p>
+<section id="creating-dummy-variables" class="level2">
+<h2>Creating Dummy Variables</h2>
+<p>Let’s start, of course, with <code>iris</code> data. This has four numeric columns and a single factor column with three levels: <code>'setosa'</code>, <code>'versicolor'</code>, and <code>'virginica'</code>. Our initial recipe will have no outcome:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="kw">library</span>(recipes)</a>
+<a class="sourceLine" id="cb1-2" data-line-number="2">iris_rec &lt;-<span class="st"> </span><span class="kw">recipe</span>( <span class="op">~</span><span class="st"> </span>., <span class="dt">data =</span> iris)</a>
+<a class="sourceLine" id="cb1-3" data-line-number="3"><span class="kw">summary</span>(iris_rec)</a>
+<a class="sourceLine" id="cb1-4" data-line-number="4"><span class="co">#&gt; # A tibble: 5 x 4</span></a>
+<a class="sourceLine" id="cb1-5" data-line-number="5"><span class="co">#&gt;   variable     type    role      source  </span></a>
+<a class="sourceLine" id="cb1-6" data-line-number="6"><span class="co">#&gt;   &lt;chr&gt;        &lt;chr&gt;   &lt;chr&gt;     &lt;chr&gt;   </span></a>
+<a class="sourceLine" id="cb1-7" data-line-number="7"><span class="co">#&gt; 1 Sepal.Length numeric predictor original</span></a>
+<a class="sourceLine" id="cb1-8" data-line-number="8"><span class="co">#&gt; 2 Sepal.Width  numeric predictor original</span></a>
+<a class="sourceLine" id="cb1-9" data-line-number="9"><span class="co">#&gt; 3 Petal.Length numeric predictor original</span></a>
+<a class="sourceLine" id="cb1-10" data-line-number="10"><span class="co">#&gt; 4 Petal.Width  numeric predictor original</span></a>
+<a class="sourceLine" id="cb1-11" data-line-number="11"><span class="co">#&gt; 5 Species      nominal predictor original</span></a></code></pre></div>
+<p>A <a href="https://en.wikipedia.org/wiki/Contrast_(statistics)">contrast function</a> in R is a method for translating a column with categorical values into one or more numeric columns that take the place of the original. This can also be known as an encoding method or a parameterization function.</p>
+<p>The default approach is to create dummy variables using the “reference cell” parameterization. This means that, if there are <em>C</em> levels of the factor, there will be <em>C</em> - 1 dummy variables created and all but the first factor level are made into new columns:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb2-1" data-line-number="1">ref_cell &lt;-<span class="st"> </span>iris_rec <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb2-2" data-line-number="2"><span class="st">  </span><span class="kw">step_dummy</span>(Species) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb2-3" data-line-number="3"><span class="st">  </span><span class="kw">prep</span>(<span class="dt">training =</span> iris, <span class="dt">retain =</span> <span class="ot">TRUE</span>)</a>
+<a class="sourceLine" id="cb2-4" data-line-number="4"><span class="kw">summary</span>(ref_cell)</a>
+<a class="sourceLine" id="cb2-5" data-line-number="5"><span class="co">#&gt; # A tibble: 6 x 4</span></a>
+<a class="sourceLine" id="cb2-6" data-line-number="6"><span class="co">#&gt;   variable           type    role      source  </span></a>
+<a class="sourceLine" id="cb2-7" data-line-number="7"><span class="co">#&gt;   &lt;chr&gt;              &lt;chr&gt;   &lt;chr&gt;     &lt;chr&gt;   </span></a>
+<a class="sourceLine" id="cb2-8" data-line-number="8"><span class="co">#&gt; 1 Sepal.Length       numeric predictor original</span></a>
+<a class="sourceLine" id="cb2-9" data-line-number="9"><span class="co">#&gt; 2 Sepal.Width        numeric predictor original</span></a>
+<a class="sourceLine" id="cb2-10" data-line-number="10"><span class="co">#&gt; 3 Petal.Length       numeric predictor original</span></a>
+<a class="sourceLine" id="cb2-11" data-line-number="11"><span class="co">#&gt; 4 Petal.Width        numeric predictor original</span></a>
+<a class="sourceLine" id="cb2-12" data-line-number="12"><span class="co">#&gt; 5 Species_versicolor numeric predictor derived </span></a>
+<a class="sourceLine" id="cb2-13" data-line-number="13"><span class="co">#&gt; 6 Species_virginica  numeric predictor derived</span></a>
+<a class="sourceLine" id="cb2-14" data-line-number="14"></a>
+<a class="sourceLine" id="cb2-15" data-line-number="15"><span class="co"># Get a row for each factor level</span></a>
+<a class="sourceLine" id="cb2-16" data-line-number="16">rows &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="dv">1</span>, <span class="dv">51</span>, <span class="dv">101</span>)</a>
+<a class="sourceLine" id="cb2-17" data-line-number="17"><span class="kw">juice</span>(ref_cell, <span class="kw">starts_with</span>(<span class="st">&quot;Species&quot;</span>))[rows,]</a>
+<a class="sourceLine" id="cb2-18" data-line-number="18"><span class="co">#&gt; # A tibble: 3 x 2</span></a>
+<a class="sourceLine" id="cb2-19" data-line-number="19"><span class="co">#&gt;   Species_versicolor Species_virginica</span></a>
+<a class="sourceLine" id="cb2-20" data-line-number="20"><span class="co">#&gt;                &lt;dbl&gt;             &lt;dbl&gt;</span></a>
+<a class="sourceLine" id="cb2-21" data-line-number="21"><span class="co">#&gt; 1               0                 0   </span></a>
+<a class="sourceLine" id="cb2-22" data-line-number="22"><span class="co">#&gt; 2               1.00              0   </span></a>
+<a class="sourceLine" id="cb2-23" data-line-number="23"><span class="co">#&gt; 3               0                 1.00</span></a></code></pre></div>
+<p>Note that the original column (<code>Species</code>) is no longer there.</p>
+<p>There are different types of contrasts that can be used for different types of factors. The defaults are:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb3-1" data-line-number="1">param &lt;-<span class="st"> </span><span class="kw">getOption</span>(<span class="st">&quot;contrasts&quot;</span>)</a>
+<a class="sourceLine" id="cb3-2" data-line-number="2">param</a>
+<a class="sourceLine" id="cb3-3" data-line-number="3"><span class="co">#&gt;         unordered           ordered </span></a>
+<a class="sourceLine" id="cb3-4" data-line-number="4"><span class="co">#&gt; &quot;contr.treatment&quot;      &quot;contr.poly&quot;</span></a></code></pre></div>
+<p>Looking at <code>?contrast</code>, there are other options. One alternative is the little known Helmert contrast:</p>
+<blockquote>
+<p><code>contr.helmert</code> returns Helmert contrasts, which contrast the second level with the first, the third with the average of the first two, and so on.</p>
+</blockquote>
+<p>To get this encoding, the global option for the contrasts can be changed and saved. <a href="https://topepo.github.io/recipes/reference/step_dummy.html"><code>step_dummy</code></a> picks up on this and makes the correct calculations:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb4-1" data-line-number="1"><span class="co"># change it:</span></a>
+<a class="sourceLine" id="cb4-2" data-line-number="2">new_cont &lt;-<span class="st"> </span>param</a>
+<a class="sourceLine" id="cb4-3" data-line-number="3">new_cont[<span class="st">&quot;unordered&quot;</span>] &lt;-<span class="st"> &quot;contr.helmert&quot;</span></a>
+<a class="sourceLine" id="cb4-4" data-line-number="4"><span class="kw">options</span>(<span class="dt">contrasts =</span> new_cont)</a>
+<a class="sourceLine" id="cb4-5" data-line-number="5"></a>
+<a class="sourceLine" id="cb4-6" data-line-number="6"><span class="co"># now make dummy variables with new parameterization</span></a>
+<a class="sourceLine" id="cb4-7" data-line-number="7">helmert &lt;-<span class="st"> </span>iris_rec <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb4-8" data-line-number="8"><span class="st">  </span><span class="kw">step_dummy</span>(Species) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb4-9" data-line-number="9"><span class="st">  </span><span class="kw">prep</span>(<span class="dt">training =</span> iris, <span class="dt">retain =</span> <span class="ot">TRUE</span>)</a>
+<a class="sourceLine" id="cb4-10" data-line-number="10"><span class="kw">summary</span>(helmert)</a>
+<a class="sourceLine" id="cb4-11" data-line-number="11"><span class="co">#&gt; # A tibble: 6 x 4</span></a>
+<a class="sourceLine" id="cb4-12" data-line-number="12"><span class="co">#&gt;   variable     type    role      source  </span></a>
+<a class="sourceLine" id="cb4-13" data-line-number="13"><span class="co">#&gt;   &lt;chr&gt;        &lt;chr&gt;   &lt;chr&gt;     &lt;chr&gt;   </span></a>
+<a class="sourceLine" id="cb4-14" data-line-number="14"><span class="co">#&gt; 1 Sepal.Length numeric predictor original</span></a>
+<a class="sourceLine" id="cb4-15" data-line-number="15"><span class="co">#&gt; 2 Sepal.Width  numeric predictor original</span></a>
+<a class="sourceLine" id="cb4-16" data-line-number="16"><span class="co">#&gt; 3 Petal.Length numeric predictor original</span></a>
+<a class="sourceLine" id="cb4-17" data-line-number="17"><span class="co">#&gt; 4 Petal.Width  numeric predictor original</span></a>
+<a class="sourceLine" id="cb4-18" data-line-number="18"><span class="co">#&gt; 5 Species_X1   numeric predictor derived </span></a>
+<a class="sourceLine" id="cb4-19" data-line-number="19"><span class="co">#&gt; 6 Species_X2   numeric predictor derived</span></a>
+<a class="sourceLine" id="cb4-20" data-line-number="20"></a>
+<a class="sourceLine" id="cb4-21" data-line-number="21"><span class="kw">juice</span>(helmert, <span class="kw">starts_with</span>(<span class="st">&quot;Species&quot;</span>))[rows,]</a>
+<a class="sourceLine" id="cb4-22" data-line-number="22"><span class="co">#&gt; # A tibble: 3 x 2</span></a>
+<a class="sourceLine" id="cb4-23" data-line-number="23"><span class="co">#&gt;   Species_X1 Species_X2</span></a>
+<a class="sourceLine" id="cb4-24" data-line-number="24"><span class="co">#&gt;        &lt;dbl&gt;      &lt;dbl&gt;</span></a>
+<a class="sourceLine" id="cb4-25" data-line-number="25"><span class="co">#&gt; 1      -1.00      -1.00</span></a>
+<a class="sourceLine" id="cb4-26" data-line-number="26"><span class="co">#&gt; 2       1.00      -1.00</span></a>
+<a class="sourceLine" id="cb4-27" data-line-number="27"><span class="co">#&gt; 3       0          2.00</span></a>
+<a class="sourceLine" id="cb4-28" data-line-number="28"></a>
+<a class="sourceLine" id="cb4-29" data-line-number="29"><span class="co"># Yuk; go back to the original method</span></a>
+<a class="sourceLine" id="cb4-30" data-line-number="30"><span class="kw">options</span>(<span class="dt">contrasts =</span> param)</a></code></pre></div>
+</section>
+<section id="interactions-with-dummy-variables" class="level2">
+<h2>Interactions with Dummy Variables</h2>
+<p>Creating interactions with recipes requires the use of a model formula, such as</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb5-1" data-line-number="1">iris_int &lt;-<span class="st"> </span>iris_rec <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb5-2" data-line-number="2"><span class="st">  </span><span class="kw">step_interact</span>( <span class="op">~</span><span class="st"> </span>Sepal.Width<span class="op">:</span>Sepal.Length) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb5-3" data-line-number="3"><span class="st">  </span><span class="kw">prep</span>(<span class="dt">training =</span> iris, <span class="dt">retain =</span> <span class="ot">TRUE</span>)</a>
+<a class="sourceLine" id="cb5-4" data-line-number="4"><span class="kw">summary</span>(iris_int)</a>
+<a class="sourceLine" id="cb5-5" data-line-number="5"><span class="co">#&gt; # A tibble: 6 x 4</span></a>
+<a class="sourceLine" id="cb5-6" data-line-number="6"><span class="co">#&gt;   variable                   type    role      source  </span></a>
+<a class="sourceLine" id="cb5-7" data-line-number="7"><span class="co">#&gt;   &lt;chr&gt;                      &lt;chr&gt;   &lt;chr&gt;     &lt;chr&gt;   </span></a>
+<a class="sourceLine" id="cb5-8" data-line-number="8"><span class="co">#&gt; 1 Sepal.Length               numeric predictor original</span></a>
+<a class="sourceLine" id="cb5-9" data-line-number="9"><span class="co">#&gt; 2 Sepal.Width                numeric predictor original</span></a>
+<a class="sourceLine" id="cb5-10" data-line-number="10"><span class="co">#&gt; 3 Petal.Length               numeric predictor original</span></a>
+<a class="sourceLine" id="cb5-11" data-line-number="11"><span class="co">#&gt; 4 Petal.Width                numeric predictor original</span></a>
+<a class="sourceLine" id="cb5-12" data-line-number="12"><span class="co">#&gt; 5 Species                    nominal predictor original</span></a>
+<a class="sourceLine" id="cb5-13" data-line-number="13"><span class="co">#&gt; 6 Sepal.Width_x_Sepal.Length numeric predictor derived</span></a></code></pre></div>
+<p>In <a href="https://stat.ethz.ch/R-manual/R-devel/library/stats/html/formula.html">R model formulae</a>, using a <code>*</code> between two variables would expand to <code>a*b = a + b + a:b</code> so that the main effects are included. In <a href="https://topepo.github.io/recipes/reference/step_interact.html"><code>step_interact</code></a>, you can do use <code>*</code>, but only the interactions are recorded as columns that needs to be created.</p>
+<p>One thing that <code>recipes</code> does differently than base R is to construct the design matrix in sequential iterations. This is relevant when thinking about interactions between continuous and categorical predictors.</p>
+<p>For example, if you were to use the standard formula interface, the creation of the dummy variables happens at the same time as the interactions are created:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb6-1" data-line-number="1"><span class="kw">model.matrix</span>(<span class="op">~</span><span class="st"> </span>Species<span class="op">*</span>Sepal.Length, <span class="dt">data =</span> iris)[rows,]</a>
+<a class="sourceLine" id="cb6-2" data-line-number="2"><span class="co">#&gt;     (Intercept) Speciesversicolor Speciesvirginica Sepal.Length</span></a>
+<a class="sourceLine" id="cb6-3" data-line-number="3"><span class="co">#&gt; 1             1                 0                0          5.1</span></a>
+<a class="sourceLine" id="cb6-4" data-line-number="4"><span class="co">#&gt; 51            1                 1                0          7.0</span></a>
+<a class="sourceLine" id="cb6-5" data-line-number="5"><span class="co">#&gt; 101           1                 0                1          6.3</span></a>
+<a class="sourceLine" id="cb6-6" data-line-number="6"><span class="co">#&gt;     Speciesversicolor:Sepal.Length Speciesvirginica:Sepal.Length</span></a>
+<a class="sourceLine" id="cb6-7" data-line-number="7"><span class="co">#&gt; 1                                0                           0.0</span></a>
+<a class="sourceLine" id="cb6-8" data-line-number="8"><span class="co">#&gt; 51                               7                           0.0</span></a>
+<a class="sourceLine" id="cb6-9" data-line-number="9"><span class="co">#&gt; 101                              0                           6.3</span></a></code></pre></div>
+<p>With recipes, you create them sequentially. This raises an issue: do I have to type out all of the interaction effects by their specific names when using dummy variable?</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb7-1" data-line-number="1"><span class="co"># Must I do this?</span></a>
+<a class="sourceLine" id="cb7-2" data-line-number="2">iris_rec <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb7-3" data-line-number="3"><span class="st">  </span><span class="kw">step_interact</span>( <span class="op">~</span><span class="st"> </span>Species_versicolor<span class="op">:</span>Sepal.Length <span class="op">+</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb7-4" data-line-number="4"><span class="st">                   </span>Species_virginica<span class="op">:</span>Sepal.Length) </a></code></pre></div>
+<p>Note only is this a pain, but it may not be obvious what dummy variables are available (especially when <a href="https://topepo.github.io/recipes/reference/step_other.html"><code>step_other</code></a> is used).</p>
+<p>The solution is to use a selector:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb8-1" data-line-number="1">iris_int &lt;-<span class="st"> </span>iris_rec <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb8-2" data-line-number="2"><span class="st">  </span><span class="kw">step_dummy</span>(Species) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb8-3" data-line-number="3"><span class="st">  </span><span class="kw">step_interact</span>( <span class="op">~</span><span class="st"> </span><span class="kw">starts_with</span>(<span class="st">&quot;Species&quot;</span>)<span class="op">:</span>Sepal.Length) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb8-4" data-line-number="4"><span class="st">  </span><span class="kw">prep</span>(<span class="dt">training =</span> iris, <span class="dt">retain =</span> <span class="ot">TRUE</span>)</a>
+<a class="sourceLine" id="cb8-5" data-line-number="5"><span class="kw">summary</span>(iris_int)</a>
+<a class="sourceLine" id="cb8-6" data-line-number="6"><span class="co">#&gt; # A tibble: 8 x 4</span></a>
+<a class="sourceLine" id="cb8-7" data-line-number="7"><span class="co">#&gt;   variable                          type    role      source  </span></a>
+<a class="sourceLine" id="cb8-8" data-line-number="8"><span class="co">#&gt;   &lt;chr&gt;                             &lt;chr&gt;   &lt;chr&gt;     &lt;chr&gt;   </span></a>
+<a class="sourceLine" id="cb8-9" data-line-number="9"><span class="co">#&gt; 1 Sepal.Length                      numeric predictor original</span></a>
+<a class="sourceLine" id="cb8-10" data-line-number="10"><span class="co">#&gt; 2 Sepal.Width                       numeric predictor original</span></a>
+<a class="sourceLine" id="cb8-11" data-line-number="11"><span class="co">#&gt; 3 Petal.Length                      numeric predictor original</span></a>
+<a class="sourceLine" id="cb8-12" data-line-number="12"><span class="co">#&gt; 4 Petal.Width                       numeric predictor original</span></a>
+<a class="sourceLine" id="cb8-13" data-line-number="13"><span class="co">#&gt; 5 Species_versicolor                numeric predictor derived </span></a>
+<a class="sourceLine" id="cb8-14" data-line-number="14"><span class="co">#&gt; 6 Species_virginica                 numeric predictor derived </span></a>
+<a class="sourceLine" id="cb8-15" data-line-number="15"><span class="co">#&gt; 7 Species_versicolor_x_Sepal.Length numeric predictor derived </span></a>
+<a class="sourceLine" id="cb8-16" data-line-number="16"><span class="co">#&gt; 8 Species_virginica_x_Sepal.Length  numeric predictor derived</span></a></code></pre></div>
+<p>What happens here is that <code>starts_with(&quot;Species&quot;)</code> is executed on the data that are available when the previous steps have been applied to the data. That means that the dummy variable columns are present. The results of this selectors are then translated to an additive function of the results. In this case, that means that</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb9-1" data-line-number="1"><span class="kw">starts_with</span>(<span class="st">&quot;Species&quot;</span>)</a></code></pre></div>
+<p>becomes</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb10-1" data-line-number="1">(Species_versicolor <span class="op">+</span><span class="st"> </span>Species_virginica)</a></code></pre></div>
+<p>The entire interaction formula is shown here:</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb11-1" data-line-number="1">iris_int</a>
+<a class="sourceLine" id="cb11-2" data-line-number="2"><span class="co">#&gt; Data Recipe</span></a>
+<a class="sourceLine" id="cb11-3" data-line-number="3"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb11-4" data-line-number="4"><span class="co">#&gt; Inputs:</span></a>
+<a class="sourceLine" id="cb11-5" data-line-number="5"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb11-6" data-line-number="6"><span class="co">#&gt;       role #variables</span></a>
+<a class="sourceLine" id="cb11-7" data-line-number="7"><span class="co">#&gt;  predictor          5</span></a>
+<a class="sourceLine" id="cb11-8" data-line-number="8"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb11-9" data-line-number="9"><span class="co">#&gt; Training data contained 150 data points and no missing data.</span></a>
+<a class="sourceLine" id="cb11-10" data-line-number="10"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb11-11" data-line-number="11"><span class="co">#&gt; Operations:</span></a>
+<a class="sourceLine" id="cb11-12" data-line-number="12"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb11-13" data-line-number="13"><span class="co">#&gt; Dummy variables from Species [trained]</span></a>
+<a class="sourceLine" id="cb11-14" data-line-number="14"><span class="co">#&gt; Interactions with (Species_versicolor + Species_virginica):Sepal.Length [trained]</span></a></code></pre></div>
+</section>
+<section id="warning" class="level2">
+<h2>Warning!</h2>
+<p>Would it work if I didn’t convert species to a factor and used the interactions step?</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb12-1" data-line-number="1">iris_int &lt;-<span class="st"> </span>iris_rec <span class="op">%&gt;%</span><span class="st"> </span></a>
+<a class="sourceLine" id="cb12-2" data-line-number="2"><span class="st">  </span><span class="kw">step_interact</span>( <span class="op">~</span><span class="st"> </span>Species<span class="op">:</span>Sepal.Length) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb12-3" data-line-number="3"><span class="st">  </span><span class="kw">prep</span>(<span class="dt">training =</span> iris, <span class="dt">retain =</span> <span class="ot">TRUE</span>)</a>
+<a class="sourceLine" id="cb12-4" data-line-number="4"><span class="co">#&gt; Warning in prep.step_interact(x$steps[[i]], training = training, info = x</span></a>
+<a class="sourceLine" id="cb12-5" data-line-number="5"><span class="co">#&gt; $term_info): Categorical variables used in `step_interact` should probably</span></a>
+<a class="sourceLine" id="cb12-6" data-line-number="6"><span class="co">#&gt; be avoided; This can lead to differences in dummy variable values that are</span></a>
+<a class="sourceLine" id="cb12-7" data-line-number="7"><span class="co">#&gt; produced by `step_dummy`.</span></a>
+<a class="sourceLine" id="cb12-8" data-line-number="8"><span class="kw">summary</span>(iris_int)</a>
+<a class="sourceLine" id="cb12-9" data-line-number="9"><span class="co">#&gt; # A tibble: 7 x 4</span></a>
+<a class="sourceLine" id="cb12-10" data-line-number="10"><span class="co">#&gt;   variable                         type    role      source  </span></a>
+<a class="sourceLine" id="cb12-11" data-line-number="11"><span class="co">#&gt;   &lt;chr&gt;                            &lt;chr&gt;   &lt;chr&gt;     &lt;chr&gt;   </span></a>
+<a class="sourceLine" id="cb12-12" data-line-number="12"><span class="co">#&gt; 1 Sepal.Length                     numeric predictor original</span></a>
+<a class="sourceLine" id="cb12-13" data-line-number="13"><span class="co">#&gt; 2 Sepal.Width                      numeric predictor original</span></a>
+<a class="sourceLine" id="cb12-14" data-line-number="14"><span class="co">#&gt; 3 Petal.Length                     numeric predictor original</span></a>
+<a class="sourceLine" id="cb12-15" data-line-number="15"><span class="co">#&gt; 4 Petal.Width                      numeric predictor original</span></a>
+<a class="sourceLine" id="cb12-16" data-line-number="16"><span class="co">#&gt; 5 Species                          nominal predictor original</span></a>
+<a class="sourceLine" id="cb12-17" data-line-number="17"><span class="co">#&gt; 6 Speciesversicolor_x_Sepal.Length numeric predictor derived </span></a>
+<a class="sourceLine" id="cb12-18" data-line-number="18"><span class="co">#&gt; 7 Speciesvirginica_x_Sepal.Length  numeric predictor derived</span></a></code></pre></div>
+<p>The columns <code>Species</code> isn’t affected and a warning is issued. Basically, you only get half of what <code>model.matrix</code> does and that could really be problematic in subsequent steps.</p>
+</section>
+<section id="other-steps-related-to-dummy-variables" class="level2">
+<h2>Other Steps Related to Dummy Variables</h2>
+<p>There are a bunch of steps related to going in-between factors and dummy variables:</p>
+<ul>
+<li><a href="https://topepo.github.io/recipes/reference/step_other.html"><code>step_other</code></a> can collapse infrequently occurring levels into <code>'other'</code>.</li>
+<li><a href="https://topepo.github.io/recipes/reference/step_regex.html"><code>step_regex</code></a> will create a single dummy variable based on applying a regular expression to a text field. Similarly, <a href="https://topepo.github.io/recipes/reference/step_count.html"><code>step_count</code></a> does the same but counts the occurrences of the pattern in the string.</li>
+<li><a href="https://topepo.github.io/recipes/reference/step_holiday.html"><code>step_holiday</code></a> creates dummy variables from date fields to capture holidays.</li>
+<li><a href="https://topepo.github.io/recipes/reference/step_lincomb.html"><code>step_lincomb</code></a> can be useful if you <em>over-specify</em> interactions and need to remove linear dependencies.</li>
+<li><a href="https://topepo.github.io/recipes/reference/step_zv.html"><code>step_zv</code></a> can remove dummy variables that never show a 1 in the column (i.e. is zero-variance).</li>
+</ul>
+<p><a href="https://topepo.github.io/recipes/reference/step_dummy.html"><code>step_dummy</code></a> also works with <em>ordered factors</em>. As seen above, the default encoding is to create a series of polynomial variables. There are also a few steps for ordered factors:</p>
+<ul>
+<li><a href="https://topepo.github.io/recipes/reference/step_ordinalscore.html"><code>step_ordinalscore</code></a> can translate the levels to a single numeric score.</li>
+<li><a href="https://topepo.github.io/recipes/reference/step_unorder.html"><code>step_unorder</code></a> can convert to an unordered factor.</li>
+</ul>
+</section>
+
+<script type="text/javascript">
+window.onload = function() {
+  var i, fig = 1, caps = document.getElementsByClassName('caption');
+  for (i = 0; i < caps.length; i++) {
+    var cap = caps[i];
+    if (cap.parentElement.className !== 'figure' || cap.nodeName !== 'P')
+      continue;
+    cap.innerHTML = '<span>Figure ' + fig + ':</span> ' + cap.innerHTML;
+    fig++;
+  }
+  fig = 1;
+  caps = document.getElementsByTagName('caption');
+  for (i = 0; i < caps.length; i++) {
+    var cap = caps[i];
+    if (cap.parentElement.nodeName !== 'TABLE') continue;
+    cap.innerHTML = '<span>Table ' + fig + ':</span> ' + cap.innerHTML;
+    fig++;
+  }
+}
+</script>
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

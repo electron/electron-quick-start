@@ -1,0 +1,126 @@
+---
+title: "RSQLite"
+author: "Hadley Wickham"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{RSQLite}
+  %\VignetteEngine{knitr::rmarkdown}
+  \usepackage[utf8]{inputenc}
+---
+
+```{r, echo = FALSE}
+knitr::opts_chunk$set(comment = "#>", collapse = TRUE)
+```
+
+RSQLite is the easiest way to use a database from R because the package itself contains [SQLite](https://www.sqlite.org); no external software is needed. This vignette will walk you through the basics of using a SQLite database.
+
+RSQLite is a DBI-compatible interface which means you primarily use functions defined in the DBI package, so you should always start by loading DBI, not RSQLite:
+
+```{r}
+library(DBI)
+```
+
+## Creating a new database
+
+To create a new SQLite database, you simply supply the filename to `dbConnect()`:
+
+```{r}
+mydb <- dbConnect(RSQLite::SQLite(), "my-db.sqlite")
+dbDisconnect(mydb)
+unlink("my-db.sqlite")
+```
+
+If you just need a temporary database, use either `""` (for an on-disk database) or `":memory:"` or `"file::memory:"` (for a in-memory database). This database will be automatically deleted when you disconnect from it.
+
+```{r}
+mydb <- dbConnect(RSQLite::SQLite(), "")
+dbDisconnect(mydb)
+```
+
+## Loading data
+
+You can easily copy an R data frame into a SQLite database with `dbWriteTable()`:
+
+```{r}
+mydb <- dbConnect(RSQLite::SQLite(), "")
+dbWriteTable(mydb, "mtcars", mtcars)
+dbWriteTable(mydb, "iris", iris)
+dbListTables(mydb)
+```
+
+## Queries
+
+Issue a query with `dbGetQuery()`:
+
+```{r}
+dbGetQuery(mydb, 'SELECT * FROM mtcars LIMIT 5')
+```
+
+Not all R variable names are valid SQL variable names, so you may need to escape them with `"`:
+
+```{r}
+dbGetQuery(mydb, 'SELECT * FROM iris WHERE "Sepal.Length" < 4.6')
+```
+
+If you need to insert the value from a user into a query, don't use `paste()`! That makes it easy for a malicious attacker to insert SQL that might damager your database or reveal sensitive information. Instead, use a parameterised query:
+
+```{r}
+dbGetQuery(mydb, 'SELECT * FROM iris WHERE "Sepal.Length" < :x', 
+  params = list(x = 4.6))
+```
+
+This is a little more typing, but much much safer.
+
+## Batched queries
+
+If you run a query and the results don't fit in memory, you can use `dbSendQuery()`, `dbFetch()` and `dbClearResults()` to retrieve the results in batches. By default `dbFetch()` will retrieve all available rows: use `n` to set the maximum number of rows to return.
+
+```{r}
+rs <- dbSendQuery(mydb, 'SELECT * FROM mtcars')
+while (!dbHasCompleted(rs)) {
+  df <- dbFetch(rs, n = 10)
+  print(nrow(df))
+}
+dbClearResult(rs)
+```
+
+## Multiple parameterised queries
+
+You can use the same approach to run the same parameterised query with different parameters. Call `dbBind()` to set the parameters:
+
+```{r}
+rs <- dbSendQuery(mydb, 'SELECT * FROM iris WHERE "Sepal.Length" < :x')
+dbBind(rs, param = list(x = 4.5))
+nrow(dbFetch(rs))
+dbBind(rs, param = list(x = 4))
+nrow(dbFetch(rs))
+dbClearResult(rs)
+```
+
+You can also pass multiple parameters in one call to `dbBind()`:
+
+```{r}
+rs <- dbSendQuery(mydb, 'SELECT * FROM iris WHERE "Sepal.Length" = :x')
+dbBind(rs, param = list(x = seq(4, 4.4, by = 0.1)))
+nrow(dbFetch(rs))
+dbClearResult(rs)
+```
+
+
+## Statements
+
+DBI has new functions `dbSendStatement()` and `dbExecute()`,
+which are the counterparts of `dbSendQuery()` and `dbGetQuery()`
+for SQL statements that do not return a tabular result,
+such as inserting records into a table, updating a table,
+or setting engine parameters.
+It is good practice, although currently not enforced, to use the new functions
+when you don't expect a result.
+
+```{r}
+dbExecute(mydb, 'DELETE FROM iris WHERE "Sepal.Length" < 4')
+rs <- dbSendStatement(mydb, 'DELETE FROM iris WHERE "Sepal.Length" < :x')
+dbBind(rs, param = list(x = 4.5))
+dbGetRowsAffected(rs)
+dbClearResult(rs)
+```

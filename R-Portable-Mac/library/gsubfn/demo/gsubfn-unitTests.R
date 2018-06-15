@@ -1,0 +1,8 @@
+library(gsubfn)
+library(svUnit)
+gsubfn.tests <- system.file("unitTests", "runit.all.R", package = "gsubfn")
+cat("Running:", gsubfn.tests, "\n")
+source(gsubfn.tests)
+clearLog()
+test.all()
+Log()

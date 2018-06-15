@@ -1,0 +1,58 @@
+
+R version 2.14.0 (2011-10-31)
+Copyright (C) 2011 The R Foundation for Statistical Computing
+ISBN 3-900051-07-0
+Platform: i686-pc-linux-gnu (32-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> library(survival)
+Loading required package: splines
+> #
+> # Test of the clogit function, and indirectly of the exact option
+> #
+> # Data set logan has the occupation of fathers, we create a 
+> #  multinomial response
+> #
+> nresp <- length(levels(logan$occupation))
+> n <- nrow(logan)
+> indx <- rep(1:n, nresp)
+> logan2 <- data.frame(logan[indx,],
++                      id = indx,
++                      occ2 = factor(rep(levels(logan$occupation), each=n)))
+> logan2$y <- (logan2$occupation == logan2$occ2)
+> 
+> #We expect two NA coefficients, so ignore the warning
+> fit1 <- clogit(y ~ occ2 + occ2:education + occ2:race + strata(id), logan2)
+Warning message:
+In coxph(formula = Surv(rep(1, 4190L), y) ~ occ2 + occ2:education +  :
+  X matrix deemed to be singular; variable 9 14
+> 
+> #since there is only one death per group, all methods are equal
+> dummy <- rep(1, nrow(logan2))
+> fit2 <- coxph(Surv(dummy, y) ~ occ2 + occ2:education + occ2:race + strata(id),
++                    logan2, method='breslow')
+Warning message:
+In coxph(Surv(dummy, y) ~ occ2 + occ2:education + occ2:race + strata(id),  :
+  X matrix deemed to be singular; variable 9 14
+> 
+> all.equal(fit1$coef, fit2$coef)
+[1] TRUE
+> all.equal(fit1$loglik, fit2$loglik)
+[1] TRUE
+> all.equal(fit1$var, fit2$var)
+[1] TRUE
+> all.equal(fit1$resid, fit2$resid)
+[1] TRUE
+> 
+> 

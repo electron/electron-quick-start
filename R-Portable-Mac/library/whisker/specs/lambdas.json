@@ -1,0 +1,168 @@
+{
+  "overview": "Lambdas are a special-cased data type for use in interpolations and\nsections.\n\nWhen used as the data value for an Interpolation tag, the lambda MUST be\ntreatable as an arity 0 function, and invoked as such.  The returned value\nMUST be rendered against the default delimiters, then interpolated in place\nof the lambda.\n\nWhen used as the data value for a Section tag, the lambda MUST be treatable\nas an arity 1 function, and invoked as such (passing a String containing the\nunprocessed section contents).  The returned value MUST be rendered against\nthe current delimiters, then interpolated in place of the section.\n", 
+  "tests": [
+    {
+      "expected": "Hello, world!", 
+      "data": {
+        "lambda": {
+          "python": "lambda: \"world\"", 
+          "perl": "sub { \"world\" }", 
+          "php": "return \"world\";", 
+          "ruby": "proc { \"world\" }", 
+          "js": "function() { return \"world\" }"
+          "R": "function() { \"world\" }"
+        }
+      }, 
+      "name": "Interpolation", 
+      "template": "Hello, {{lambda}}!", 
+      "desc": "A lambda's return value should be interpolated."
+    }, 
+    {
+      "expected": "Hello, world!", 
+      "data": {
+        "planet": "world", 
+        "lambda": {
+          "python": "lambda: \"{{planet}}\"", 
+          "perl": "sub { \"{{planet}}\" }", 
+          "php": "return \"{{planet}}\";", 
+          "ruby": "proc { \"{{planet}}\" }", 
+          "js": "function() { return \"{{planet}}\" }"
+          "R": "function() { \"{{planet}}\" }"
+        }
+      }, 
+      "name": "Interpolation - Expansion", 
+      "template": "Hello, {{lambda}}!", 
+      "desc": "A lambda's return value should be parsed."
+    }, 
+    {
+      "expected": "Hello, (|planet| => world)!", 
+      "data": {
+        "planet": "world", 
+        "lambda": {
+          "python": "lambda: \"|planet| => {{planet}}\"", 
+          "perl": "sub { \"|planet| => {{planet}}\" }", 
+          "php": "return \"|planet| => {{planet}}\";", 
+          "ruby": "proc { \"|planet| => {{planet}}\" }", 
+          "js": "function() { return \"|planet| => {{planet}}\" }"
+          "R": "function() { \"|planet| => {{planet}}\" }"
+        }
+      }, 
+      "name": "Interpolation - Alternate Delimiters", 
+      "template": "{{= | | =}}\nHello, (|&lambda|)!", 
+      "desc": "A lambda's return value should parse with the default delimiters."
+    }, 
+    {
+      "expected": "1 == 2 == 3", 
+      "data": {
+        "lambda": {
+          "python": "lambda: globals().update(calls=globals().get(\"calls\",0)+1) or calls", 
+          "perl": "sub { no strict; $calls += 1 }", 
+          "php": "global $calls; return ++$calls;", 
+          "ruby": "proc { $calls ||= 0; $calls += 1 }", 
+          "js": "function() { return (g=(function(){return this})()).calls=(g.calls||0)+1 }"
+          "R": "function(){if (!exists(\"x\")) x <<- 0; x <<- x + 1; x}"
+        }
+      }, 
+      "name": "Interpolation - Multiple Calls", 
+      "template": "{{lambda}} == {{{lambda}}} == {{lambda}}", 
+      "desc": "Interpolated lambdas should not be cached."
+    }, 
+    {
+      "expected": "<&gt;>", 
+      "data": {
+        "lambda": {
+          "python": "lambda: \">\"", 
+          "perl": "sub { \">\" }", 
+          "php": "return \">\";", 
+          "ruby": "proc { \">\" }", 
+          "js": "function() { return \">\" }"
+          "R": "function() { \">\"}"
+        }
+      }, 
+      "name": "Escaping", 
+      "template": "<{{lambda}}{{{lambda}}}", 
+      "desc": "Lambda results should be appropriately escaped."
+    }, 
+    {
+      "expected": "<yes>", 
+      "data": {
+        "x": "Error!", 
+        "lambda": {
+          "python": "lambda text: text == \"{{x}}\" and \"yes\" or \"no\"", 
+          "perl": "sub { $_[0] eq \"{{x}}\" ? \"yes\" : \"no\" }", 
+          "php": "return ($text == \"{{x}}\") ? \"yes\" : \"no\";", 
+          "ruby": "proc { |text| text == \"{{x}}\" ? \"yes\" : \"no\" }", 
+          "js": "function(txt) { return (txt == \"{{x}}\" ? \"yes\" : \"no\") }"
+          "R": "function(txt) { ifelse(txt == \"{{x}}\",\"yes\",\"no\") }"
+        }
+      }, 
+      "name": "Section", 
+      "template": "<{{#lambda}}{{x}}{{/lambda}}>", 
+      "desc": "Lambdas used for sections should receive the raw section string."
+    }, 
+    {
+      "expected": "<-Earth->", 
+      "data": {
+        "planet": "Earth", 
+        "lambda": {
+          "python": "lambda text: \"%s{{planet}}%s\" % (text, text)", 
+          "perl": "sub { $_[0] . \"{{planet}}\" . $_[0] }", 
+          "php": "return $text . \"{{planet}}\" . $text;", 
+          "ruby": "proc { |text| \"#{text}{{planet}}#{text}\" }", 
+          "js": "function(txt) { return txt + \"{{planet}}\" + txt }"
+          "R": "function(txt) { paste(txt, \"{{planet}}\", txt, sep=\"\"}"
+        }
+      }, 
+      "name": "Section - Expansion", 
+      "template": "<{{#lambda}}-{{/lambda}}>", 
+      "desc": "Lambdas used for sections should have their results parsed."
+    }, 
+    {
+      "expected": "<-{{planet}} => Earth->", 
+      "data": {
+        "planet": "Earth", 
+        "lambda": {
+          "python": "lambda text: \"%s{{planet}} => |planet|%s\" % (text, text)", 
+          "perl": "sub { $_[0] . \"{{planet}} => |planet|\" . $_[0] }", 
+          "php": "return $text . \"{{planet}} => |planet|\" . $text;", 
+          "ruby": "proc { |text| \"#{text}{{planet}} => |planet|#{text}\" }", 
+          "js": "function(txt) { return txt + \"{{planet}} => |planet|\" + txt }"
+        }
+      }, 
+      "name": "Section - Alternate Delimiters", 
+      "template": "{{= | | =}}<|#lambda|-|/lambda|>", 
+      "desc": "Lambdas used for sections should parse with the current delimiters."
+    }, 
+    {
+      "expected": "__FILE__ != __LINE__", 
+      "data": {
+        "lambda": {
+          "python": "lambda text: \"__%s__\" % (text)", 
+          "perl": "sub { \"__\" . $_[0] . \"__\" }", 
+          "php": "return \"__\" . $text . \"__\";", 
+          "ruby": "proc { |text| \"__#{text}__\" }", 
+          "js": "function(txt) { return \"__\" + txt + \"__\" }"
+        }
+      }, 
+      "name": "Section - Multiple Calls", 
+      "template": "{{#lambda}}FILE{{/lambda}} != {{#lambda}}LINE{{/lambda}}", 
+      "desc": "Lambdas used for sections should not be cached."
+    }, 
+    {
+      "expected": "<>", 
+      "data": {
+        "static": "static", 
+        "lambda": {
+          "python": "lambda text: 0", 
+          "perl": "sub { 0 }", 
+          "php": "return false;", 
+          "ruby": "proc { |text| false }", 
+          "js": "function(txt) { return false }"
+        }
+      }, 
+      "name": "Inverted Section", 
+      "template": "<{{^lambda}}{{static}}{{/lambda}}>", 
+      "desc": "Lambdas used for inverted sections should be considered truthy."
+    }
+  ]
+}

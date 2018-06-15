@@ -1,0 +1,177 @@
+## rtags -- tag source files recursively in a directory tree
+##
+## Examples:
+##  R CMD rtags -o TAGS /path/to/Rsrc/
+
+revision='$Rev: 47214 $'
+version=`set - ${revision}; echo ${2}`
+version="rtags/etags front-end: ${R_VERSION} (r${version})
+
+Copyright (C) 2008 The R Core Team.
+This is free software; see the GNU General Public License version 2
+or later for copying conditions.  There is NO warranty."
+
+usage="Usage: R CMD rtags [options] [path]
+
+Tag C, R, and Rd files under the directory 'path' (pwd by default).
+
+Options:
+  -h, --help		print short help message and exit
+  -v, --version		print version info and exit
+  -o, --output=FILE	write output to FILE (default TAGS)
+      --no-c		do not tag C (.c, .h) files
+      --no-R		do not tag R (.R, .r, .S, .s) files
+      --no-Rd		do not tag Rd (.Rd) files
+  -a  --append          append to output file (overwrites by default) 
+  -V, --verbose		echo the name of files processed
+
+Report bugs to <deepayan.sarkar@r-project.org>."
+
+
+
+## FIXME: Rd and C files may be simpler to deal with on Windows if we
+## use R to locate the files, and then call system("etags ...") to tag
+## them.
+
+
+cfiles=true
+rfiles=true
+rdfiles=true
+verbose=false
+append=false
+ofile="TAGS"
+
+while test -n "${1}"; do
+  case ${1} in
+    -h|--help)
+      echo "${usage}"; exit 0 ;;
+    -v|--version)
+      echo "${version}"; exit 0 ;;
+    -V|--verbose)
+      verbose=true ;;
+    -a|--append)
+      append=true ;;
+    --no-c)
+      cfiles=false ;;
+    --no-R)
+      rfiles=false ;;
+    --no-Rd)
+      rdfiles=false ;;
+    --output=*)
+      ofile=`echo "${1}" | ${SED} -e 's/[^=]*=//'` ;;
+    -o)
+      if test -n "`echo ${2} | ${SED} 's/^-.*//'`"; then      
+	ofile="${2}"; shift
+      else
+	echo "ERROR: option '${1}' requires an argument"
+	exit 1
+      fi
+      ;;
+    --|*)
+      break ;;
+  esac
+  shift
+done
+
+
+NDIR=${#}
+case ${NDIR} in
+    0)
+      SRCDIR=`pwd` ;;
+    1)
+      SRCDIR=${1} ;;
+    *)
+      SRCDIR=${1}; echo "WARNING: multiple paths specified; using the first one";;
+esac
+
+RPROG=${R_HOME}/bin/R
+
+type=""
+first=true
+if ${rfiles}; then type="R"; first=false; fi
+if ${cfiles}; then 
+    if ${first}; then
+	type="C"
+	first=false
+    else 
+	type="${type}/C"
+    fi
+fi
+if ${rdfiles}; then 
+    if ${first}; then
+	type="Rd"
+	first=false
+    else 
+	type="${type}/Rd"
+    fi
+fi
+
+if test -z ${type}; then
+    echo "ERROR: nothing to tag"
+    exit 1
+fi
+
+echo  "
+Tagging ${type} files under ${SRCDIR}; writing to ${ofile}"\c
+if ! ${append}; then 
+    echo  " (overwriting)"\c
+    echo  "" > ${ofile}\c
+else 
+    echo  " (appending)"\c
+    touch ${ofile}
+fi
+echo "...
+"
+
+## echo RPROG=${RPROG}
+
+if ${verbose}; then VERBOSE=TRUE; else VERBOSE=FALSE; fi
+if ${append}; then APPEND=TRUE; else APPEND=FALSE; fi
+
+if ${rfiles}; then
+    SCRIPT_DIR=$(dirname $0)
+    echo "
+
+require(utils)
+
+rtags(path.expand('${SRCDIR}'), pattern = '[.]*\\\\\.[RrSs]$', 
+      keep.re = '/R/[^/]*\\\\\.[RrSs]', 
+      verbose = ${VERBOSE}, 
+      ofile = '${ofile}', 
+      append = ${APPEND}, 
+      recursive = TRUE)" | "${RPROG}" --slave
+
+fi
+
+if ${rdfiles}; then
+    if ${verbose}; then 
+	find -L ${SRCDIR} -type f -name "*.Rd" -print 
+    fi
+    find -L ${SRCDIR} -type f -name "*.Rd" -print0 | xargs -0 etags -o ${ofile} -a -l none --regex='/\\alias[{]\([^{}]*\)[}]/\1/'
+fi
+
+if ${cfiles}; then
+    if ${verbose}; then 
+	find -L ${SRCDIR} -type f -name "*.[ch]" -print
+	find -L ${SRCDIR} -type f -name "*.cpp" -print
+	find -L ${SRCDIR} -type f -name "*.hpp" -print
+	find -L ${SRCDIR} -type f -name "*.cc" -print
+	find -L ${SRCDIR} -type f -name "*.hh" -print
+    fi
+    find -L ${SRCDIR} -type f -name "*.[ch]" -print0 | xargs -0 etags -o ${ofile} -a -l c
+    find -L ${SRCDIR} -type f -name "*.cpp" -print0 | xargs -0 etags -o ${ofile} -a -l c
+    find -L ${SRCDIR} -type f -name "*.hpp" -print0 | xargs -0 etags -o ${ofile} -a -l c
+    find -L ${SRCDIR} -type f -name "*.cc" -print0 | xargs -0 etags -o ${ofile} -a -l c
+    find -L ${SRCDIR} -type f -name "*.hh" -print0 | xargs -0 etags -o ${ofile} -a -l c
+fi
+
+echo "Done"
+
+exit 0
+
+
+
+### Local Variables: ***
+### mode: sh ***
+### sh-indentation: 2 ***
+### End: ***

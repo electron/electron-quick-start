@@ -1,0 +1,292 @@
+Version 0.4-11
+
+o modifications for RSQLite 2.0.0 
+
+o read.csv.sql now accepts https and ftps
+
+Version 0.4-10
+
+o more modifications for RSQLite 1.0.0 
+
+Version 0.4-9
+
+o modifications for RSQLite 1.0.0 
+
+Version 0.4-8
+
+o new R option "sqldf.RPostgresSQL.other"
+
+Version 0.4-7.1
+
+o bug fix involving dates; also added corresponding unit test
+
+Version 0.4-7
+
+o misc changes to satisfy R CMD CHECK in R 3.0.2
+
+Version 0.4-6.5
+
+o fixed the a2r/a2s unit test
+
+Version 0.4-6.4
+
+o uses ByteCompile hence dependence on R 2.14.0 or higher
+
+o now uses strapplyc if tcltk available hence dependence on gsubfn 0.6 or higher
+
+o fixed time zone bug in dealing with POSIXct
+
+o added MASS to Suggests to pass R CMD check in R 2.15.0
+
+o RSQLite and RSQLite.extfuns namespaces are loaded at startup if there 
+  are no other drivers supported by sqldf currently on search path
+
+Version 0.4-6.1
+
+o message regarding RPostgreSQL was not issued when RPostgreSQL is loaded
+
+Version 0.4-6
+
+o support for the RPostgreSQL driver was added
+
+o RSQLite and RSQLite.extfuns have been moved from Depends to both Imports and
+  Suggests and are loaded only if actually used.
+
+o any database backend specified via drv= or the "sqldf.driver" option is 
+  loaded if its not already loaded. Previously user was responsible for loading.
+
+o the drv= argument of sqldf and the "sqldf.driver" option can specify either
+  the database name or the driver name (i.e. SQLite or RSQLite, H2 or RH2,
+  etc.)
+
+o a possible bug regarding checking for tcltk was fixed.  This makes it more
+  likely that substitute R code will be used rather than giving an error in 
+  the absence of tcltk
+
+o unit tests upgraded to latest versions of drivers
+
+Version 0.4-5
+
+o fixed bug that occurred when times class columns were in output
+
+o added INSTALL file
+
+o improve tcltk checking.
+
+Version 0.4-4
+
+o NAMESPACE added
+
+o fixed an erroneous example in ?sqldf
+
+o appends the sqldf library directory to AWKPATH.  This allows gawk calls in
+  the filter argument of read.csv.sql to refer to awk programs that are 
+  supplied with sqldf without supplying the path.  (See discussion of AWKPATH 
+  in the gawk documentation.)
+
+o sqldf includes an awk program, csv.awk, to process csv files for use as 
+  a filter with read.csv.sql when its necessary to handle commas within quoted
+  fields and quotes within quoted fields (such quotes must be doubled).  The
+  following arguments (defaults shown) can be passed to csv.awk: isep = ",", 
+  osep = "\"", quote  "\"", escape = "\"", newline = "\\n", trim = 1. Note that
+  the escape character is used if quotes  are within quotes.  Newlines are also
+  allowed in fields between quotes.  If trim=1 then whitespace is trimmed from 
+  beginning and end of fields.
+
+    # write out test data and then read it back using read.csv.sql
+	cat('A,B\n"Joe, Jr.","Mac ""The Knife"""\n', file = "temp.csv")
+    temp.out <- read.csv.sql("temp.csv", sep = ";", eol = "\n",
+      filter = "gawk -v osep=; -f csv.awk")
+
+  (In most there are no commas or quotes in fields so this filter not needed. 
+  Also note that the above example assumes Windows console syntax and the 
+  the corresponding shell syntax needs to be used instead on UNIX.)
+
+o changes to eliminate the NOTE produced during build/INSTALL on Linux.
+
+Version 0.4-3
+
+o dbname = NULL can be used to force default behavior
+
+o in read.csv.sql and read.csv2.sql the file argument may optionally be a URL
+
+o in read.csv.sql and read.csv2.sql the file argument may be omitted (or
+  equivalently NULL or NA or "") if filter is specified and no file is to to 
+  be input to the filter.
+
+Version 0.4-2
+
+o read.csv.sql and read.csv2.sql now handle dbWriteTable's nrows and 
+  field.types arguments.  (Previously sqldf did but not these two routines.)
+
+Version 0.4-1.2
+
+o bug fixes
+
+Version 0.4-1.1
+
+o bug fixes
+
+Version 0.4-1
+
+o startup message giving database that will be used as default (if not sqlite)
+
+Version 0.4-0
+
+o the heuristic which assigns classes to columns for the data frame output
+  from sqldf has been improved
+
+o method argument can now be a list of two transformations. The first
+  component corresponds to the old method and can be a keyword ("auto", "raw"
+  or "name__class"), a function or a character vector of class names.  The
+  second may be a function which is used to transform all data frames input
+  to the data base prior to sending them to the data base.
+
+o automatic searching for spatialite is no longer performed.  It seems less
+  useful now that RSQLite.extfunctions is automatically loaded.  To use
+  the spatialite extension specify its path using the dll argument.
+
+o sqldf has a new optional argument, verbose, which gives more output if
+  it is set to TRUE.  Any other value suppresses the extra output.
+
+o filter may be a list whose first component is a command with keywords
+  naming the second and subsequent components.  These components are each
+  specified as character vectors which are written out to temporary files
+  of the indicated names.  This can be used for specifying gawk and other 
+  filters/preprocessors of the input file without having to worry about
+  shell interpretation of special characters. e.g.
+	filter = list("gawk -f prog", prog = '{ gsub(",", ".") }')
+
+o MySQL is now supported (in addition to SQLite, PostgreSQL and h2).
+
+o stringsAsFactors now defaults to FALSE
+
+o unit tests have been added.  To run them for sqlite do this:
+	R CMD check sqldf
+  or:
+	demo("sqldf-unitTests")
+  To run for all 4 databases:
+    demo("sqldf-unitTests") # sqlite
+    library(RH2); demo("sqldf-unitTests"); detach()
+    library(RMySQL); demo("sqldf-unitTests"); detach()
+    library(RpgSQL); demo("sqldf-unitTests"); detach()
+
+Version 0.3-5
+
+o global option "sqldf.method" used as default value of method argument.  If
+  not set then default is method = "auto", as before.
+
+o extension function from the RSQLite.extfuns package are automatically loaded
+
+o heuristic improved.  It now checks for ambiguous situations and uses "raw"
+  for those columns rather than the class of the first match.
+
+Version 0.3-4
+
+o all SQL statements now work with H2 rather than just a subset
+
+Version 0.3-3
+
+o if RpgSQL is loaded or if sqldf drv argument is "RpgSQL" then sqldf will use 
+  PostgreSQL database
+
+o database persistance (sqldf without arguments) now works with H2 database
+  (previously only SQLite)
+
+o bug fixes
+
+Version 0.3-2
+
+o if RH2 package is loaded then sqldf will use H2 database
+
+Version 0.2-1
+
+o bug fixes
+
+o certain Date conversions which previously required as.Date.numeric from zoo
+  package no longer depend on zoo
+
+Version 0.2-0
+
+o column names which are SQL reserved words are no longer mangled
+
+o file.format list can contain a filter which is a batch or shell command
+  that filters the input file
+
+o read.csv2.sql is like read.csv.sql but has a default filter which translates 
+  each comma in the input file to a dot
+
+o if getOption("sqldf.dll") defaulting to libspatial-1.dll is found on the PATH
+  then it will be loaded as an SQLite loadable extension.  With the default this
+  gives access to these SQL functions:
+  http://www.gaia-gis.it/spatialite/spatialite-sql-2.3.1.html
+  The sqldf package does not itself include this or any other SQLite loadable
+  extension.  The user must download and place it on the PATH if they wish to 
+  use it.  libspatialite-1.dll can be found here:
+  http://www.gaia-gis.it/spatialite
+  If sqldf does not find the dll on the PATH then sqldf will continue to work 
+  but without access to these functions.
+
+Version 0.1-7
+
+o now supports table names with a dot in them provided that they are 
+  placed within backquotes
+
+o bug fixes (thanks to Soren Hojsgaard for bug report)
+
+Version 0.1-6
+
+o new command read.csv2.sql
+
+Version 0.1-5
+
+o minor improvement in second example in ?sqldf (thanks to Wacek Kusnierczyk)
+
+o new command read.csv.sql
+
+Version 0.1-4
+
+o removed junk files
+
+Version 0.1-3
+
+o corrected DESCRIPTION file
+
+Version 0.1-2
+
+o searches for and uses "file" objects as well as data frame objects.
+  file.format argument or "file.format" attribute on file object
+  is a list with arguments accepted by sqliteImportFile.
+  [Thanks to Soren Hojsgaard for suggestion to support files.]
+
+o dots in argument list replaced with a single variable x.
+  x can be a "character" vector in which case each component is 
+  executed by SQLite in turn and result of the last is returned.
+
+o new dbname argument can be specified.  For SQLite it defaults to ":memory:",
+  i.e. an embedded data base.  If database does not exist it is created
+  and deleted upon exit.  If it does exist then only tables created by sqldf
+  are deleted on exit but not the database itself.
+
+o improvements in sqldf.Rd
+
+o MySQL testing
+
+o added a demo illustrating sorting and grouping vs. nested selects
+
+o new example illustrating vector x
+
+o support for POSIXct, Date and chron dates and times
+
+Version 0.1-1
+
+o removed use of subset in favor of subscripts since codetools chokes on it
+
+o added table example to sqldf.Rd
+
+o improved explanation in sqldf.Rd
+
+Version 0.1-0
+
+o initial release
+

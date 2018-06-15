@@ -1,0 +1,835 @@
+---
+title: \pkg{Rcpp} syntactic sugar
+
+# Use letters for affiliations
+author:
+  - name: Dirk Eddelbuettel
+    affiliation: a
+  - name: Romain François
+    affiliation: b
+
+address:
+  - code: a
+    address: \url{http://dirk.eddelbuettel.com}
+  - code: b
+    address: \url{https://romain.rbind.io/}
+
+# For footer text
+lead_author_surname: Eddelbuettel and François
+
+# Place DOI URL or CRAN Package URL here
+doi: "https://cran.r-project.org/package=Rcpp"
+
+# Abstract
+abstract: |
+  This note describes \sugar which has been introduced in version
+  0.8.3 of \pkg{Rcpp} \citep{CRAN:Rcpp,JSS:Rcpp}. \sugar brings a
+  higher-level of abstraction to \proglang{C++} code written using the
+  \pkg{Rcpp} API.  \sugar is based on expression templates
+  \citep{Abrahams+Gurtovoy:2004:TemplateMetaprogramming,Vandevoorde+Josuttis:2003:Templates}
+  and provides some 'syntactic sugar' facilities directly in
+  \pkg{Rcpp}. This is similar to how \pkg{RcppArmadillo}
+  \citep{CRAN:RcppArmadillo} offers linear algebra \proglang{C++}
+  classes based on \pkg{Armadillo} \citep{Sanderson:2010:Armadillo}.
+
+# Optional: Acknowledgements
+# acknowledgements: |
+
+# Optional: One or more keywords
+keywords:
+  - Rcpp
+  - sugar
+  - R
+  - C++
+
+# Font size of the document, values of 9pt (default), 10pt, 11pt and 12pt
+fontsize: 9pt
+
+# Optional: Force one-column layout, default is two-column
+#one_column: true
+
+# Optional: Enables lineo mode, but only if one_column mode is also true
+#lineno: true
+
+# Optional: Enable one-sided layout, default is two-sided
+#one_sided: true
+
+# Optional: Enable section numbering, default is unnumbered
+numbersections: true
+
+# Optional: Specify the depth of section number, default is 5
+#secnumdepth: 5
+
+# Optional: Bibliography
+bibliography: Rcpp
+
+# Optional: Enable a 'Draft' watermark on the document
+#watermark: false
+
+# Customize footer, eg by referencing the vignette
+footer_contents: "Rcpp Vignette"
+
+# Omit \pnasbreak at end
+skip_final_break: true
+
+# Produce a pinp document
+output: pinp::pinp
+
+header-includes: >
+  \newcommand{\proglang}[1]{\textsf{#1}}
+  \newcommand{\pkg}[1]{\textbf{#1}}
+  \newcommand{\faq}[1]{FAQ~\ref{#1}}
+  \newcommand{\rdoc}[2]{\href{http://www.rdocumentation.org/packages/#1/functions/#2}{\code{#2}}}
+  \newcommand{\sugar}{\textsl{Rcpp sugar}~}
+  \newcommand{\ith}{\textsl{i}-\textsuperscript{th}}
+
+vignette: >
+  %\VignetteIndexEntry{Rcpp-sugar}
+  %\VignetteKeywords{Rcpp, sugar, R, Cpp}
+  %\VignettePackage{Rcpp}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+# Motivation
+
+\pkg{Rcpp} facilitates development of internal compiled code in an \proglang{R}
+package by abstracting low-level details of the \proglang{R} API \citep{R:Extensions}
+into a consistent set of \proglang{C++} classes.
+
+Code written using \pkg{Rcpp} classes is easier to read, write and maintain,
+without loosing performance. Consider the following code example which
+provides a function `foo` as a \proglang{C++} extension to
+\proglang{R} by using the \pkg{Rcpp} API:
+
+```cpp
+RcppExport SEXP foo(SEXP x, SEXP y) {
+    Rcpp::NumericVector xx(x), yy(y);
+    int n = xx.size();
+    Rcpp::NumericVector res(n);
+    double x_ = 0.0, y_ = 0.0;
+    for (int i=0; i<n; i++) {
+        x_ = xx[i];
+        y_ = yy[i];
+        if (x_ < y_) {
+            res[i] = x_ * x_;
+        } else {
+            res[i] = -(y_ * y_);
+        }
+    }
+    return res;
+}
+```
+
+The goal of the function `foo` code is simple. Given two
+`numeric` vectors, we create a third one. This is typical low-level
+\proglang{C++} code that that could be written much more consicely in
+\proglang{R} thanks to vectorisation as shown in the next example.
+
+```{r, eval = FALSE}
+foo <- function(x, y) {
+    ifelse(x < y, x * x, -(y * y))
+}
+```
+
+Put succinctly, the motivation of \sugar is to bring a subset of the
+high-level \proglang{R} syntax in \proglang{C++}. Hence, with \sugar, the
+\proglang{C++} version of `foo` now becomes:
+
+```cpp
+Rcpp::NumericVector foo(Rcpp::NumericVector x, 
+                        Rcpp::NumericVector y) {
+    return ifelse(x < y, x * x, -(y * y));
+}
+```
+
+Apart from being stronly-typed and the need for explicit `return`
+statement, the code is now identical between highly-vectorised
+\proglang{R} and \proglang{C++}.
+
+\sugar is written using expression templates and lazy evaluation techniques
+\citep{Abrahams+Gurtovoy:2004:TemplateMetaprogramming,Vandevoorde+Josuttis:2003:Templates}.
+This not only allows a much nicer high-level syntax, but also makes it
+rather efficient (as we detail in section \ref{sec:performance} below).
+
+# Operators
+
+\sugar takes advantage of \proglang{C++} operator overloading. The next few
+sections discuss several examples.
+
+## Binary arithmetic operators
+
+\sugar defines the usual binary arithmetic operators : `+`, `-`,
+`*`, `/`.
+
+```cpp
+// two numeric vectors of the same size
+NumericVector x;
+NumericVector y;
+
+// expressions involving two vectors
+NumericVector res = x + y;
+NumericVector res = x - y;
+NumericVector res = x * y;
+NumericVector res = x / y;
+
+// one vector, one single value
+NumericVector res = x + 2.0;
+NumericVector res = 2.0 - x;
+NumericVector res = y * 2.0;
+NumericVector res = 2.0 / y;
+
+// two expressions
+NumericVector res = x * y + y / 2.0;
+NumericVector res = x * (y - 2.0);
+NumericVector res = x / (y * y);
+```
+
+The left hand side (lhs) and the right hand side (rhs) of each binary
+arithmetic expression must be of the same type (for example they should be both
+`numeric` expressions).
+
+The lhs and the rhs can either have the same size or one of them could
+be a primitive value of the appropriate type, for example adding a
+`NumericVector` and a `double`.
+
+## Binary logical operators
+
+Binary logical operators create a `logical` sugar expression
+from either two sugar expressions of the same type or one sugar expression
+and a primitive value of the associated type.
+
+```cpp
+// two integer vectors of the same size
+NumericVector x;
+NumericVector y;
+
+// expressions involving two vectors
+LogicalVector res = x < y;
+LogicalVector res = x > y;
+LogicalVector res = x <= y;
+LogicalVector res = x >= y;
+LogicalVector res = x == y;
+LogicalVector res = x != y;
+
+// one vector, one single value
+LogicalVector res = x < 2;
+LogicalVector res = 2 > x;
+LogicalVector res = y <= 2;
+LogicalVector res = 2 != y;
+
+// two expressions
+LogicalVector res = (x + y) <  (x*x);
+LogicalVector res = (x + y) >= (x*x);
+LogicalVector res = (x + y) == (x*x);
+```
+
+## Unary operators
+
+The unary `operator-` can be used to negate a (numeric) sugar expression.
+whereas the unary `operator!` negates a logical sugar expression:
+
+```cpp
+// a numeric vector
+NumericVector x;
+
+// negate x
+NumericVector res = -x;
+
+// use it as part of a numerical expression
+NumericVector res = -x * (x + 2.0);
+
+// two integer vectors of the same size
+NumericVector y;
+NumericVector z;
+
+// negate the logical expression "y < z"
+LogicalVector res = !(y < z);
+```
+
+# Functions
+
+\sugar defines functions that closely match the behavior of \proglang{R}
+functions of the same name.
+
+## Functions producing a single logical result
+
+Given a logical sugar expression, the `all` function identifies if all
+the elements are `TRUE`. Similarly, the `any` function
+identifies if any the element is `TRUE` when
+given a logical sugar expression.
+
+
+```cpp
+IntegerVector x = seq_len(1000);
+all(x*x < 3);
+any(x*x < 3);
+```
+
+Either call to `all` and `any` creates an object of a class
+that has member functions `is_true`, `is_false`,
+`is_na` and a conversion to `SEXP` operator.
+
+One important thing to highlight is that `all` is lazy. Unlike
+\proglang{R}, there is no need to fully evaluate the expression. In the
+example above, the result of `all` is fully resolved after evaluating
+only the two first indices of the expression \verb|x * x < 3|. `any`
+is lazy too, so it will only need to resolve the first element of the example
+above.
+
+### Conversion to bool
+
+One important thing to note concerns the conversion to the `bool`
+type. In order to respect the concept of missing values (`NA`) in
+\proglang{R}, expressions generated by `any` or `all` can not
+be converted to `bool`. Instead one must use `is_true`,
+`is_false` or `is_na`:
+
+```cpp
+// wrong: will generate a compile error
+bool res = any(x < y);
+
+// ok
+bool res = is_true(any( x < y ));
+bool res = is_false(any( x < y ));
+bool res = is_na(any( x < y ));
+```
+
+<!-- % FIXME this may need some expanding the trivariate bool and how to use it-->
+
+
+## Functions producing sugar expressions
+
+### is_na
+
+Given a sugar expression of any type, \verb|is_na| (just like the other
+functions in this section) produces a logical sugar expression of the same
+length. Each element of the result expression evaluates to `TRUE` if
+the corresponding input is a missing value, or `FALSE` otherwise.
+
+```cpp
+IntegerVector x = 
+    IntegerVector::create(0, 1, NA_INTEGER, 3);
+
+is_na(x)
+all(is_na( x ))
+any(!is_na( x ))
+```
+
+### seq_along
+
+Given a sugar expression of any type, `seq_along` creates an
+integer sugar expression whose values go from 1 to the size of the input.
+
+```cpp
+IntegerVector x = 
+    IntegerVector::create( 0, 1, NA_INTEGER, 3 );
+
+IntegerVector y = seq_along(x);
+IntegerVector z = seq_along(x * x * x * x * x * x);
+```
+
+This is the most lazy function, as it only needs to call the `size`
+member function of the input expression. The input expression need not to be
+resolved. The two examples above gives the same result with the same efficiency
+at runtime. The compile time will be affected by the complexity of the
+second expression, since the abstract syntax tree is built at compile time.
+
+### seq_len
+
+`seq_len` creates an integer sugar expression whose 
+\ith\ element expands to `i`. `seq_len` is particularly useful in
+conjunction with `sapply` and `lapply`.
+
+```cpp
+// 1, 2, ..., 10
+IntegerVector x = seq_len(10);
+
+List y = lapply(seq_len(10), seq_len);
+```
+
+### pmin and pmax
+
+Given two sugar expressions of the same type and size, or one expression and
+one primitive value of the appropriate type, `pmin` (`pmax`)
+generates a sugar expression of the same type whose \ith\ element expands to
+the lowest (highest) value between the \ith\ element of the first expression
+and the \ith element of the second expression.
+
+```cpp
+IntegerVector x = seq_len(10);
+
+pmin(x, x*x);
+pmin(x*x, 2);
+
+pmin(x, x*x);
+pmin(x*x, 2);
+```
+
+### ifelse
+
+Given a logical sugar expression and either :
+\begin{itemize}
+\item two compatible sugar expression (same type, same size)
+\item one sugar expression and one compatible primitive
+\end{itemize}
+`ifelse` expands to a sugar expression whose \ith\
+element is the \ith\ element of the first expression
+if the \ith\ element of the condition expands to `TRUE`
+or the \ith\ of the second expression if
+the \ith\ element of the condition expands to `FALSE`,
+or the appropriate missing value otherwise.
+
+```cpp
+IntegerVector x;
+IntegerVector y;
+
+ifelse(x < y, x, (x+y)*y)
+ifelse(x > y, x, 2)
+```
+
+### sapply
+
+`sapply` applies a \proglang{C++} function to each element
+of the given expression to create a new expression. The type of the
+resulting expression is deduced by the compiler from the result type of
+the function.
+
+The function can be a free \proglang{C++} function such as the overload
+generated by the template function below:
+
+```cpp
+template <typename T>
+T square(const T& x){
+    return x * x;
+}
+sapply(seq_len(10), square<int>);
+```
+
+Alternatively, the function can be a functor whose type has a nested type
+called `result_type`
+
+```cpp
+template <typename T>
+struct square : std::unary_function<T, T> {
+    T operator()(const T& x){
+        return x * x;
+    }
+}
+sapply(seq_len(10), square<int>());
+```
+
+### lapply
+
+`lapply` is similar to `sapply` except that the result is
+allways an list expression (an expression of type `VECSXP`).
+
+### sign
+
+Given a numeric or integer expression, `sign` expands to an expression
+whose values are one of 1, 0, -1 or `NA`, depending on the sign
+of the input expression.
+
+```cpp
+IntegerVector xx;
+
+sign(xx)
+sign(xx * xx)
+```
+
+### diff
+
+The \ith\ element of the result of `diff` is
+the difference between the $(i+1)^{\text{th}}$ and the
+\ith\ element of the input expression. Supported types are
+integer and numeric.
+
+```cpp
+IntegerVector xx;
+
+diff(xx)
+```
+
+## Mathematical functions
+
+For the following set of functions, generally speaking, the \ith\ element of
+the result of the given function (say, `abs`) is the result of
+applying that function to this \ith\ element of the input expression.
+Supported types are integer and numeric.
+
+```cpp
+IntegerVector x;
+
+abs(x)
+exp(x)
+floor(x)
+ceil(x)
+pow(x, z)     // x to the power of z
+```
+
+<!-- % log() and log10() maybe?  Or ln() ?-->
+
+## The d/q/p/r statistical functions
+
+The framework provided by \sugar also permits easy and efficient access the
+density, distribution function, quantile and random number generation
+functions function by \proglang{R} in the \code{Rmath} library.
+
+Currently, most of these functions are vectorised for the first element which
+denote size. Consequently, these calls works in \proglang{C++} just as they
+would in \proglang{R}:
+
+```cpp
+x1 = dnorm(y1, 0, 1); // density of y1 at m=0, sd=1
+x2 = qnorm(y2, 0, 1); // quantiles of y2
+x3 = pnorm(y3, 0, 1); // distribution of y3
+x4 = rnorm(n, 0, 1);  // 'n' RNG draws of N(0, 1)
+```
+
+Similar d/q/p/r functions are provided for the most common distributions:
+beta, binom, cauchy, chisq, exp, f, gamma, geom, hyper, lnorm, logis, nbeta,
+nbinom, nbinom_mu, nchisq, nf, norm, nt, pois, t, unif, and weibull.
+
+Note that the parameterization used in these sugar functions may differ between
+the top-level functions exposed in an \proglang{R} session. For example, 
+the internal \code{rexp} is parameterized by \code{scale},
+whereas the R-level \code{stats::rexp} is parameterized by \code{rate}. 
+Consult \href{http://cran.r-project.org/doc/manuals/r-release/R-exts.html#Distribution-functions}{Distribution Functions}
+for more details on the parameterization used for these sugar functions.
+
+One point to note is that the programmer using these functions needs to
+initialize the state of the random number generator as detailed in Section
+6.3 of the `Writing R Extensions' manual \citep{R:Extensions}.  A nice
+\proglang{C++} solution for this is to use a \textsl{scoped} class that sets
+the random number generatator on entry to a block and resets it on exit. We
+offer the \code{RNGScope} class which allows code such as
+
+```cpp
+RcppExport SEXP getRGamma() {
+    RNGScope scope;
+    NumericVector x = rgamma(10, 1, 1);
+    return x;
+}
+```
+
+As there is some computational overhead involved in using \code{RNGScope}, we
+are not wrapping it around each inner function.  Rather, the user of these
+functions (\textsl{i.e.} you) should place an \code{RNGScope} at the
+appropriate level of your code.
+
+
+# Performance
+\label{sec:performance}
+
+TBD
+
+# Implementation
+
+This section details some of the techniques used in the implementation of
+\sugar. Note that the user need not to be familiar with the implementation
+details in order to use \sugar, so this section can be skipped upon a first
+read of the paper.
+
+Writing \sugar functions is fairly repetitive and follows a well-structured
+pattern. So once the basic concepts are mastered (which may take time given
+the inherent complexities in template programming), it should be possible to
+extend the set of function further following the established pattern..
+
+## The curiously recurring template pattern
+
+Expression templates such as those used by \sugar use a technique
+called the _Curiously Recurring Template Pattern_ (CRTP). The general
+form of CRTP is:
+
+```cpp
+// The Curiously Recurring Template Pattern (CRTP)
+template <typename T>
+struct base {
+    // ...
+};
+struct derived : base<derived> {
+    // ...
+};
+```
+
+The `base` class is templated by the class that derives from it :
+`derived`. This shifts the relationship between a base class and a
+derived class as it allows the base class to access methods of the derived
+class.
+
+## The VectorBase class
+
+The CRTP is used as the basis for \sugar with the `VectorBase`
+class template. All sugar expression derive from one class generated by the
+`VectorBase` template. The current definition of `VectorBase`
+is given here:
+
+```cpp
+template <int RTYPE, bool na, typename VECTOR>
+class VectorBase {
+public:
+    struct r_type : 
+        traits::integral_constant<int,RTYPE>{};
+    struct can_have_na :
+        traits::integral_constant<bool,na>{};
+    
+    typedef typename 
+        traits::storage_type<RTYPE>::type 
+        stored_type;
+
+    VECTOR& get_ref(){
+        return static_cast<VECTOR&>(*this);
+    }
+
+    inline stored_type operator[](int i) const {
+        return static_cast<const VECTOR*>(
+                           this)->operator[](i);
+    }
+
+    inline int size() const { 
+        return static_cast<const VECTOR*>(
+                           this)->size(); 
+    }
+
+    /* definition ommited here */
+    class iterator;
+
+    inline iterator begin() const { 
+        return iterator(*this, 0); 
+    }
+    inline iterator end() const { 
+        return iterator(*this, size());
+    }
+}
+```
+
+The `VectorBase` template has three parameters:
+
+
+- `RTYPE`: This controls the type of expression (INTSXP, REALSXP, ...)
+- `na`: This embeds in the derived type information about whether
+  instances may contain missing values. \pkg{Rcpp} vector types
+  (`IntegerVector`, ...)  derive from `VectorBase` with this
+  parameter set to `true` because there is no way to know at
+  compile-time if the vector will contain missing values at run-time.
+  However, this parameter is set to `false` for types that are
+  generated by sugar expressions as these are guaranteed to produce
+  expressions that are without missing values. An example is the
+  `is_na` function. This parameter is used in several places as part
+  of the compile time dispatch to limit the occurence of redundant
+  operations.
+- `VECTOR`: This parameter is the key of \sugar. This is the
+  manifestation of CRTP. The indexing operator and the `size` method
+  of `VectorBase` use a static cast of `this` to the
+  `VECTOR` type to forward calls to the actual method of the derived
+  class.
+
+## Example: sapply
+
+As an example, the current implementation of `sapply`, supported by
+the template class `Rcpp::sugar::Sapply` is given below:
+
+```cpp
+template <int RTYPE, bool NA,
+          typename T, typename Function>
+class Sapply : public VectorBase<
+    Rcpp::traits::r_sexptype_traits< typename 
+        ::Rcpp::traits::result_of<Function>::type
+    >::rtype,
+    true,
+    Sapply<RTYPE, NA, T, Function>
+> {
+public:
+    typedef typename 
+      ::Rcpp::traits::result_of<Function>::type;
+    
+    const static int RESULT_R_TYPE =
+        Rcpp::traits::r_sexptype_traits<
+            result_type>::rtype;
+    
+    typedef Rcpp::VectorBase<RTYPE,NA,T> VEC;
+    
+    typedef typename 
+        Rcpp::traits::r_vector_element_converter<
+        RESULT_R_TYPE>::type
+        converter_type;
+    
+    typedef typename Rcpp::traits::storage_type<
+        RESULT_R_TYPE>::type STORAGE;
+
+    Sapply(const VEC& vec_, Function fun_) :
+        vec(vec_), fun(fun_){}
+
+    inline STORAGE operator[]( int i ) const {
+        return converter_type::get(fun(vec[i]));
+    }
+    
+    inline int size() const { 
+        return vec.size(); 
+    }
+
+private:
+    const VEC& vec;
+    Function fun;
+};
+
+// sugar
+
+template <int RTYPE, bool _NA_, 
+          typename T, typename Function >
+inline sugar::Sapply<RTYPE, _NA_, T, Function>
+sapply(const Rcpp::VectorBase<RTYPE,_NA_,T>& t,
+        Function fun) {
+    
+    return 
+      sugar::Sapply<RTYPE,_NA_,T,Function>(t, fun);
+}
+```
+
+### The sapply function
+
+`sapply` is a template function that takes two arguments.
+
+- The first argument is a sugar expression, which we recognize because of 
+  the relationship with the `VectorBase` class template.
+- The second argument is the function to apply.
+
+The `sapply` function itself does not do anything, it is just used
+to trigger compiler detection of the template parameters that will be used
+in the `sugar::Sapply` template.
+
+### Detection of return type of the function
+
+In order to decide which kind of expression is built, the `Sapply`
+template class queries the template argument via the `Rcpp::traits::result_of`
+template.
+
+```cpp
+typedef typename 
+    ::Rcpp::traits::result_of<Function>::type 
+    result_type;
+```
+
+The `result_of` type trait is implemented as such:
+
+```{Rcpp, eval = FALSE}
+template <typename T>
+struct result_of{
+    typedef typename T::result_type type;
+};
+
+template <typename RESULT_TYPE, 
+          typename INPUT_TYPE>
+struct result_of<RESULT_TYPE (*)(INPUT_TYPE)> {
+    typedef RESULT_TYPE type;
+};
+```
+
+The generic definition of `result_of` targets functors
+with a nested `result_type` type.
+
+The second definition is a partial specialization targetting
+function pointers.
+
+### Indentification of expression type
+
+Based on the result type of the function, the `r_sexptype_traits`
+trait is used to identify the expression type.
+
+```cpp
+const static int RESULT_R_TYPE =
+    Rcpp::traits::r_sexptype_traits<
+        result_type>::rtype;
+```
+
+### Converter
+
+The `r_vector_element_converter` class is used to convert an
+object of the function's result type to the actual storage type suitable
+for the sugar expression.
+
+```cpp
+typedef typename
+    Rcpp::traits::r_vector_element_converter<
+        RESULT_R_TYPE>::type
+    converter_type;
+```
+
+### Storage type
+
+The `storage_type` trait is used to get access to the storage type
+associated with a sugar expression type. For example, the storage type
+of a `REALSXP` expression is `double`.
+
+```cpp
+typedef typename
+    Rcpp::traits::storage_type<RESULT_R_TYPE>::type 
+    STORAGE;
+```
+
+### Input expression base type
+
+The input expression --- the expression over which `sapply` runs --- is
+also typedef'ed for convenience:
+
+```cpp
+typedef Rcpp::VectorBase<RTYPE, NA, T> VEC;
+```
+
+### Output expression base type
+
+In order to be part of the \sugar system, the type generated by the
+`Sapply` class template must inherit from `VectorBase`.
+
+```cpp
+template <int RTYPE, bool NA,
+          typename T, typename Function>
+class Sapply : public VectorBase<
+    Rcpp::traits::r_sexptype_traits<
+        typename 
+        ::Rcpp::traits::result_of<Function>::type
+    >::rtype,
+    true,
+    Sapply<RTYPE,NA,T,Function>
+>
+```
+
+The expression built by `Sapply` depends on the result type
+of the function, may contain missing values, and the third argument
+is the manifestation of the _CRTP_.
+
+### Constructor
+
+The constructor of the `Sapply` class template is straightforward, it
+simply consists of holding the reference to the input expression and the
+function.
+
+```cpp
+Sapply(const VEC& vec_, Function fun_): 
+    vec(vec_), fun(fun_){}
+
+private:
+    const VEC& vec;
+    Function fun;
+```
+
+### Implementation
+
+The indexing operator and the `size` member function is what
+the `VectorBase` expects. The size of the result expression is
+the same as the size of the input expression and the $i^{\text{th}}$
+element of the result is simply retrieved by applying the function
+and the converter. Both these methods are inline to maximize performance:
+
+```cpp
+inline STORAGE operator[](int i) const {
+	return converter_type::get(fun(vec[i]));
+}
+inline int size() const { 
+    return vec.size(); 
+}
+```
+
+# Summary
+
+TBD

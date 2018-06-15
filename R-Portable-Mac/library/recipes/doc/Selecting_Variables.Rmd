@@ -1,0 +1,73 @@
+---
+title: "Selecting Variables"
+vignette: >
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteIndexEntry{Selecting Variables}
+output:
+  knitr:::html_vignette:
+    toc: yes
+---
+
+```{r ex_setup, include=FALSE}
+knitr::opts_chunk$set(
+  message = FALSE,
+  digits = 3,
+  collapse = TRUE,
+  comment = "#>"
+  )
+options(digits = 3)
+```
+
+When recipe steps are used, there are different approaches that can be used to select which variables or features should be used. 
+
+The three main characteristics of variables that can be queried: 
+
+ * the name of the variable
+ * the data type (e.g. numeric or nominal)
+ * the role that was declared by the recipe
+ 
+The manual pages for `?selections` and  `?has_role` have details about the available selection methods. 
+ 
+To illustrate this, the credit data will be used: 
+
+```{r credit}
+library(recipes)
+data("credit_data")
+str(credit_data)
+
+rec <- recipe(Status ~ Seniority + Time + Age + Records, data = credit_data)
+rec
+```
+
+Before any steps are used the information on the original variables is:
+
+```{r var_info_orig}
+summary(rec, original = TRUE)
+```
+
+We can add a step to compute dummy variables on the non-numeric data after we impute any missing data:
+
+```{r dummy_1}
+dummied <- rec %>% step_dummy(all_nominal())
+```
+
+This will capture _any_ variables that are either character strings or factors: `Status` and `Records`. However, since `Status` is our outcome, we might want to keep it as a factor so we can _subtract_ that variable out either by name or by role:
+
+```{r dummy_2}
+dummied <- rec %>% step_dummy(Records) # or
+dummied <- rec %>% step_dummy(all_nominal(), - Status) # or
+dummied <- rec %>% step_dummy(all_nominal(), - all_outcomes()) 
+```
+
+Using the last definition: 
+
+```{r dummy_3}
+dummied <- prep(dummied, training = credit_data)
+with_dummy <- bake(dummied, newdata = credit_data)
+with_dummy
+```
+
+`Status` is unaffected. 
+
+One important aspect about selecting variables in steps is that the variable names and types may change as steps are being executed. In the above example, `Records` is a factor variable before the step is executed. Afterwards, `Records` is gone and the binary variable `Records_yes` is in its place. One reason to have general selection routines like `all_predictors` or `contains` is to be able to select variables that have not be created yet. 
+

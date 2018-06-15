@@ -1,0 +1,75 @@
+
+R version 3.4.0 RC (2017-04-18 r72543) -- "You Stupid Darkness"
+Copyright (C) 2017 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> #### Test 64-bit date-time functions.
+> 
+> ## R's internal fixes are used on 32-bit platforms.
+> ## macOS gets these wrong: see HAVE_WORKING_64BIT_MKTIME
+> 
+> Sys.setenv(TZ = "UTC")
+> (z <- as.POSIXct("1848-01-01 12:00"))
+[1] "1848-01-01 12:00:00 UTC"
+> c(unclass(z))
+[1] -3849940800
+> (z <- as.POSIXct("2040-01-01 12:00"))
+[1] "2040-01-01 12:00:00 UTC"
+> c(unclass(z))
+[1] 2209032000
+> (z <- as.POSIXct("2040-07-01 12:00"))
+[1] "2040-07-01 12:00:00 UTC"
+> c(unclass(z))
+[1] 2224756800
+> 
+> Sys.setenv(TZ = "Europe/London")  # pretty much portable.
+> (z <- as.POSIXct("1848-01-01 12:00"))
+[1] "1848-01-01 12:00:00 GMT"
+> c(unclass(z))
+[1] -3849940800
+> (z <- as.POSIXct("2040-01-01 12:00"))
+[1] "2040-01-01 12:00:00 GMT"
+> c(unclass(z))
+[1] 2209032000
+> (z <- as.POSIXct("2040-07-01 12:00"))
+[1] "2040-07-01 12:00:00 BST"
+> c(unclass(z))
+[1] 2224753200
+> 
+> Sys.setenv(TZ = "EST5EDT")
+> (z <- as.POSIXct("1848-01-01 12:00"))
+[1] "1848-01-01 12:00:00 EST"
+> c(unclass(z))
+[1] -3849922800
+> (z <- as.POSIXct("2040-01-01 12:00"))
+[1] "2040-01-01 12:00:00 EST"
+> c(unclass(z))
+[1] 2209050000
+> (z <- as.POSIXct("2040-07-01 12:00"))
+[1] "2040-07-01 12:00:00 EDT"
+> c(unclass(z))
+[1] 2224771200
+> 
+> ## PR15613: had day as > 24hrs.
+> as.POSIXlt(ISOdate(2071,1,13,0,0,tz="Etc/GMT-1"))$wday
+[1] 2
+> as.POSIXlt(ISOdate(2071,1,13,0,1,tz="Etc/GMT-1"))$wday
+[1] 2
+> 
+> 
+> ## Incorrect use of %d should work even though abbreviation does match
+> old <- Sys.setlocale("LC_TIME", "C") # to be sure
+> stopifnot(!is.na(strptime("11-August-1903", "%d-%b-%Y")))
+> 

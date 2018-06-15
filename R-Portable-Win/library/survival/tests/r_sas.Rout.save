@@ -1,0 +1,440 @@
+
+R Under development (unstable) (2017-02-21 r72241) -- "Unsuffered Consequences"
+Copyright (C) 2017 The R Foundation for Statistical Computing
+Platform: i686-pc-linux-gnu (32-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> options(na.action=na.exclude) # preserve missings
+> options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
+> library(survival)
+> 
+> #
+> # Reproduce example 1 in the SAS lifereg documentation
+> #
+> 
+> # this fit doesn't give the same log-lik that they claim
+> motor <- read.table('data.motor', col.names=c('temp', 'time', 'status'))
+> fit1 <- survreg(Surv(time, status) ~ I(1000/(273.2+temp)), motor,
++ 		subset=(temp>150), dist='lognormal')
+> summary(fit1)
+
+Call:
+survreg(formula = Surv(time, status) ~ I(1000/(273.2 + temp)), 
+    data = motor, subset = (temp > 150), dist = "lognormal")
+                         Value Std. Error     z        p
+(Intercept)            -10.471      2.772 -3.78 1.58e-04
+I(1000/(273.2 + temp))   8.322      1.284  6.48 9.13e-11
+Log(scale)              -0.504      0.183 -2.75 5.96e-03
+
+Scale= 0.604 
+
+Log Normal distribution
+Loglik(model)= -145.9   Loglik(intercept only)= -155
+	Chisq= 18.3 on 1 degrees of freedom, p= 1.9e-05 
+Number of Newton-Raphson Iterations: 6 
+n= 30 
+
+> 
+> # This one, with the loglik on the transformed scale (the inappropriate
+> #   scale, Ripley & Venables would argue) does agree.
+> # All coefs are of course identical.
+> fit2 <- survreg(Surv(log(time), status) ~ I(1000/(273.2+temp)), motor,
++ 		subset=(temp>150), dist='gaussian')
+> 
+> 
+> # Give the quantile estimates, which is the lower half of "output 48.1.5"
+> #  in the SAS 9.2 manual
+> 
+> pp1 <- predict(fit1, newdata=list(temp=c(130,150)), p=c(.1, .5, .9),
++ 		      type='quantile', se=T)
+> pp2 <- predict(fit1, newdata=list(temp=c(130,150)), p=c(.1, .5, .9),
++ 		      type='uquantile', se=T)
+> pp1
+$fit
+          [,1]      [,2]     [,3]
+[1,] 12033.185 26095.677 56592.20
+[2,]  4536.877  9838.864 21336.98
+
+$se.fit
+         [,1]      [,2]      [,3]
+[1,] 5482.338 11359.450 26036.917
+[2,] 1443.072  2901.155  7172.343
+
+> 
+> temp130 <- matrix(0, nrow=3, ncol=6)
+> temp130[,1] <- pp1$fit[1,]
+> temp130[,2] <- pp1$se.fit[1,]
+> temp130[,3] <- pp2$fit[1,]
+> temp130[,4] <- pp2$se.fit[1,]
+> temp130[,5] <- exp(pp2$fit[1,] - 1.64*pp2$se.fit[1,])
+> temp130[,6] <- exp(pp2$fit[1,] + 1.64*pp2$se.fit[1,])
+> dimnames(temp130) <- list(c("p=.1", "p=.2", "p=.3"),
++      c("Time", "se(time)", "log(time)", "se[log(time)]", 
++        "lower 90", "upper 90"))
+> print(temp130)
+         Time  se(time) log(time) se[log(time)]  lower 90  upper 90
+p=.1 12033.18  5482.338  9.395424     0.4556015  5700.089  25402.68
+p=.2 26095.68 11359.450 10.169525     0.4353001 12779.950  53285.37
+p=.3 56592.20 26036.917 10.943626     0.4600796 26611.422 120349.71
+> 
+> # A set of examples, copied from the manual pages of SAS procedure
+> #  "reliability", which is part of their QC product.
+> #
+> 
+> color <- c("black", "red", "green", "blue", "magenta", "red4",
++                         "orange", "DarkGreen", "cyan2", "DarkViolet")
+> palette(color)
+> pdf(file='reliability.pdf')
+> 
+> #
+> # Insulating fluids example
+> #
+> fluid <- read.table('data.fluid', col.names=c('time', 'voltage'))
+> 
+> # Adding a -1 to the fit just causes the each group to have it's own
+> # intercept, rather than a global intercept + constrasts.  The strata
+> # statement allows each to have a separate scale
+> ffit <- survreg(Surv(time) ~ voltage + strata(voltage) -1, fluid)
+> 
+> # Get predicted quantiles at each of the voltages
+> # By default predict() would give a line of results for each observation,
+> #  I only want the unique set of x's, i.e., only 4 cases
+> uvolt <- sort(unique(fluid$voltage))      #the unique levels
+> plist <- c(1, 2, 5, 1:9 *10, 95, 99)/100
+> pred  <- predict(ffit, type='quantile', p=plist,
++                  newdata=data.frame(voltage=factor(uvolt)))
+> tfun <- function(x) log(-log(1-x))
+> 
+> matplot(t(pred), tfun(plist), type='l', log='x', lty=1,
++         col=1:4, yaxt='n')
+> axis(2, tfun(plist), format(100*plist), adj=1)
+> 
+> kfit <- survfit(Surv(time) ~ voltage, fluid, type='fleming') #KM fit
+> for (i in 1:4) {
++     temp <- kfit[i]
++     points(temp$time, tfun(1-temp$surv), col=i, pch=i)
++     }
+> 
+> # Now a table
+> temp <- array(0, dim=c(4,4,4))  #4 groups by 4 parameters by 4 stats
+> temp[,1,1] <- ffit$coef         # "EV Location" in SAS manual
+> temp[,2,1] <- ffit$scale        # "EV scale"
+> temp[,3,1] <- exp(ffit$coef)    # "Weibull Scale"
+> temp[,4,1] <- 1/ffit$scale      # "Weibull Shape"
+>  
+> temp[,1,2] <- sqrt(diag(ffit$var))[1:4]   #standard error
+> temp[,2,2] <- sqrt(diag(ffit$var))[5:8] * ffit$scale
+> temp[,3,2] <- temp[,1,2] * temp[,3,1]
+> temp[,4,2] <- temp[,2,2] / (temp[,2,1])^2
+> 
+> temp[,1,3] <- temp[,1,1] - 1.96*temp[,1,2]  #lower conf limits 
+> temp[,1,4]  <- temp[,1,1] + 1.96*temp[,1,2] # upper
+> # log(scale) is the natural parameter, in which the routine did its fitting
+> #  and on which the std errors were computed
+> temp[,2, 3] <- exp(log(ffit$scale) - 1.96*sqrt(diag(ffit$var))[5:8])
+> temp[,2, 4] <- exp(log(ffit$scale) + 1.96*sqrt(diag(ffit$var))[5:8])
+> 
+> temp[,3, 3:4] <- exp(temp[,1,3:4])
+> temp[,4, 3:4] <- 1/temp[,2,4:3]
+> 
+> dimnames(temp) <- list(uvolt, c("EV Location", "EV Scale", "Weibull scale",
++                                 "Weibull shape"),
++                        c("Estimate", "SE", "lower 95% CI", "uppper 95% CI"))
+> print(aperm(temp, c(2,3,1)), digits=5)
+, , 26kV
+
+               Estimate         SE lower 95% CI uppper 95% CI
+EV Location     6.86249    1.10404      4.69857        9.0264
+EV Scale        1.83423    0.96114      0.65677        5.1227
+Weibull scale 955.74665 1055.18620    109.78973     8320.0103
+Weibull shape   0.54519    0.28568      0.19521        1.5226
+
+, , 30kV
+
+              Estimate       SE lower 95% CI uppper 95% CI
+EV Location    4.35133  0.30151      3.76037        4.9423
+EV Scale       0.94446  0.22544      0.59156        1.5079
+Weibull scale 77.58159 23.39176     42.96420      140.0911
+Weibull shape  1.05881  0.25274      0.66318        1.6904
+
+, , 34kV
+
+              Estimate      SE lower 95% CI uppper 95% CI
+EV Location    2.50326 0.31476      1.88632        3.1202
+EV Scale       1.29732 0.22895      0.91796        1.8334
+Weibull scale 12.22222 3.84707      6.59509       22.6506
+Weibull shape  0.77082 0.13603      0.54542        1.0894
+
+, , 38kV
+
+                Estimate      SE lower 95% CI uppper 95% CI
+EV Location   0.00092629 0.27318     -0.53450       0.53635
+EV Scale      0.73367610 0.20380      0.42565       1.26460
+Weibull scale 1.00092672 0.27343      0.58596       1.70976
+Weibull shape 1.36299929 0.37861      0.79077       2.34933
+
+> 
+> rm(temp, uvolt, plist, pred, ffit, kfit) 
+> 
+> #####################################################################
+> # Turbine cracks data
+> cracks <- read.table('data.cracks', col.names=c('time1', 'time2', 'n'))
+> cfit <- survreg(Surv(time1, time2, type='interval2') ~1, 
++                 dist='weibull', data=cracks, weight=n)
+> 
+> summary(cfit)
+
+Call:
+survreg(formula = Surv(time1, time2, type = "interval2") ~ 1, 
+    data = cracks, weights = n, dist = "weibull")
+             Value Std. Error     z        p
+(Intercept)  4.272     0.0744 57.43 0.00e+00
+Log(scale)  -0.396     0.0987 -4.01 6.06e-05
+
+Scale= 0.673 
+
+Weibull distribution
+Loglik(model)= -309.7   Loglik(intercept only)= -309.7
+Number of Newton-Raphson Iterations: 5 
+n= 9 
+
+> #Their output also has Wiebull scale = exp(cfit$coef), shape = 1/(cfit$scale)
+> 
+> # Draw the SAS plot
+> #  The "type=fleming" argument reflects that they estimate hazards rather than
+> #  survival, and forces a Nelson-Aalen hazard estimate
+> #
+> plist <-  c(1, 2, 5, 1:8 *10)/100
+> plot(qsurvreg(plist, cfit$coef, cfit$scale), tfun(plist), log='x',
++      yaxt='n', type='l',
++      xlab="Weibull Plot for Time", ylab="Percent")
+> axis(2, tfun(plist), format(100*plist), adj=1)
+> 
+> kfit <- survfit(Surv(time1, time2, type='interval2') ~1, data=cracks,
++                 weight=n, type='fleming')
+> # Only plot point where n.event > 0 
+> # Why?  I'm trying to match them.  Personally, all should be plotted.
+> who <- (kfit$n.event > 0)
+> points(kfit$time[who], tfun(1-kfit$surv[who]), pch='+')
+> points(kfit$time[who], tfun(1-kfit$upper[who]), pch='-')
+> points(kfit$time[who], tfun(1-kfit$lower[who]), pch='-')
+> 
+> text(rep(3,6), seq(.5, -1.0, length=6), 
++          c("Scale", "Shape", "Right Censored", "Left Censored", 
++            "Interval Censored", "Fit"), adj=0)
+> text(rep(9,6), seq(.5, -1.0, length=6), 
++          c(format(round(exp(cfit$coef), 2)),
++            format(round(1/cfit$scale, 2)),
++            format(tapply(cracks$n, cfit$y[,3], sum)), "ML"), adj=1)
+> 
+> # Now a portion of his percentiles table
+> #  I don't get the same SE as SAS, I haven't checked out why.  The
+> #  estimates and se for the underlying Weibull model are the same.
+> temp <- predict(cfit, type='quantile', p=plist, se=T)
+> tempse <- sqrt(temp$se[1,])
+> mat <- cbind(temp$fit[1,], tempse, 
++              temp$fit[1,] -1.96*tempse, temp$fit[1,] + 1.96*tempse)
+> dimnames(mat) <- list(plist*100, c("Estimate", "SE", "Lower .95", "Upper .95"))
+> print(mat)
+    Estimate       SE Lower .95  Upper .95
+1   3.239372 0.965006  1.347960   5.130784
+2   5.183283 1.121677  2.984796   7.381770
+5   9.705766 1.337420  7.084422  12.327109
+10 15.757758 1.491460 12.834497  18.681020
+20 26.115947 1.622573 22.935705  29.296190
+30 35.812585 1.704575 32.471618  39.153553
+40 45.610018 1.809448 42.063500  49.156536
+50 56.014351 1.973350 52.146585  59.882116
+60 67.592818 2.214072 63.253237  71.932400
+70 81.233457 2.543490 76.248217  86.218697
+80 98.764571 2.991889 92.900469 104.628673
+> 
+> #
+> # The cracks data has a particularly easy estimate, so use
+> # it to double check code
+> time <- c(cracks$time2[1], (cracks$time1 + cracks$time2)[2:8]/2, 
++           cracks$time1[9])
+> cdf  <- cumsum(cracks$n)/sum(cracks$n)
+> all.equal(kfit$time, time)
+[1] TRUE
+> all.equal(kfit$surv, 1-cdf[c(1:8,8)]) 
+[1] TRUE
+> rm(time, cdf, kfit)
+> 
+> 
+> #######################################################
+> #
+> # Valve data
+> #   The input data has id, time, and an indicator of whether there was an
+> #   event at that time: -1=no, 1=yes.  No one has an event at their last time.
+> #  Convert the data to (start, stop] form
+> #  The input data has two engines with dual failures: 328 loses 2 valves at 
+> #    time 653, and number 402 loses 2 at time 139.  For each, fudge the first
+> #    time to be .1 days earlier.
+> #
+> temp <- matrix(scan('data.valve'), byrow=T, ncol=3)
+Read 267 items
+> 
+> n <- nrow(temp)
+> valve <- data.frame(id=temp[,1], 
++                     time1 = c(0, ifelse(diff(temp[,1])==0, temp[-n,2],0)),
++                     time2 = temp[,2],
++                     status= as.numeric(temp[,3]==1))
+> 
+> indx <- (1:nrow(valve))[valve$time1==valve$time2]
+> valve$time1[indx]   <- valve$time1[indx] - .1
+> valve$time2[indx-1] <- valve$time2[indx-1] - .1
+> 
+> kfit <- survfit(Surv(time1, time2, status) ~1, valve, type='fh2')
+> 
+> plot(kfit, fun='cumhaz', ylab="Sample Mean Cumulative Failures", xlab='Time',
++      ylim=range(-log(kfit$lower)))
+> title("Valve replacement data")
+> 
+> # The summary.survfit function doesn't have an option for printing out
+> #   cumulative hazards instead of survival --- need to add that
+> #   so I just reprise the central code of print.summary.survfit
+> xx <- summary(kfit)
+> temp <- cbind(xx$time, xx$n.risk, xx$n.event, -log(xx$surv), 
++               xx$std.err/xx$surv, -log(xx$upper), -log(xx$lower))
+> dimnames(temp) <- list(rep("", nrow(temp)),
++                        c("time", "n.risk", "n.event", "Cum haz", "std.err",
++                          "lower 95%", "upper 95%"))
+> print(temp, digits=2)
+ time n.risk n.event Cum haz std.err lower 95% upper 95%
+   61     41       1   0.024   0.025   0.00000     0.073
+   76     41       1   0.049   0.035   0.00000     0.117
+   84     41       1   0.073   0.043   0.00000     0.157
+   87     41       1   0.098   0.049   0.00077     0.194
+   92     41       1   0.122   0.055   0.01373     0.230
+   98     41       1   0.146   0.060   0.02779     0.265
+  120     41       1   0.171   0.065   0.04268     0.299
+  139     41       1   0.195   0.070   0.05823     0.332
+  139     41       1   0.220   0.074   0.07432     0.365
+  165     41       1   0.244   0.078   0.09085     0.397
+  166     41       1   0.268   0.082   0.10778     0.429
+  202     41       1   0.293   0.086   0.12503     0.460
+  206     41       1   0.317   0.089   0.14257     0.492
+  249     41       1   0.341   0.092   0.16038     0.523
+  254     41       1   0.366   0.096   0.17841     0.553
+  258     41       1   0.390   0.099   0.19665     0.584
+  265     41       1   0.415   0.102   0.21508     0.614
+  276     41       1   0.439   0.105   0.23369     0.644
+  298     41       1   0.463   0.108   0.25245     0.674
+  323     41       1   0.488   0.110   0.27136     0.704
+  326     41       1   0.512   0.113   0.29041     0.734
+  328     41       1   0.537   0.116   0.30958     0.764
+  344     41       1   0.561   0.118   0.32887     0.793
+  348     41       1   0.585   0.121   0.34827     0.822
+  349     41       1   0.610   0.123   0.36777     0.852
+  367     41       1   0.634   0.126   0.38736     0.881
+  377     41       1   0.659   0.128   0.40705     0.910
+  404     40       1   0.684   0.131   0.42720     0.940
+  408     40       1   0.709   0.133   0.44745     0.970
+  410     40       1   0.734   0.136   0.46777     0.999
+  449     40       1   0.759   0.138   0.48818     1.029
+  479     40       1   0.784   0.140   0.50866     1.058
+  497     40       1   0.809   0.143   0.52922     1.088
+  538     40       1   0.834   0.145   0.54985     1.117
+  539     40       1   0.859   0.147   0.57054     1.147
+  561     40       1   0.884   0.149   0.59129     1.176
+  563     40       1   0.909   0.151   0.61211     1.205
+  570     40       1   0.934   0.153   0.63299     1.234
+  573     40       1   0.959   0.155   0.65392     1.263
+  581     38       1   0.985   0.158   0.67578     1.294
+  586     34       1   1.014   0.160   0.69970     1.329
+  604     22       1   1.060   0.167   0.73221     1.387
+  621     17       1   1.119   0.178   0.77014     1.467
+  635     16       1   1.181   0.189   0.81038     1.552
+  640     16       1   1.244   0.200   0.85188     1.635
+  646     13       1   1.320   0.215   0.89854     1.742
+  653      9       1   1.432   0.245   0.95056     1.913
+  653      9       1   1.543   0.272   1.00909     2.076
+> 
+> # Note that I have the same estimates but different SE's.  We are using a
+> #  different estimator. It's a statistical argument as to which is
+> #  better (one could defend both sides): do you favor JASA or Technometrics?
+> rm(temp, kfit, indx, xx)
+>                     
+> ######################################################
+> # Turbine data, lognormal fit
+> turbine <- read.table('data.turbine', 
++                       col.names=c("time1", "time2", "n"))
+> 
+> tfit <- survreg(Surv(time1, time2, type='interval2') ~1, turbine,
++                 dist='lognormal', weights=n, subset=(n>0))
+> 
+> summary(tfit)
+
+Call:
+survreg(formula = Surv(time1, time2, type = "interval2") ~ 1, 
+    data = turbine, weights = n, subset = (n > 0), dist = "lognormal")
+             Value Std. Error     z       p
+(Intercept)  3.700     0.0708 52.23 0.00000
+Log(scale)  -0.329     0.1232 -2.67 0.00763
+
+Scale= 0.72 
+
+Log Normal distribution
+Loglik(model)= -190.7   Loglik(intercept only)= -190.7
+Number of Newton-Raphson Iterations: 6 
+n= 21 
+
+> 
+> # Now, do his plot, but put bootstrap confidence bands on it!
+> #  First, make a simple data set without weights
+> tdata <- turbine[rep(1:nrow(turbine), turbine$n),]
+> 
+> qstat <- function(data) {
++     temp <- survreg(Surv(time1, time2, type='interval2') ~1, data=data,
++                     dist='lognormal')
++     qsurvreg(plist, temp$coef, temp$scale, dist='lognormal')
++     }
+> 
+> {if (exists('bootstrap')) {
++     set.seed(1953)  # a good year :-)
++     bfit <- bootstrap(tdata, qstat, B=1000)
++     bci <- limits.bca(bfit, probs=c(.025, .975))
++     }
++ else {
++     values <- matrix(0, nrow=1000, ncol=length(plist))
++     n <- nrow(tdata)
++     for (i in 1:1000) {
++         subset <- sample(1:n, n, replace=T)
++         values[i,] <- qstat(tdata[subset,])
++         }
++     bci <- t(apply(values,2, quantile, c(.05, .95)))
++     }
++  }
+> xmat <- cbind(qsurvreg(plist, tfit$coef, tfit$scale, dist='lognormal'),
++               bci)
+> 
+> 
+> matplot(xmat, qnorm(plist), 
++         type='l', lty=c(1,2,2), col=c(1,1,1), 
++         log='x', yaxt='n', ylab='Percent', 
++         xlab='Time of Cracking (Hours x 100)')
+> axis(2, qnorm(plist), format(100*plist), adj=1)
+> title("Turbine Data")
+> kfit <- survfit(Surv(time1, time2, type='interval2') ~1, data=tdata)
+> points(kfit$time, qnorm(1-kfit$surv), pch='+')
+> 
+> dev.off()  #close the plot file
+pdf 
+  2 
+> 
+> 
+> proc.time()
+   user  system elapsed 
+  5.568   0.076   5.644 

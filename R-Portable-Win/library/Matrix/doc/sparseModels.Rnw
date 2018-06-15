@@ -1,0 +1,294 @@
+\documentclass{article}
+%
+\usepackage{fullpage}
+\usepackage{myVignette}
+\usepackage[authoryear,round]{natbib}
+\bibliographystyle{plainnat}
+\newcommand{\noFootnote}[1]{{\small (\textit{#1})}}
+\newcommand{\myOp}[1]{{$\left\langle\ensuremath{#1}\right\rangle$}}
+%%\VignetteIndexEntry{Sparse Model Matrices}
+%%\VignetteDepends{Matrix,MASS}
+\title{Sparse Model Matrices}
+\author{Martin Maechler\\ R Core Development Team
+  \\\email{maechler@R-project.org}}
+\date{July 2007, 2008 ({\tiny typeset on \tiny\today})}
+%
+\begin{document}
+\maketitle
+\SweaveOpts{engine=R, keep.source=TRUE}
+\SweaveOpts{eps=FALSE, pdf=TRUE, width=8, height=5.5, strip.white=true}
+\setkeys{Gin}{width=\textwidth}
+
+% \begin{abstract}
+%  ............................ FIXME
+% \end{abstract}
+
+%% Note: These are explained in '?RweaveLatex' :
+<<preliminaries, echo=FALSE>>=
+options(width=75)
+@
+\section*{Introduction}
+Model matrices in the very widely used (generalized) linear models
+of statistics, (typically fit via \Rfun{lm} or \Rfun{glm} in \RR) are often
+practically sparse --- whenever categorical predictors, \code{factor}s in
+\RR, are used.
+
+%% FIXME:  Introduce  lm.fit.sparse()  or not ?
+
+We show for a few classes of such linear models how to construct sparse
+model matrices using sparse matrix (S4) objects from the \pkg{Matrix}
+package, and typically \emph{without} using dense matrices in intermediate
+steps. %% only the latter is really novel, since "SparseM" (and others)
+%% have  used the equivalent of
+%%    as( model.matrix(.....), "sparseMatrix")
+
+
+\section{One factor: \texttt{y $\sim$ f1}}
+Let's start with an artifical small example:
+<<ex1>>=
+ (ff <- factor(strsplit("statistics_is_a_task", "")[[1]], levels=c("_",letters)))
+ factor(ff)      # drops the levels that do not occur
+ f1 <- ff[, drop=TRUE] # the same, more transparently
+@
+and now assume a model $$y_i = \mu + \alpha_{j(i)} + E_i,$$ for $i=1,\dots,n
+=$~\code{length(f1)}$= 20$, and
+$\alpha_{j(i)}$ with a constraint such as $\sum_j \alpha_j = 0$ (``sum'')
+or $\alpha_1 = 0$ (``treatment'') and $j(i) =$\code{as.numeric(f1[i])}
+being the level number of the $i$-th observation. For such a ``design'',
+the model is only estimable if the levels \code{c} and \code{k} are merged,
+and
+<<ex1.2>>=
+ levels(f1)[match(c("c","k"), levels(f1))] <- "ck"
+ library(Matrix)
+
+ Matrix(contrasts(f1)) # "treatment" contrasts by default -- level "_" = baseline
+
+ Matrix(contrasts(C(f1, sum)))
+ Matrix(contrasts(C(f1, helmert)), sparse=TRUE) # S-plus default; much less sparse
+@
+where \Rfun{contrasts} is (conceptually) just one major ingredient in the
+well-known \Rfun{model.matrix} function
+to build the linear model matrix $\mathbf{X}$ of so-called ``dummy variables''.
+%%
+Since 2007, the \pkg{Matrix}
+package has been providing coercion from a \code{factor} object to a
+\code{sparseMatrix} one to produce the transpose of the model matrix
+corresponding to a model with that factor as predictor (and no intercept):
+<<as_factor_sparse>>=
+as(f1, "sparseMatrix")
+@
+which is really almost the transpose of using the above sparsification of
+\Rfun{contrasts} (and arranging for nice printing),
+<<contrasts_sub>>=
+printSpMatrix( t( Matrix(contrasts(f1))[as.character(f1) ,] ),
+              col.names=TRUE)
+@
+and that is the same as the ``sparsification'' of  \Rfun{model.matrix},
+apart from the column names (here transposed),
+<<ex1-model.matrix>>=
+t( Matrix(model.matrix(~ 0+ f1))) # model with*OUT* intercept
+@
+A more realistic small example is the \code{chickwts} data set,
+<<chickwts-ex>>=
+str(chickwts)# a standard R data set,  71 x 2
+x.feed <- as(chickwts$feed, "sparseMatrix")
+x.feed[ , (1:72)[c(TRUE,FALSE,FALSE)]] ## every  3rd  column:
+
+@
+% FIXME: Move this to ../../../MatrixModels/inst/doc/  ???
+% ## Provisional (hence unexported) sparse lm.fit():
+% Matrix:::lm.fit.sparse(x = t(x.feed), y = chickwts[,1])
+
+%- for emacs: $
+
+
+\section{One factor, one continuous: \texttt{y $\sim$ f1 + x}}
+
+To create the model matrix for the case of one factor and one continuous
+predictor---called ``analysis of covariance'' in the historical literature---
+we can adopt the following simple scheme.
+
+%% Possible examples:
+%% - Puromycin
+%% - ToothGrowth
+
+%--- FIXME ---
+
+The final model matrix is the concatenation of:
+
+1) create the sparse 0-1 matrix \code{m1} from the f1 main-effect
+
+2) the single row/column 'x'  ==  'x' main-effect
+
+3) replacing the values 1 in \code{m1@x} (the x-slot of the factor model matrix),
+   by the values of \code{x} (our continuous predictor).
+
+\section{Two (or more) factors, main effects only: \texttt{y $\sim$ f1 + f2}}
+
+%% FIXME:  'warpbreaks' is smaller and more natural as fixed effect model!
+
+Let us consider the \code{warpbreaks} data set of 54 observations,
+<<warpbreaks-data>>=
+data(warpbreaks)# a standard R data set
+str(warpbreaks) # 2 x 3 (x 9) balanced two-way with 9 replicates:
+xtabs(~ wool + tension, data = warpbreaks)
+@
+
+%It is \emph{not} statistically sensible to assume that \code{Run} is a
+%fixed effect, however the example is handy to depict how a model matrix
+This example depicts how a model matrix
+would be built for the model \code{breaks ~ wool + tension}.
+Since this is a main effects model (no interactions), the desired model
+matrix is simply the concatenation of the model matrices of the main
+effects. There are two here, but the principle applies to general main
+effects of factors.
+
+The most sparse matrix is reached by \emph{not} using an intercept,
+(which would give an all-1-column) but rather have one factor fully coded
+(aka ``swallow'' the intercept), and all others being at \code{"treatment"}
+contrast, i.e., here, the \emph{transposed} model matrix, \code{tmm}, is
+<<modMat-warpbreaks, fig=TRUE, height=2>>=
+tmm <- with(warpbreaks,
+            rBind(as(tension, "sparseMatrix"),
+                  as(wool,    "sparseMatrix")[-1,,drop=FALSE]))
+print(  image(tmm)  ) # print(.) the lattice object
+@
+\\
+The matrices are even sparser when the factors have more than just two or
+three levels, e.g., for the morley data set,
+<<morley-data, fig=TRUE>>=
+data(morley) # a standard R data set
+morley$Expt <- factor(morley$Expt)
+morley$Run <- factor(morley$Run)
+str(morley)
+t.mm <- with(morley,
+             rBind(as(Expt, "sparseMatrix"),
+                   as(Run,  "sparseMatrix")[-1,]))
+print(  image(t.mm)  ) # print(.) the lattice object
+@
+
+
+%% Also see Doug's E-mail to  R-help
+% From: "Douglas Bates" <bates@stat.wisc.edu>
+% Subject: Re: [R] Large number of dummy variables
+% Date: Mon, 21 Jul 2008 18:07:26 -0500
+
+\section{Interactions of two (or more) factors,.....}
+
+%% Of course, this is *the* interesting part
+%% To form interactions, we would have to  ``outer-multiply''
+%% the single-factor model-matrices (after "[, -1]")
+
+In situations with more than one factor, particularly with interactions,
+the model matrix is currently not directly available via \pkg{Matrix}
+functions --- but we still show to build them carefully.
+The easiest---but not at memory resources efficient---way is to go via the
+dense \Rfun{model.matrix} result:
+<<npk_ex>>=
+data(npk, package="MASS")
+npk.mf <- model.frame(yield ~ block + N*P*K, data = npk)
+## str(npk.mf) # the data frame + "terms" attribute
+
+m.npk <- model.matrix(attr(npk.mf, "terms"), data = npk)
+class(M.npk <- Matrix(m.npk))
+dim(M.npk)# 24 x 13  sparse Matrix
+t(M.npk) # easier to display, column names readably displayed as row.names(t(.))
+@
+%% printSpMatrix(M.npk, col.names = "abb1")
+
+Another example was reported by a user on R-help (July 15, 2008,
+{\small \url{https://stat.ethz.ch/pipermail/r-help/2008-July/167772.html}})
+about an ``aov error with large data set''.
+
+\begin{citation} % RAS:  in my PDF, I don't see the first character I
+I'm looking to analyze a large data set: a within-Ss 2*2*1500 design
+with 20 Ss.  However, aov() gives me an error. %, reproducible as follows:
+\end{citation}
+
+And gave the following code example (slightly edited):
+<<aov-large-ex>>=
+id <- factor(1:20)
+a <- factor(1:2)
+b <- factor(1:2)
+d <- factor(1:1500)
+aDat <- expand.grid(id=id, a=a, b=b, d=d)
+aDat$y <- rnorm(length(aDat[, 1])) # generate some random DV data
+dim(aDat) # 120'000 x 5  (120'000 = 2*2*1500 * 20 = 6000 * 20)
+@
+%% ^^^^^^^ MM: "fix" and generate much more interesting data
+and then continued with
+\begin{Sinput}
+m.aov <- aov(y ~ a*b*d + Error(id/(a*b*d)), data=aDat)
+\end{Sinput}
+
+\begin{citation}\sffamily
+   which yields the following error:\\
+   \ttfamily
+     Error in model.matrix.default(mt, mf, contrasts) :\\
+     allocMatrix: too many elements specified\\
+\end{citation}
+to which he got the explanation by Peter Dalgaard that the formal model matrix involved
+was much too large in this case, and that PD assumed, \pkg{lme4} would be
+able to solve the problem.
+However, currently there would still be a big problem with using \pkg{lme4},
+because of the many levels of \emph{fixed} effects:
+
+Specifically\footnote{the following is not run in \RR\ on purpose, rather just
+  displayed here},
+\begin{Sinput}
+dim(model.matrix( ~ a*b*d, data = aDat)) # 120'000 x 6000
+\end{Sinput}
+where we note that $120'000 \times 6000 = 720 \textrm{mio}$, which is
+$720'000'000 * 8 / 2^{20} \approx 5500$ Megabytes.
+
+\emph{Unfortunately} \pkg{lme4} does \emph{not} use a sparse $X$-matrix for
+the fixed effects (yet), it just uses sparse matrices for the $Z$-matrix of
+random effects and sparse matrix operations for computations related to $Z$.
+
+Let us use a smaller factor \code{d} in order to investigate how sparse the
+$X$ matrix would be:
+<<aov-ex-X-sparse>>=
+d2 <- factor(1:150) # 10 times smaller
+tmp2 <- expand.grid(id=id, a=a, b=b, d=d2)
+dim(tmp2)
+dim(mm <- model.matrix( ~ a*b*d, data=tmp2))
+## is 100 times smaller than original example
+
+class(smm <- Matrix(mm)) # automatically coerced to sparse
+round(object.size(mm) / object.size(smm), 1)
+@
+shows that even for the small \code{d} here, the memory reduction would be
+more than an order of magnitude.
+\\
+%% Reasons to fake here:
+%% 1) print() is needed for lattice -- but looks ugly,
+%% 2) the resulting  pdf file is too large -- use png instead:
+<<X-sparse-image, eval=FALSE>>=
+image(t(smm), aspect = 1/3, lwd=0, col.regions = "red")
+<<X-sparse-image-fake, fig=TRUE, include=FALSE, echo=FALSE, results=hide, keep.source=FALSE>>=
+png("sparseModels-X-sparse-image.png", width=6, height=3,
+    units='in', res=150)
+print(
+<<X-sparse-image>>
+      )
+dev.off()
+@
+%%--NB: 'keep.source=FALSE' above is workaround-a-bug-in-R-devel-(2.13.x)---
+\par\vspace*{-1ex}
+\centerline{%
+  \includegraphics[width=1.1\textwidth]{sparseModels-X-sparse-image.png}}
+
+and working with the sparse instead of the dense model matrix is
+considerably faster as well,
+<<X-sparse-mult>>=
+x <- 1:600
+system.time(y <- smm %*% x) ## sparse is much faster
+system.time(y. <- mm %*% x) ## than dense
+identical(as.matrix(y), y.) ## TRUE
+@
+
+
+<<sessionInfo, results=tex>>=
+toLatex(sessionInfo())
+@
+\end{document}

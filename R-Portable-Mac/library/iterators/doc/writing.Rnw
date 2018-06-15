@@ -1,0 +1,569 @@
+% \VignetteIndexEntry{Writing Custom Iterators}
+% \VignetteDepends{iterators}
+% \VignettePackage{iterators}
+\documentclass[12pt]{article}
+\usepackage{amsmath}
+\usepackage[pdftex]{graphicx}
+\usepackage{color}
+\usepackage{xspace}
+\usepackage{fancyvrb}
+\usepackage{fancyhdr}
+    \usepackage[
+         colorlinks=true,
+         linkcolor=blue,
+         citecolor=blue,
+         urlcolor=blue]
+         {hyperref}
+         \usepackage{lscape}
+
+\usepackage{Sweave}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% define new colors for use
+\definecolor{darkgreen}{rgb}{0,0.6,0}
+\definecolor{darkred}{rgb}{0.6,0.0,0}
+\definecolor{lightbrown}{rgb}{1,0.9,0.8}
+\definecolor{brown}{rgb}{0.6,0.3,0.3}
+\definecolor{darkblue}{rgb}{0,0,0.8}
+\definecolor{darkmagenta}{rgb}{0.5,0,0.5}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newcommand{\bld}[1]{\mbox{\boldmath $#1$}}
+\newcommand{\shell}[1]{\mbox{$#1$}}
+\renewcommand{\vec}[1]{\mbox{\bf {#1}}}
+
+\newcommand{\ReallySmallSpacing}{\renewcommand{\baselinestretch}{.6}\Large\normalsize}
+\newcommand{\SmallSpacing}{\renewcommand{\baselinestretch}{1.1}\Large\normalsize}
+
+\newcommand{\halfs}{\frac{1}{2}}
+
+\setlength{\oddsidemargin}{-.25 truein}
+\setlength{\evensidemargin}{0truein}
+\setlength{\topmargin}{-0.2truein}
+\setlength{\textwidth}{7 truein}
+\setlength{\textheight}{8.5 truein}
+\setlength{\parindent}{0.20truein}
+\setlength{\parskip}{0.10truein}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\pagestyle{fancy}
+\lhead{}
+\chead{Writing Custom Iterators}
+\rhead{}
+\lfoot{}
+\cfoot{}
+\rfoot{\thepage}
+\renewcommand{\headrulewidth}{1pt}
+\renewcommand{\footrulewidth}{1pt}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\title{Writing Custom Iterators}
+\author{Steve Weston \\ doc@revolutionanalytics.com}
+
+
+\begin{document}
+
+\maketitle
+
+\thispagestyle{empty}
+\section{Introduction}
+
+<<loadLibs,echo=FALSE,results=hide>>=
+library(iterators)
+@
+
+An {\em iterator} is a special type of object that supplies data on
+demand, one element\footnote{An ``element'' in this case can be basically
+any object.  I don't mean to suggest that the data is necessarily returned
+as scalar values, for example.} at a time.  This is a nice abstraction
+that can help simplify many programs.  Iterators are particularly useful
+in parallel computing, since they facilitate splitting a problem into
+smaller pieces that can then be executed in parallel.
+
+Iterators can also be used to reduce the total memory that is needed at
+any one time.  For example, if you want to process the lines of text in
+a file, it is common to write a loop that reads the file one line at a
+time, rather than reading the entire file in order to avoid running out
+of memory on huge files.  That's the basic idea of iterators.  Iterators
+provide a standard method for getting the next element, which allows us
+to write functions that take an iterator as an argument to provide a
+source of data.  The function doesn't need to know what kind of iterator
+it is.  It just needs to know how to get another piece of data.  The
+data could be coming from a file, a database, a vector, or it could be
+dynamically generated.
+
+There are a number of iterators that come in the \texttt{iterators}
+package.  The \texttt{iapply} function allows you to iterate over
+arrays, in much the same way as the standard \texttt{apply} function.
+\texttt{apply} has fixed rules on how the results are returned, which
+may require you to reshape the results, which can be inefficient, as
+well as inconvenient.  But since \texttt{iapply} doesn't process any
+data or combine the results, it is more flexible.  You can use
+\texttt{iapply} with the \texttt{foreach} package to perform a parallel
+\texttt{apply} operation, and combine the results any way you want via
+the \texttt{.combine} argument to \texttt{foreach}.
+
+Another iterator that comes in the \texttt{iterators} package is the
+\texttt{isplit} function, which works much like the standard
+\texttt{split} function.
+\texttt{split} returns a list containing all of the data divided into
+groups.  \texttt{isplit} only generates one group at a time, as they are
+needed, which can reduce the amount memory that is needed.
+
+But of course, there will be times when you need an iterator that isn't
+provided by the \texttt{iterators} package.  That is when you need to
+write your own custom iterator.  Fortunately, that is fairly easy to do.
+
+\section{What methods are needed for an iterator?}
+
+Basically, an iterator is an S3 object whose base class is \texttt{iter}, and
+has \texttt{iter} and \texttt{nextElem} methods.  The purpose of the
+\texttt{iter} method is to return an iterator for the specified object.
+For iterators, that usually just means returning itself, which seems odd
+at first.  But the \texttt{iter} method can be defined for other objects
+that don't define a \texttt{nextElem} method.  We call those objects
+{\em iterables}, meaning that you can iterate over them.  The
+\texttt{iterators} package defines \texttt{iter} methods for vectors,
+lists, matrices, and data frames, making those objects iterables.  By
+defining an \texttt{iter} method for iterators, they can be used in the
+same context as an iterable, which can be convenient.  For example, the
+\texttt{foreach} function takes iterables as arguments.  It calls the
+\texttt{iter} method on those arguments in order to create iterators for
+them.  By defining the \texttt{iter} method for all iterators, we can
+pass iterators to \texttt{foreach} that we created using any method we
+choose.  Thus, we can pass vectors, lists, or iterators to
+\texttt{foreach}, and they are all processed by \texttt{foreach} in
+exactly the same way.
+
+The \texttt{iterators} package comes with an \texttt{iter} method
+defined for the \texttt{iter} class that simply returns itself.  That is
+usually all that is needed for an iterator.  However, if you want to
+create an iterator for some existing class, you can do that by writing
+an \texttt{iter} method that returns an appropriate iterator.  That
+will allow you to pass an instance of your class to \texttt{foreach},
+which will automatically convert it into an iterator.  The alternative
+is to write your own function that takes arbitrary arguments, and
+returns an iterator.  You can choose whichever method is most natural.
+
+The most important method required for iterators is \texttt{nextElem}.
+This simply returns the next value, or throws an error.  Calling the
+\texttt{stop} function with the string \texttt{'StopIteration'} indicates that
+there are no more values available in the iterator.
+
+Now before we write our own iterator, let's try calling the
+\texttt{iter} and \texttt{nextElem} methods on an existing one.
+Since a list is an iterable, we can create an iterator for that list
+by calling \texttt{iter} on it:
+
+<<iterable1>>=
+it <- iter(list(1:2, 3:4))
+@
+
+We can now call \texttt{nextElem} on the resulting iterator to get the
+values from the list:
+
+<<iterable2>>=
+nextElem(it)
+nextElem(it)
+tryCatch(nextElem(it), error=function(e) e)
+@
+
+As you can see, it is possible to call these methods manually, but it's
+somewhat awkward, since you have to handle the \texttt{'StopIteration'} error.
+Later on, we'll see one solution to this difficulty, although, in
+general, you don't call these method explicitly.
+
+\section{A simple iterator}
+
+It's time to show the implementation of a very simple iterator.  Although I've
+made it sound like you have to write your own \texttt{iter} and
+\texttt{nextElem} methods, you can inherit them.  In fact, that's what
+all of the following examples do.  I do that by inheriting
+from the \texttt{abstractiter} class.  The \texttt{abstractiter} class uses 
+the standard \texttt{iter} method which returns itself, and defines a 
+\texttt{nextElem} method that calls the \texttt{nextElem} element of the object.
+Let's take a look at the implementation of these two methods:
+
+<<nextElem.abstractiter>>=
+iterators:::iter.iter
+iterators:::nextElem.abstractiter
+@
+
+Now here's a function that creates a very simple iterator that uses
+these two methods:
+
+<<iter1>>=
+iforever <- function(x) {
+  nextEl <- function() x
+  obj <- list(nextElem=nextEl)
+  class(obj) <- c('iforever', 'abstractiter', 'iter')
+  obj
+}
+@
+
+Note that I called the internal function \texttt{nextEl} rather than
+\texttt{nextElem}.  I do that by convention to avoid masking the standard
+\texttt{nextElem} generic function.  That causes problems when you want your
+iterator to call the \texttt{nextElem} method of another iterator, which
+can be quite useful, as we'll see in a later example.
+
+We create an instance of this iterator by calling the \texttt{iforever}
+function, and then use it by calling the \texttt{nextElem} method on the
+resulting object:
+
+<<runiter1>>=
+it <- iforever(42)
+nextElem(it)
+nextElem(it)
+@
+
+You can also get values from an iterator using \texttt{as.list}.  But
+since this is an infinite iterator, you need to use the \texttt{n} argument
+to avoid using up a lot of memory and time:
+
+<<runiter1.part2>>=
+unlist(as.list(it, n=6))
+@
+
+Notice that it doesn't make sense to implement this iterator by defining
+a new \texttt{iter} method, since there is no natural iterable on which
+to dispatch.  The only argument that we need is the object for the
+iterator to return, which can be of any type.  Instead, we implement
+this iterator by defining a normal function that returns the iterator.
+
+This iterator is quite simple to implement, and possibly even
+useful.\footnote{Be careful how you use this iterator!  If you pass it
+to \texttt{foreach}, it will result in an infinite loop unless you pair
+it with a non-infinite iterator.  Also, {\em never} pass this to the
+\texttt{as.list} function without the \texttt{n} argument.} The iterator
+returned by \texttt{iforever} is a list that has a single element named
+\texttt{nextElem}, whose value is a function that returns the value of
+\texttt{x}.  Because we are subclassing \texttt{abstractiter}, we inherit a
+\texttt{nextElem} method that will call this function, and because we
+are subclassing \texttt{iter}, we inherit an \texttt{iter} method that will
+return itself.
+
+Of course, the reason this iterator is so simple is because it doesn't
+contain any state.  Most iterators need to contain some state, or it
+will be difficult to make it return different values and eventually
+stop.  Managing the state is usually the real trick to writing iterators.
+
+\section{A stateful iterator}
+
+Let's modify the previous iterator to put a limit on the number of values
+that it returns.  I'll call the new function \texttt{irep}, and give it
+another argument called \texttt{times}:
+
+<<iter2>>=
+irep <- function(x, times) {
+  nextEl <- function() {
+    if (times > 0)
+      times <<- times - 1
+    else
+      stop('StopIteration')
+
+    x
+  }
+
+  obj <- list(nextElem=nextEl)
+  class(obj) <- c('irep', 'abstractiter', 'iter')
+  obj
+}
+@
+
+Now let's try it out:
+
+<<runiter2>>=
+it <- irep(7, 6)
+unlist(as.list(it))
+@
+
+The real difference between \texttt{iforever} and \texttt{irep} is in the
+function that gets called by the \texttt{nextElem} method.  This function not
+only accesses the values of the variables \texttt{x} and \texttt{times}, but 
+it also modifies the value of \texttt{times}.  This is accomplished by means 
+of the ``\verb=<<-='' \footnote{It's commonly believed that ``$<<-$'' is only 
+used to set variables in the global environment, but that isn't true.  I think 
+of it as an {\em inheriting} assignment operator.} operator, and the magic of 
+lexical scoping.  Technically, this kind of function is called a 
+{\em closure}, and is a somewhat advanced feature of \texttt{R}.  The 
+important thing to remember is that \texttt{nextEl} is able to get the value 
+of variables that were passed as arguments to \texttt{irep}, and it can modify 
+those values using the ``\verb=<<-='' operator.  These are {\em not} global 
+variables: they are defined in the enclosing environment of the 
+\texttt{nextEl} function.  You can create as many
+iterators as you want using the \texttt{irep} function, and they will all work
+as expected without conflicts.
+
+Note that this iterator only uses the arguments to \texttt{irep} to store its
+state.  If any other state variables are needed, they can be defined anywhere
+inside the \texttt{irep} function.
+
+\section{Using an iterator inside an iterator}
+
+The previous section described a general way of writing custom iterators.
+Almost any iterator can be written using those basic techniques.  At times, it
+may be simpler to make use of an existing iterator to implement a new iterator.
+Let's say that you need an iterator that splits a vector into subvectors.  That
+can allow you to process the vector in parallel, but still use vector
+operations, which is essential to getting good sequential performance in R.
+The following function returns just such an iterator:
+
+<<iter3>>=
+ivector <- function(x, ...) {
+ i <- 1
+ it <- idiv(length(x), ...)
+
+ nextEl <- function() {
+   n <- nextElem(it)
+   ix <- seq(i, length=n)
+   i <<- i + n
+   x[ix]
+ }
+
+ obj <- list(nextElem=nextEl)
+ class(obj) <- c('ivector', 'abstractiter', 'iter')
+ obj
+}
+@
+
+\texttt{ivector} uses \texttt{...} to pass options on to
+\texttt{idiv}.  \texttt{idiv} supports the \texttt{chunks} argument
+to split its argument into a specified number of pieces, and the
+\texttt{chunkSize} argument to split it into pieces of a specified
+maximum size.
+
+Let's create an \texttt{ivector} iterator to split a vector into three
+pieces using the \texttt{chunks} argument:
+
+<<runiter3>>=
+it <- ivector(1:25, chunks=3)
+as.list(it)
+@
+
+Note that the \texttt{nextEl} function doesn't seem to throw a
+\texttt{StopIteration} exception.  It is actually throwing it
+indirectly, by calling \texttt{nextElem} on the iterator created via the
+\texttt{idiv} function.  This function is fairly simple, because most of
+the tricky stuff is handled by \texttt{idiv}.  \texttt{ivector} focuses
+on operating on the vector.
+
+It should be clear that only minor modification need to be made to this
+function to create an iterator over the blocks of rows or columns of a
+matrix or data frame.  But I'll leave that as an exercise for the
+reader.
+
+\section{Adding a \texttt{hasNext} method to an iterator}
+
+At times it would be nice to write a loop that explicitly gets the
+values of an iterator.  Although that is certainly possible with a
+standard iterator, it requires some rather awkward error handling.  One
+solution to this problem is to add a method that indicates whether there
+is another value available in the iterator.  Then you can write a simple
+while loop that stops when there are no more values.
+
+One way to do that would be to define a new S3 method called \texttt{hasNext}.
+Here's the definition of a \texttt{hasNext} generic function:
+
+<<generichasnext>>=
+hasNext <- function(obj, ...) {
+  UseMethod('hasNext')
+}
+@
+
+We also need to define \texttt{hasNext} method for a iterator class
+that we'll call \texttt{ihasNext}:
+
+<<hasnextmethod>>=
+hasNext.ihasNext <- function(obj, ...) {
+  obj$hasNext()
+}
+@
+
+As you can see, an \texttt{ihasNext} object must be a list with a 
+\texttt{hasNext} element that is a function.  That's the same technique that 
+the \texttt{abstractiter} class uses to implement the \texttt{nextElem} method.
+
+Now we'll define a function, called \texttt{ihasNext}, that takes an
+arbitrary iterator and returns returns an \texttt{ihasNext} iterator that
+wraps the specified iterator.  That allows us to turn any iterator into
+an \texttt{ihasNext} iterator, thus providing it with a \texttt{hasNext}
+method:\footnote{Thanks to Hadley Wickham for contributing this
+function, which I only hacked up a little.  You can also find this
+function, along with \texttt{hasNext} and \texttt{hasNext.ihasNext} in
+the examples directory of the iterators packages.}
+
+<<ihasnext>>=
+ihasNext <- function(it) {
+  if (!is.null(it$hasNext)) return(it)
+  cache <- NULL
+  has_next <- NA
+
+  nextEl <- function() {
+    if (!hasNx())
+      stop('StopIteration', call.=FALSE)
+    has_next <<- NA
+    cache
+  }
+
+  hasNx <- function() {
+    if (!is.na(has_next)) return(has_next)
+    tryCatch({
+      cache <<- nextElem(it)
+      has_next <<- TRUE
+    },
+    error=function(e) {
+      if (identical(conditionMessage(e), 'StopIteration')) {
+        has_next <<- FALSE
+      } else {
+        stop(e)
+      }
+    })
+    has_next
+  }
+
+  obj <- list(nextElem=nextEl, hasNext=hasNx)
+  class(obj) <- c('ihasNext', 'abstractiter', 'iter')
+  obj
+}
+@
+
+When the \texttt{hasNext} method is called, it calls the
+\texttt{nextElem} method on the underlying iterator, and the resulting
+value is saved.  That value is then passed to the user when
+\texttt{nextElem} is called.  Of course, it also does the right thing if
+you don't call \texttt{hasNext}, or if you call it multiple times before
+calling \texttt{nextElem}.
+
+So now we can easily create an \texttt{icount} iterator, and get its values
+in a while loop, without having to do any messy error handling:
+
+<<hasnextexample>>=
+it <- ihasNext(icount(3))
+while (hasNext(it)) {
+  print(nextElem(it))
+}
+@
+
+\section{A recycling iterator}
+
+The \texttt{ihasNext} function from the previous section is an
+interesting example of a function that takes an iterator and returns an
+iterator that wraps the specified iterator.  In that case, we wanted to
+add another method to the iterator.  In this example, we'll return an
+iterator that recycles the values of the wrapped iterator:\footnote{
+Actually, some of the standard \texttt{iter} methods support a
+\texttt{recycle} argument.  But this is a nice example, and a more
+general solution, since it works on any iterator.}
+
+<<recyle>>=
+irecycle <- function(it) {
+  values <- as.list(iter(it))
+  i <- length(values)
+
+  nextEl <- function() {
+    i <<- i + 1
+    if (i > length(values)) i <<- 1
+    values[[i]]
+  }
+
+  obj <- list(nextElem=nextEl)
+  class(obj) <- c('irecycle', 'abstractiter', 'iter')
+  obj
+}
+@
+
+This is fairly nice, but note that this is another one of those
+infinite iterators that we need to be careful about.  Also, make sure
+that you don't pass an infinite iterator to \texttt{irecycle}.  That
+would be pointless of course, since there's no reason to recycle an
+iterator that never ends.  It would be possible to write this to avoid
+that problem by not grabbing all of the values right up front, but you
+would still end up saving values that will never be recycled, so I've
+opted to keep this simple.
+
+Let's try it out:
+
+<<recyleexample>>=
+it <- irecycle(icount(3))
+unlist(as.list(it, n=9))
+@
+
+\section{Limiting infinite iterators}
+
+I was tempted to add an argument to the \texttt{irecycle} function to
+limit the number of values that it returns, because sometimes you want
+to recycle for awhile, but not forever.  I didn't do that, because
+rather than make \texttt{irecycle} more complicated, I decided to write
+yet another function that takes an iterator and returns a modified
+iterator to handle that task:
+
+<<ilimit>>=
+ilimit <- function(it, times) {
+  it <- iter(it)
+
+  nextEl <- function() {
+    if (times > 0)
+      times <<- times - 1
+    else
+      stop('StopIteration')
+
+    nextElem(it)
+  }
+
+  obj <- list(nextElem=nextEl)
+  class(obj) <- c('ilimit', 'abstractiter', 'iter')
+  obj
+}
+@
+
+Note that this looks an awful lot like the \texttt{irep} function that
+we implemented previously.  In fact, using \texttt{ilimit}, we can
+implement \texttt{irep} using \texttt{iforever} much more simply, and
+without duplication of code:
+
+<<irep2>>=
+irep2 <- function(x, times)
+  ilimit(iforever(x), times)
+@
+
+To demonstrate \texttt{irep2}, I'll use \texttt{ihasNext} and a while
+loop:
+
+<<testirep2>>=
+it <- ihasNext(irep2('foo', 3))
+while (hasNext(it)) {
+  print(nextElem(it))
+}
+@
+
+Here's one last example.  Let's recycle a vector three times using
+\texttt{ilimit}, and convert it back into a vector using
+\texttt{as.list} and \texttt{unlist}:
+
+<<testirecycle>>=
+iterable <- 1:3
+n <- 3
+it <- ilimit(irecycle(iterable), n * length(iterable))
+unlist(as.list(it))
+@
+
+Sort of a complicated version of:
+<<rep>>=
+rep(iterable, n)
+@
+Aren't iterators fun?
+
+\section{Conclusion}
+
+Writing your own iterators can be quite simple, and yet is very useful
+and powerful.  It provides a very effective way to extend the
+capabilities of other packages that use iterators, such as the
+\texttt{foreach} package.  By writing iterators that wrap other
+iterators, it is possible to put together a powerful and flexible set of
+tools that work well together, and that can solve many of the complex
+problems that come up in parallel computing.
+
+\end{document}

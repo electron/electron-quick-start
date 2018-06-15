@@ -1,0 +1,219 @@
+        CHANGES IN bit VERSION 1.1-13
+
+USER VISIBLE CHANGES
+
+    o logical NA is now mapped to bit FALSE as in ff booleans
+    o extractor function '[.bit' with positive numeric subscripts
+	  (integer, double, bitwhich) now behaves like '[.logical' and returns 
+	  NA for out-of-bound requests and no element for 0
+    o extractor function '[[.bit' with positive numeric (integer, double, 
+      bitwhich) subscripts now behaves like '[[.logical' and throws an error
+      for out-of-bound requests
+    o extractor function '[.bit' with range index subscripts (ri)
+      subscripts now behaves like '[[.bit' and throws an error
+      for out-of-bound requests
+    o assignment functions '[<-.bit' and '[[<-.bit' with positive numeric 
+      (integer, double, bitwhich) subscripts now behave like '[<-.logical' and
+      '[[<-.logical' and silently increase vector length if necessary
+    o assignment function '[<-.bit' with range index subscripts (ri) now 
+      behaves like '[[<-.bit' and silently increases vector length if necessary
+    o rlepack() is now a generic with a method for class 'integer'
+    o rleunpack() is now a generic with a method for class 'rlepack'
+    o unique.rlepack() now gives correct results for unordered sequences
+    o anyDuplicated.rlepack() now returns the position of the first
+	  duplicate and gives correct results for unordered sequences
+
+TUNING
+
+    o The package can now compiled with 64bit words instead of 32bit words,
+      since we only measured a minor speedup, we left 32bit as the default.
+
+BUG FIXES
+
+    o extractor and assignment functions now check for legal (positive) 
+      subscript bounds, hence illegally large subscripts or zero no longer 
+      cause memory violations
+
+    
+    
+CHANGES IN bit VERSION 1.1-12
+
+NEW FEATURES
+
+    o function still.identical() has been moved to here from package bit64
+    o generic 'clone' and methods clone.default and clone.list have been moved to here from package ff
+
+BUG FIXES
+
+    o bit[bitwhich] is now subscripting properly (VALGRIND)
+    o UBSAN should no longer complain about left shift of int
+      (although that never was a problem)
+
+    
+    
+    CHANGES IN bit VERSION 1.1-10
+
+
+TUNING
+
+    o function 'vecseq' now calls C-code when calling with the default 
+      parameters 'concat=TRUE, eval=TRUE' (wish of Matthew Dowle)
+
+BUG FIXES
+
+    o all.bit no longer ignores TRUE values in the second and following words
+      (spotted by Nelson Chen)
+
+    
+    
+    CHANGES IN bit VERSION 1.1-9
+
+
+NEW FEATURES
+
+    o new function 'repeat.time' for adaptive timing
+
+    
+CODE ORGANIZATION
+
+    o generics for sorting and ordering have been moved from 'ff' to 'bit'
+    
+    
+    
+    CHANGES IN bit VERSION 1.1-7
+
+
+USER VISIBLE CHANGES
+
+    o all calls to 'seq.int' have been replaced by 'seq_along' or 'seq_len'
+    o most calls to 'cat' have been replaced by 'message'
+
+
+BUG FIXES
+
+    o chunk.default now works with chunk(from=2, to=3, by=1) thanks to Edwin de Jonge
+
+
+
+    CHANGES IN bit VERSION 1.1-5
+
+
+NEW FEATURES
+
+    o new utility functions setattr() and setattributes() allow to set attributes 
+      by reference (unlike attr()<- attributes()<- without copying the object)
+
+    o new utility unattr() returns copy of input with attributes removed
+
+
+USER VISIBLE CHANGES
+
+    o certain operations like creating a bit object are even faster now: need 
+      half the time and RAM through the use of setattr() instead of attr()<-
+
+    o [.bit now decorates its logical return vector with attr(,'vmode')='boolean',
+      i.e. we retain the information that there are no NAs.
+
+
+BUG FIXES
+
+    o .onLoad() no longer calls installed.packages() which substantially 
+      improves startup time (thanks to Brian Ripley)
+
+
+
+    CHANGES IN bit VERSION 1.1-2
+
+
+USER VISIBLE CHANGES
+
+    o The package now has a namespace
+
+
+
+
+    CHANGES IN bit VERSION 1.1-1
+
+
+USER VISIBLE CHANGES
+
+    o Function 'chunk' has been made generic, the default method
+      provides the previous behavior.
+
+    o New method to increase length of bitwhich objects.
+
+    o Added further coercion methods.
+      provides the previous behavior.
+
+
+BUG FIXES
+
+    o as.bitwhich.ri now generates correct negative subscripts.
+
+
+
+
+    CHANGES IN bit VERSION 1.1-0
+
+
+NEW FEATURES
+
+    o New class 'bitwhich' stores subscript positions in most efficient way:
+      TRUE for all()==TRUE, FALSE for !any()==TRUE. otherwise positive or
+      negative subscripts, whatever needs less RAM. Coercion functions and 
+      logical operators are available, the latter being efficient for very
+      asymetric (skewed) distributions: selecting or exlcuding small factions
+      of the data.
+    
+    o New class 'ri' (range index) allows to select ranges of positions for 
+      chunked processing: all three classes 'bit', 'bitwhich' and 'ri' can be 
+      used for subsetting 'ff' objects (ff-2.1.0 and higher).
+    
+    o New c() method for 'bit' and 'bitwhich' objects which behaves like 
+      c(logical).
+
+    o The bit methods sum(), any(), all(), min(), max(), range(), summary() 
+      and which() now support a range argument that allows to restrict the 
+      range of evaluation for chunked processing.
+
+    o New utilities for chunked processing: bbatch, repfromto, chunk, vecseq.
+
+
+USER VISIBLE CHANGES
+
+    o reducing length of bit objects will now set hidden bits to FALSE, 
+      such that subsequent length increase behaves consistent with bit
+      objects that had never been reduced in length: new bits are FALSE
+
+    o 'which' is no longer turned into a generic. Use 'bitwhich' instead, 
+      or, 'as.which' if you need strictly positive subscripts. 
+      
+    o 'which.bit' has been renamed to 'as.which.bit'. It no longer has 
+      parameter 'negative' and always returns positive subscripts (wish of 
+      Stavros Macrakis). It now has second parameter 'range' in order to return
+      subscripts for chunked processing (note that the bitwhich representation 
+      is not suitable for chunked processing). In order to facilitate coercion, 
+      the return vector of 'as.which' now has class 'which'.
+      
+    o the internal structure of a bit object has been changed to align with ff 
+      ram objects: the bitlength of a bit object is no longer stored in 
+      attr(bit, "n"), instead in attr(attr(bit, "physical"), "Length"),
+      which is accessible via physical(bit)$Length, but should be accessed
+      usually via length(bit). 
+
+    o the semantics of 'min', 'max' and 'range' have been changed. They now 
+      refer to the positions of TRUE in the bit vector (and thus are consistent
+      with bitwhich rather than with logical. The 'summary' method now returns 
+      four elements c("FALSE"=, "TRUE"=, "Min."=, "Max."=).
+
+
+BUG FIXES
+
+    o which.bit no longer returns integer() for a bit vector that has all TRUE
+
+
+KNOWN PROBLEMS / TODOs
+
+    o NAs are mapped to TRUE in 'bit' and to FALSE in 'ff' booleans. Might be aligned 
+      in a future release. Don't use bit if you have NAs - or map NAs explicitely.
+

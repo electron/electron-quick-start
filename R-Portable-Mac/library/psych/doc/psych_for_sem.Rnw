@@ -1,0 +1,775 @@
+% \VignetteIndexEntry{input for sem}
+% \VignettePackage{psych}
+% \VignetteKeywords{multivariate}
+% \VignetteKeyword{models}
+% \VignetteKeyword{Hplot}
+%\VignetteDepends{psych}
+%\documentclass[doc]{apa}
+\documentclass[11pt]{article}
+%\documentclass[11pt]{amsart}
+\usepackage{geometry}                % See geometry.pdf to learn the layout options. There are lots.
+\geometry{letterpaper}                   % ... or a4paper or a5paper or ... 
+%\geometry{landscape}                % Activate for for rotated page geometry
+\usepackage[parfill]{parskip}    % Activate to begin paragraphs with an empty line rather than an indent
+\usepackage{graphicx}
+\usepackage{amssymb}
+\usepackage{epstopdf}
+\usepackage{mathptmx}
+\usepackage{helvet}
+\usepackage{courier}
+\usepackage{epstopdf}
+\usepackage{makeidx}        % allows index generation
+\usepackage[authoryear,round]{natbib} 
+\usepackage{gensymb}
+\usepackage{longtable}
+%\usepackage{geometry} 
+\usepackage{Sweave}    
+%\usepackage{/Library/Frameworks/R.framework/Versions/2.7/Resources/share/texmf/Sweave}
+%\usepackage[ae]{Rd}
+%\usepackage[usenames]{color}
+%\usepackage{setspace}
+\usepackage{amssymb}    
+\usepackage{amsmath}
+%\DeclareGraphicsRule{.tif}{png}{.png}{`convert #1 `dirname #1`/`basename #1 .tif`.png}
+\bibstyle{apacite}
+\bibliographystyle{apa}   %this one plus author year seems to work?
+%\usepackage{hyperref}
+\usepackage[colorlinks=true,citecolor=blue]{hyperref}  %this makes reference links hyperlinks in pdf!
+
+
+\DeclareGraphicsRule{.tif}{png}{.png}{`convert #1 `dirname #1`/`basename #1 .tif`.png}
+\usepackage{multicol}        % used for the two-column index
+\usepackage[bottom]{footmisc}% places footnotes at page bottom
+\let\proglang=\textsf
+\newcommand{\R}{\proglang{R}}
+%\newcommand{\pkg}[1]{{\normalfont\fontseries{b}\selectfont #1}}
+\newcommand{\Rfunction}[1]{{\texttt{#1}}} 
+\newcommand{\fun}[1]{{\texttt{#1}\index{#1}\index{R function!#1}}}
+\newcommand{\pfun}[1]{{\texttt{#1}\index{#1}\index{R function!#1}\index{R function!psych package!#1}}}\newcommand{\Rc}[1]{{\texttt{#1}}}    %R command  same as Robject
+\newcommand{\Robject}[1]{{\texttt{#1}}} 
+\newcommand{\Rpkg}[1]{{\textit{#1}\index{#1}\index{R package!#1}}}   %different from pkg  - which is better?
+\newcommand{\iemph}[1]{{\emph{#1}\index{#1}}} 
+\newcommand{\wrc}[1]{\marginpar{\textcolor{blue}{#1}}}   %bill's comments
+\newcommand{\wra}[1]{\textcolor{blue}{#1}}  %bill's comments
+
+\newcommand{\ve}[1]{{\textbf{#1}}} %trying to get a vector command
+\newcommand{\vect}[1]{\boldsymbol{#1}}
+ \def\vec#1{\ensuremath{\mathchoice
+                     {\mbox{\boldmath$\displaystyle\mathbf{#1}$}}
+                     {\mbox{\boldmath$\textstyle\mathbf{#1}$}}
+                     {\mbox{\boldmath$\scriptstyle\mathbf{#1}$}}
+                     {\mbox{\boldmath$\scriptscriptstyle\mathbf{#1}$}}}}%
+
+
+
+\makeindex         % used for the subject index
+
+\title{Using the psych package to generate and test structural models}
+\author{William Revelle}
+
+%\affiliation{Northwestern University}
+%\acknowledgements{Written to accompany the psych package.  Comments should be directed to William Revelle \\  \url{revelle@northwestern.edu}}
+%\date{}                                         % Activate to display a given date or no date
+
+
+\begin{document}
+\SweaveOpts{concordance=TRUE}
+\maketitle
+%\section{}
+%\subsection{}
+\tableofcontents
+\newpage
+\section{The psych package}
+
+\subsection{Preface}
+The \Rpkg{psych} package \citep{psych} has been developed to include those functions most useful for teaching and learning basic psychometrics and personality theory. Functions have been developed for many parts of the analysis of test data, including basic descriptive statistics (\pfun{describe} and \pfun{pairs.panels}), dimensionality analysis (\pfun{ICLUST}, \pfun{VSS}, \pfun{principal}, \pfun{factor.pa}), reliability analysis (\pfun{omega}, \pfun{guttman}) and eventual scale construction (\pfun{cluster.cor}, \pfun{score.items}).   The use of these and other functions is described in more detail in the accompanying vignette (\href{"An overview of the psych package"}{overview.pdf}) as well as in the complete user's manual and the relevant help pages. (These  vignettes are also available at \href{"https://personality-project.org/r/overview.pdf"}{\url{https://personality-project.org/r/overview.pdf}}) and \href{"https://personality-project.org/r/psych_for_sem.pdf"}{\url{https://personality-project.org/r/psych_for_sem.pdf}}) .  
+
+This vignette is concerned with the problem of modeling structural data and using the \Rpkg{psych} package as a front end for the much more powerful \Rpkg{sem} package of John Fox \citep{fox:06,sem:09,sem}. Future releases of this vignette will include examples for using the \Rpkg{lavaan} package of Yves Rosseel \citep{lavaan}.
+
+The first section discusses how to simulate particular latent variable structures.  The second considers several Exploratory Factor Analysis (EFA) solutions to these problems.  The third section considers how to do confirmatory factor analysis and structural equation modeling using the \Rpkg{sem} package but with the input prepared using functions in the \Rpkg{psych} package.
+
+\subsection{Creating and modeling structural relations}
+One common application of \pfun{psych} is the creation of simulated data matrices with  particular structures to use as examples for principal components analysis, factor analysis, cluster analysis, and structural equation modeling.   This vignette describes some of the functions used for creating, analyzing, and displaying such data sets.  The examples use two other packages: \Rpkg{Rgraphviz} and \Rpkg{sem}.  Although not required to use the \Rpkg{psych} package, sem is required for these examples. Although \Rpkg{Rgraphviz} had been used for the graphical displays, it has now been replaced with graphical functions within psych.  The analyses themselves require only the \Rpkg{sem} package to do  the structural modeling.
+
+<<print=FALSE,echo=FALSE>>=
+if(!require(sem))  stop('The package sem is required to do these analyses')
+if(!require('GPArotation')) stop('The package GPArotation is required to do these analyses')
+@
+
+
+\section{Functions for generating correlational matrices with a particular structure}
+The \pfun{sim} family of  functions create data sets with particular structure.  Most of these functions have default values that will produce useful examples.  Although graphical summaries of these structures will be shown here, some of the options of the graphical displays will be discussed in a later section.
+
+The \pfun{sim} functions include:
+
+\begin{description}
+\item[sim.structure ]A function to combine a measurement and structural model into one data matrix. Useful for understanding structural equation models. Combined with structure.diagram to see the proposed structure.
+
+\item[sim.congeneric] A function to create congeneric items/tests for demonstrating classical test theory. This is just a special case of sim.structure.
+
+\item[sim.hierarchical ]A function to create data with a hierarchical (bifactor) structure.
+
+\item[sim.general] A function to simulate a general factor and multiple group factors.  This is done in a somewhat more obvious, although less general, method than \pfun{sim.hierarcical}.
+
+\item[sim.item] A function to create items that either have a simple structure or a circumplex structure.
+
+\item[sim.circ] Create data with a circumplex structure.
+
+\item[sim.dichot ]Create dichotomous item data with a simple or circumplex structure.
+
+\item[sim.minor] Create a factor structure for nvar variables defined by nfact major factors and $\frac{nvar}{2} $``minor" factors for n observations.
+
+\item[sim.parallel] Create a number of simulated data sets using sim.minor to show how parallel analysis works.
+
+\item[sim.rasch] Create  IRT data following a Rasch model.
+
+\item[sim.irt]  Create a two parameter IRT logistic (2PL) model.
+
+\item[sim.anova] Simulate a 3 way balanced ANOVA or linear model, with or without repeated measures. Useful for teaching courses in research methods. 
+\end{description}
+
+To make these examples replicable for readers, all simulations are prefaced by setting the random seed to a fixed (and for some, memorable) number \citep{adams:80}.  For normal use of the simulations, this is not necessary.
+
+\subsection{\pfun{sim.congeneric}}
+Classical test theory considers tests to be \iemph{tau} equivalent if they have the same covariance with a vector of  latent true scores, but perhaps different error variances.  Tests are considered \iemph{congeneric} if they each have the same true score component (perhaps to a different degree) and independent error components.  The \pfun{sim.congeneric} function may be used to generate either structure.
+
+The first example considers four tests with equal loadings on a latent factor (that is, a $\tau$ equivalent model). If the number of subjects is not specified, a population correlation matrix will be generated.  If N is specified, then the sample correlation matrix is returned.  If the ``short'' option is FALSE, then the population matrix, sample matrix, and sample data are all returned as elements of a list.  
+
+ \begin{scriptsize}
+<<print=FALSE,echo=TRUE>>=
+library(psych)
+set.seed(42)
+tau <- sim.congeneric(loads=c(.8,.8,.8,.8)) #population values
+tau.samp <- sim.congeneric(loads=c(.8,.8,.8,.8),N=100) # sample correlation matrix for 100 cases
+round(tau.samp,2)  
+tau.samp <- sim.congeneric(loads=c(.8,.8,.8,.8),N=100, short=FALSE) 
+tau.samp
+dim(tau.samp$observed)
+@
+\end{scriptsize}
+
+In this last case, the generated data are retrieved from tau.samp\$observed.
+\label{congeneric}
+Congeneric data are created by specifying unequal loading values.  The default values are loadings of c(.8,.7,.6,.5). As seen in Figure~\ref{fig:tau}, tau equivalence is the special case where all paths are equal.
+
+ \begin{scriptsize}
+<<print=FALSE,echo=TRUE>>=
+cong <- sim.congeneric(N=100)
+round(cong,2)
+@
+ \end{scriptsize}
+ 
+\begin{figure}[htpb]
+\begin{center}
+<<print=FALSE,echo=TRUE, fig=TRUE,eps=FALSE>>=
+#plot.new()
+m1 <- structure.diagram(c("a","b","c","d"))
+@
+\caption{Tau equivalent tests are special cases of congeneric tests.  Tau equivalence assumes a=b=c=d}
+\label{fig:tau}
+\end{center}
+\end{figure}
+
+
+
+\subsection{\pfun{sim.hierarchical}}
+The previous function, \pfun{sim.congeneric}, is used when one factor accounts for the pattern of correlations.  A slightly more complicated model is when one broad factor and several narrower factors are observed.  An example of this structure might be the structure of mental abilities, where there is a broad factor of general ability and several narrower factors (e.g., spatial ability, verbal ability, working memory capacity).   Another example is in the measure of psychopathology where a broad general factor of neuroticism is seen along with more specific anxiety, depression, and aggression factors.  This kind of structure may be simulated with \pfun{sim.hierarchical} specifying the loadings of each sub factor on a general factor (the g-loadings) as well as the loadings of individual items on the lower order factors (the f-loadings).  An early paper describing a \iemph{bifactor} structure was by \cite{holzinger:37}.  A helpful description of what makes a good general factor is that of \cite{jensen:weng}.  
+
+For those who prefer real data to simulated data, six data sets are included in the \pfun{bifactor} data set.  One is the original 14 variable problem of \cite{holzinger:37} (holzinger), a second is a nine variable problem adapted by \cite{bechtoldt:61} from \cite{thurstone:41} (the data set is  used as an example in the SAS manual and discussed in great detail by \cite{mcdonald:tt}), a third is from a recent paper by \cite{reise:07} with 16 measures of patient reports of interactions with their health care provider. 
+
+ \begin{scriptsize}
+<<print=FALSE,echo=TRUE>>=
+set.seed(42)
+gload=matrix(c(.9,.8,.7),nrow=3)
+fload <- matrix(c(.8,.7,.6,rep(0,9),.7,.6,.5,
+rep(0,9),.7,.6,.4),   ncol=3)
+fload #echo it to see the structureSw
+bifact <- sim.hierarchical(gload=gload,fload=fload)
+round(bifact,2)
+@
+\end{scriptsize}
+These data can be represented as either a \iemph{bifactor} (Figure~\ref{fig:bifact} panel A) or \iemph{hierarchical} (Figure~\ref{fig:bifact} Panel B) factor solution.  The analysis was done with the \pfun{omega} function.  
+\begin{figure}[htbp]
+\begin{center}
+ \begin{scriptsize}
+<<print=FALSE,echo=TRUE, fig=TRUE,eps=FALSE>>=
+op <- par(mfrow=c(1,2))
+m.bi <- omega(bifact,title="A bifactor model")
+m.hi <- omega(bifact,sl=FALSE,title="A hierarchical model")
+op <- par(mfrow = c(1,1))
+@
+ \end{scriptsize}
+\caption{(Left panel) A bifactor solution represents each test in terms of a general factor and a residualized group factor. (Right Panel) A hierarchical factor solution has g as a second order factor accounting for the correlations between the first order factors}
+\label{fig:bifact}
+\end{center}
+\end{figure}
+
+
+
+\subsection{\pfun{sim.item} and \pfun{sim.circ}}
+Many personality questionnaires are thought to represent multiple, independent factors.  A particularly interesting case is when there are two factors and the items either have \iemph{simple structure} or \iemph{circumplex structure}.  Examples of such items with a circumplex structure are measures of emotion \citep{rafaeli:revelle:06} where many different emotion terms can be arranged in a two dimensional space, but where there is no obvious clustering of items.  Typical personality scales are constructed to have simple structure, where items load on one and only one factor.  
+
+An additional  challenge to measurement with emotion or personality items is that the items can be highly skewed and are assessed with a small number of discrete categories (do not agree, somewhat agree, strongly agree).  
+
+The more general  \pfun{sim.item} function, and the more specific, \pfun{sim.circ} functions simulate items with a two dimensional structure, with or without skew, and varying the number of categories for the items.  An example of a circumplex structure is shown in Figure~\ref{fig:circ}
+\begin{figure}[htbp]
+\begin{center}
+<<print=FALSE,echo=TRUE, fig=TRUE,eps=FALSE>>=
+circ <- sim.circ(16)
+f2 <- fa(circ,2)
+plot(f2,title="16 simulated variables in a circumplex pattern")
+@
+\caption{Emotion items or interpersonal items frequently show a circumplex structure. Data generated by sim.circ and factor loadings found by the principal axis algorithm using factor.pa.}
+\label{fig:circ}
+\end{center}
+\end{figure}
+
+
+
+\subsection{\pfun{sim.structure}}
+A more general case is to consider three matrices, $\vec{f}_x,\vec{\phi_{xy}},  \vec{f}_y $ which describe, in turn, a measurement model of x variables, $\vec{f}_x$, a measurement model of y variables, $\vec{f}_x$, and a covariance matrix between and within the two sets of factors.  If $\vec{f}_x$ is a vector and $\vec{f}_y$ and $\vec{phi}_{xy}$ are NULL, then this is just the congeneric model.  If $\vec{f}_x$ is a matrix of loadings with n rows and c columns, then this is a measurement model for n variables across c factors.  If $\vec{phi}_{xy}$ is not null, but $\vec{f}_y$ is NULL, then the factors in $\vec{f}_x$ are correlated.  Finally, if all three matrices are not NULL, then the data show the standard linear structural relations (LISREL) structure.
+
+Consider the following examples:
+
+
+\subsubsection{ $\vec{f}_x$ is a vector implies a congeneric model}
+ \begin{scriptsize}
+<<print=FALSE,echo=TRUE>>=
+set.seed(42)
+fx <- c(.9,.8,.7,.6)
+cong1 <- sim.structure(fx)
+cong1
+@
+ \end{scriptsize}
+
+\subsubsection{$\vec{f}_x$ is a matrix implies an independent factors model:}
+ \begin{scriptsize}
+<<print=FALSE,echo=TRUE>>=
+set.seed(42)
+fx  <- matrix(c(.9,.8,.7,rep(0,9),.7,.6,.5,rep(0,9),.6,.5,.4),   ncol=3)
+three.fact <- sim.structure(fx)
+three.fact
+@
+ \end{scriptsize}
+\begin{figure}[htbp]
+\begin{center}
+<<print=FALSE,echo=FALSE, fig=TRUE,eps=FALSE>>=
+#plot.new()
+three.fact.mod <-structure.diagram(fx)
+@
+\caption{Three uncorrelated factors generated using the sim.structure function and drawn using structure.diagram.}
+\label{fig:3f}
+\end{center}
+\end{figure}
+
+\subsubsection{$\vec{f}_x$ is a matrix and Phi $\neq I$ is a correlated factors model}
+ \begin{scriptsize}
+<<print=FALSE,echo=TRUE>>=
+Phi = matrix(c(1,.5,.3,.5,1,.2,.3,.2,1), ncol=3)
+cor.f3 <- sim.structure(fx,Phi)
+fx
+Phi
+cor.f3
+@
+ \end{scriptsize}
+
+\paragraph{Using symbolic loadings and path coefficients}
+
+For some purposes, it is helpful not to specify particular values for the paths, but rather to think of them symbolically.  This can be shown with symbolic loadings and path coefficients by using the \pfun{structure.list} and \pfun{phi.list} functions to create the fx and Phi matrices (Figure~\ref{fig:symb3}).
+<<print=FALSE,echo=TRUE>>=
+fxs <- structure.list(9,list(F1=c(1,2,3),F2=c(4,5,6),F3=c(7,8,9)))
+Phis <- phi.list(3,list(F1=c(2,3),F2=c(1,3),F3=c(1,2)))
+fxs  #show the matrix
+Phis #show this one as well
+@
+The \pfun{structure.list} and \pfun{phi.list} functions allow for creation of fx, Phi, and fy matrices in a very compact form, just by specifying the relevant variables. 
+
+\begin{figure}[htbp]
+\begin{center}
+<<print=FALSE,echo=TRUE, fig=TRUE,eps=FALSE>>=
+#plot.new()
+corf3.mod <- structure.diagram(fxs,Phis)
+@
+\caption{Three correlated factors with symbolic paths. Created using structure.diagram and structure.list and phi.list for ease of input.}
+\label{fig:symb3}
+\end{center}
+\end{figure}
+
+\paragraph{Drawing path models from Exploratory Factor Analysis solutions}
+
+Alternatively, this result can represent the estimated factor loadings and oblique correlations found using \fun{factanal}  (Maximum Likelihood factoring) or \pfun{fa}  (Principal axis or minimum residual (minres) factoring) followed by a promax rotation using the \pfun{Promax} function (Figure~\ref{fig:f3:emp}. Comparing this figure with the previous one (Figure~\ref{fig:symb3}), it will be seen that one path was dropped because it was less than the arbitrary ``cut" value of .2. 
+
+<<print=FALSE,echo=TRUE>>=
+f3.p <- Promax(fa(cor.f3$model,3))
+@
+
+\begin{figure}[htbp]
+\begin{center}
+<<print=FALSE,echo=TRUE, fig=TRUE,eps=FALSE>>=
+#plot.new()
+mod.f3p <- structure.diagram(f3.p,cut=.2)
+@
+\caption{The empirically fitted structural model.  Paths less than cut (.2 in this case, the default is .3) are not shown.}
+\label{fig:f3:emp}
+\end{center}
+\end{figure}
+
+
+
+\subsubsection{ $\vec{f}_x$ and  $\vec{f}_y$ are  matrices, and  Phi $\neq I$ represents their correlations} 
+A more complicated model is when there is a $\vec{f}_y$ vector or matrix representing a set of Y latent variables that are associated with the a set of y variables.   In this case, the Phi matrix is a set of correlations within the X set and between the X and Y set. 
+\begin{scriptsize}
+<<print=FALSE,echo=TRUE>>=
+set.seed(42)
+fx  <- matrix(c(.9,.8,.7,rep(0,9),.7,.6,.5,rep(0,9),.6,.5,.4),   ncol=3)
+fy <- c(.6,.5,.4)
+Phi <- matrix(c(1,.48,.32,.4,.48,1,.32,.3,.32,.32,1,.2,.4,.3,.2,1), ncol=4)
+twelveV <- sim.structure(fx,Phi, fy)$model
+colnames(twelveV) <-rownames(twelveV) <- c(paste("x",1:9,sep=""),paste("y",1:3,sep=""))
+round(twelveV,2)
+@
+\end{scriptsize}
+Data with this structure may be created using the \pfun{sim.structure} function, and shown either with the numeric values or symbolically using the \pfun{structure.diagram} function (Figure~\ref{fig:symbxy}).
+
+\begin{scriptsize}
+<<print=FALSE,echo=TRUE>>=
+fxs <- structure.list(9,list(X1=c(1,2,3), X2 =c(4,5,6),X3 = c(7,8,9)))
+phi <- phi.list(4,list(F1=c(4),F2=c(4),F3=c(4),F4=c(1,2,3)))
+fyx <- structure.list(3,list(Y=c(1,2,3)),"Y")
+@
+\end{scriptsize}
+\begin{figure}[htbp]
+\begin{center}
+<<print=FALSE,echo=TRUE, fig=TRUE,eps=FALSE>>=
+#plot.new()
+sg3 <- structure.diagram(fxs,phi,fyx)
+@
+\caption{A symbolic structural model. Three independent latent variables are regressed on a latent Y.}
+\label{fig:symbxy}
+\end{center}
+\end{figure}
+
+
+
+\subsubsection{A  hierarchical structure among the latent predictors.}
+Measures of intelligence and psychopathology frequently have a general factor as well as multiple group factors.  The general factor then is thought to predict some dependent latent variable.  Compare this with the previous model (see Figure~\ref{fig:symbxy}). 
+\begin{figure}[htpb]
+\begin{center}
+<<print=FALSE,echo=TRUE, fig=TRUE,eps=FALSE>>=
+fxh  <- structure.list(9,list(X1=c(1:3),X2=c(4:6),X3=c(7:9),g=NULL))
+fy <- structure.list(3,list(Y=c(1,2,3)))
+Phi <- diag(1,5,5)
+Phi[4,c(1:3)] <- letters[1:3]
+Phi[5,4] <- "r"
+#plot.new()
+hi.mod <-structure.diagram(fxh,Phi, fy)
+@
+\caption{A symbolic structural model with a general factor and three group factors. The general factor is regressed on the latent Y variable.}
+\label{fig:symb:gy}
+\end{center}
+\end{figure}
+
+These two models can be compared using structural modeling procedures (see below).
+ 
+\section{Exploratory functions for analyzing structure}
+Given correlation matrices such as those seen above for congeneric or bifactor models, the question becomes how best to estimate the underlying structure.  Because these data sets were generated from a known model, the question becomes how well does a particular model recover the underlying structure.
+
+\subsection{Exploratory simple structure models}
+The technique of \iemph{principal components} provides a set of weighted linear composites that best approximates a particular correlation or covariance matrix.  If these are then \iemph{rotated} to provide a more interpretable solution, the components are no longer the \iemph{principal} components.  The \pfun{principal} function will extract the first n principal components (default value is 1) and if n>1, rotate to \iemph{simple structure} using a \fun{varimax}, \fun{quartimin}, or \pfun{Promax} criterion.
+
+\begin{scriptsize}
+<<print=FALSE,echo=TRUE>>=
+principal(cong1$model)
+fa(cong1$model)
+@
+\end{scriptsize}
+It is important to note that although the \pfun{principal} components function does not exactly reproduce the model parameters, the \pfun{factor.pa} function, implementing principal axes or minimum residual (minres) factor analysis, does.  
+
+Consider the case of three underlying factors as seen in the bifact example above.  Because the number of observations is not specified, there is no  associated $\chi^2$ value.  The \pfun{factor.congruence} function reports the cosine of the angle between the factors.  
+
+\begin{scriptsize}
+<<print=FALSE,echo=TRUE>>=
+pc3 <- principal(bifact,3)
+pa3 <- fa(bifact,3,fm="pa")
+ml3 <- fa(bifact,3,fm="ml")
+pc3
+pa3
+ml3
+factor.congruence(list(pc3,pa3,ml3))
+@
+\end{scriptsize}
+
+By default, all three of these procedures use the varimax rotation criterion.  Perhaps it is useful to apply an oblique transformation such as \pfun{Promax} or \fun{oblimin} to the results.  The \pfun{Promax} function in \Rpkg{psych} differs slightly from the standard \fun{promax} in that it reports the factor intercorrelations.
+\begin{scriptsize}
+<<print=FALSE,echo=TRUE>>=
+ml3p <- Promax(ml3)
+ml3p
+@
+\end{scriptsize}
+\subsection{Exploratory hierarchical models}
+In addition to the conventional oblique factor model, an alternative model is to consider the correlations between the factors to represent a higher order factor.   This can be shown either as a \iemph{bifactor} solution \cite{holzinger:37,schmid:57} with a general factor for all variables and a set of residualized group factors, or as a hierarchical structure.  An exploratory hierarchical model can be applied to this kind of data structure using the \pfun{omega} function.  Graphic options include drawing a Schmid - Leiman bifactor solution (Figure~\ref{fig:om:bi}) or drawing a hierarchical factor solution f(Figure~\ref{fig:om:hi}).
+
+\subsubsection{A bifactor solution}
+\begin{figure}[htpb]
+\begin{center}
+<<print=FALSE,echo=TRUE, fig=TRUE,eps=FALSE>>=
+om.bi <- omega(bifact)
+@
+\caption{An exploratory bifactor solution to the nine variable problem}
+\label{fig:om:bi}
+\end{center}
+\end{figure}
+
+The \iemph{bifactor} solution has a general factor loading for each variable as well as a set of residual group factors.  This approach has been used extensively in the measurement of ability and has more recently been used in the measure of psychopathology \citep{reise:07}.  Data sets included in the \pfun{bifactor} data  include the original \citep{holzinger:37} data set (\pfun{holzinger}) as well as a set from \cite{reise:07} (\pfun{reise}) and a nine variable problem from Thurstone.
+
+\subsubsection{A hierarchical solution}
+\begin{figure}[htpb]
+\begin{center}
+<<print=FALSE,echo=TRUE, fig=TRUE,eps=FALSE>>=
+om.hi <- omega(bifact,sl=FALSE)
+@
+\caption{An exploratory hierarchical solution to the nine variable problem.}
+\label{fig:om:hi}
+\end{center}
+\end{figure}
+
+Both of these graphical representations are reflected in the output of the \pfun{omega} function.  The first was done using a Schmid-Leiman transformation, the second was not. As will be seen later, the objects returned from these two analyses may be used as models for a \fun{sem} analysis. It is also useful to examine the estimates of reliability reported by \pfun{omega}.
+<<print=FALSE,echo=TRUE>>=
+om.bi
+@
+
+
+
+Yet one more way to treat the hierarchical structure of a data set is to consider hierarchical cluster analysis using the \pfun{ICLUST} algorithm (Figure~\ref{fig:iclust}). ICLUST is most appropriate for forming item composites.
+\begin{figure}[htpb]
+\begin{center}
+<<print=FALSE,echo=FALSE, fig=TRUE,eps=FALSE>>=
+ic <- ICLUST(bifact,title="Hierarchical cluster analysis of bifact data")
+@
+\caption{A hierarchical cluster analysis of the bifact data set using ICLUST}
+\label{fig:iclust}
+\end{center}
+\end{figure}
+
+\section{Exploratory Structural Equation Modeling (ESEM)}
+
+Traditional Exploratory Factor Analysis (EFA) examines how latent variables can account for the correlations within a data set.  All loadings and cross loadings are found and rotation is done to some approximation of simple structure.  Traditional Confirmatory Factor Analysis (CFA) tests such models by fitting just a limited number of loadings and typically does not allow any (or many) cross loadings.  Structural Equation Modeling then applies two such measurement models, one to a set of X variables, another to a set of Y variables, and then tries to estimate the correlation between these two sets of latent variables.  (Some SEM procedures estimate all the parameters from the same model, thus making the loadings in set Y affect those in set X.)  It is possible to do a similar, exploratory modeling (ESEM) by conducting two Exploratory Factor Analyses, one in set X, one in set Y, and then finding the correlations of the X factors with the Y factors, as well as the correlations of the Y variables with the X factors and the X variables with the Y factors.  
+
+Consider the simulated data set of three ability variables, two motivational variables, and three outcome variables:
+
+<<print=FALSE,echo=FALSE, fig=FALSE,eps=FALSE>>=
+fx <-matrix(c( .9,.8,.6,rep(0,4),.6,.8,-.7),ncol=2)  
+fy <- matrix(c(.6,.5,.4),ncol=1)
+rownames(fx) <- c("V","Q","A","nach","Anx")
+rownames(fy)<- c("gpa","Pre","MA")
+Phi <-matrix( c(1,0,.7,.0,1,.7,.7,.7,1),ncol=3)
+gre.gpa <- sim.structural(fx,Phi,fy)
+print(gre.gpa)
+@
+
+We can fit this by using the \pfun{esem} function and then draw the solution (see Figure~\ref{fig:esem}) using the \pfun{esem.diagram} function (which is normally called automatically by \pfun{esem}.
+
+
+<<print=FALSE,echo=FALSE, fig=FALSE,eps=FALSE>>=
+esem.example <- esem(gre.gpa$model,varsX=1:5,varsY=6:8,nfX=2,nfY=1,n.obs=1000,plot=FALSE)
+esem.example
+@
+
+\begin{figure}[htpb]
+\begin{center}
+<<print=FALSE,echo=FALSE, fig=TRUE,eps=FALSE>>=
+ esem.diagram(esem.example)
+@
+\caption{An example of a Exploratory Structure Equation Model.}
+\label{fig:esem}
+\end{center}
+\end{figure}
+
+
+\section{Confirmatory models}
+
+Although the exploratory models shown above do estimate the goodness of fit of the model and compare the residual matrix to a zero matrix using a $\chi^2$ statistic, they estimate more parameters than are necessary if there is indeed a simple structure, and they do not allow for tests of competing models.  The \fun{sem} function  in the \Rpkg{sem} package by John Fox allows for confirmatory tests.  The interested reader is referred to the \Rpkg{sem} manual for more detail \citep{sem}.
+
+
+
+\subsection{Using psych as a front end for the sem package}
+Because preparation of the \fun{sem} commands is a bit tedious, several of the \Rpkg{psych} package functions have been designed to provide the appropriate commands.  That is, the functions \pfun{structure.list},  \pfun{phi.list},  \pfun{structure.diagram}, \pfun{structure.sem}, and \pfun{omega.graph} may be used as a front end to \fun{sem}.  Usually with no modification, but sometimes with just slight modification, the model output from the  \pfun{structure.diagram}, \pfun{structure.sem}, and \pfun{omega.graph} functions is meant to provide the appropriate commands for \fun{sem}.
+
+
+\subsection{Testing a congeneric model versus a tau equivalent model}
+The congeneric model is a one factor model with possibly unequal factor loadings.  The  tau equivalent model model is one with equal factor loadings. Tests for these may be done by creating the appropriate structures. The \pfun{structure.graph} function which requires \fun{Rgraphviz}, or \pfun{structure.diagram} or  the \pfun{structure.sem} functions which do not may be used.
+
+The following example tests the hypothesis (which is actually false) that the correlations found in the cong data set (see \ref{congeneric}) are tau equivalent.  Because the variable labels in that data set were V1 ... V4, we specify the labels to match those.
+\begin{scriptsize}
+<<print=FALSE,echo=TRUE>>=
+library(sem)
+ mod.tau <- structure.sem(c("a","a","a","a"),labels=paste("V",1:4,sep=""))
+mod.tau   #show it
+sem.tau <- sem(mod.tau,cong,100)
+summary(sem.tau,digits=2)
+@
+\end{scriptsize}
+Test whether the data are congeneric.  That is, whether a one factor model fits.  Compare this to the prior model using the \fun{anova} function.
+\begin{scriptsize}
+<<print=FALSE,echo=TRUE>>=
+mod.cong <- structure.sem(c("a","b","c","d"),labels=paste("V",1:4,sep=""))
+mod.cong  #show the model
+sem.cong <- sem(mod.cong,cong,100)
+summary(sem.cong,digits=2)
+anova(sem.cong,sem.tau) #test the difference between the two models
+@
+\end{scriptsize}
+The \fun{anova} comparison of the congeneric versus tau equivalent model shows that the change in $\chi^2$ is significant given the change in degrees of freedom.  
+
+\subsection{Testing the dimensionality of a hierarchical data set by creating the model}
+The bifact correlation matrix was created to represent a hierarchical structure.  Various confirmatory models can be applied to this matrix.
+
+The first example creates the model directly, the next several create models based upon exploratory factor analyses. mod.one is a congeneric model of one factor accounting for the relationships between the nine variables.  Although not correct, with 100 subjects, this model can not be rejected.  However, an examination of the residuals suggests serious problems with the model.
+
+\begin{scriptsize}
+<<print=FALSE,echo=TRUE>>=
+mod.one <- structure.sem(letters[1:9],labels=paste("V",1:9,sep=""))
+mod.one  #show the model
+sem.one <- sem(mod.one,bifact,100)
+summary(sem.one,digits=2)
+round(residuals(sem.one),2)
+@
+\end{scriptsize}
+\subsection{Testing the dimensionality based upon an exploratory analysis}
+Alternatively, the output from an exploratory factor analysis can be used as input to the structure.sem function.
+\begin{scriptsize}
+<<print=FALSE,echo=TRUE>>=
+f1 <- fa(bifact)
+mod.f1 <- structure.sem(f1)
+sem.f1 <- sem(mod.f1,bifact,100)
+sem.f1
+@
+\end{scriptsize}
+The answers are, of course, identical.
+
+\subsection{Specifying a three factor model}
+An alternative model is to extract three factors and try this solution.  The \pfun{fa} factor analysis function (using the \iemph{minimum residual} algorithm) is used to detect the structure.  Alternatively, the \fun{factanal} could have  been used.  Rather than use the default rotation of \pfun{oblimin}, we force an orthogonal solution (even though we know it will be a poor solution).
+
+\begin{scriptsize}
+<<print=FALSE,echo=TRUE>>=
+f3 <-fa(bifact,3,rotate="varimax")
+mod.f3 <- structure.sem(f3)
+sem.f3 <- sem(mod.f3,bifact,100)
+summary(sem.f3,digits=2)
+round(residuals(sem.f3),2)
+@
+\end{scriptsize}
+The residuals show serious problems with this model. Although the residuals within each of the three factors are zero, the residuals between groups are much too large.  
+
+\subsection{Allowing for an oblique solution}
+The previous solution is clearly very bad.  What would happen if the exploratory solution were allowed to have correlated (oblique) factors? 
+
+\begin{scriptsize}
+<<print=FALSE,echo=TRUE>>=
+f3 <-fa(bifact,3)     #extract three factors and do an oblique rotation
+mod.f3 <- structure.sem(f3) #create the sem model
+mod.f3   #show it 
+@
+\end{scriptsize}
+
+The structure being tested may be seen using \pfun{structure.graph}
+
+\begin{figure}[htpb]
+\begin{center}
+<<print=FALSE,echo=FALSE, fig=TRUE,eps=FALSE>>=
+#plot.new()
+mod.f3 <- structure.diagram(f3)
+@
+\caption{A three factor, oblique solution.}
+\label{default}
+\end{center}
+\end{figure}
+This makes much better sense, and in fact (as hoped) recovers the original structure.
+
+\subsection{Extract a bifactor solution using \pfun{omega} and then test that model using \fun{sem}}
+
+A bifactor solution has previously been shown (Figure~\ref{fig:om:bi}).  The output from the \pfun{omega} function includes the sem commands for the analysis. As an example of doing this with real rather than simulated data, consider 9 variables from Thurstone.  For completeness, the \fun{stdCoef} from \Rpkg{sem} is used as well as the \fun{summary} function.
+
+\subsubsection{sem of Thurstone 9 variable problem}
+The \Rpkg{sem} manual includes an example of a hierarchical solution to 9 mental abilities originally reported by Thurstone and used in the SAS manual for PROC CALIS and discussed in detail by \cite{mcdonald:tt}. The data matrix, as reported by Fox may be found in the \pfun{Thurstone} data set (which is ``lazy loaded''). Using the commands just shown, it is possible to analyze this data set using a bifactor solution (Figure~\ref{fig:thurstone:bi}).
+
+\begin{figure}[htbp]
+\begin{center}
+<<print=FALSE,echo=FALSE, fig=TRUE,eps=FALSE>>=
+om.th.bi  <- omega(Thurstone,digits=3)
+@
+\caption{A bifactor solution to the Thurstone 9 variable problem.  All items load on a general factor of ability, the residual factors account for the correlations between items within groups. }
+\label{fig:thurstone:bi}
+\end{center}
+\end{figure}
+
+
+\begin{scriptsize}
+<<print=FALSE,echo=TRUE>>=
+sem.bi <- sem(om.th.bi$model$sem,Thurstone,213) #use the model created by omega
+summary(sem.bi,digits=2)
+stdCoef(sem.bi,digits=2)
+@
+\end{scriptsize}
+
+
+Compare this solution to the one reported below, and to the \Rpkg{sem} manual.
+
+\subsection{Examining a hierarchical solution}
+A hierarchical solution to this data set was previously found by the \pfun{omega} function (Figure~\ref{fig:om:hi}).  The output of that analysis can be used as a model for a \fun{sem} analysis.  Once again, the \fun{stdCoef} function helps see the structure. Alternatively, using the \pfun{omega} function on the \pfun{Thurstone} data  will create the model for this particular data set.
+
+
+\begin{figure}[htpb]
+\begin{center}
+<<print=FALSE,echo=FALSE, fig=TRUE,eps=FALSE>>=
+om.hi <- omega(Thurstone,digits=3,sl=FALSE)
+@
+\caption{Hierarchical analysis of the Thurstone 9 variable problem using an exploratory algorithm can provide the appropriate sem code for analysis using the sem package.}
+\label{fig:thurstone:hi}
+\end{center}
+\end{figure}
+
+\begin{scriptsize}
+<<print=FALSE,echo=TRUE>>=
+sem.hi <- sem(om.hi$model$sem,Thurstone,213)
+summary(sem.hi,digits=2)
+stdCoef(sem.hi,digits=2)
+anova(sem.hi,sem.bi)
+@
+\end{scriptsize}
+
+Using the Thurstone data set, we see what happens when a hierarchical model is applied to real data.  The exploratory structure derived from the \pfun{omega} function (Figure~\ref{fig:thurstone:hi}) provides estimates in close approximation to those found using \fun{sem}.  The model definition created by using \pfun{omega} is the same hierarchical model discussed in the \fun{sem} help page. The \iemph{bifactor} model, with 6 more parameters does provide a better fit to the data than the hierarchical model.  
+
+Similar analyses can be done with other data that are organized hierarchically. Examples of these analyses are analyzing the 14 variables of \pfun{holzinger} and the 16 variables of \pfun{reise}.  The output from the following analyses has been limited to just the comparison between the bifactor and hierarchical solutions.
+
+\begin{scriptsize}
+<<print=FALSE,echo=TRUE>>=
+om.holz.bi <- omega(Holzinger,4)
+sem.holz.bi <- sem(om.holz.bi$model$sem,Holzinger,355)
+om.holz.hi <- omega(Holzinger,4,sl=FALSE)
+sem.holz.hi <- sem(om.holz.hi$model$sem,Holzinger,355)
+anova(sem.holz.bi,sem.holz.hi)
+@
+\end{scriptsize}
+
+
+\subsection{Estimating Omega using EFA followed by CFA}
+The function \pfun{omegaSem} combines both an exploratory factor analysis using \pfun{omega}, then calls the appropriate \fun{sem} functions and organizes the results as in a standard \pfun{omega} analysis.
+
+An example is found from  the Thurstone data set of 9 cognitive variables:
+\begin{scriptsize}
+<<print=TRUE,echo=TRUE>>=
+om.sem <- omegaSem(Thurstone,n.obs=213)
+@
+\end{scriptsize}
+
+Comparing the two models graphically (Figure~\ref{fig:omega:cfa} with Figure~\ref{fig:thurstone:bi} shows that while not identical, they are very similar.  The sem version is basically a forced simple structure. Notice that the values of $\omega_h$ are not identical from the EFA and CFA models.  The CFA solution yields higher values of $\omega_{h}$ because, by forcing a pure cluster solution (no cross loadings), the correlations between the factors is forced to be through the \emph{g} factor.
+
+\begin{figure}[htpb]
+\begin{center}
+<<print=FALSE,echo=FALSE, fig=TRUE,eps=FALSE>>=
+omega.diagram(om.sem,sort=FALSE)
+@
+\caption{Confirmatory Omega structure using \pfun{omegaSem} }
+\label{fig:omega:cfa}
+\end{center}
+\end{figure}
+
+
+
+\section{Summary and conclusion}
+
+The use of exploratory and confirmatory models for understanding real data structures is an important advance in psychological research.  To understand these approaches it is helpful to try them first on ``baby" data sets. To the extent that the models we use can be tested on simple, artificial examples, it is perhaps easier to practice their application.  The \Rpkg{psych} tools for simulating structural models  and for specifying models are a useful supplement to the power of packages such as \Rpkg{sem}.  The techniques that can be used on simulated data set can also be applied to real data sets. 
+
+\clearpage
+\begin{scriptsize}
+<<print=TRUE,echo=TRUE>>=
+sessionInfo()
+@
+\end{scriptsize}
+
+%\bibliography{/Volumes/WR/Documents/Active/book/all} 
+%\bibliography{all} 
+\begin{thebibliography}{}
+
+\bibitem[\protect\astroncite{Adams}{1980}]{adams:80}
+Adams, D. (1980).
+\newblock {\em The hitchhiker's guide to the galaxy}.
+\newblock Harmony Books, New York, 1st {American} edition.
+
+\bibitem[\protect\astroncite{Bechtoldt}{1961}]{bechtoldt:61}
+Bechtoldt, H. (1961).
+\newblock An empirical study of the factor analysis stability hypothesis.
+\newblock {\em Psychometrika}, 26(4):405--432.
+
+\bibitem[\protect\astroncite{Fox}{2006}]{fox:06}
+Fox, J. (2006).
+\newblock Structural equation modeling with the sem package in {R}.
+\newblock {\em Structural Equation Modeling}, 13:465--486.
+
+\bibitem[\protect\astroncite{Fox}{2009}]{sem:09}
+Fox, J. (2009).
+\newblock {\em sem: Structural Equation Models}.
+\newblock R package version 0.9-15.
+
+\bibitem[\protect\astroncite{Fox et~al.}{2013}]{sem}.
+Fox, J.  Nie, Zhenghua and  Byrnes, J. (2013) 
+\newblock {\em sem: Structural Equation Models}.
+\newblock R package version 3.1-3.
+
+
+\bibitem[\protect\astroncite{Holzinger and Swineford}{1937}]{holzinger:37}
+Holzinger, K. and Swineford, F. (1937).
+\newblock The bi-factor method.
+\newblock {\em Psychometrika}, 2(1):41--54.
+
+\bibitem[\protect\astroncite{Jensen and Weng}{1994}]{jensen:weng}
+Jensen, A.~R. and Weng, L.-J. (1994).
+\newblock What is a good g?
+\newblock {\em Intelligence}, 18(3):231--258.
+
+\bibitem[\protect\astroncite{McDonald}{1999}]{mcdonald:tt}
+McDonald, R.~P. (1999).
+\newblock {\em Test theory: {A} unified treatment}.
+\newblock L. Erlbaum Associates, Mahwah, N.J.
+
+\bibitem[\protect\astroncite{Rafaeli and Revelle}{2006}]{rafaeli:revelle:06}
+Rafaeli, E. and Revelle, W. (2006).
+\newblock A premature consensus: Are happiness and sadness truly opposite
+  affects?
+\newblock {\em Motivation and Emotion}, 30(1):1--12.
+
+\bibitem[\protect\astroncite{Reise et~al.}{2007}]{reise:07}
+Reise, S., Morizot, J., and Hays, R. (2007).
+\newblock The role of the bifactor model in resolving dimensionality issues in
+  health outcomes measures.
+\newblock {\em Quality of Life Research}, 16(0):19--31.
+
+\bibitem[\protect\astroncite{Revelle}{2014}]{psych}
+Revelle, W. (2014).
+\newblock {\em psych: Procedures for Personality and Psychological Research}.
+\newblock Northwestern University, Evanston.
+\newblock R package version 1.4.1
+
+\bibitem[\protect\astroncite{Rosseel}{2012}]{lavaan}
+Rosseel, Y. (2012).
+\newblock {\em llavaan: An R Package for Structural Equation Modeling}.
+\newblock {\em Journal of Statistical Software},  48(2):1-36.
+\newblock R package version 0.5-14.
+
+\bibitem[\protect\astroncite{Schmid and Leiman}{1957}]{schmid:57}
+Schmid, J.~J. and Leiman, J.~M. (1957).
+\newblock The development of hierarchical factor solutions.
+\newblock {\em Psychometrika}, 22(1):83--90.
+
+\bibitem[\protect\astroncite{Thurstone and Thurstone}{1941}]{thurstone:41}
+Thurstone, L.~L. and Thurstone, T.~G. (1941).
+\newblock {\em Factorial studies of intelligence}.
+\newblock The University of Chicago press, Chicago, Ill.
+
+\end{thebibliography}
+
+
+
+\printindex
+\end{document}  

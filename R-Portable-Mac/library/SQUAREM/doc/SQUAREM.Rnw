@@ -1,0 +1,730 @@
+\documentclass[12pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath, amssymb, amsfonts}
+%\usepackage{natbib}
+\usepackage{graphicx}
+\usepackage{color} %% red, green, and blue (for screen display) and cyan, magenta, and yellow
+\definecolor{Navy}{rgb}{0,0,0.8}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true, urlcolor={Navy}, linkcolor={Navy}, citecolor={Navy}}
+
+\parskip 7.2pt
+
+\newcommand{\compresslist}{%
+%\setlength{\itemsep}{1pt}%
+\setlength{\itemsep}{0pt}%
+\setlength{\parskip}{0pt}%
+\setlength{\parsep}{0pt}%
+}
+
+\newcommand{\pb}{\mathbb{P}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\V}{\mathbb{V}}
+\newcommand{\C}{\mathbb{C}}
+\newcommand{\bea}{\begin{align*}}
+\newcommand{\eea}{\end{align*}}
+\newcommand{\beq}{\begin{equation}}
+\newcommand{\eeq}{\end{equation}}
+\newcommand{\be}{\begin{enumerate}}
+\newcommand{\ee}{\end{enumerate}}
+\newcommand{\bi}{\begin{itemize}}
+\newcommand{\ei}{\end{itemize}}
+\renewcommand{\baselinestretch}{1}
+
+\title{\texttt{SQUAREM}: Accelerating the Convergence of EM, MM and Other Fixed-Point Algorithms}
+\author{Ravi Varadhan and Yu Du}
+\date{}
+\begin{document}
+
+%\VignetteIndexEntry{SQUAREM Tutorial}
+%\VignetteDepends{setRNG}
+%\VignetteKeywords{EM algorithm, fixed-point iteration, acceleration, extrapolation}
+%\VignettePackage{SQUAREM}
+%\SweaveOpts{eval=TRUE,echo=TRUE,results=verbatim,fig=FALSE,keep.source=TRUE, concordance=FALSE}
+\maketitle
+
+\section{Overview of SQUAREM}
+``SQUAREM'' is a package intended for accelerating slowly-convergent contraction mappings.  It can be used for accelerating the convergence of slow, linearly convergent contraction mappings such as the EM (expectation-maximization) algorithm, MM (majorize and minimize) algorithm, and other nonlinear fixed-point iterations such as the power method for finding the dominant eigenvector.  It uses a novel approach callled squared extrapolation method (SQUAREM) that was proposed in Varadhan and Roland (Scandinavian Journal of Statistics, 35: 335-353), and also in Roland, Vardhan, and Frangakis (Numerical Algorithms, 44: 159-172).
+
+The functions in this package are made available with:
+
+<<load>>=
+library("SQUAREM") 
+@
+
+You can look at the basic information on the package, including all the 
+available functions with
+
+<<help>>=
+help(package = SQUAREM)
+@
+
+
+The package \emph{setRNG} is not necessary, but if you want to exactly 
+reproduce the examples in this guide then do this:
+<<rng>>=
+require("setRNG") 
+setRNG(list(kind = "Wichmann-Hill", normal.kind = "Box-Muller", seed = 123))
+@
+after which the example need to be run in the order here (or at least the parts
+that generate random numbers). For some examples the RNG is reset again
+so they can be reproduced more easily.
+
+\section{How to accelerate convergence of a fixed-point iteration with SQUAREM?}
+
+\subsection{Accelerating EM algorithm: Binary Poisson Mixture Maximum-Likelihood Estimation}
+Now, we show an example demonstrating the ability of SQUAREM to dramatically speed-up the convergence of the EM algorithm for a binary Poisson mixture estimation.   We use the example from Hasselblad (J of Amer Stat Assoc 1969)
+<<data>>=
+poissmix.dat <- data.frame(death = 0:9, 
+                           freq = c(162, 267, 271, 185, 
+                                    111, 61, 27, 8, 3, 1))
+@
+
+Generate a random initial guess for 3 parameters
+<<init>>=
+y <- poissmix.dat$freq
+tol <- 1.e-08
+
+setRNG(list(kind = "Wichmann-Hill", normal.kind = "Box-Muller", seed = 123))
+p0 <- c(runif(1),runif(2, 0, 6))    
+@
+The fixed point mapping giving a single E and M step of the EM algorithm
+ 
+<<poissmix>>=
+poissmix.em <- function(p, y) {
+        pnew <- rep(NA, 3)
+        i <- 0:(length(y) - 1)
+        zi <- p[1] * exp(-p[2]) * p[2]^i / 
+                (p[1]*exp(-p[2])*p[2]^i + (1 - p[1]) * exp(-p[3]) * p[3]^i)
+        pnew[1] <- sum(y * zi)/sum(y)
+        pnew[2] <- sum(y * i * zi)/sum(y * zi)
+        pnew[3] <- sum(y * i * (1-zi))/sum(y * (1-zi))
+        p <- pnew
+        return(pnew)
+}
+@
+Objective function whose local minimum is a fixed point. Here it is the negative log-likelihood of binary poisson mixture.
+
+<<loglik>>=
+poissmix.loglik <- function(p, y) {
+        i <- 0:(length(y) - 1)
+        loglik <- y * log(p[1] * exp(-p[2]) * p[2]^i/exp(lgamma(i + 1)) + 
+		        (1 - p[1]) * exp(-p[3]) * p[3]^i/exp(lgamma(i + 1)))
+        return (-sum(loglik))
+}
+@
+
+
+EM algorithm
+<<em>>=
+pf1 <- fpiter(p = p0, y = y, fixptfn = poissmix.em, objfn = poissmix.loglik, 
+              control = list(tol = tol))
+pf1
+@
+Note the slow convergence of EM, as it uses more than 2900 iterations to converge.  Now, let us speed up the convergence with SQUAREM:
+
+<<squarem>>=
+pf2 <- squarem(p = p0, y = y, fixptfn = poissmix.em, objfn = poissmix.loglik, 
+               control = list(tol = tol))
+pf2
+@
+Note the dramatically faster convergence, i.e. SQUAREM uses only 72 fixed-point evaluations to achieve convergence.  This is a speed up of a factor of 40.  
+
+We can also run SQUAREM without specifying an objective function, i.e. the negative log-likelihood.  \emph{This is usually the most efficient way to use SQUAREM.}
+
+<<squarem2>>=
+pf3 <- squarem(p = p0, y = y, fixptfn = poissmix.em, 
+               control = list(tol = tol))
+pf3
+@
+
+\clearpage
+\subsection{Accelerating the Power Method for Finding the Dominant Eigenpair}
+
+The power method is a nonlinear fixed-point iteration for determining the dominant eigenpair, i.e. the largest eigenvalue (in terms of absolute magnitude) and the corresponding eigenvector, of a square matrix $A.$  The iteration can be programmed in R as:
+
+<<power>>=
+power.method <- function(x, A) {
+# Defines one iteration of the power method
+# x = starting guess for dominant eigenvector
+# A = a square matrix
+        ax <- as.numeric(A %*% x)
+        f <- ax / sqrt(as.numeric(crossprod(ax)))
+        f
+}
+@
+
+We illustrate this for finding the dominant eigenvector of the Bodewig matrix which is a famous matrix for which power method has trouble converging.  See, for example, Sidi, Ford, and Smith (SIAM Review, 1988).  Here there are two eigenvalues that are equally dominant, but have opposite signs! Sometimes the power method finds the eigenvector corresponding to the large positive eigenvalue, but other times it finds the eigenvector corresponding to the large negative eigenvalue
+
+<<bodewig>>=
+b <- c(2, 1, 3, 4, 1,  -3,   1,   5,  3,   1,   6,  -2,  4,   5,  -2,  -1)
+bodewig.mat <- matrix(b,4,4)
+eigen(bodewig.mat)
+@
+Now, let us look at power method and its acceleration using various SQUAREM schemes:
+
+<<accelerate>>=
+p0 <- rnorm(4)
+
+# Standard power method iteration
+ans1 <- fpiter(p0, fixptfn = power.method, A = bodewig.mat)
+# re-scaling the eigenvector so that it has unit length
+ans1$par <- ans1$par / sqrt(sum(ans1$par^2))  
+# dominant eigenvector
+ans1  
+# dominant eigenvalue
+c(t(ans1$par) %*% bodewig.mat %*% ans1$par) / c(crossprod(ans1$par))  
+@
+
+Now, we try first-order SQUAREM with default settings:
+
+<<sq.bodewig>>=
+ans2 <- squarem(p0, fixptfn = power.method, A = bodewig.mat)
+ans2
+ans2$par <- ans2$par / sqrt(sum(ans2$par^2))
+c(t(ans2$par) %*% bodewig.mat %*% ans2$par) / c(crossprod(ans2$par))  
+@
+The convergence is still slow, but it converges to the dominant eigenvector.  Now, we try with a minimum steplength that is smaller than 1.
+
+<<sq2.bodewig>>=
+ans3 <- squarem(p0, fixptfn = power.method, A = bodewig.mat, 
+                control = list(step.min0 = 0.5))
+ans3
+ans3$par <- ans3$par / sqrt(sum(ans3$par^2))
+# eigenvalue
+c(t(ans3$par) %*% bodewig.mat %*% ans3$par) / c(crossprod(ans3$par))  
+@
+
+The convergence is dramatically faster now, but it converges to the second dominant eigenvector.  We try again with a higher-order SQUAREM scheme.
+
+<<sq3.bodewig>>=
+# Third-order SQUAREM
+ans4 <- squarem(p0, fixptfn = power.method, A = bodewig.mat, 
+                control = list(K = 3, method = "rre"))
+ans4
+ans4$par <- ans4$par / sqrt(sum(ans4$par^2))
+# eigenvalue
+c(t(ans4$par) %*% bodewig.mat %*% ans4$par) / c(crossprod(ans4$par))  
+@
+Once again we obtain the second dominant eigenvector.
+
+\clearpage
+\subsection{Factor Analysis}
+Factor analysis is a statistical modeling approach that aims to explain the
+variability among observed variables in terms of a smaller set of unobserved factors. Factor analysis
+is widely applied in areas where observed
+variables may be conceptualized as manifesting from some unobserved latent
+factors, such as psychometrics, behavioral sciences, social sciences,
+and marketing. The latent factors can be regarded as missing
+data in a multivariate normal model and the EM algorithm, 
+therefore, becomes a natural way to compute the maximum likelihood estimates. We will illustrate the dramatic acceleration of EM by Squarem and also compare with ECME (Liu and Rubin 1998) using a real data example from JoresKog (1967). 
+
+The data consists of 9 variables, 4 factors, and 2 patterns of a priori zeroes for the loadings such that one a priori zero loadings on factor 4 for variables 1 through 4,  and a different a priori zero loadings on factor 3 for variables 5-9. There is otherwise no restrictions. The sample covariance matrix $C_{yy}$ is given below:
+
+$$C_{yy} = \begin{pmatrix}
+1.0 & 0.554 & 0.227 & 0.189 & 0.461 & 0.506 & 0.408 & 0.280 & 0.241 \\
+    & 1.0   & 0.296 & 0.219 & 0.479 & 0.530 & 0.425 & 0.311 & 0.311 \\
+    &       & 1.0   & 0.769 & 0.237 & 0.243 & 0.304 & 0.718 & 0.730 \\
+    &       &       & 1.0   & 0.212 & 0.226 & 0.291 & 0.681 & 0.661 \\
+    &       &       &       & 1.0   & 0.520 & 0.514 & 0.313 & 0.245 \\
+    &       &       &       &       & 1.0   & 0.473 & 0.348 & 0.290 \\
+    &       &       &       &       &       & 1.0   & 0.374 & 0.306 \\
+    &       &       &       &       &       &       & 1.0   & 0.672 \\
+    &       &       &       &       &       &       &       & 1.0
+\end{pmatrix}.$$
+
+We use the starting values of $\beta$ and $\tau^2$ as in Liu and Rubin (1998), where 
+
+$$\beta'^{\text{start}} = \begin{pmatrix}
+0.5954912 & -0.4893347 & -0.3848925  & 0.0000000 \\
+0.6449102 & -0.4408213 & -0.3555598  & 0.0000000 \\
+0.7630006 & 0.5053083 & -0.0535340  & 0.0000000 \\
+0.7163828 & 0.5258722 & 0.0219100  & 0.0000000 \\
+0.6175647 & -0.4714808 & 0.0000000  & 0.1931459 \\
+0.6464100 & -0.4628659 & 0.0000000  & 0.4606456 \\
+0.6452737 & -0.3260013 & 0.0000000 & -0.3622682 \\
+0.7868222 & 0.3690580 & 0.0000000  & 0.0630371 \\
+0.7482302 & 0.4326963 & 0.0000000  & 0.0431256
+\end{pmatrix},$$ and ${\tau^2_{j}}^{\text{start}} = 10^{-8}$ for $j=1, 2, \hdots, 9.$
+
+Here is the negative log likelihood, given by the function \textbf{factor.loglik()}:
+
+<<faloglik1, cache=TRUE>>=
+factor.loglik <- function(param, cyy){
+        ###extract beta matrix and tau2 from param
+        beta.vec <- param[1:36]
+        beta.mat <- matrix(beta.vec, 4, 9)
+        tau2 <- param[37:45]
+        tau2.mat <- diag(tau2)
+        
+        Sig <- tau2.mat + t(beta.mat) %*% beta.mat
+        ##suppose n=145 since this does not impact the parameter estimation
+        loglik <- -145/2 * log(det(Sig)) - 145/2 * sum(diag(solve(Sig, cyy)))
+        return(-loglik)
+        ###the negative log-likelihood is returned
+}
+@
+
+The fixed point mapping giving a single E and M step of the EM algorithm.
+
+<<faem1, cache=TRUE>>=
+factor.em <- function(param, cyy){
+        param.new <- rep(NA, 45)
+        
+        ###extract beta matrix and tau2 from param
+        beta.vec <- param[1:36]
+        beta.mat <- matrix(beta.vec, 4, 9)
+        tau2 <- param[37:45]
+        tau2.mat <- diag(tau2)
+        
+        ###compute delta/Delta
+        inv.quantity <- solve(tau2.mat + t(beta.mat) %*% beta.mat)
+        small.delta <- inv.quantity %*% t(beta.mat)
+        big.delta <- diag(4) - beta.mat %*% inv.quantity %*% t(beta.mat)
+        
+        cyy.inverse <- t(small.delta) %*% cyy %*% small.delta + big.delta
+        cyy.mat <- t(small.delta) %*% cyy
+        
+        ###update betas and taus
+        beta.new <- matrix(0, 4, 9)
+        beta.p1 <- solve(cyy.inverse[1:3, 1:3]) %*% cyy.mat[1:3, 1:4]
+        beta.p2 <- solve(cyy.inverse[c(1,2,4), c(1,2,4)]) %*% 
+                   cyy.mat[c(1,2,4), 5:9]
+        beta.new[1:3, 1:4] <- beta.p1
+        beta.new[c(1,2,4), 5:9] <- beta.p2
+        
+        tau.p1 <- diag(cyy)[1:4] - diag(t(cyy.mat[1:3, 1:4]) %*% 
+                  solve(cyy.inverse[1:3, 1:3]) %*% cyy.mat[1:3, 1:4])
+        tau.p2 <- diag(cyy)[5:9] - diag(t(cyy.mat[c(1,2,4), 5:9]) %*% 
+                  solve(cyy.inverse[c(1,2,4), c(1,2,4)]) %*% 
+                  cyy.mat[c(1,2,4), 5:9])
+        tau.new <- c(tau.p1, tau.p2)
+        
+        param.new <- c(as.numeric(beta.new), tau.new)
+        param <- param.new
+        return(param.new)
+}
+@
+
+In order to compare with ECME algorithm as implemented by Liu and Rubin (1998), we also write the function \textbf{factor.ecme()} to do one ECME iteration. The only difference from EM algorithm is that for M-Step, after we update the loading matrix $\beta$, we find $\tau^2$ that maximizes the actual constrained likelihood of observed data matrix $Y$ given $\beta$ using Newton-Raphson.
+
+<<faecme, cache=TRUE>>=
+factor.ecme <- function(param, cyy){
+        n <- 145
+        param.new <- rep(NA, 45)
+        
+        ###extract beta matrix and tau2 from param
+        beta.vec <- param[1:36]
+        beta.mat <- matrix(beta.vec, 4, 9)
+        tau2 <- param[37:45]
+        tau2.mat <- diag(tau2)
+        
+        ###compute delta/Delta
+        inv.quantity <- solve(tau2.mat + t(beta.mat) %*% beta.mat)
+        small.delta <- inv.quantity %*% t(beta.mat)
+        big.delta <- diag(4) - beta.mat %*% inv.quantity %*% t(beta.mat)
+        
+        cyy.inverse <- t(small.delta) %*% cyy %*% small.delta + big.delta
+        cyy.mat <- t(small.delta) %*% cyy
+        
+        ###update betas
+        beta.new <- matrix(0, 4, 9)
+        beta.p1 <- solve(cyy.inverse[1:3, 1:3]) %*% cyy.mat[1:3, 1:4]
+        beta.p2 <- solve(cyy.inverse[c(1,2,4), c(1,2,4)]) %*% 
+                   cyy.mat[c(1,2,4), 5:9]
+        beta.new[1:3, 1:4] <- beta.p1
+        beta.new[c(1,2,4), 5:9] <- beta.p2
+        
+        ###update taus given betas
+        A <- solve(tau2.mat + t(beta.new) %*% beta.new)
+        sum.B <- A %*% (n * cyy) %*% A
+        gradient <- - tau2/2 * (diag(n*A) - diag(sum.B))
+        hessian <- (0.5 * (tau2 %*% t(tau2))) * (A * (n * A - 2 * sum.B))
+        diag(hessian) <- diag(hessian) + gradient
+        U <- log(tau2)
+        U <- U - solve(hessian, gradient)  # Newton step
+        
+        tau.new <- exp(U)
+        param.new <- c(as.numeric(beta.new), tau.new)
+        param <- param.new
+        return(param.new)
+}
+@
+
+<<start1, cache=TRUE, echo=FALSE>>=
+####Cyy##########
+cyy <- diag(9)
+cyy[upper.tri(cyy)] <- c(.554, .227, .296, .189, .219, .769, 
+                         .461, .479, .237, .212, .506, .530,
+                         .243, .226, .520, .408, .425, .304,
+                         .291, .514, .473, .280, .311, .718,
+                         .681, .313, .348, .374, .241, .311,
+                         .730, .661, .245, .290, .306, .672)
+cyy[lower.tri(cyy)] <- t(cyy)[lower.tri(t(cyy))]
+
+########starting value###########
+beta.trans <- matrix(c(0.5954912, 0.6449102, 0.7630006, 0.7163828, 0.6175647, 0.6464100, 0.6452737, 0.7868222, 0.7482302, 
+                       -0.4893347, -0.4408213, 0.5053083, 0.5258722, -0.4714808, -0.4628659, -0.3260013, 0.3690580, 0.4326963, 
+                       -0.3848925, -0.3555598, -0.0535340, 0.0219100, 0, 0, 0, 0, 0, 
+                       0, 0, 0, 0, 0.1931459, 0.4606456, -0.3622682, 0.0630371, 0.0431256), 9, 4)
+beta.start <- t(beta.trans)
+tau2.start <- rep(10^(-8), 9)
+
+param.start <- c(as.numeric(beta.start), tau2.start)
+@
+
+Now we can use SQUAREM to compute the MLE by EM, Squared EM (Squarem), ECME, and Squared ECME algorithms. Tolerance is set to be $10^{-8}$ across all algorithms.
+
+\begin{itemize}
+
+\item Basic EM
+
+In order to perform the basic EM algorithm, we use function \textbf{fpiter()} in SQUAREM Package. The arguments consist of a starting value, function \textbf{factor.em()} that encodes one EM update, the negative log likelihood function \textbf{factor.loglik()}, other variables as needed by these functions, and a control list to specify changes to default values. The starting value for $\beta$ and $\tau^2$ comes from Liu and Rubin (1998).
+
+<<emres, cache = TRUE>>=
+library(SQUAREM)
+system.time(f1 <- fpiter(par = param.start, cyy = cyy, 
+                         fixptfn = factor.em, 
+                         objfn = factor.loglik,
+                         control = list(tol=10^(-8), 
+                         maxiter = 20000)))
+f1$fpevals
+@
+
+It takes 14659 iterations to converge for basic EM algorithm. 
+
+\item ECME
+
+We replace function \textbf{factor.em()} by \textbf{factor.ecme()} that implements one ECME update thus to implement ECME algorithm.
+
+<<ecmeres, cache = TRUE>>=
+system.time(f2 <- fpiter(par = param.start, cyy = cyy, 
+                         fixptfn = factor.ecme, objfn = factor.loglik, 
+                         control = list(tol=10^(-8), maxiter = 20000)))
+f2$fpevals
+@
+
+It takes 6409 iterations of ECME update to converge, less than half of what basic EM needs. 
+
+\item Squared EM (Squarem)
+
+Next, we use function \textbf{squarem()} in SQUAREM Pakcage to apply Squarem algorithm. The components of arguments are the same as function \textbf{fpiter()} except a few control parameters particularly set for Squarem.
+
+<<squareemres, cache = TRUE>>=
+system.time(f3 <- squarem(par = param.start, cyy = cyy, 
+                          fixptfn = factor.em, 
+                          objfn = factor.loglik, 
+                          control = list(tol = 10^(-8))))
+f3$fpevals
+@
+
+It only takes 876 iterations of EM updates to converge, which is faster by a factor of 17 and 7 in terms of the number of EM steps when compared to the basic EM and ECME, respectively.  
+
+\item Squared ECME
+
+Squarem can even accelerate ECME, which is already a faster version of the basic EM algorithm. 
+
+<<squareecmeres, cache = TRUE>>=
+system.time(f4 <- squarem(par = param.start, cyy = cyy, 
+                          fixptfn = factor.ecme, 
+                          objfn = factor.loglik, 
+                          control = list(tol = 10^(-8))))
+f4$fpevals
+@
+
+The squared ECME converges in only 400 iterations compared to 6400 iterations for ECME, the fastest among these four algorithms.
+
+\end{itemize}
+
+\clearpage
+\subsection{Interval Censoring}
+
+Interval censoring is a common phenomenon in survival analysis, where we do not observe the precise time of an event for each individual, but we only know the time interval during which the individual's event occurs. Following the notations in Gentleman and Geyer (1994), we assume that survival time, $X$, also known as failure time, come from a distribution $F$. Each individual $i$ goes through a sequence of inspection times $t_{i,1},t_{i,2},\hdots$. The survival time $x_i$ for individual $i$ is not observed, however, the last inspection time prior to $x_i$ and the first inspection time after are recorded. An example of interval censored data is displayed in Table~\ref{intervalexample}.
+
+\begin{table}[h!]  
+\caption{The Example of Interval Censored Data(Unit: Year).}
+\label{intervalexample}
+\begin{tabular}{lcc}
+                  &  Last Inspection Time prior to $x_i$         & First Inspection Time after $x_i$        \\
+                  \hline
+Individual 1    & 1  & 3  \\
+Individual 2    & 2   & 6     \\
+\vdots & \vdots & \vdots \\
+Individual n    & 3   & 4
+\end{tabular}
+\end{table}
+
+Therefore, data consists of time intervals $I_i = (L_i, R_i)$ for each individual $i , i=1,2,\hdots,n$ and the event for individual $i$ is known to happen during that interval. Let $\{s_j\}_{j=0}^{m}$ be the unique ordered times of $\{0,\{L_i\}_{i=1}^{n},\{R_i\}_{i=1}^{n}\}$, $\alpha_{ij},i=1,2,\hdots,n,j=1,2,\hdots,m$, the $ij$ cell of an $\alpha$ matrix, be such that 
+
+$$\alpha_{ij} = \begin{cases}
+1 & \text{if $(s_{j-1}, s_{j}) \subseteq I_i$, the event for individual $i$ can occur in $(s_{j-1}, s_{j})$}\\
+0 & \text{otherwise}\\
+\end{cases}$$
+
+and $p_j = F(s_j-) - F(s_{j-1})$, $p = (p_1,p_2,\hdots,p_m)'$. The log likelihood of data is therefore $$ll(p) = \sum_{i=1}^n \log{(\sum_{j=1}^{m} \alpha_{ij}p_j)}.$$ The negative log likelihood is coded in function \textbf{loglik()}.
+
+<<loglikic, cache=TRUE>>=
+loglik <- function(pvec, A){
+        - sum(log(c(A %*% pvec)))
+}
+##A is the alpha matrix and pvec is the vector of probabilities p.
+##returns the negative log likelihood
+@
+
+One EM update is coded in function \textbf{intEM()}.
+
+<<intEM, cache = TRUE>>=
+intEM <- function(pvec, A){
+        tA <- t(A)
+        Ap <- pvec*tA
+        pnew <- colMeans(t(Ap)/colSums(Ap))
+        pnew * (pnew > 0)
+}
+##tA is the transpose of alpha matrix A
+@
+
+Now we demonstrate the acceleration of EM by Squarem using the real data example from Finkelstein and Wolfe (1985), which gives the interval when cosmetic deterioration occurred in 46 individuals with early breast cancer under radiotherapy. Table~\ref{intrexample} shows censored interval for each individual.
+
+\begin{table}[h!]
+\centering
+\caption{Censored Intervals when cosmetic deterioration occurred}
+\label{intrexample}
+\begin{tabular}{cccccc}
+&&&&&\\
+(45,Inf] & (6,10] & (0,7] & (46,Inf] & (7,16] & (17,Inf]  \\
+(7,14] & (37,44] & (0,8] & (4,11]  & (15,Inf] & (11,15] \\    
+(22,Inf] & (46,Inf] & (46,Inf] & (25,37] & (46, Inf] & (26, 40]\\
+(46, Inf] & (27,34] & (36,44] & (46, Inf] & (36, 48] & (37, Inf]\\
+(40, Inf] & (17,25] & (46, Inf] & (11,18] & (38, Inf] & (5, 12]\\
+(37, Inf] & (0,5] & (18, Inf] & (24, Inf] & (36, Inf] & (5, 11]\\
+(19, 35] & (17,25] & (24, Inf] & (32, Inf] & (33, Inf] & (19,26]\\
+(37,Inf] & (34,Inf] & (36, Inf] & (46,Inf] & &
+\end{tabular}
+\end{table}
+
+We use function \textbf{Aintmap()} in R Package interval to produce intervals $(s_{j-1},s_j)$, $j = 1,2,\hdots,m$.
+
+<<libinterval, cache = T, echo = T, message = F>>=
+library(interval)
+@
+
+
+<<aintmap, cache = T, echo = F>>=
+####Function to compute alpha matrix and intervals
+Aintmap <-function(L,R,Lin=NULL,Rin=NULL){
+        n<-length(L)
+        Lin<-rep(FALSE,n)
+        Rin<-rep(TRUE,n)
+        Lin[L==R]<-TRUE
+        Rin[R==Inf]<-FALSE
+        if(n != length(R))
+                stop("length of L and R must be the same")
+        LRvalues<-sort(unique(c(0,L,R,Inf)))
+        eps<- min(diff(LRvalues))/2
+        Le<-L
+        Re<-R
+        Le[!Lin]<-L[!Lin]+eps
+        Re[!Rin]<-R[!Rin]-eps
+        oLR<-order(c(Le,Re+eps/2))
+        Leq1.Req2<-c(rep(1,n),rep(2,n))
+        flag<- c(0,diff( Leq1.Req2[oLR] ))
+        R.right.of.L<- (1:(2*n))[flag==1]
+        intmapR<- c(L,R)[oLR][R.right.of.L]
+        intmapL<- c(L,R)[oLR][R.right.of.L - 1]
+        intmapRin<- c(Lin,Rin)[oLR][R.right.of.L]
+        intmapLin<- c(Lin,Rin)[oLR][R.right.of.L - 1]
+        intmap<-matrix(c(intmapL,intmapR),byrow=TRUE,nrow=2)
+        attr(intmap,"LRin")<-matrix(c(intmapLin,intmapRin),byrow=TRUE,nrow=2)
+        k<-dim(intmap)[[2]]
+        Lbracket<-rep("(",k)
+        Lbracket[intmapLin]<-"["
+        Rbracket<-rep(")",k)
+        Rbracket[intmapRin]<-"]"
+        intname<-paste(Lbracket,intmapL,",",intmapR,Rbracket,sep="")
+        A<-matrix(0,n,k,dimnames=list(1:n,intname))
+        intmapLe<-intmapL
+        intmapLe[!intmapLin]<-intmapL[!intmapLin]+eps
+        intmapRe<-intmapR
+        intmapRe[!intmapRin]<-intmapR[!intmapRin]-eps
+        for (i in 1:n){
+                tempint<- Le[i]<=intmapRe & Re[i]>=intmapLe
+                A[i,tempint]<-1
+        }
+        
+        if (k==1 & intmap[1,1]==0 & intmap[2,1]==Inf) A[A==0]<-1  
+        return(A=A)
+        
+}
+@
+
+<<data2, cache = T, echo = F>>=
+dat <- c(45, 6, 0, 46, 46, 7, 17, 7, 37, 0, 4, 15, 11,  
+          22, 46, 46, 25, 46, 26, 46, 27, 36, 46, 36, 37,
+          40, 17, 46, 11, 38, 5, 37, 0, 18, 24, 36, 5, 19,
+          17, 24, 32, 33, 19, 37, 34, 36, Inf, 10, 7, Inf, 
+          Inf, 16, Inf, 14, 44, 8, 11, Inf, 15, Inf, Inf, Inf,
+          37, Inf, 40, Inf, 34, 44, Inf, 48, Inf, Inf, 25, 
+          Inf, 18, Inf, 12, Inf, 5, Inf, Inf, Inf, 11, 35,
+          25, Inf, Inf, Inf, 26, Inf, Inf, Inf)
+dat <- data.frame(matrix(dat, 46, 2))
+names(dat) <- c("L", "R")
+@
+
+<<intcen, cache = T>>=
+A <- Aintmap(dat[,1], dat[,2])
+m <- ncol(A)
+##starting values
+pvec <- rep(1/m, length = m)
+##EM
+system.time(ans1 <- fpiter(par = pvec, fixptfn = intEM, 
+                           objfn = loglik, A = A, 
+                           control = list(tol = 1e-8)))
+ans1
+
+##Squarem
+system.time(ans2 <- squarem(par = pvec, fixptfn = intEM, 
+                            objfn = loglik, A = A, 
+                            control = list(tol = 1e-8)))
+ans2
+
+@
+
+Even with this small sample size, the Squarem still improves on EM by a factor of 5 in terms of the number of EM evaluations, 40 iterations compared to 216. As sample size expands, the margin of the advantages for Squarem over EM will get much larger.
+
+\clearpage
+\subsection{MM Algorithm - Logistic Regression Maximum Likelihood Estimation}
+In this section, we discuss a quadratic majorization algorithm (an MM algorithm) for computing the maximum likelihood estimates of logistic regression coefficients.  Minorize and maximize or equivalently, majorize and minimize (MM) algorithms typically exhibit slow linear convergence just like the EM algorithms. We show that Squarem can provide significant acceleration of MM algorithms. 
+
+Suppose we want to minimize function $f$ over $X \subseteq \mathbb{R}^{n}$. We construct a majorization function $g$ on $X \times X$ such that $$f(x) \leq g(x, x^{(k)}) \quad \forall x, x^{(k)} \in X,$$ $$f(x^{(k)}) = g(x^{(k)}, x^{(k)}) \quad \forall x^{(k)} \in X,$$ where $k$ denotes the $k^{th}$ iteration, $k=0,1,\hdots$. Therefore, instead of minimizing $f$, we minimize $g$ such that $$x^{(k+1)} = \arg\!\min_{x \in X}{g(x, x^{(k)})}.$$ We repeat the updates of $x$ until convergence and this completes the majorization algorithm. Note that in the EM algorithm, the $Q(\theta; \theta_k)$ function plays the role of the minorizing function. 
+
+Taylor's theorem often leads to quadratic majorization algorithms (Bohning and Lindsay 1988) where the majorization function $g$ is quadratic. By Taylor's theorem, expand $f(x)$ at $x^{(k)}$, $$f(x) = f(x^{(k)}) + (x- x^{(k)} )'\partial f( x^{(k)} ) + \frac{1}{2}(x- x^{(k)})'\partial^{2}f(\xi)(x- x^{(k)} )$$ where $\xi$ is on the line between $x$ and $ x^{(k)}$. The majorization function $g$ is constructed by constructing a matrix $B$ such that $B - \partial^{2}f( \xi )$ is always positive semi-definite regardless of $\xi$. So, $$g(x, x^{(k)}) = f(x^{(k)}) + (x- x^{(k)} )'\partial f( x^{(k)} ) + \frac{1}{2}(x- x^{(k)})'B(x- x^{(k)} )$$ is a majorization function for $f$. Let us define a clever variable $z^{(k)}$ such that $z^{(k)} = x^{(k)} - B^{-1}\partial f(x^{(k)})$ and majorization function $g$ is equivalent to the following:$$g(x, x^{(k)}) = f(x^{(k)}) + \frac{1}{2}(x-z^{(k)})'B(x-z^{(k)})-\frac{1}{2}\partial f(x^{(k)})'B^{-1}\partial f(x^{(k)}).$$ At the $k^{th}$ iteration, to minimize $g(x, x^{(k)})$ over $x \in X$ is simply to minimize $(x-z^{(k)})'B(x-z^{(k)})$, thus the majorization algorithm becomes: $$x^{(k+1)} = x^{(k)} - B^{-1}\partial f(x^{(k)}).$$ Therefore, in order to implement quadratic majorization algorithm, we need to construct the matrix $B$ and compute the gradient of function $f$.
+
+Let us consider logistic regression maximum likelihood estimation. Suppose we have an $n \times p$ design matrix $X$ where there are $n$ subjects and $p$ predictors. Let $y_i$ be the number of successes for subject $i$ ,$i=1,2,\hdots,n$ given the overall number of experiments, $N_i$. We use $\beta$ to denote the regression coefficients. The goal is to derive the maximum likelihood estimates of $\beta$. 
+
+The negative log likelihood of data is:
+\begin{align*}
+f(\beta) & = -\log{(\prod_i P(y_i))}\\
+& \propto -\log{(\prod_i p_i(\beta)^{y_i}(1-p_i(\beta))^{(N_i-y_i)})}\\
+& = -\sum_i y_i\log{p_i(\beta)} - \sum_i(N_i - y_i)\log{(1-p_i(\beta))}\\
+& = - \sum_i y_ix_i'\beta - \sum_i N_i\log{(1-p_i(\beta))},
+\end{align*}
+
+where $$p_i(\beta) = \frac{1}{1 + \exp{(-x_i'\beta)}}.$$
+
+The gradient of $f(\beta)$ is such that:
+$$\partial f(\beta) = \sum_i (N_ip_i(\beta) - y_i)x_i = X'u(\beta),$$
+
+where the $i^{th}$ element of $u(\beta)$ is $N_ip_i(\beta) - y_i$, while the second derivative of $f(\beta)$ is:
+$$\partial^{2} f(\beta) = \sum_i (N_ip_i(\beta)(1-p_i(\beta)))x_ix_i' = X'V(\beta)X,$$
+
+where $V(\beta)$ is a diagonal matrix with the $i^{th}$ diagonal element $N_ip_i(\beta)(1-p_i(\beta)).$
+Based on the fact that $p_i(\beta)(1-p_i(\beta)) \leq \frac{1}{4}$, the matrix $B$ can be constructed such that $B = \frac{1}{4}X'NX$ where $N$ is the diagonal matrix consisting of elements $N_i$. Thus the quadratic algorithm becomes:
+$$\beta^{(k+1)} = \beta^{(k)} - 4(X'NX)^{-1}X'u(\beta).$$
+Let us denote the above algorithm by uniform bound quadratic algorithm since $p_i(\beta)(1-p_i(\beta)) \leq \frac{1}{4}$ uniformly for any $\beta$ and each subject $i$. Jaakkola and Jordan (2000) and Groenen, Giaquinto, and Kiers (2003) developed a non-uniform bound, $X'W(\beta)X$, where $W(\beta)$ is a diagonal matrix that consists of elements $w_i(\beta) = N_i \frac{2p_i(\beta) - 1}{2 x_i'\beta}$, $i=1,2,\hdots,n$. Thus the non-uniform bound quadratic algorithm becomes: $$\beta^{(k+1)} = \beta^{(k)} - (X'W(\beta)X)^{-1}X'u(\beta).$$
+
+
+We use the Cancer Remission data in Lee (1974). The outcome is a binary indicator of whether cancer remission occurred for the subject. Column 1 is the intercept and variables $X2$, $X3$, $\hdots$, $X7$ are results of six medical tests. The first five lines of data are as follows:
+<<rdlee, cache = T, echo = F>>=
+ld <- c(1, 0.80, 0.83, 0.66, 1.9, 1.100, 0.996,	1, 
+        1, 0.90, 0.36, 0.32, 1.4, 0.740, 0.992,	1,
+        1, 0.80, 0.88, 0.70, 0.8, 0.176, 0.982,	0,
+        1, 1.00, 0.87, 0.87, 0.7, 1.053, 0.986,	0,
+        1, 0.90, 0.75, 0.68, 1.3, 0.519, 0.980,	1,
+        1, 1.00, 0.65, 0.65, 0.6, 0.519, 0.982,	0,
+        1, 0.95, 0.97, 0.92, 1.0, 1.230, 0.992,	1,
+        1, 0.95, 0.87, 0.83, 1.9, 1.354, 1.020,	0,
+        1, 1.00, 0.45, 0.45, 0.8, 0.322, 0.999,	0,
+        1, 0.95, 0.36, 0.34, 0.5, 0.000, 1.038,	0,
+        1, 0.85, 0.39, 0.33, 0.7, 0.279, 0.988,	0,
+        1, 0.70, 0.76, 0.53, 1.2, 0.146, 0.982,	0,
+        1, 0.80, 0.46, 0.37, 0.4, 0.380, 1.006,	0,
+        1, 0.20, 0.39, 0.08, 0.8, 0.114, 0.990,	0,
+        1, 1.00, 0.90, 0.90, 1.1, 1.037, 0.990,	0,
+        1, 1.00, 0.84, 0.84, 1.9, 2.064, 1.020,	1,
+        1, 0.65, 0.42, 0.27, 0.5, 0.114, 1.014,	0,
+        1, 1.00, 0.75, 0.75, 1.0, 1.322, 1.004,	0,
+        1, 0.50, 0.44, 0.22, 0.6, 0.114, 0.990,	0,
+        1, 1.00, 0.63, 0.63, 1.1, 1.072, 0.986,	1,
+        1, 1.00, 0.33, 0.33, 0.4, 0.176, 1.010,	0,
+        1, 0.90, 0.93, 0.84, 0.6, 1.591, 1.020,	0,
+        1, 1.00, 0.58, 0.58, 1.0, 0.531, 1.002,	1,
+        1, 0.95, 0.32, 0.30, 1.6, 0.886, 0.988,	0,
+        1, 1.00, 0.60, 0.60, 1.7, 0.964, 0.990,	1,
+        1, 1.00, 0.69, 0.69, 0.9, 0.398, 0.986,	1,
+        1, 1.00, 0.73, 0.73, 0.7, 0.398, 0.986,	0)
+ld <- matrix(ld, byrow = T, ncol = 8)
+ld <- data.frame(ld)
+@
+
+<<datashow, cache = T>>=
+head(ld, 5)
+@
+
+The negative log likelihood function $f(\beta)$ is coded in \textbf{binom.loglike()}.
+<<binom.loglike, cache = T>>=
+binom.loglike <- function(par, Z, y){
+        zb <- c(Z %*% par)
+        pib <- 1 / (1 + exp(-zb))
+        return(as.numeric(-t(y) %*% (Z %*% par) - sum(log(1 - pib))))
+}
+@
+
+The uniform bound quadratic majorization algorithm update and the non-uniform one are coded in function \textbf{qmub.update()}, \textbf{qmvb.update()} respectively.
+<<quad.update, cache = T>>=
+#######quadratic majorization uniform bound##########
+qmub.update <- function(par, Z, y){
+        Zmat <- solve(crossprod(Z)) %*% t(Z)
+        zb <- c(Z %*% par)
+        pib <- 1 / (1 + exp(-zb))
+        ub <-  pib - y
+        par <- par - 4 * c(Zmat %*% ub)
+        par
+}
+
+######quadratic majorization non uniform bound#######
+qmvb.update <- function(par, Z, y){
+        zb <- c(Z %*% par)
+        pib <- 1 / (1 + exp(-zb))
+        wmat <- diag((2 * pib - 1)/(2 * zb))
+        ub <-  pib - y
+        Zmat <- solve(t(Z) %*% wmat %*% Z) %*% t(Z)
+        par <- par - c(Zmat %*% ub)
+        par
+}
+@
+
+Now let us apply these two quadratic majorization algorithms and their Squared versions to compare their performance. The tolerance used is $10^{-7}$ and the starting value is $\beta^{(0)} = (10, 10, \hdots, 10)'.$
+<<mmres1, cache = T>>=
+library(SQUAREM)
+Z <- as.matrix(ld[, 1:7])
+y <- ld[, 8]
+p0 <- rep(10, 7)
+###uniform bound###
+system.time(ans1 <- fpiter(par = p0, fixptfn = qmub.update, 
+                           objfn = binom.loglike, 
+                           control = list(maxiter = 20000), 
+                           Z = Z, y = y))
+ans1
+###squared uniform bound###
+system.time(ans2 <- squarem(par = p0, fixptfn = qmub.update, 
+                            objfn = binom.loglike, 
+                            Z = Z, y = y))
+ans2
+
+###non-uniform bound###
+system.time(ans3 <- fpiter(par = p0, fixptfn = qmvb.update, 
+                           objfn = binom.loglike, 
+                           control = list(maxiter = 20000),
+                           Z = Z, y = y))
+ans3
+###squared non-uniform bound###
+system.time(ans4 <- squarem(par = p0, fixptfn = qmvb.update, 
+                            objfn = binom.loglike, 
+                            Z = Z, y = y))
+ans4
+@
+All four algorithms converge to the same maximum likelihood estimates but Squarem improves on both uniform and non-uniform bound quadratic majorization algorithms in terms of the number of quadratic majorization updates and CPU running time (in seconds). For uniform bound, its Squared version converges around 6 times faster and saves the number of quadratic majorization updates by a factor of 10 (118 iterations vs 1127). The non-uniform bound quadratic majorization improves on the uniform bound one, but the Squared version of non-uniform bound quadratic majorization provides further acceleration. Compared to non-uniform bound, its Squared version shortens the computing time by a factor of 3 and cuts the number of quadratic majorization updates by a factor of 5 (88 iterations vs 442).
+
+
+\end{document}

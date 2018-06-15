@@ -1,0 +1,426 @@
+%%% Rd.sty ... Style for printing the R manual
+%%% Part of the R package, http://www.R-project.org
+%%% Copyright (C) 2003-2014 The R Foundation
+%%% Distributed under GPL 2 or later
+%%%
+%%% Modified 1998/01/05 by Friedrich Leisch
+%%% Modified 1998/07/07 by Martin Maechler
+%%% Modified 1999/11/20 by Brian Ripley
+%%% Modified 1999/12/26 by Kurt Hornik
+%%% and so on.
+
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{Rd}{}
+
+\RequirePackage{ifthen}
+\newboolean{Rd@has@ae}
+\newboolean{Rd@use@ae}
+\newboolean{Rd@use@hyper}
+\newboolean{Rd@has@times}
+\newboolean{Rd@use@times}
+\newboolean{Rd@use@cm-super}
+\newboolean{Rd@has@lm}
+\newboolean{Rd@use@lm}
+\newboolean{Rd@use@beramono}
+\newboolean{Rd@use@inconsolata}
+\DeclareOption{ae}{\setboolean{Rd@use@ae}{true}}
+\DeclareOption{hyper}{\setboolean{Rd@use@hyper}{true}}
+\DeclareOption{times}{\setboolean{Rd@use@times}{true}}
+\DeclareOption{lm}{\setboolean{Rd@use@lm}{true}}
+\DeclareOption{cm-super}{\setboolean{Rd@use@cm-super}{true}}
+\DeclareOption{beramono}{\setboolean{Rd@use@beramono}{true}}
+\DeclareOption{inconsolata}{\setboolean{Rd@use@inconsolata}{true}}
+\ProcessOptions
+\RequirePackage{longtable}
+\setcounter{LTchunksize}{250}
+\ifthenelse{\boolean{Rd@use@hyper}}
+{\IfFileExists{hyperref.sty}{}{\setboolean{Rd@use@hyper}{false}
+  \message{package hyperref not found}}}
+{}
+
+\RequirePackage{bm}              % standard boldsymbol
+\RequirePackage{alltt}           % {verbatim} allowing \..
+\RequirePackage{verbatim}        % small example code
+\RequirePackage{url}             % set urls
+\RequirePackage{textcomp}        % for \textquotesingle etc
+
+
+\addtolength{\textheight}{12mm}
+\addtolength{\topmargin}{-9mm}   % still fits on US paper
+\addtolength{\textwidth}{24mm}   % still fits on US paper
+\setlength{\oddsidemargin}{10mm}
+\setlength{\evensidemargin}{\oddsidemargin}
+
+\newenvironment{display}[0]%
+  {\begin{list}{}{\setlength{\leftmargin}{30pt}}\item}%
+  {\end{list}}
+\newcommand{\HTML}{{\normalfont\textsc{html}}}
+\newcommand{\R}{{\normalfont\textsf{R}}{}}
+\newcommand{\Rdash}{-}
+
+% \def\href#1#2{\special{html:<a href="#1">}{#2}\special{html:</a>}}
+
+\newcommand{\vneed}[1]{%
+  \penalty-1000\vskip#1 plus 10pt minus #1\penalty-1000\vspace{-#1}}
+
+\newcommand{\Rdcontents}[1]{% modified \tableofcontents -- not \chapter
+\section*{{#1}\@mkboth{\MakeUppercase#1}{\MakeUppercase#1}}
+  \@starttoc{toc}}
+
+\newcommand{\Header}[2]{%
+  \vneed{1ex}
+  \markboth{#1}{#1}
+  \noindent
+  \nopagebreak
+  \begin{center}
+  \ifthenelse{\boolean{Rd@use@hyper}}%
+    {\def\@currentHref{page.\thepage}
+    \hypertarget{Rfn.#1}{\index{#1@\texttt{#1}}}%
+    \myaddcontentsline{toc}{subsection}{#1}%
+    \pdfbookmark[1]{#1}{Rfn.#1}}
+    {\addcontentsline{toc}{subsection}{#1}
+      \index{#1@\texttt{#1}|textbf}}
+    \hrule
+    \parbox{0.95\textwidth}{%
+      \begin{ldescription}[1.5in]
+       \item[\texttt{#1}] \emph{#2}
+      \end{ldescription}}
+    \hrule
+  \end{center}
+  \nopagebreak}
+%
+%
+%
+% \alias{<alias>}{<header>}
+\ifthenelse{\boolean{Rd@use@hyper}}
+{\newcommand{\alias}[2]{\hypertarget{Rfn.#1}{\index{#1@\texttt{#1} \textit{(\texttt{#2})}}}}}
+{\newcommand{\alias}[2]{\index{#1@\texttt{#1} \textit{(\texttt{#2})}}}}
+\ifthenelse{\boolean{Rd@use@hyper}}
+{\newcommand{\methalias}[2]{\hypertarget{Rfn.#1}{\relax}}}
+{\newcommand{\methalias}[2]{}}
+% \keyword{<topic>}{<header>}
+\newcommand{\keyword}[2]{\index{$*$Topic{\large\ \textbf{#1}}!#2@\texttt{#2}}}
+%
+% used prior to 2.10.0 only
+\newcommand{\Itemize}[1]{\begin{itemize}{#1}\end{itemize}}
+\newcommand{\Enumerate}[1]{\begin{enumerate}{#1}\end{enumerate}}
+\newcommand{\describe}[1]{\begin{description}{#1}\end{description}}
+
+\newcommand{\Tabular}[2]{%
+  \par\begin{longtable}{#1}
+    #2
+  \end{longtable}}
+
+\newlength{\ldescriptionwidth}
+\newcommand{\ldescriptionlabel}[1]{%
+  \settowidth{\ldescriptionwidth}{{#1}}%
+  \ifdim\ldescriptionwidth>\labelwidth
+    {\parbox[b]{\labelwidth}%
+      {\makebox[0pt][l]{#1}\\[1pt]\makebox{}}}%
+  \else
+    \makebox[\labelwidth][l]{{#1}}%
+  \fi
+  \hfil\relax}
+\newenvironment{ldescription}[1][1in]%
+  {\begin{list}{}%
+    {\setlength{\labelwidth}{#1}%
+      \setlength{\leftmargin}{\labelwidth}%
+      \addtolength{\leftmargin}{\labelsep}%
+      \renewcommand{\makelabel}{\ldescriptionlabel}}}%
+  {\end{list}}
+
+\newenvironment{Rdsection}[1]{%
+  \ifx\@empty#1\else\subsubsection*{#1}\fi
+  \begin{list}{}{\setlength{\leftmargin}{0.25in}}\item}
+  {\end{list}}
+
+\newenvironment{Arguments}{%
+  \begin{Rdsection}{Arguments}}{\end{Rdsection}}
+\newenvironment{Author}{%
+  \begin{Rdsection}{Author(s)}}{\end{Rdsection}}
+\newenvironment{Description}{%
+  \begin{Rdsection}{Description}}{\end{Rdsection}}
+\newenvironment{Details}{%
+  \begin{Rdsection}{Details}}{\end{Rdsection}}
+\newenvironment{Examples}{%
+  \begin{Rdsection}{Examples}}{\end{Rdsection}}
+\newenvironment{Note}{%
+  \begin{Rdsection}{Note}}{\end{Rdsection}}
+\newenvironment{References}{%
+  \begin{Rdsection}{References}}{\end{Rdsection}}
+\newenvironment{SeeAlso}{%
+  \begin{Rdsection}{See Also}}{\end{Rdsection}}
+\newenvironment{Format}{%
+  \begin{Rdsection}{Format}}{\end{Rdsection}}
+\newenvironment{Source}{%
+  \begin{Rdsection}{Source}}{\end{Rdsection}}
+\newenvironment{Section}[1]{%
+  \begin{Rdsection}{#1}}{\end{Rdsection}}
+\newenvironment{Usage}{%
+  \begin{Rdsection}{Usage}}{\end{Rdsection}}
+\newenvironment{Value}{%
+  \begin{Rdsection}{Value}}{\end{Rdsection}}
+
+\newenvironment{SubSection}[1]{%
+  \begin{list}{}{\setlength{\leftmargin}{0.1in}}\item \textbf{#1: }}{\end{list}}
+\newenvironment{SubSubSection}[1]{%
+  \begin{list}{}{\setlength{\leftmargin}{0.1in}}\item \textit{#1: }}{\end{list}}
+
+\newenvironment{ExampleCode}{\small\verbatim}{\endverbatim}
+
+\ifx\textbackslash\undefined%-- e.g. for MM
+  \newcommand{\bsl}{\ifmmode\backslash\else$\backslash$\fi}
+\else
+  \newcommand{\bsl}{\ifmmode\backslash\else\textbackslash\fi}
+\fi
+%fails for index (but is not used there...)
+\newcommand{\SIs}{\relax\ifmmode\leftarrow\else$\leftarrow$\fi}
+\newcommand{\SIIs}{\relax\ifmmode<\leftarrow\else$<\leftarrow$\fi}
+\newcommand{\Sbecomes}{\relax\ifmmode\rightarrow\else$\rightarrow$\fi}
+%
+\newcommand{\deqn}[2]{\[#1\]}
+\newcommand{\eqn}[2]{$#1$}
+\newcommand{\bold}[1]{\ifmmode\bm{#1}\else\textbf{#1}\fi}
+%% as from R 2.12.0 set \file in monospaced font, not sans-serif
+\newcommand{\file}[1]{`\texttt{#1}'}
+
+\newcommand{\Figure}[2]{\includegraphics[#2]{#1}}
+
+\ifthenelse{\boolean{Rd@use@hyper}}
+{\newcommand{\link}[1]{\hyperlink{Rfn.#1}{#1}\index{#1@\texttt{#1}}}}
+{\newcommand{\link}[1]{#1\index{#1@\texttt{#1}}}}
+
+\ifthenelse{\boolean{Rd@use@hyper}}
+{\newcommand*{\Rhref}{\begingroup\@makeother\#\@Rhref}
+  \newcommand*{\@Rhref}[2]{\href{#1}{#2}\endgroup}}
+{\newcommand*{\Rhref}{\begingroup\@makeother\#\@Rhref}
+  \newcommand*{\@Rhref}[2]{#2\footnote{\url{#1}}\endgroup}}
+
+%% as from R 2.10.0 set \email in monospaced font (like \url)
+%\newcommand{\email}[1]{$\langle$\texttt{#1}$\rangle$}
+\newcommand{\email}[1]{\normalfont\texttt{\textless#1\textgreater}}
+
+%% \code without `-' ligatures
+
+%{\catcode`\-=\active%
+%   \global\def\code{\bgroup%
+%     \catcode`\-=\active \let-\codedash%
+%     \Rd@code}}
+%     \def\codedash{-\discretionary{}{}{}}
+
+%% If we simply do
+%%   \DeclareRobustCommand\code{\bgroup\@noligs\@vobeyspaces\Rd@code}
+%% then e.g.
+%%   \code{\LinkA{attr<-}{attr<.Rdash.}} 
+%% will give an undefined control sequence `\< error when hyperref is
+%% used (so that \LinkA uses \hyperlink).
+%% Hence, use a noligs list without < and > for now, and use the same
+%% list for \code and \samp and their variants.
+\def\Rd@nolig@list{\do\`\do\,\do\'\do\-}
+\def\Rd@noligs{\let\do\do@noligs \Rd@nolig@list}
+
+\DeclareRobustCommand\code{\bgroup\Rd@noligs\@vobeyspaces\Rd@code}
+\def\Rd@code#1{\normalfont\texttt{#1}\egroup}
+\let\command=\code
+\let\env=\code
+
+\DeclareRobustCommand\samp{`\bgroup\Rd@noligs\@vobeyspaces\@sampx}
+\def\@sampx#1{{\normalfont\texttt{#1}}\egroup'}
+\let\option=\samp
+
+\def\AsIs{\bgroup\let\do\@makeother\Rd@AsIs@dospecials\@noligs\obeylines\@vobeyspaces\parskip\z@skip\Rd@AsIsX}
+\def\Rd@AsIs@dospecials{\do\$\do\&\do\#\do\^\do\_\do\%\do\~}
+\def\Rd@AsIsX#1{\normalfont #1\egroup}
+
+% This is a workaround for the old Rdconv to handle \Sexpr by echoing it
+% Rd2latex() should never let \Sexpr through to here.
+\newcommand\Sexpr[2][]{{\normalfont\texttt{\bsl Sexpr[#1]\{#2\}}}}
+
+\newcommand{\var}[1]{{\normalfont\textsl{#1}}}
+
+\newcommand{\dfn}[1]{\textsl{#1}}
+\let\Cite=\dfn
+
+\newcommand{\acronym}[1]{\textsc{\lowercase{#1}}}
+\newcommand{\kbd}[1]{{\normalfont\texttt{\textsl{#1}}}}
+
+\newcommand{\strong}[1]{{\normalfont\fontseries{b}\selectfont #1}}
+\let\pkg=\strong
+
+\newcommand{\sQuote}[1]{`#1'}
+\newcommand{\dQuote}[1]{``#1''}
+
+\IfFileExists{ae.sty}{\setboolean{Rd@has@ae}{true}}{}
+\ifthenelse{\boolean{Rd@use@ae}\and\boolean{Rd@has@ae}}{%
+  \usepackage[T1]{fontenc}
+  \usepackage{ae}
+  \input{t1aett.fd}
+  \DeclareFontShape{T1}{aett}{bx}{n}{<->ssub*aett/m/n}{}}{}
+\IfFileExists{times.sty}{\setboolean{Rd@has@times}{true}}{}
+\ifthenelse{\boolean{Rd@use@times}\and\boolean{Rd@has@times}}{%
+  \usepackage[T1]{fontenc}
+  \usepackage{times}}{}
+\IfFileExists{lmodern.sty}{\setboolean{Rd@has@lm}{true}}{}
+\ifthenelse{\boolean{Rd@use@lm}\and\boolean{Rd@has@lm}}{%
+  \usepackage[T1]{fontenc}
+  \usepackage{lmodern}}{}
+\ifthenelse{\boolean{Rd@use@cm-super}}{%
+  \usepackage[T1]{fontenc}}{}
+\ifthenelse{\boolean{Rd@use@beramono}}{%
+  \usepackage[scaled=.8]{beramono}}{}
+%% it appears that all versions of zi4.sty support [noupquote],
+%% whereas only those since 2013/06/09 of inconsolata.sty do: such
+%% installations should also have zi4.sty
+\ifthenelse{\boolean{Rd@use@inconsolata}}{%
+ \IfFileExists{zi4.sty}{\usepackage[noupquote]{zi4}}{\usepackage{inconsolata}}}{}
+
+%% needs to come after \code is defined
+%% inspired by an earlier version of upquote.sty
+\begingroup
+\catcode`'=\active \catcode``=\active
+\g@addto@macro\@noligs {\let`\textasciigrave \let'\textquotesingle}
+\g@addto@macro\Rd@noligs {\let`\textasciigrave \let'\textquotesingle}
+\endgroup
+
+%% We use \pkg{verbatim} for our ExampleCode environment, which in its
+%% \verbatim@font has an explicit \let\do\do@noligs\verbatim@nolig@list
+%% rather than (the identical) \@noligs from the LaTeX2e kernel.
+%% Hence, we add to \verbatim@font ... suggestion by Bernd Raichle
+%% <raichle@Informatik.Uni-Stuttgart.DE>.
+\g@addto@macro\verbatim@font\@noligs
+
+\ifthenelse{\boolean{Rd@use@hyper}}{%
+  \RequirePackage{color}    
+  \def\myaddcontentsline#1#2#3{%
+    \addtocontents{#1}{\protect\contentsline{#2}{#3}{\thepage}{page.\thepage}}}
+  \RequirePackage{hyperref}
+  \DeclareTextCommand{\Rpercent}{PD1}{\045} % percent
+  %% <NOTE>
+  %% Formerly in R's hyperref.cfg, possibly to be shared with Sweave.sty
+  %% as well (but without setting pagebackref as this can give trouble
+  %% for .bib entries containing URLs with '#' characters).
+  \definecolor{Blue}{rgb}{0,0,0.8}
+  \definecolor{Red}{rgb}{0.7,0,0}
+  \hypersetup{%
+    hyperindex,%
+    colorlinks,%
+    pagebackref,%
+    linktocpage,%
+    plainpages=false,%
+    linkcolor=Blue,%
+    citecolor=Blue,%
+    urlcolor=Red,%
+    pdfstartview=Fit,%
+    pdfview={XYZ null null null}%
+  }
+  %% </NOTE>
+  \renewcommand\tableofcontents{%
+    \if@twocolumn
+      \@restonecoltrue\onecolumn
+    \else
+      \@restonecolfalse
+    \fi
+    \chapter*{\contentsname
+        \@mkboth{%
+           \MakeUppercase\contentsname}{\MakeUppercase\contentsname}}%
+    \pdfbookmark{Contents}{contents}
+    \@starttoc{toc}%
+    \if@restonecol\twocolumn\fi
+    }
+  \renewenvironment{theindex}
+  {\if@twocolumn
+    \@restonecolfalse
+    \else
+    \@restonecoltrue
+    \fi
+    \columnseprule \z@
+    \columnsep 35\p@
+    \twocolumn[\@makeschapterhead{\indexname}]%
+    \@mkboth{\MakeUppercase\indexname}%
+    {\MakeUppercase\indexname}%
+    \pdfbookmark{Index}{index}
+    \myaddcontentsline{toc}{chapter}{Index}
+    \thispagestyle{plain}\parindent\z@
+    \parskip\z@ \@plus .3\p@\relax
+    \raggedright
+    \let\item\@idxitem}
+  {\if@restonecol\onecolumn\else\clearpage\fi}
+  }{
+  \renewenvironment{theindex}
+  {\if@twocolumn
+    \@restonecolfalse
+    \else
+    \@restonecoltrue
+    \fi
+    \columnseprule \z@
+    \columnsep 35\p@
+    \twocolumn[\@makeschapterhead{\indexname}]%
+    \@mkboth{\MakeUppercase\indexname}%
+    {\MakeUppercase\indexname}%
+    \addcontentsline{toc}{chapter}{Index}
+    \thispagestyle{plain}\parindent\z@
+    \parskip\z@ \@plus .3\p@\relax
+    \raggedright
+    \let\item\@idxitem}
+  {\if@restonecol\onecolumn\else\clearpage\fi}
+  }
+
+% new definitions for R >= 2.0.0
+\ifthenelse{\boolean{Rd@use@hyper}}
+{\newcommand{\LinkA}[2]{\hyperlink{Rfn.#2}{#1}\index{#1@\texttt{#1}|textit}}}
+{\newcommand{\LinkA}[2]{#1\index{#1@\texttt{#1}|textit}}}
+%
+% \alias{<alias>}{<header>}
+\ifthenelse{\boolean{Rd@use@hyper}}
+{\newcommand{\aliasA}[3]{\hypertarget{Rfn.#3}{\index{#1@\texttt{#1} \textit{(\texttt{#2})}}}}}
+{\newcommand{\aliasA}[3]{\index{#1@\texttt{#1} \textit{(\texttt{#2})}}}}
+% \aliasB has no indexing.
+\ifthenelse{\boolean{Rd@use@hyper}}
+{\newcommand{\aliasB}[3]{\hypertarget{Rfn.#3}{\relax}}}
+{\newcommand{\aliasB}[3]{}}
+\ifthenelse{\boolean{Rd@use@hyper}}
+{\newcommand{\methaliasA}[3]{\hypertarget{Rfn.#3}{\relax}}}
+{\newcommand{\methaliasA}[3]{}}
+
+\ifthenelse{\boolean{Rd@use@hyper}}
+{\newcommand{\CRANpkg}[1]{\href{https://CRAN.R-project.org/package=#1}{\pkg{#1}}}}
+{\newcommand{\CRANpkg}[1]{\pkg{#1}}}
+
+\newcommand{\HeaderA}[3]{%
+  \vneed{1ex}
+  \markboth{#1}{#1}
+  \noindent
+  \nopagebreak
+  \begin{center}
+  \ifthenelse{\boolean{Rd@use@hyper}}%
+    {\def\@currentHref{page.\thepage}
+    \hypertarget{Rfn.#3}{\index{#1@\texttt{#1}}}%
+    \myaddcontentsline{toc}{subsection}{#1}%
+    \pdfbookmark[1]{#1}{Rfn.#3}}
+    {\addcontentsline{toc}{subsection}{#1}
+      \index{#1@\texttt{#1}|textbf}}
+    \hrule
+    \parbox{0.95\textwidth}{%
+      \begin{ldescription}[1.5in]
+       \item[\texttt{#1}] \emph{#2}
+      \end{ldescription}}
+    \hrule
+  \end{center}
+  \nopagebreak}
+\DeclareTextCommandDefault{\Rpercent}{\%{}}
+%% for use with the output of encoded_text_to_latex
+\ProvideTextCommandDefault{\textdegree}{\ensuremath{{^\circ}}}
+\ProvideTextCommandDefault{\textonehalf}{\ensuremath{\frac12}}
+\ProvideTextCommandDefault{\textonequarter}{\ensuremath{\frac14}}
+\ProvideTextCommandDefault{\textthreequarters}{\ensuremath{\frac34}}
+\ProvideTextCommandDefault{\textcent}{\TextSymbolUnavailable\textcent}
+\ProvideTextCommandDefault{\textyen}{\TextSymbolUnavailable\textyen}
+\ProvideTextCommandDefault{\textcurrency}{\TextSymbolUnavailable\textcurrency}
+\ProvideTextCommandDefault{\textbrokenbar}{\TextSymbolUnavailable\textbrokenbar}
+\ProvideTextCommandDefault{\texteuro}{\TextSymbolUnavailable\texteuro}
+\providecommand{\mathonesuperior}{\ensuremath{^1}}
+\providecommand{\mathtwosuperior}{\ensuremath{^2}}
+\providecommand{\maththreesuperior}{\ensuremath{^3}}
+
+\InputIfFileExists{Rd.cfg}{%
+  \typeout{Reading personal defaults ...}}{}

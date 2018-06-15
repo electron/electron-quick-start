@@ -1,0 +1,172 @@
+---
+title: "How are categorical predictors handled in `recipes`?"
+vignette: >
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteIndexEntry{Dummy Variables and Interactions}
+  %\VignetteEncoding{UTF-8}  
+output:
+  knitr:::html_vignette:
+    toc: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  message = FALSE,
+  digits = 3,
+  collapse = TRUE,
+  comment = "#>"
+  )
+options(digits = 3)
+library(recipes)
+```
+
+Recipes can be different from their base R counterparts such as `model.matrix`. This vignette describes the different methods for encoding categorical predictors with special attention to interaction terms.  
+
+## Creating Dummy Variables
+
+Let's start, of course, with `iris` data. This has four numeric columns and a single factor column with three levels: `'setosa'`, `'versicolor'`, and `'virginica'`. Our initial recipe will have no outcome:
+
+```{r iris-base-rec}
+library(recipes)
+iris_rec <- recipe( ~ ., data = iris)
+summary(iris_rec)
+```
+
+A [contrast function](https://en.wikipedia.org/wiki/Contrast_(statistics)) in R is a method for translating a column with categorical values into one or more numeric columns that take the place of the original. This can also be known as an encoding method or a parameterization function. 
+
+The default approach is to create dummy variables using the "reference cell" parameterization. This means that, if there are _C_ levels of the factor, there will be _C_ - 1 dummy variables created and all but the first factor level are made into new columns:
+
+```{r iris-ref-cell}
+ref_cell <- iris_rec %>% 
+  step_dummy(Species) %>%
+  prep(training = iris, retain = TRUE)
+summary(ref_cell)
+
+# Get a row for each factor level
+rows <- c(1, 51, 101)
+juice(ref_cell, starts_with("Species"))[rows,]
+```
+
+Note that the original column (`Species`) is no longer there.
+
+There are different types of contrasts that can be used for different types of factors. The defaults are:
+
+```{r defaults}
+param <- getOption("contrasts")
+param
+```
+
+Looking at `?contrast`, there are other options. One alternative is the little known Helmert contrast:
+
+> `contr.helmert` returns Helmert contrasts, which contrast the second level with the first, the third with the average of the first two, and so on. 
+
+To get this encoding, the global option for the contrasts can be changed and saved. [`step_dummy`](https://topepo.github.io/recipes/reference/step_dummy.html) picks up on this and makes the correct calculations:
+
+```{r iris-helmert}
+# change it:
+new_cont <- param
+new_cont["unordered"] <- "contr.helmert"
+options(contrasts = new_cont)
+
+# now make dummy variables with new parameterization
+helmert <- iris_rec %>% 
+  step_dummy(Species) %>%
+  prep(training = iris, retain = TRUE)
+summary(helmert)
+
+juice(helmert, starts_with("Species"))[rows,]
+
+# Yuk; go back to the original method
+options(contrasts = param)
+```
+
+
+## Interactions with Dummy Variables
+
+Creating interactions with recipes requires the use of a model formula, such as
+
+```{r iris-2int}
+iris_int <- iris_rec %>%
+  step_interact( ~ Sepal.Width:Sepal.Length) %>%
+  prep(training = iris, retain = TRUE)
+summary(iris_int)
+```
+
+In [R model formulae](https://stat.ethz.ch/R-manual/R-devel/library/stats/html/formula.html), using a `*` between two variables would expand to `a*b = a + b + a:b` so that the main effects are included. In [`step_interact`](https://topepo.github.io/recipes/reference/step_interact.html), you can do use `*`, but only the interactions are recorded as columns that needs to be created. 
+
+One thing that `recipes` does differently than base R is to construct the design matrix in sequential iterations. This is relevant when thinking about interactions between continuous and categorical predictors. 
+
+For example, if you were to use the standard formula interface, the creation of the dummy variables happens at the same time as the interactions are created:
+
+```{r mm-int}
+model.matrix(~ Species*Sepal.Length, data = iris)[rows,]
+```
+
+With recipes, you create them sequentially. This raises an issue: do I have to type out all of the interaction effects by their specific names when using dummy variable? 
+
+```{r nope, eval = FALSE}
+# Must I do this?
+iris_rec %>%
+  step_interact( ~ Species_versicolor:Sepal.Length + 
+                   Species_virginica:Sepal.Length) 
+```
+
+Note only is this a pain, but it may not be obvious what dummy variables are available (especially when [`step_other`](https://topepo.github.io/recipes/reference/step_other.html) is used). 
+
+The solution is to use a selector:
+
+```{r iris-sel}
+iris_int <- iris_rec %>% 
+  step_dummy(Species) %>%
+  step_interact( ~ starts_with("Species"):Sepal.Length) %>%
+  prep(training = iris, retain = TRUE)
+summary(iris_int)
+```
+
+What happens here is that `starts_with("Species")` is executed on the data that are available when the previous steps have been applied to the data. That means that the dummy variable columns are present. The results of this selectors are then translated to an additive function of the results. In this case, that means that 
+
+```{r sel-input, eval = FALSE}
+starts_with("Species")
+```
+
+becomes
+
+```{r sel-output, eval = FALSE}
+(Species_versicolor + Species_virginica)
+```
+
+The entire interaction formula is shown here:
+
+```{r int-form}
+iris_int
+```
+
+## Warning!
+
+Would it work if I didn't convert species to a factor and used the interactions step? 
+
+```{r iris-dont}
+iris_int <- iris_rec %>% 
+  step_interact( ~ Species:Sepal.Length) %>%
+  prep(training = iris, retain = TRUE)
+summary(iris_int)
+```
+
+The columns `Species` isn't affected and a warning is issued. Basically, you only get half of what `model.matrix` does and that could really be problematic in subsequent steps. 
+
+
+## Other Steps Related to Dummy Variables
+
+
+There are a bunch of steps related to going in-between factors and dummy variables:
+
+ * [`step_other`](https://topepo.github.io/recipes/reference/step_other.html) can collapse infrequently occurring levels into `'other'`.
+ * [`step_regex`](https://topepo.github.io/recipes/reference/step_regex.html) will create a single dummy variable based  on applying a regular expression to a text field. Similarly, [`step_count`](https://topepo.github.io/recipes/reference/step_count.html) does the same but counts the occurrences of the pattern in the string. 
+ * [`step_holiday`](https://topepo.github.io/recipes/reference/step_holiday.html) creates dummy variables from date fields to capture holidays. 
+ * [`step_lincomb`](https://topepo.github.io/recipes/reference/step_lincomb.html) can be useful if you _over-specify_ interactions and need to remove linear dependencies. 
+ * [`step_zv`](https://topepo.github.io/recipes/reference/step_zv.html) can remove dummy variables that never show a 1 in the column (i.e. is zero-variance).
+ 
+[`step_dummy`](https://topepo.github.io/recipes/reference/step_dummy.html) also works with _ordered factors_. As seen above, the default encoding is to create a series of polynomial variables. There are also a few steps for ordered factors:
+
+ * [`step_ordinalscore`](https://topepo.github.io/recipes/reference/step_ordinalscore.html) can translate the levels to a single numeric score. 
+ * [`step_unorder`](https://topepo.github.io/recipes/reference/step_unorder.html) can convert to an unordered factor.

@@ -1,0 +1,5 @@
+library("foreign")
+otd <- read.octave("octave.dat")
+summary(otd)
+str(otd)
+q()

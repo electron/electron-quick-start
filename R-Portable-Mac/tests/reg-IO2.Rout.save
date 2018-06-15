@@ -1,0 +1,252 @@
+
+R version 3.5.0 RC (2018-04-15 r74605) -- "Joy in Playing"
+Copyright (C) 2018 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> ## tests of boundary cases in read.table()
+> 
+> ## force standard handling for character cols
+> options(stringsAsFactors=TRUE)
+> 
+> # empty file
+> file.create("foo1")
+[1] TRUE
+> try(read.table("foo1")) # fails
+Error in read.table("foo1") : no lines available in input
+> read.table("foo1", col.names=LETTERS[1:4])
+[1] A B C D
+<0 rows> (or 0-length row.names)
+> unlink("foo1")
+> 
+> # header only
+> cat("head\n", file = "foo2")
+> read.table("foo2")
+    V1
+1 head
+> try(read.table("foo2", header=TRUE)) # fails in 1.2.3
+[1] head
+<0 rows> (or 0-length row.names)
+> unlink("foo2")
+> # header detection
+> cat("head\n", 1:2, "\n", 3:4, "\n", file = "foo3")
+> read.table("foo3", header=TRUE)
+  head
+1    2
+3    4
+> read.table("foo3", header=TRUE, col.names="V1")
+  V1
+1  2
+3  4
+> read.table("foo3", header=TRUE, row.names=1)
+  head
+1    2
+3    4
+> read.table("foo3", header=TRUE, row.names="row.names")
+  head
+1    2
+3    4
+> read.table("foo3", header=TRUE, row.names="head") # fails in 1.2.3
+  row.names
+2         1
+4         3
+> 
+> # wrong col.names
+> try(read.table("foo3", header=TRUE, col.names=letters[1:4]))
+Error in scan(file = file, what = what, sep = sep, quote = quote, dec = dec,  : 
+  line 1 did not have 4 elements
+In addition: Warning message:
+In read.table("foo3", header = TRUE, col.names = letters[1:4]) :
+  header and 'col.names' are of different lengths
+> unlink("foo3")
+> 
+> # incomplete last line
+> cat("head\n", 1:2, "\n", 3:4, file = "foo4")
+> read.table("foo4", header=TRUE)
+  head
+1    2
+3    4
+Warning message:
+In read.table("foo4", header = TRUE) :
+  incomplete final line found by readTableHeader on 'foo4'
+> unlink("foo4")
+> 
+> # blank last line
+> cat("head\n\n", 1:2, "\n", 3:4, "\n\n", file = "foo5")
+> read.table("foo5", header=TRUE)
+  head
+1    2
+3    4
+> 
+> # test of fill
+> read.table("foo5", header=FALSE, fill=TRUE, blank.lines.skip=FALSE) # fails in 1.2.3
+    V1 V2
+1 head NA
+2      NA
+3    1  2
+4    3  4
+5      NA
+> unlink("foo5")
+> 
+> cat("head\n", 1:2, "\n", 3:5, "\n", 6:9, "\n", file = "foo6")
+> try(read.table("foo6", header=TRUE))
+Error in read.table("foo6", header = TRUE) : 
+  more columns than column names
+> try(read.table("foo6", header=TRUE, fill=TRUE))
+Error in read.table("foo6", header = TRUE, fill = TRUE) : 
+  more columns than column names
+> read.table("foo6", header=FALSE, fill=TRUE)
+    V1 V2 V3 V4
+1 head NA NA NA
+2    1  2 NA NA
+3    3  4  5 NA
+4    6  7  8  9
+> unlink("foo6")
+> 
+> # test of type conversion in 1.4.0 and later.
+> cat("A B C D E F\n",
++     "1 1 1.1 1.1+0i NA F abc\n",
++     "2 NA NA NA NA NA NA\n",
++     "3 1 2 3 NA TRUE def\n",
++     sep = "", file = "foo7")
+> (res <- read.table("foo7"))
+   A   B      C  D     E    F
+1  1 1.1 1.1+0i NA FALSE  abc
+2 NA  NA     NA NA    NA <NA>
+3  1 2.0 3.0+0i NA  TRUE  def
+> sapply(res, typeof)
+        A         B         C         D         E         F 
+"integer"  "double" "complex" "logical" "logical" "integer" 
+> sapply(res, class)
+        A         B         C         D         E         F 
+"integer" "numeric" "complex" "logical" "logical"  "factor" 
+> (res2 <- read.table("foo7",
++                     colClasses = c("character", rep("numeric", 2),
++                     "complex", "integer", "logical", "character")))
+   A   B      C  D     E    F
+1  1 1.1 1.1+0i NA FALSE  abc
+2 NA  NA     NA NA    NA <NA>
+3  1 2.0 3.0+0i NA  TRUE  def
+> sapply(res2, typeof)
+          A           B           C           D           E           F 
+   "double"    "double"   "complex"   "integer"   "logical" "character" 
+> sapply(res2, class)
+          A           B           C           D           E           F 
+  "numeric"   "numeric"   "complex"   "integer"   "logical" "character" 
+> unlink("foo7")
+> 
+> # should be logical
+> type.convert(character(0))
+logical(0)
+> 
+> # test of comments in data files
+> cat("# a test file",
++     "# line 2",
++     "# line 3",
++     "# line 4",
++     "# line 5",
++     "## now the header",
++     " a b c",
++     "# some more comments",
++     "1 2 3",
++     "4 5 6# this is the second data row of the file",
++     "  # some more comments",
++     "7 8 9",
++     "# trailing comment\n",
++     file= "ex.data", sep="\n")
+> read.table("ex.data", header = T)
+  a b c
+1 1 2 3
+2 4 5 6
+3 7 8 9
+> unlink("ex.data")
+> 
+> ## comment chars in headers
+> cat("x1\tx#2\tx3\n1\t2\t2\n2\t3\t3\n", file = "test.dat")
+> read.table("test.dat", header=T, comment.char="")
+  x1 x.2 x3
+1  1   2  2
+2  2   3  3
+> unlink("test.dat")
+> 
+> cat('#comment\n\n#another\n#\n#\n',
++     'C1\tC2\tC3\n"Panel"\t"Area Examined"\t"# Blemishes"\n',
++     '"1"\t"0.8"\t"3"\n', '"2"\t"0.6"\t"2"\n', '"3"\t"0.8"\t"3"\n',
++     file = "test.dat", sep="")
+> read.table("test.dat")
+     V1            V2          V3
+1    C1            C2          C3
+2 Panel Area Examined # Blemishes
+3     1           0.8           3
+4     2           0.6           2
+5     3           0.8           3
+> unlink("test.dat")
+> 
+> cat('%comment\n\n%another\n%\n%\n',
++     'C1\tC2\tC3\n"Panel"\t"Area Examined"\t"% Blemishes"\n',
++     '"1"\t"0.8"\t"3"\n', '"2"\t"0.6"\t"2"\n', '"3"\t"0.8"\t"3"\n',
++     file = "test.dat", sep="")
+> read.table("test.dat", comment.char = "%")
+     V1            V2          V3
+1    C1            C2          C3
+2 Panel Area Examined % Blemishes
+3     1           0.8           3
+4     2           0.6           2
+5     3           0.8           3
+> unlink("test.dat")
+> 
+> ## test on Windows Unicode file
+> con <- file(file.path(Sys.getenv("SRCDIR"), "WinUnicode.dat"),
++             encoding="UCS-2LE")
+> scan(con, 0, quiet=TRUE)
+[1] 1 2 3 4 5 6 7 8
+> close(con)
+> 
+> ## tests of allowEscape
+> x <- "1 2 3 \\ab\\c"
+> writeLines(x, "test.dat")
+> readLines("test.dat")
+[1] "1 2 3 \\ab\\c"
+> scan("test.dat", "", allowEscapes=TRUE)
+Read 4 items
+[1] "1"    "2"    "3"    "\abc"
+> scan("test.dat", "", allowEscapes=FALSE)
+Read 4 items
+[1] "1"       "2"       "3"       "\\ab\\c"
+> read.table("test.dat", header=FALSE, allowEscapes=TRUE)
+  V1 V2 V3   V4
+1  1  2  3 \abc
+> read.table("test.dat", header=FALSE, allowEscapes=FALSE)
+  V1 V2 V3      V4
+1  1  2  3 \\ab\\c
+> x <- c("TEST", 1, 2, "\\b", 4, 5, "\\040", "\\x20",
++        "c:\\spencer\\tests",
++        "\\t", "\\n", "\\r")
+> writeLines(x, "test.dat")
+> read.table("test.dat", allowEscapes=FALSE, header = TRUE)
+                 TEST
+1                   1
+2                   2
+3                 \\b
+4                   4
+5                   5
+6               \\040
+7               \\x20
+8  c:\\spencer\\tests
+9                 \\t
+10                \\n
+11                \\r
+> unlink("test.dat")
+> ## end of tests
+> 

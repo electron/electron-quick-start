@@ -1,0 +1,672 @@
+
+R Under development (unstable) (2016-03-23 r70368) -- "Unsuffered Consequences"
+Copyright (C) 2016 The R Foundation for Statistical Computing
+Platform: i686-pc-linux-gnu (32-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> options(na.action=na.exclude) # preserve missings
+> options(contrasts=c('contr.treatment', 'contr.poly')) #ensure constrast type
+> library(survival)
+> {if (is.R()) mdy.date <- function(m, d, y) {
++     y <- ifelse(y<100, y+1900, y)
++     as.Date(paste(m,d,y, sep='/'), "%m/%d/%Y")
++     }
++ else mdy.date <- function(m,d,y) {
++     y <- ifelse(y<100, y+1900, y)
++     timeDate(paste(y, m, d, sep='/'), in.format="%Y/%m/%d")
++     }
++  }
+> 
+> # 
+> # Simple case: a single male subject, born 6/6/36 and entered on study 6/6/55.
+> #
+> 
+> temp1 <- mdy.date(6,6,36)
+> temp2 <- mdy.date(6,6,55)# Now compare the results from person-years
+> #
+> temp.age <- tcut(temp2-temp1, floor(c(-1, (18:31 * 365.24))),
++ 	labels=c('0-18', paste(18:30, 19:31, sep='-')))
+> temp.yr  <- tcut(temp2, mdy.date(1,1,1954:1965), labels=1954:1964)
+> temp.time <- 3700   #total days of fu
+> py1 <- pyears(temp.time ~ temp.age + temp.yr, scale=1) #output in days
+> 
+> # The subject should appear in 20 cells
+> #    6/6/55 - 12/31/55, 209 days, age 19-20, 1955
+> #    1/1/56 -  6/ 4/56, 156 days, age 19-20, 1956
+> #    6/5/56 - 12/31/56, 210 days, age 20-21, 1956   (a leap year, and his
+> #			birthday computes one day earlier)
+> #    1/1/57 -  6/ 5/57, 156 days, age 20-21, 1957
+> #    6/6/57 - 12/31/57, 209 days, age 21-22, 1957
+> # and etc
+> #   with 203 days "off table", ie, beyond the last cell of the table
+> #
+> # It is a nuisance, but tcut follows 'cut' in that we give the ENDS of
+> #  the intervals, whereas the survival tables use the starts of intervals.
+> #  Thus this breakdown does not match that in doexpect.s
+> #
+> xx <- matrix(0, nrow=14, ncol=11)
+> xx[cbind(3:11, 3:11)] <- 156
+> xx[cbind(3:12, 2:11)] <- c(209, 210, rep(c(209, 209, 209, 210),2))
+> dimnames(xx) <- list(temp.age= c('0-18', paste(18:30, 19:31, sep='-')), 
++                      temp.yr = 1954:1964)
+> all.equal(xx, py1$pyears)
+[1] TRUE
+> all.equal(203, py1$offtable)
+[1] TRUE
+> all.equal(1*(xx>0), py1$n)
+[1] TRUE
+> 
+> #
+> # Now with expecteds
+> #
+> py2 <- pyears(temp.time ~ temp.age + temp.yr
++ 		+ ratetable(age=temp2-temp1, year=temp2, sex=1),
++ 	     scale=1, ratetable=survexp.us ) #output in days
+> all.equal(xx, py2$pyears)
+[1] TRUE
+> all.equal(203, py2$offtable)
+[1] TRUE
+> all.equal(1*(xx>0), py2$n)
+[1] TRUE
+> 
+> py2b <- pyears(temp.time ~ temp.age + temp.yr,
++ 	      rmap = list(age=temp2-temp1, year=temp2, sex=1),
++ 	     scale=1, ratetable=survexp.us ) #output in days
+> all.equal(xx, py2b$pyears)
+[1] TRUE
+> all.equal(203, py2b$offtable)
+[1] TRUE
+> all.equal(1*(xx>0), py2b$n)
+[1] TRUE
+> all.equal(py2$expected, py2b$expected)
+[1] TRUE
+> 
+> 
+> 
+> py3 <-  pyears(temp.time ~ temp.age + temp.yr,
++ 		rmap=list(age=temp2-temp1, year=temp2, sex=1),
++ 	     scale=1, ratetable=survexp.us , expect='pyears')
+> all.equal(py2$n, py3$n)
+[1] TRUE
+> all.equal(py2$pyear, py3$pyear)
+[1] TRUE
+> all.equal(py3$n, 1*(py3$expect>0))
+[1] TRUE
+> 
+> # Now, compute the py3 result "by hand".  Since there is only one person
+> #   it can be derived from py2.
+> #
+> xx1 <- py2$expect[py2$n>0]   		# the hazard over each interval
+> cumhaz <- cumsum(c(0, xx1[-length(xx1)]))     # the cumulative hazard	
+> xx2 <- py3$expect[py3$n>0]   		# the expected number of person days
+> xx3 <- py3$pyears[py3$n>0]   		# the potential number of person days
+> 
+> # This is the integral of the curve "exp(-haz *t)" over the interval
+> integral <- xx3 * exp(-cumhaz)* (1- exp(-xx1))/ xx1
+> # They might not be exactly equal, since the C code tracks changes in the
+> #   rate tables that occur -within- an interval.  So try for 6 digits
+> all.equal(round(integral,3), round(xx2,3))
+[1] TRUE
+> 
+> # Cut off the bottom of the table, instead of the side
+> temp.age <- tcut(temp2-temp1, floor(c(-1, (18:27 * 365.24))),
++ 	labels=c('0-18', paste(18:26, 19:27, sep='-')))
+> 
+> py4 <- eval(py3$call)
+> all.equal(py4$pyear, py3$pyear[1:10,])
+[1] TRUE
+> all.equal(py4$expect, py3$expect[1:10,])
+[1] TRUE
+> 
+> 
+> rm(temp.age, integral, xx1, xx2, xx3, cumhaz, py1, py2, py3, py4)
+> rm(temp1, temp2, temp.yr, temp.time, xx)
+> 
+> 
+> 
+> 
+> # 
+> # Simple case: a single male subject, born 6/6/36 and entered on study 6/6/55.
+> #
+> 
+> temp1 <- mdy.date(6,6,36)
+> temp2 <- mdy.date(6,6,55)# Now compare the results from person-years
+> #
+> temp.age <- tcut(temp2-temp1, floor(c(-1, (18:31 * 365.24))),
++ 	labels=c('0-18', paste(18:30, 19:31, sep='-')))
+> temp.yr  <- tcut(temp2, mdy.date(1,1,1954:1965), labels=1954:1964)
+> temp.time <- 3700   #total days of fu
+> py1 <- pyears(temp.time ~ temp.age + temp.yr, scale=1) #output in days
+> 
+> # The subject should appear in 20 cells
+> #    6/6/55 - 12/31/55, 209 days, age 19-20, 1955
+> #    1/1/56 -  6/ 4/56, 156 days, age 19-20, 1956
+> #    6/5/56 - 12/31/56, 210 days, age 20-21, 1956   (a leap year, and his
+> #			birthday computes one day earlier)
+> #    1/1/57 -  6/ 5/57, 156 days, age 20-21, 1957
+> #    6/6/57 - 12/31/57, 209 days, age 21-22, 1957
+> # and etc
+> #   with 203 days "off table", ie, beyond the last cell of the table
+> #
+> # It is a nuisance, but tcut follows 'cut' in that we give the ENDS of
+> #  the intervals, whereas the survival tables use the starts of intervals.
+> #
+> xx <- matrix(0, nrow=14, ncol=11)
+> xx[cbind(3:11, 3:11)] <- 156
+> xx[cbind(3:12, 2:11)] <- c(209, 210, rep(c(209, 209, 209, 210),2))
+> dimnames(xx) <- list(temp.age= c('0-18', paste(18:30, 19:31, sep='-')), 
++                      temp.yr = 1954:1964)
+> all.equal(xx, py1$pyears)
+[1] TRUE
+> all.equal(203, py1$offtable)
+[1] TRUE
+> all.equal(1*(xx>0), py1$n)
+[1] TRUE
+> 
+> #
+> # Now with expecteds
+> #
+> py2 <- pyears(temp.time ~ temp.age + temp.yr
++ 		+ ratetable(age=temp2-temp1, year=temp2, sex=1),
++ 	     scale=1, ratetable=survexp.us ) #output in days
+> all.equal(xx, py2$pyears)
+[1] TRUE
+> all.equal(203, py2$offtable)
+[1] TRUE
+> all.equal(1*(xx>0), py2$n)
+[1] TRUE
+> 
+> 
+> py3 <-  pyears(temp.time ~ temp.age + temp.yr
++ 		+ ratetable(age=temp2-temp1, year=temp2, sex=1),
++ 	     scale=1, ratetable=survexp.us , expect='pyears')
+> all.equal(py2$n, py3$n)
+[1] TRUE
+> all.equal(py2$pyear, py3$pyear)
+[1] TRUE
+> all.equal(py3$n, 1*(py3$expect>0))
+[1] TRUE
+> 
+> # Now, compute the py3 result "by hand".  Since there is only one person
+> #   it can be derived from py2.
+> #
+> xx1 <- py2$expect[py2$n>0]   		# the hazard over each interval
+> cumhaz <- cumsum(c(0, xx1[-length(xx1)]))     # the cumulative hazard	
+> xx2 <- py3$expect[py3$n>0]   		# the expected number of person days
+> xx3 <- py3$pyears[py3$n>0]   		# the potential number of person days
+> 
+> # This is the integral of the curve "exp(-haz *t)" over the interval
+> integral <- xx3 * exp(-cumhaz)* (1- exp(-xx1))/ xx1
+> # They might not be exactly equal, since the C code tracks changes in the
+> #   rate tables that occur -within- an interval.  So try for 6 digits
+> all.equal(round(integral,3), round(xx2,3))
+[1] TRUE
+> 
+> # Cut off the bottom of the table, instead of the side
+> temp.age <- tcut(temp2-temp1, floor(c(-1, (18:27 * 365.24))),
++ 	labels=c('0-18', paste(18:26, 19:27, sep='-')))
+> 
+> py4 <- eval(py3$call)
+> all.equal(py4$pyear, py3$pyear[1:10,])
+[1] TRUE
+> all.equal(py4$expect, py3$expect[1:10,])
+[1] TRUE
+> 
+> 
+> rm(temp.age, integral, xx1, xx2, xx3, cumhaz, py1, py2, py3, py4)
+> rm(temp1, temp2, temp.yr, temp.time, xx)
+> 
+> 
+> 
+> 
+> #
+> # Create a "user defined" rate table, using the smoking data
+> #
+> temp <- scan("data.smoke")/100000
+Read 224 items
+> temp <-  matrix(temp, ncol=8, byrow=T)
+> smoke.rate <- c(rep(temp[,1],6), rep(temp[,2],6), temp[,3:8])
+> attributes(smoke.rate) <- list(
++ 	dim=c(7,2,2,6,3),
++ 	dimnames=list(c("45-49","50-54","55-59","60-64","65-69","70-74","75-79"),
++ 		      c("1-20", "21+"),
++ 		      c("Male","Female"),
++ 		      c("<1", "1-2", "3-5", "6-10", "11-15", ">=16"),
++ 		      c("Never", "Current", "Former")),
++ 	dimid=c("age", "amount", "sex", "duration", "status"),
++ 	factor=c(0,1,1,0,1),
++ 	cutpoints=list(c(45,50,55,60,65,70,75),NULL, NULL,
++ 				     c(0,1,3,6,11,16),NULL),
++ 	class='ratetable'
++ 	)
+> rm(temp)
+> 
+> is.ratetable(smoke.rate)
+[1] TRUE
+> summary(smoke.rate)
+ Rate table with 5 dimensions:
+	age ranges from 45 to 75; with 7 categories
+	amount has levels of: 1-20 21+
+	sex has levels of: Male Female
+	duration ranges from 0 to 16; with 6 categories
+	status has levels of: Never Current Former
+> print(smoke.rate)
+Rate table with dimension(s): age amount sex duration status 
+, , Male, <1, Never
+
+          1-20      21+
+45-49 0.001860 0.001860
+50-54 0.002556 0.002556
+55-59 0.004489 0.004489
+60-64 0.007337 0.007337
+65-69 0.011194 0.011194
+70-74 0.020705 0.020705
+75-79 0.036753 0.036753
+
+, , Female, <1, Never
+
+          1-20      21+
+45-49 0.001257 0.001257
+50-54 0.001773 0.001773
+55-59 0.002448 0.002448
+60-64 0.003977 0.003977
+65-69 0.006921 0.006921
+70-74 0.011600 0.011600
+75-79 0.020708 0.020708
+
+, , Male, 1-2, Never
+
+          1-20      21+
+45-49 0.001860 0.001860
+50-54 0.002556 0.002556
+55-59 0.004489 0.004489
+60-64 0.007337 0.007337
+65-69 0.011194 0.011194
+70-74 0.020705 0.020705
+75-79 0.036753 0.036753
+
+, , Female, 1-2, Never
+
+          1-20      21+
+45-49 0.001257 0.001257
+50-54 0.001773 0.001773
+55-59 0.002448 0.002448
+60-64 0.003977 0.003977
+65-69 0.006921 0.006921
+70-74 0.011600 0.011600
+75-79 0.020708 0.020708
+
+, , Male, 3-5, Never
+
+          1-20      21+
+45-49 0.001860 0.001860
+50-54 0.002556 0.002556
+55-59 0.004489 0.004489
+60-64 0.007337 0.007337
+65-69 0.011194 0.011194
+70-74 0.020705 0.020705
+75-79 0.036753 0.036753
+
+, , Female, 3-5, Never
+
+          1-20      21+
+45-49 0.001257 0.001257
+50-54 0.001773 0.001773
+55-59 0.002448 0.002448
+60-64 0.003977 0.003977
+65-69 0.006921 0.006921
+70-74 0.011600 0.011600
+75-79 0.020708 0.020708
+
+, , Male, 6-10, Never
+
+          1-20      21+
+45-49 0.001860 0.001860
+50-54 0.002556 0.002556
+55-59 0.004489 0.004489
+60-64 0.007337 0.007337
+65-69 0.011194 0.011194
+70-74 0.020705 0.020705
+75-79 0.036753 0.036753
+
+, , Female, 6-10, Never
+
+          1-20      21+
+45-49 0.001257 0.001257
+50-54 0.001773 0.001773
+55-59 0.002448 0.002448
+60-64 0.003977 0.003977
+65-69 0.006921 0.006921
+70-74 0.011600 0.011600
+75-79 0.020708 0.020708
+
+, , Male, 11-15, Never
+
+          1-20      21+
+45-49 0.001860 0.001860
+50-54 0.002556 0.002556
+55-59 0.004489 0.004489
+60-64 0.007337 0.007337
+65-69 0.011194 0.011194
+70-74 0.020705 0.020705
+75-79 0.036753 0.036753
+
+, , Female, 11-15, Never
+
+          1-20      21+
+45-49 0.001257 0.001257
+50-54 0.001773 0.001773
+55-59 0.002448 0.002448
+60-64 0.003977 0.003977
+65-69 0.006921 0.006921
+70-74 0.011600 0.011600
+75-79 0.020708 0.020708
+
+, , Male, >=16, Never
+
+          1-20      21+
+45-49 0.001860 0.001860
+50-54 0.002556 0.002556
+55-59 0.004489 0.004489
+60-64 0.007337 0.007337
+65-69 0.011194 0.011194
+70-74 0.020705 0.020705
+75-79 0.036753 0.036753
+
+, , Female, >=16, Never
+
+          1-20      21+
+45-49 0.001257 0.001257
+50-54 0.001773 0.001773
+55-59 0.002448 0.002448
+60-64 0.003977 0.003977
+65-69 0.006921 0.006921
+70-74 0.011600 0.011600
+75-79 0.020708 0.020708
+
+, , Male, <1, Current
+
+          1-20      21+
+45-49 0.004392 0.006100
+50-54 0.007027 0.009156
+55-59 0.011324 0.013910
+60-64 0.019811 0.023934
+65-69 0.030030 0.034979
+70-74 0.046975 0.058613
+75-79 0.073406 0.062500
+
+, , Female, <1, Current
+
+          1-20      21+
+45-49 0.002256 0.002779
+50-54 0.003538 0.005179
+55-59 0.005428 0.008235
+60-64 0.008580 0.013029
+65-69 0.014962 0.019349
+70-74 0.020848 0.028270
+75-79 0.033195 0.042731
+
+, , Male, 1-2, Current
+
+          1-20      21+
+45-49 0.004392 0.006100
+50-54 0.007027 0.009156
+55-59 0.011324 0.013910
+60-64 0.019811 0.023934
+65-69 0.030030 0.034979
+70-74 0.046975 0.058613
+75-79 0.073406 0.062500
+
+, , Female, 1-2, Current
+
+          1-20      21+
+45-49 0.002256 0.002779
+50-54 0.003538 0.005179
+55-59 0.005428 0.008235
+60-64 0.008580 0.013029
+65-69 0.014962 0.019349
+70-74 0.020848 0.028270
+75-79 0.033195 0.042731
+
+, , Male, 3-5, Current
+
+          1-20      21+
+45-49 0.004392 0.006100
+50-54 0.007027 0.009156
+55-59 0.011324 0.013910
+60-64 0.019811 0.023934
+65-69 0.030030 0.034979
+70-74 0.046975 0.058613
+75-79 0.073406 0.062500
+
+, , Female, 3-5, Current
+
+          1-20      21+
+45-49 0.002256 0.002779
+50-54 0.003538 0.005179
+55-59 0.005428 0.008235
+60-64 0.008580 0.013029
+65-69 0.014962 0.019349
+70-74 0.020848 0.028270
+75-79 0.033195 0.042731
+
+, , Male, 6-10, Current
+
+          1-20      21+
+45-49 0.004392 0.006100
+50-54 0.007027 0.009156
+55-59 0.011324 0.013910
+60-64 0.019811 0.023934
+65-69 0.030030 0.034979
+70-74 0.046975 0.058613
+75-79 0.073406 0.062500
+
+, , Female, 6-10, Current
+
+          1-20      21+
+45-49 0.002256 0.002779
+50-54 0.003538 0.005179
+55-59 0.005428 0.008235
+60-64 0.008580 0.013029
+65-69 0.014962 0.019349
+70-74 0.020848 0.028270
+75-79 0.033195 0.042731
+
+, , Male, 11-15, Current
+
+          1-20      21+
+45-49 0.004392 0.006100
+50-54 0.007027 0.009156
+55-59 0.011324 0.013910
+60-64 0.019811 0.023934
+65-69 0.030030 0.034979
+70-74 0.046975 0.058613
+75-79 0.073406 0.062500
+
+, , Female, 11-15, Current
+
+          1-20      21+
+45-49 0.002256 0.002779
+50-54 0.003538 0.005179
+55-59 0.005428 0.008235
+60-64 0.008580 0.013029
+65-69 0.014962 0.019349
+70-74 0.020848 0.028270
+75-79 0.033195 0.042731
+
+, , Male, >=16, Current
+
+          1-20      21+
+45-49 0.004392 0.006100
+50-54 0.007027 0.009156
+55-59 0.011324 0.013910
+60-64 0.019811 0.023934
+65-69 0.030030 0.034979
+70-74 0.046975 0.058613
+75-79 0.073406 0.062500
+
+, , Female, >=16, Current
+
+          1-20      21+
+45-49 0.002256 0.002779
+50-54 0.003538 0.005179
+55-59 0.005428 0.008235
+60-64 0.008580 0.013029
+65-69 0.014962 0.019349
+70-74 0.020848 0.028270
+75-79 0.033195 0.042731
+
+, , Male, <1, Former
+
+          1-20      21+
+45-49 0.002344 0.004975
+50-54 0.005447 0.004828
+55-59 0.009452 0.017571
+60-64 0.011777 0.015784
+65-69 0.022449 0.023018
+70-74 0.042553 0.031746
+75-79 0.058824 0.040000
+
+, , Female, <1, Former
+
+          1-20      21+
+45-49 0.000000 0.002667
+50-54 0.001168 0.001387
+55-59 0.002874 0.004736
+60-64 0.010163 0.011148
+65-69 0.011080 0.023196
+70-74 0.006452 0.046358
+75-79 0.000000 0.024096
+
+, , Male, 1-2, Former
+
+          1-20      21+
+45-49 0.003658 0.002517
+50-54 0.004310 0.005007
+55-59 0.007288 0.009535
+60-64 0.015892 0.018472
+65-69 0.033803 0.037766
+70-74 0.050830 0.029740
+75-79 0.065972 0.044248
+
+, , Female, 1-2, Former
+
+          1-20      21+
+45-49 0.004339 0.001027
+50-54 0.000921 0.004668
+55-59 0.002595 0.006020
+60-64 0.003650 0.008621
+65-69 0.013485 0.012500
+70-74 0.014831 0.025172
+75-79 0.025806 0.057692
+
+, , Male, 3-5, Former
+
+          1-20      21+
+45-49 0.001596 0.004175
+50-54 0.004548 0.004889
+55-59 0.007294 0.010258
+60-64 0.013165 0.017901
+65-69 0.023749 0.020810
+70-74 0.044850 0.037129
+75-79 0.077075 0.073298
+
+, , Female, 3-5, Former
+
+          1-20      21+
+45-49 0.002120 0.001786
+50-54 0.002895 0.002701
+55-59 0.003759 0.003610
+60-64 0.006509 0.006996
+65-69 0.012632 0.016880
+70-74 0.012500 0.016873
+75-79 0.025907 0.031250
+
+, , Male, 6-10, Former
+
+          1-20      21+
+45-49 0.002169 0.001226
+50-54 0.003497 0.004029
+55-59 0.005902 0.007440
+60-64 0.012669 0.012207
+65-69 0.018202 0.027664
+70-74 0.038887 0.039888
+75-79 0.049451 0.063830
+
+, , Female, 6-10, Former
+
+          1-20      21+
+45-49 0.001072 0.002247
+50-54 0.002009 0.001902
+55-59 0.001658 0.004545
+60-64 0.004708 0.005417
+65-69 0.008648 0.008287
+70-74 0.011263 0.028487
+75-79 0.039604 0.029787
+
+, , Male, 11-15, Former
+
+          1-20      21+
+45-49 0.001674 0.001983
+50-54 0.002140 0.003939
+55-59 0.004473 0.006685
+60-64 0.008756 0.011000
+65-69 0.016691 0.022681
+70-74 0.031843 0.032686
+75-79 0.056180 0.076661
+
+, , Female, 11-15, Former
+
+          1-20      21+
+45-49 0.001359 0.001421
+50-54 0.001213 0.001168
+55-59 0.002022 0.004122
+60-64 0.005706 0.003731
+65-69 0.005866 0.007979
+70-74 0.010705 0.016212
+75-79 0.016667 0.028037
+
+, , Male, >=16, Former
+
+          1-20      21+
+45-49 0.001595 0.001934
+50-54 0.002504 0.003543
+55-59 0.004366 0.005378
+60-64 0.007030 0.009933
+65-69 0.011592 0.012307
+70-74 0.021949 0.024689
+75-79 0.041289 0.050481
+
+, , Female, >=16, Former
+
+          1-20      21+
+45-49 0.000910 0.001388
+50-54 0.001721 0.000830
+55-59 0.002472 0.001821
+60-64 0.003197 0.003564
+65-69 0.006180 0.005815
+70-74 0.012721 0.013634
+75-79 0.018615 0.021954
+
+> 
+> summary(smoke.rate[1:3,,1,,])  #test subscripting
+ Rate table with 4 dimensions:
+	age ranges from 45 to 55; with 3 categories
+	amount has levels of: 1-20 21+
+	duration ranges from 0 to 16; with 6 categories
+	status has levels of: Never Current Former
+> 
+> proc.time()
+   user  system elapsed 
+  0.416   0.032   0.446 

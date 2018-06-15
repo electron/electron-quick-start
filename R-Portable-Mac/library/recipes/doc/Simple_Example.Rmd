@@ -1,0 +1,155 @@
+---
+title: "Basic Recipes"
+vignette: >
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteIndexEntry{Basic Recipes}
+output:
+  knitr:::html_vignette:
+    toc: yes
+---
+
+```{r ex_setup, include=FALSE}
+knitr::opts_chunk$set(
+  message = FALSE,
+  digits = 3,
+  collapse = TRUE,
+  comment = "#>"
+  )
+options(digits = 3)
+```
+
+This document demonstrates some basic uses of recipes. First, some definitions are required: 
+
+ * __variables__ are the original (raw) data columns in a data frame or tibble. For example, in a traditional formula `Y ~ A + B + A:B`, the variables are `A`, `B`, and `Y`. 
+ * __roles__ define how variables will be used in the model. Examples are: `predictor` (independent variables), `response`, and `case weight`. This is meant to be open-ended and extensible. 
+ * __terms__ are columns in a design matrix such as `A`, `B`, and `A:B`. These can be other derived entities that are grouped such a a set of principal components or a set of columns that define a basis function for a variable. These are synonymous with features in machine learning. Variables that have `predictor` roles would automatically be main effect terms  
+
+## An Example
+
+The cell segmentation data will be used. It has 58 predictor columns, a factor variable `Class` (the outcome), and two extra labelling columns. Each of the predictors has a suffix for the optical channel (`"Ch1"`-`"Ch4"`). We will first separate the data into a training and test set then remove unimportant variables:
+
+```{r data}
+library(recipes)
+library(caret)
+data(segmentationData)
+
+seg_train <- segmentationData %>% 
+  filter(Case == "Train") %>% 
+  select(-Case, -Cell)
+seg_test  <- segmentationData %>% 
+  filter(Case == "Test")  %>% 
+  select(-Case, -Cell)
+```
+
+The idea is that the preprocessing operations will all be created using the training set and then these steps will be applied to both the training and test set. 
+
+## An Initial Recipe
+
+For a first recipe, let's plan on centering and scaling the predictors. First, we will create a recipe from the original data and then specify the processing steps. 
+
+Recipes can be created manually by sequentially adding roles to variables in a data set. 
+
+If the analysis only required **outcomes** and **predictors**, the easiest way to create the initial recipe is to use the standard formula method:
+
+```{r first_rec}
+rec_obj <- recipe(Class ~ ., data = seg_train)
+rec_obj
+```
+
+The data contained in the `data` argument need not be the training set; this data is only used to catalog the names of the variables and their types (e.g. numeric, etc.).  
+
+(Note that the formula method here is used to declare the variables and their roles and nothing else. If you use inline functions (e.g. `log`) it will complain. These types of operations can be added later.)
+
+## Preprocessing Steps
+
+From here, preprocessing steps can be added sequentially in one of two ways:
+```{r step_code, eval = FALSE}
+rec_obj <- step_name(rec_obj, arguments)    ## or
+rec_obj <- rec_obj %>% step_name(arguments)
+```
+`step_center` and the other functions will always return updated recipes. 
+
+One other important facet of the code is the method for specifying which variables should be used in different steps. The manual page `?selections` has more details but [`dplyr`](https://cran.r-project.org/package=dplyr)-like selector functions can be used: 
+
+ * use basic variable names (e.g. `x1, x2`),
+ *  [`dplyr`](https://cran.r-project.org/package=dplyr) functions for selecting variables: `contains`, `ends_with`, `everything`, `matches`, `num_range`, and `starts_with`,
+ * functions that subset on the role of the variables that have been specified so far: `all_outcomes`, `all_predictors`, `has_role`, or 
+ * similar functions for the type of data: `all_nominal`, `all_numeric`, and `has_type`. 
+
+Note that the functions listed above are the only ones that can be used to selecto variables inside the steps. Also, minus signs can be used to deselect variables. 
+
+For our data, we can add the two operations for all of the predictors:
+```{r center_scale}
+standardized <- rec_obj %>%
+  step_center(all_predictors()) %>%
+  step_scale(all_predictors()) 
+standardized
+```
+
+It is important to realize that the _specific_ variables have not been declared yet (in this example). In some preprocessing steps, variables will be added or removed from the current list of possible variables. 
+
+If this is the only preprocessing steps for the predictors, we can now estimate the means and standard deviations from the training set. The `prep` function is used with a recipe and a data set:
+```{r trained}
+trained_rec <- prep(standardized, training = seg_train)
+```
+Now that the statistics have been estimated, the preprocessing can be applied to the training and test set:
+```{r apply}
+train_data <- bake(trained_rec, newdata = seg_train)
+test_data  <- bake(trained_rec, newdata = seg_test)
+```
+`bake` returns a tibble that, by default, includes all of the variables: 
+```{r tibbles}
+class(test_data)
+test_data
+```
+Selectors can also be used. For example, if only the predictors are needed, you can use `bake(object, newdata, all_predictors())`. 
+
+
+
+## Adding Steps
+
+After exploring the data, more preprocessing might be required. Steps can be added to the trained recipe. Suppose that we need to create PCA components but only from the predictors from channel 1 and any predictors that are areas: 
+```{r pca}
+trained_rec <- trained_rec %>%
+  step_pca(ends_with("Ch1"), contains("area"), num = 5)
+trained_rec
+```
+Note that only the last step has been estimated; the first two were previously trained and these activities are not duplicated. We can add the PCA estimates using `prep` again:
+```{r pca_training}
+trained_rec <- prep(trained_rec, training = seg_train)
+```
+`bake` can be reapplied to get the principal components in addition to the other variables:
+
+```{r pca_bake}
+test_data  <- bake(trained_rec, newdata = seg_test, all_predictors())
+names(test_data)
+```
+
+Note that the PCA components have replaced the original variables that were from channel 1 or measured an area aspect of the cells. 
+
+
+There are a number of different steps included in the package:
+
+```{r step_list, echo = FALSE}
+grep("^step_", ls("package:recipes"), value = TRUE)
+```
+
+## Checks
+
+Another type of operation that can be added to a recipes is a _check_. Checks conduct some sort of data validation and, if no issue is found, returns the data as-is; otherwise, an error is thrown. 
+
+For example, `check_missing` will fail if any of the variables selected for validation have missing values. This check is done when the recipe is prepared as well as when any data are baked. Checks are added in the same way as steps:
+
+```{r check, eval = FALSE}
+trained_rec <- trained_rec %>%
+  check_missing(contains("Inten"))
+```
+
+Currently, `recipes` includes:
+
+```{r check_list, echo = FALSE}
+grep("^check_", ls("package:recipes"), value = TRUE)
+```
+
+
+

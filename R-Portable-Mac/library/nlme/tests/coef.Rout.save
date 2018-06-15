@@ -1,0 +1,73 @@
+
+R Under development (unstable) (2017-11-28 r73785) -- "Unsuffered Consequences"
+Copyright (C) 2017 The R Foundation for Statistical Computing
+Platform: x86_64-apple-darwin17.2.0 (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> ## tests of fix for PR#9831
+> library(nlme)
+> val <- c("10"=1.10,"14"=1.14)
+> vf <- varIdent(value=val, form=~1|age, fixed=c("12"=1.12))
+> vfi <- Initialize(vf,Orthodont)
+> vfi
+Variance function structure of class varIdent representing
+   8   10   14   12 
+1.00 1.10 1.14 1.12 
+> str(vfi)
+ 'varIdent' Named num [1:2] 0.0953 0.131
+ - attr(*, "names")= chr [1:2] "10" "14"
+ - attr(*, "groupNames")= chr [1:4] "8" "10" "14" "12"
+ - attr(*, "fixed")= Named num 0.113
+  ..- attr(*, "names")= chr "12"
+ - attr(*, "formula")=Class 'formula'  language ~1 | age
+  .. ..- attr(*, ".Environment")=<environment: R_GlobalEnv> 
+ - attr(*, "groups")= chr [1:108] "8" "10" "12" "14" ...
+ - attr(*, "whichFix")= logi [1:3] FALSE FALSE TRUE
+ - attr(*, "weights")= Named num [1:108] 1 0.909 0.893 0.877 1 ...
+  ..- attr(*, "names")= chr [1:108] "8" "10" "12" "14" ...
+ - attr(*, "logLik")= num -9.17
+> stopifnot(
++     all.equal(coef(vfi), c(0.0953101798043, 0.131028262406)),
++     all.equal(coef(vfi, unconstrained = FALSE, allCoef = TRUE),
++               c("8" = 1, "10" = 1.1, "14" = 1.14, "12" = 1.12)))
+> 
+> vfiCopy <- vfi        # copy of an initialized object
+> length(vfiCopy)             # length is 2
+[1] 2
+> coef(vfiCopy) <- c(11,12)   # error in 3.1-84
+> stopifnot(identical(coef(vfiCopy), c(11,12)))
+> 
+> ## error in 3.1-84
+> (gls. <- gls(distance ~ age, weights = vfi, data=Orthodont))
+Generalized least squares fit by REML
+  Model: distance ~ age 
+  Data: Orthodont 
+  Log-restricted-likelihood: -253.4207
+
+Coefficients:
+(Intercept)         age 
+  16.746600    0.659796 
+
+Variance function:
+ Structure: Different standard deviations per stratum
+ Formula: ~1 | age 
+ Parameter estimates:
+       8       10       14       12 
+1.000000 0.872009 1.121849 1.120000 
+Degrees of freedom: 108 total; 106 residual
+Residual standard error: 2.453257 
+> 
+> proc.time()
+   user  system elapsed 
+  0.246   0.040   0.272 

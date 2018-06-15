@@ -1,0 +1,131 @@
+---
+title: "Transformers"
+author: "Jim Hester"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Transformers}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+Transformers allow you to apply functions to the glue input and output, before
+and after evaluation. This allows you to write things like `glue_sql()`, which
+automatically quotes variables for you or add a syntax for automatically
+collapsing outputs.
+
+The transformer functions simply take two arguments `code` and `envir`, where
+`code` is the unparsed string inside the glue block and `envir` is the environment to
+execute the code in. Most transformers will then call `glue::evaluate()`, which
+takes `code` and `envir` and parses and evaluates the code.
+
+You can then supply the transformer function to glue with the `.transformer`
+argument. In this way users can define manipulate the code before parsing and
+change the output after evaluation.
+
+It is often useful to write a `glue()` wrapper function which supplies a
+`.transformer` to `glue()` or `glue_data()` and potentially has additional
+arguments. One important consideration when doing this is to include
+`.envir = parent.frame()` in the wrapper to ensure the evaluation environment
+is correct.
+
+Some examples implementations of potentially useful transformers follow. The
+aim right now is not to include most of these custom functions within the
+`glue` package. Rather users are encouraged to create custom functions using
+transformers to fit their individual needs.
+
+```{r, include = FALSE}
+library(glue)
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+### collapse transformer
+
+A transformer which automatically collapses any glue block ending with `*`.
+
+```{r}
+collapse_transformer <- function(regex = "[*]$", ...) {
+  function(code, envir) {
+    if (grepl(regex, code)) {
+        code <- sub(regex, "", code)
+    }
+    res <- evaluate(code, envir)
+    collapse(res, ...)
+  }
+}
+
+glue("{1:5*}\n{letters[1:5]*}", .transformer = collapse_transformer(sep = ", "))
+
+glue("{1:5*}\n{letters[1:5]*}", .transformer = collapse_transformer(sep = ", ", last = " and "))
+```
+
+### emoji transformer
+
+A transformer which converts the text to the equivalent emoji.
+
+```{r, eval = require("emo")}
+emoji_transformer <- function(code, envir) {
+  if (grepl("[*]$", code)) {
+    code <- sub("[*]$", "", code)
+    collapse(ji_find(code)$emoji)
+  } else {
+    ji(code)
+  }
+}
+
+glue_ji <- function(..., .envir = parent.frame()) {
+  glue(..., .open = ":", .close = ":", .envir = .envir, .transformer = emoji_transformer)
+}
+glue_ji("one :heart:")
+glue_ji("many :heart*:")
+```
+
+### sprintf transformer
+
+A transformer which allows succinct sprintf format strings.
+
+```{r}
+sprintf_transformer <- function(code, envir) {
+  m <- regexpr(":.+$", code)
+  if (m != -1) {
+    format <- substring(regmatches(code, m), 2)
+    regmatches(code, m) <- ""
+    res <- evaluate(code, envir)
+    do.call(sprintf, list(glue("%{format}f"), res))
+  } else {
+    evaluate(code, envir)
+  }
+}
+
+glue_fmt <- function(..., .envir = parent.frame()) {
+  glue(..., .transformer = sprintf_transformer, .envir = .envir)
+}
+glue_fmt("π = {pi:.2}")
+```
+
+### safely transformer
+
+A transformer that acts like `purrr::safely()`, which returns a value instead of an error.
+
+```{r}
+safely_transformer <- function(otherwise = NA) {
+  function(code, envir) {
+    tryCatch(evaluate(code, envir),
+      error = function(e) if (is.language(otherwise)) eval(otherwise) else otherwise)
+  }
+}
+
+glue_safely <- function(..., .otherwise = NA, .envir = parent.frame()) {
+  glue(..., .transformer = safely_transformer(.otherwise), .envir = .envir)
+}
+
+# Default returns missing if there is an error
+glue_safely("foo: {xyz}")
+
+# Or an empty string
+glue_safely("foo: {xyz}", .otherwise = "Error")
+
+# Or output the error message in red
+library(crayon)
+glue_safely("foo: {xyz}", .otherwise = quote(glue("{red}Error: {conditionMessage(e)}{reset}")))
+```

@@ -1,0 +1,140 @@
+<?xml version="1.0"?>
+
+<doc xmlns:r="http://www.r-project.org"
+     xmlns:pmml="http://www.dmg.org/PMML-3_1">
+
+ <r:model>
+  This is an R model
+ </r:model>
+ <pmml:model>
+  This node with the same name identifies a model in PMML.
+ </pmml:model>
+
+ <model>
+  And this is a model element with no namespace.
+ </model>
+
+We want to handle the model nodes in R.
+So we might think about this in the usual manner with
+something like the following handler.
+
+<r:code>
+model = function(node) { 
+           cat(xmlValue(node), "\n"); 
+           node 
+        }
+</r:code>
+Then, we pass this handler to the DOM parser with
+<r:code>
+xmlRoot(xmlTreeParse("namespaceHandlers.xml", 
+                     handlers = list(model = model), 
+                     asTree = TRUE))
+</r:code>
+
+The output we get is 
+<r:output>
+This is an R model 
+This node with the same name identifies a model in PMML. 
+</r:output>
+and then the resulting XML tree.
+
+<para/>
+We want to have different handlers,
+one for the R model node and the other for the PMML mode
+node.
+And we will add one for the node that has no namespace prefix.
+We can do this with
+<r:code>
+handlers = 
+  list("r:model" = function(node) { 
+                  cat("R handler: name = ", xmlName(node), ", value =", xmlValue(node), "\n"); 
+           node 
+        },
+       "pmml:model" = function(node) { 
+                  cat("A PMML node\n")
+           node 
+        },
+        model = function(node) {
+                   cat("ordinary model node\n")
+                   node
+                })
+</r:code>
+We can then invoke these from R
+using
+<r:code>
+xmlTreeParse("namespaceHandlers.xml", asTree = TRUE, 
+             handlers = namespaceNodeHandlers ( .handlers = handlers))
+</r:code>
+The key thing is that we call <r:func>namespaceNodeHandlers</r:func>
+
+<para/>
+We'll add an additional node handler to show that
+this is not limited to duplicate node names,
+but also handles general ones.
+<r:code>
+handlers[["para"]] =  function(node) {  cat("alignment for para", xmlGetAttr(node, "align"), "\n") ; node}
+xmlRoot(xmlTreeParse("namespaceHandlers.xml", asTree = TRUE, 
+                      handlers = namespaceNodeHandlers ( .handlers = handlers)))
+</r:code>
+
+<para/>
+
+What we have done above is to rely on the fact that we have the same
+namespace prefixes used in the document and the handler names.  It is
+better/safer to be explicit about this and define our own namespace
+prefixes and each to an explicit URI.  Then, we can compare the URI
+for the node's namespace to ours and only follow the node then.
+We do this by providing a named character 
+vector giving the prefix = URI pairs.
+<r:code>
+h = namespaceNodeHandlers(.handlers = handlers,
+                          nsDefs = c(r = 'http://www.r-project.org',
+                                     pmml = 'http://www.dmg.org/PMML-3_1'))
+
+z = xmlTreeParse("namespaceHandlers.xml", asTree = TRUE, handlers = h, fullNamespaceInfo = TRUE)
+</r:code>
+Note that we have to specify <r:arg>fullNamespaceInfo</r:arg> to be <r:true/>.
+This is done automatically in <r:func>xmlTreeParse</r:func> for us now.
+And we see that we get the same handling of the nodes
+since the name space definitins correspond to the URIs in the document.
+
+<para/>
+We will illustrate that the name space prefix in the handlers
+does not have to be the same as that in the document
+for the same URI.
+We'll change the pmml prefix in the names of our handlers
+to a simple 'm'.
+And we use 'm' when specifying the name space definitions in R
+via the <r:arg>nsDefs</r:arg> argument.
+When we run this code
+<r:code>
+names(handlers)[2] = 'm:model'
+z = xmlTreeParse("namespaceHandlers.xml", asTree = TRUE, 
+                 fullNamespaceInfo = TRUE,
+                 handlers = namespaceNodeHandlers(.handlers = handlers,
+                                                  nsDefs = c(r = 'http://www.r-project.org',
+                                                             m = 'http://www.dmg.org/PMML-3_1')))
+</r:code>
+we get the same result, with all three handlers being called.
+
+
+<para/>
+And it is further useful to verify that if we had a different URI,
+then things wouldn't work.
+So we'll provide a different URI for the 'r' prefix 
+<r:code>
+z = xmlTreeParse("namespaceHandlers.xml", asTree = TRUE, 
+                 fullNamespaceInfo = TRUE,
+                 handlers = namespaceNodeHandlers(.handlers = handlers,
+                                                  nsDefs = c(r = 'http://www.other.com',
+                                                             m = 'http://www.dmg.org/PMML-3_1')))
+</r:code>
+The result is that we call the standard model node handler for the
+r:model XML node in the document.
+
+<para/>
+Note that one does not have to specify the handler functions
+as a list, but can identify them separately via the
+<r:dots/> parameter of <r:func>namespaceNodeHandlers</r:func>.
+
+</doc>

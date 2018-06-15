@@ -1,0 +1,286 @@
+---
+title: "Introduction to visNetwork"
+author: "B. Thieurmel - DataStorm"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Introduction to visNetwork}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+**visNetwork** is a R package for network visualization, using **vis.js** javascript library (http://visjs.org). All the remarks and bugs returns are welcome on github : https://github.com/datastorm-open/visNetwork.
+
+## Minimal example
+
+**visNetwork** needs at least two informations :
+
+* a nodes data.frame, with *id* column
+* a edges data.frame, with *from* and *to* columns
+
+```{r}
+require(visNetwork, quietly = TRUE)
+# minimal example
+nodes <- data.frame(id = 1:3)
+edges <- data.frame(from = c(1,2), to = c(1,3))
+visNetwork(nodes, edges, width = "100%")
+```
+
+## Find help
+
+Besides the help R functions, a vignette is available, and you can access and read the full javascript API :
+
+```{r, eval = FALSE}
+visDocumentation()
+vignette("Introduction-to-visNetwork") # with CRAN version
+# shiny ?
+shiny::runApp(system.file("shiny", package = "visNetwork"))
+```
+
+Or visit our online help page : http://datastorm-open.github.io/visNetwork/.
+
+## Simple individual nodes and edges customization
+
+* Adding more variables on nodes data.frame. See **_visNodes_** for available options.
+
+```{r}
+nodes <- data.frame(id = 1:10, 
+                    label = paste("Node", 1:10),                                 # add labels on nodes
+                    group = c("GrA", "GrB"),                                     # add groups on nodes 
+                    value = 1:10,                                                # size adding value
+                    shape = c("square", "triangle", "box", "circle", "dot", "star",
+                    "ellipse", "database", "text", "diamond"),                   # control shape of nodes
+                    title = paste0("<p><b>", 1:10,"</b><br>Node !</p>"),         # tooltip (html or character)
+                    color = c("darkred", "grey", "orange", "darkblue", "purple"),# color
+                    shadow = c(FALSE, TRUE, FALSE, TRUE, TRUE))                  # shadow
+
+head(nodes)
+```
+
+* Adding more variables on edges data.frame. See **_visEdges_** for available options.
+
+```{r}
+edges <- data.frame(from = sample(1:10, 8), to = sample(1:10, 8),
+                    label = paste("Edge", 1:8),                                 # add labels on edges
+                    length = c(100,500),                                        # length
+                    arrows = c("to", "from", "middle", "middle;to"),            # arrows
+                    dashes = c(TRUE, FALSE),                                    # dashes
+                    title = paste("Edge", 1:8),                                 # tooltip (html or character)
+                    smooth = c(FALSE, TRUE),                                    # smooth
+                    shadow = c(FALSE, TRUE, FALSE, TRUE))                       # shadow
+head(edges)
+```
+
+```{r}
+visNetwork(nodes, edges, width = "100%")
+```
+
+## Global nodes/edges configuration
+
+* Set global options for nodes and edges using **_visNodes_** and **_visEdges_**, and use options per group using **_visGroups_**.
+
+```{r}
+nodes <- data.frame(id = 1:5, group = c(rep("A", 2), rep("B", 3)))
+edges <- data.frame(from = c(2,5,3,3), to = c(1,2,4,2))
+
+visNetwork(nodes, edges, width = "100%") %>% 
+  visNodes(shape = "square") %>%                        # square for all nodes
+  visEdges(arrows ="to") %>%                            # arrow "to" for all edges
+  visGroups(groupname = "A", color = "darkblue") %>%    # darkblue for group "A"
+  visGroups(groupname = "B", color = "red")             # red for group "B"
+```
+
+# Network configuration
+Configuration options are available in *visOptions*, *visInteraction*, *visLayout*, *visHierarchicalLayout*, *visPhysics* :
+
+## Example Data
+```{r, echo=TRUE}
+nb <- 10
+nodes <- data.frame(id = 1:nb, label = paste("Label", 1:nb),
+ group = sample(LETTERS[1:3], nb, replace = TRUE), value = 1:nb,
+ title = paste0("<p>", 1:nb,"<br>Tooltip !</p>"), stringsAsFactors = FALSE)
+
+edges <- data.frame(from = trunc(runif(nb)*(nb-1))+1,
+ to = trunc(runif(nb)*(nb-1))+1,
+ value = rnorm(nb, 10), label = paste("Edge", 1:nb),
+ title = paste0("<p>", 1:nb,"<br>Edge Tooltip !</p>"))
+```
+
+## Add legend
+New feature in __visNetwork_0.1.2__ : you can now add more custom legend on nodes / edges ! Default on groups (like in previous versions) : 
+
+```{r}
+visNetwork(nodes, edges, width = "100%") %>% visLegend()
+```
+
+Or passing data : 
+
+```{r}
+visNetwork(nodes, edges, width = "100%") %>% 
+  visLegend(useGroups = FALSE, addNodes = data.frame(label = "Nodes", shape = "circle"), 
+            addEdges = data.frame(label = "link", color = "black"))
+```
+
+## Highlight nearest
+You can highlight nearest nodes and edges clicking on a node with **highlightNearest** option :
+
+```{r}
+visNetwork(nodes, edges, width = "100%") %>% 
+  visOptions(highlightNearest = TRUE)
+```
+
+It's now possible to control the degree of depth (visNetwork >= 0.1.2) : 
+
+```{r}
+visNetwork(nodes, edges, width = "100%") %>% 
+  visOptions(highlightNearest = list(enabled =TRUE, degree = 2))
+```
+
+
+## Select by node id
+You can also select nodes by id/label with a list  with **nodesIdSelection** : 
+
+```{r}
+visNetwork(nodes, edges, width = "100%") %>% 
+  visOptions(highlightNearest = TRUE, nodesIdSelection = TRUE)
+```
+
+## Select by a column
+New feature in __visNetwork_0.1.2__ : select some nodes by the values of a column using **selectedBy** option :
+
+```{r}
+# can be the column you want
+nodes$sel <- sample(c("sel1", "sel2"), nrow(nodes), replace = TRUE)
+visNetwork(nodes, edges, width = "100%") %>%
+ visOptions(selectedBy = "sel")
+```
+
+## Directed Network
+```{r, echo = FALSE}
+nodes <- data.frame(id = 1:nb, label = paste("Label", 1:nb),
+ group = sample(1:nb, nb, replace = TRUE), value = 1:nb,
+ title = paste0("<p>", 1:nb,"<br>Tooltip !</p>"), stringsAsFactors = FALSE)
+
+edges <- data.frame(from = trunc(runif(nb)*(nb-1))+1,
+ to = trunc(runif(nb)*(nb-1))+1,
+ title = paste0("<p>", 1:nb,"<br>Edge Tooltip !</p>"))
+```
+
+```{r}
+visNetwork(nodes, edges, width = "100%") %>% 
+  visEdges(arrows = 'from')
+```
+
+## Custom navigation
+*vis.js* propose some navigation tools :
+
+```{r}
+visNetwork(nodes, edges, width = "100%") %>% 
+  visInteraction(navigationButtons = TRUE)
+```
+
+## Data Manipulation
+And some data manipulation tools :
+
+```{r}
+visNetwork(nodes, edges, width = "100%") %>% 
+  visOptions(manipulation = TRUE)
+```
+
+## Hierarchical Layout
+You can use and control hierarchical layout with *visHierarchicalLayout* and *visLayout* :
+
+```{r, echo = TRUE}
+nodes <- data.frame(id = 1:7)
+
+edges <- data.frame(
+  from = c(1,2,2,2,3,3),
+  to = c(2,3,4,5,6,7)
+)
+```
+
+```{r}
+visNetwork(nodes, edges, width = "100%") %>% 
+  visEdges(arrows = "from") %>% 
+  visHierarchicalLayout() 
+# same as   visLayout(hierarchical = TRUE) 
+
+visNetwork(nodes, edges, width = "100%") %>% 
+  visEdges(arrows = "from") %>% 
+  visHierarchicalLayout(direction = "LR")
+```
+
+## Freeze network
+```{r}
+visNetwork(nodes, edges, width = "100%") %>% 
+  visInteraction(dragNodes = FALSE, dragView = FALSE, zoomView = FALSE)
+```
+
+## Use font awesome icons in your network
+
+You can use **Font Awesome** icons using groups or nodes options. **Font Awesome** library (http://fortawesome.github.io/Font-Awesome/) is not part of dependencies. use addFontAwesome() if needed.
+
+```{r}
+nodes <- data.frame(id = 1:3, group = c("B", "A", "B"))
+edges <- data.frame(from = c(1,2), to = c(2,3))
+
+visNetwork(nodes, edges, width = "100%") %>%
+  visGroups(groupname = "A", shape = "icon", icon = list(code = "f0c0", size = 75)) %>%
+  visGroups(groupname = "B", shape = "icon", icon = list(code = "f007", color = "red")) %>%
+  visLegend() %>%
+  addFontAwesome()
+```
+
+# Additional features
+
+## Visualize rpart object
+
+New *visTree* function allows to visualize and customize a *rpart* classification and regression tree. Have a look to *visTreeEditor* to edity and get back network, or to *visTreeModuleServer* to use custom tree module in R.
+
+```{r, eval = T}
+library(rpart)
+# Complex tree
+data("solder")
+res <- rpart(Opening~., data = solder, control = rpart.control(cp = 0.00005))
+visTree(res, height = "800px", nodesPopSize = TRUE, minNodeSize = 10, maxNodeSize = 30)
+
+```
+
+## Use in Shiny
+
+With *visNetworkOutput* and *renderVisNetwork*. Using with shiny, and enabled options *nodesIdSelection*, you can access to new input with current selection value. Morevoer, you can do a lot of things with *visNetworkProxy*
+
+```{r, eval = FALSE}
+output$mynetwork <- renderVisNetwork({... visOptions(nodesIdSelection = TRUE)}) # created input$mynetwork_selected
+
+```
+
+And with *selectedBy*, new input __input$mynetwork_selectedBy__.
+
+## Physics, tooltip, events, 
+
+You can also control :
+
+* physics of network : *visPhysics*
+* events : *visEvents*
+
+## Export
+
+```{r, eval = FALSE}
+network <- visNetwork(nodes, edges, width = "100%")
+visSave(network, file = "network.html")
+```
+
+## Use DOT language data 
+
+```{r}
+visNetwork(dot = 'dinetwork {1 -> 1 -> 2; 2 -> 3; 2 -- 4; 2 -> 1 }', width = "100%")
+```
+
+## Use gephi json export file
+
+```{r, eval = FALSE}
+# don't run here
+visNetwork(gephi = 'WorldCup2014.json')
+```
+

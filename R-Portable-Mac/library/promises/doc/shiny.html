@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+
+
+<title>Using promises with Shiny</title>
+
+
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+div.sourceCode { overflow-x: auto; }
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code > span.dt { color: #902000; } /* DataType */
+code > span.dv { color: #40a070; } /* DecVal */
+code > span.bn { color: #40a070; } /* BaseN */
+code > span.fl { color: #40a070; } /* Float */
+code > span.ch { color: #4070a0; } /* Char */
+code > span.st { color: #4070a0; } /* String */
+code > span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code > span.ot { color: #007020; } /* Other */
+code > span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code > span.fu { color: #06287e; } /* Function */
+code > span.er { color: #ff0000; font-weight: bold; } /* Error */
+code > span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+code > span.cn { color: #880000; } /* Constant */
+code > span.sc { color: #4070a0; } /* SpecialChar */
+code > span.vs { color: #4070a0; } /* VerbatimString */
+code > span.ss { color: #bb6688; } /* SpecialString */
+code > span.im { } /* Import */
+code > span.va { color: #19177c; } /* Variable */
+code > span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code > span.op { color: #666666; } /* Operator */
+code > span.bu { } /* BuiltIn */
+code > span.ex { } /* Extension */
+code > span.pp { color: #bc7a00; } /* Preprocessor */
+code > span.at { color: #7d9029; } /* Attribute */
+code > span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+</style>
+
+
+
+<link href="data:text/css;charset=utf-8,body%20%7B%0Abackground%2Dcolor%3A%20%23fff%3B%0Amargin%3A%201em%20auto%3B%0Amax%2Dwidth%3A%20700px%3B%0Aoverflow%3A%20visible%3B%0Apadding%2Dleft%3A%202em%3B%0Apadding%2Dright%3A%202em%3B%0Afont%2Dfamily%3A%20%22Open%20Sans%22%2C%20%22Helvetica%20Neue%22%2C%20Helvetica%2C%20Arial%2C%20sans%2Dserif%3B%0Afont%2Dsize%3A%2014px%3B%0Aline%2Dheight%3A%201%2E35%3B%0A%7D%0A%23header%20%7B%0Atext%2Dalign%3A%20center%3B%0A%7D%0A%23TOC%20%7B%0Aclear%3A%20both%3B%0Amargin%3A%200%200%2010px%2010px%3B%0Apadding%3A%204px%3B%0Awidth%3A%20400px%3B%0Aborder%3A%201px%20solid%20%23CCCCCC%3B%0Aborder%2Dradius%3A%205px%3B%0Abackground%2Dcolor%3A%20%23f6f6f6%3B%0Afont%2Dsize%3A%2013px%3B%0Aline%2Dheight%3A%201%2E3%3B%0A%7D%0A%23TOC%20%2Etoctitle%20%7B%0Afont%2Dweight%3A%20bold%3B%0Afont%2Dsize%3A%2015px%3B%0Amargin%2Dleft%3A%205px%3B%0A%7D%0A%23TOC%20ul%20%7B%0Apadding%2Dleft%3A%2040px%3B%0Amargin%2Dleft%3A%20%2D1%2E5em%3B%0Amargin%2Dtop%3A%205px%3B%0Amargin%2Dbottom%3A%205px%3B%0A%7D%0A%23TOC%20ul%20ul%20%7B%0Amargin%2Dleft%3A%20%2D2em%3B%0A%7D%0A%23TOC%20li%20%7B%0Aline%2Dheight%3A%2016px%3B%0A%7D%0Atable%20%7B%0Amargin%3A%201em%20auto%3B%0Aborder%2Dwidth%3A%201px%3B%0Aborder%2Dcolor%3A%20%23DDDDDD%3B%0Aborder%2Dstyle%3A%20outset%3B%0Aborder%2Dcollapse%3A%20collapse%3B%0A%7D%0Atable%20th%20%7B%0Aborder%2Dwidth%3A%202px%3B%0Apadding%3A%205px%3B%0Aborder%2Dstyle%3A%20inset%3B%0A%7D%0Atable%20td%20%7B%0Aborder%2Dwidth%3A%201px%3B%0Aborder%2Dstyle%3A%20inset%3B%0Aline%2Dheight%3A%2018px%3B%0Apadding%3A%205px%205px%3B%0A%7D%0Atable%2C%20table%20th%2C%20table%20td%20%7B%0Aborder%2Dleft%2Dstyle%3A%20none%3B%0Aborder%2Dright%2Dstyle%3A%20none%3B%0A%7D%0Atable%20thead%2C%20table%20tr%2Eeven%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0A%7D%0Ap%20%7B%0Amargin%3A%200%2E5em%200%3B%0A%7D%0Ablockquote%20%7B%0Abackground%2Dcolor%3A%20%23f6f6f6%3B%0Apadding%3A%200%2E25em%200%2E75em%3B%0A%7D%0Ahr%20%7B%0Aborder%2Dstyle%3A%20solid%3B%0Aborder%3A%20none%3B%0Aborder%2Dtop%3A%201px%20solid%20%23777%3B%0Amargin%3A%2028px%200%3B%0A%7D%0Adl%20%7B%0Amargin%2Dleft%3A%200%3B%0A%7D%0Adl%20dd%20%7B%0Amargin%2Dbottom%3A%2013px%3B%0Amargin%2Dleft%3A%2013px%3B%0A%7D%0Adl%20dt%20%7B%0Afont%2Dweight%3A%20bold%3B%0A%7D%0Aul%20%7B%0Amargin%2Dtop%3A%200%3B%0A%7D%0Aul%20li%20%7B%0Alist%2Dstyle%3A%20circle%20outside%3B%0A%7D%0Aul%20ul%20%7B%0Amargin%2Dbottom%3A%200%3B%0A%7D%0Apre%2C%20code%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0Aborder%2Dradius%3A%203px%3B%0Acolor%3A%20%23333%3B%0Awhite%2Dspace%3A%20pre%2Dwrap%3B%20%0A%7D%0Apre%20%7B%0Aborder%2Dradius%3A%203px%3B%0Amargin%3A%205px%200px%2010px%200px%3B%0Apadding%3A%2010px%3B%0A%7D%0Apre%3Anot%28%5Bclass%5D%29%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0A%7D%0Acode%20%7B%0Afont%2Dfamily%3A%20Consolas%2C%20Monaco%2C%20%27Courier%20New%27%2C%20monospace%3B%0Afont%2Dsize%3A%2085%25%3B%0A%7D%0Ap%20%3E%20code%2C%20li%20%3E%20code%20%7B%0Apadding%3A%202px%200px%3B%0A%7D%0Adiv%2Efigure%20%7B%0Atext%2Dalign%3A%20center%3B%0A%7D%0Aimg%20%7B%0Abackground%2Dcolor%3A%20%23FFFFFF%3B%0Apadding%3A%202px%3B%0Aborder%3A%201px%20solid%20%23DDDDDD%3B%0Aborder%2Dradius%3A%203px%3B%0Aborder%3A%201px%20solid%20%23CCCCCC%3B%0Amargin%3A%200%205px%3B%0A%7D%0Ah1%20%7B%0Amargin%2Dtop%3A%200%3B%0Afont%2Dsize%3A%2035px%3B%0Aline%2Dheight%3A%2040px%3B%0A%7D%0Ah2%20%7B%0Aborder%2Dbottom%3A%204px%20solid%20%23f7f7f7%3B%0Apadding%2Dtop%3A%2010px%3B%0Apadding%2Dbottom%3A%202px%3B%0Afont%2Dsize%3A%20145%25%3B%0A%7D%0Ah3%20%7B%0Aborder%2Dbottom%3A%202px%20solid%20%23f7f7f7%3B%0Apadding%2Dtop%3A%2010px%3B%0Afont%2Dsize%3A%20120%25%3B%0A%7D%0Ah4%20%7B%0Aborder%2Dbottom%3A%201px%20solid%20%23f7f7f7%3B%0Amargin%2Dleft%3A%208px%3B%0Afont%2Dsize%3A%20105%25%3B%0A%7D%0Ah5%2C%20h6%20%7B%0Aborder%2Dbottom%3A%201px%20solid%20%23ccc%3B%0Afont%2Dsize%3A%20105%25%3B%0A%7D%0Aa%20%7B%0Acolor%3A%20%230033dd%3B%0Atext%2Ddecoration%3A%20none%3B%0A%7D%0Aa%3Ahover%20%7B%0Acolor%3A%20%236666ff%3B%20%7D%0Aa%3Avisited%20%7B%0Acolor%3A%20%23800080%3B%20%7D%0Aa%3Avisited%3Ahover%20%7B%0Acolor%3A%20%23BB00BB%3B%20%7D%0Aa%5Bhref%5E%3D%22http%3A%22%5D%20%7B%0Atext%2Ddecoration%3A%20underline%3B%20%7D%0Aa%5Bhref%5E%3D%22https%3A%22%5D%20%7B%0Atext%2Ddecoration%3A%20underline%3B%20%7D%0A%0Acode%20%3E%20span%2Ekw%20%7B%20color%3A%20%23555%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Edt%20%7B%20color%3A%20%23902000%3B%20%7D%20%0Acode%20%3E%20span%2Edv%20%7B%20color%3A%20%2340a070%3B%20%7D%20%0Acode%20%3E%20span%2Ebn%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Efl%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Ech%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Est%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Eco%20%7B%20color%3A%20%23888888%3B%20font%2Dstyle%3A%20italic%3B%20%7D%20%0Acode%20%3E%20span%2Eot%20%7B%20color%3A%20%23007020%3B%20%7D%20%0Acode%20%3E%20span%2Eal%20%7B%20color%3A%20%23ff0000%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Efu%20%7B%20color%3A%20%23900%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%20code%20%3E%20span%2Eer%20%7B%20color%3A%20%23a61717%3B%20background%2Dcolor%3A%20%23e3d2d2%3B%20%7D%20%0A" rel="stylesheet" type="text/css" />
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Using promises with Shiny</h1>
+
+
+
+<p>Taking advantage of async programming from Shiny is not as simple as turning on an option or flipping a switch. If you have already written a Shiny application and are looking to improve its scalability, expect the changes required for async operation to ripple through multiple layers of server code.</p>
+<p>Async programming with Shiny boils down to following a few steps.</p>
+<ol style="list-style-type: decimal">
+<li><p>Identify slow operations (function calls or blocks of statements) in your app.</p></li>
+<li><p>Convert the slow operation into a future. (If you haven’t read the <a href="futures.html">article on futures</a>, definitely do that before proceeding!)</p></li>
+<li><p>Any code that relies on the result of that operation (if any), whether directly or indirectly, now must be converted to promise handlers that operate on the future object.</p></li>
+</ol>
+<p>We’ll get into details for all these steps, but first, an example. Consider the following synchronous server code:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="cf">function</span>(input, output, session) {
+  output<span class="op">$</span>plot &lt;-<span class="st"> </span><span class="kw">renderPlot</span>({
+    result &lt;-<span class="st"> </span><span class="kw">expensive_operation</span>()
+    result &lt;-<span class="st"> </span><span class="kw">head</span>(result, input<span class="op">$</span>n)
+    <span class="kw">plot</span>(result)
+  })
+}</code></pre></div>
+<p>We’d convert it to async like this:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(promises)
+<span class="kw">library</span>(future)
+<span class="kw">plan</span>(multiprocess)
+
+<span class="cf">function</span>(input, output, session) {
+  output<span class="op">$</span>plot &lt;-<span class="st"> </span><span class="kw">renderPlot</span>({
+    <span class="kw">future</span>({ <span class="kw">expensive_operation</span>() }) <span class="op">%...&gt;%</span>
+<span class="st">      </span><span class="kw">head</span>(input<span class="op">$</span>n) <span class="op">%...&gt;%</span>
+<span class="st">      </span><span class="kw">plot</span>()
+  })
+}</code></pre></div>
+<div id="adding-prerequisites" class="section level2">
+<h2>Adding prerequisites</h2>
+<p>The easiest part is adding <code>library(promises)</code>, <code>library(future)</code>, and <code>plan(multiprocess)</code> to the top of the app.</p>
+<p>The <code>promises</code> library is necessary for the <code>%...&gt;%</code> operator. You may also want to use promise utility functions like <code>promise_all</code> and <code>promise_race</code>.</p>
+<p>The <code>future</code> library is needed because the <code>future()</code> function is how you will launch asynchronous tasks.</p>
+<p><code>plan(multiprocess)</code> is a directive to the <code>future</code> package, telling it how future tasks should actually be executed. See the <a href="futures.html">article on futures</a> for more details.</p>
+</div>
+<div id="identifying-slow-operations" class="section level2">
+<h2>Identifying slow operations</h2>
+<p>To find areas of your code that are good candidates for the future/promise treatment, let’s start with the obvious: identifying the code that is making your app slow. You may assume it’s your plotting code that’s slow, but it’s actually your database queries; or vice versa. If there’s one thing that veteran programmers can agree on, it’s that human intuition is a surprisingly unreliable tool for spotting performance problems.</p>
+<p>Our recommendation is that you use the <a href="https://rstudio.github.io/profvis/">profvis</a> profiler, which we designed to work with Shiny (see Example 3 in the profvis documentation). You can use profvis to help you focus in on where the time is actually being spent in your app.</p>
+<blockquote>
+<p><strong>Note:</strong> As of this writing, profvis doesn’t work particularly well for diagnosing performance problems in parts of your code that you’ve already made asynchronous. In particular, we haven’t done any work to help it profile code that executes in a future, and the mechanism we use to hide “irrelevant” parts of the stack trace doesn’t work well with promises. These are ripe areas for future development.</p>
+</blockquote>
+<p>Async programming works well when you can identify just a few “hotspots” in your app where lots of time is being spent. It works much less well if your app is too slow because of a generalized, diffuse slowness through every aspect of your app, where no one operation takes too much time but it all adds up to a lot. The more futures you need to introduce into your app, the more fixed communication overhead you incur. So for the most bang-for-the-buck, we want to launch a small number of futures per session but move a lot of the waited-on code into each one.</p>
+</div>
+<div id="converting-a-slow-operation-into-a-future" class="section level2">
+<h2>Converting a slow operation into a future</h2>
+<p>Now that we’ve found hotspots that we want to make asynchronous, let’s talk about the actual work of converting them to futures.</p>
+<p>Conceptually, futures work like this:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">future</span>({
+  <span class="co"># Expensive code goes here</span>
+}) <span class="op">%...&gt;%</span><span class="st"> </span>(<span class="cf">function</span>(result) {
+  <span class="co"># Code to handle result of expensive code goes here</span>
+})</code></pre></div>
+<p>which seems incredibly simple. What’s actually happening is that the future runs in a totally separate child R process, and then the result is collected up and returned to the main R process:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># Code here runs in process A</span>
+<span class="kw">future</span>({
+  <span class="co"># Code here runs in (child) process B</span>
+}) <span class="op">%...&gt;%</span><span class="st"> </span>(<span class="cf">function</span>(result) {
+  <span class="co"># Code here runs in process A</span>
+})</code></pre></div>
+<p>The fact that the future code block executes in a separate process means we have to take special care to deal with a number of practical issues. There are extremely important constraints that futures impose on their code blocks; certain objects cannot be safely used across process boundaries, and some of the default behaviors of the future library may severely impact the performance of your app. Again, see the <a href="futures.html">article on futures</a> for more details.</p>
+<div id="shiny-specific-caveats-and-limitations" class="section level3">
+<h3>Shiny-specific caveats and limitations</h3>
+<p>In addition to the constraints that all futures face, there is an additional one for Shiny: reactive values and reactive expressions cannot be read from within a future. Whenever reactive values/expressions are read, side effects are carried out under the hood so that the currently executing observer or reactive expression can be notified when the reactive value/expression becomes invalidated. If a reactive value/expression is created in one process, but read in another process, there will be no way for readers to be notified about invalidation.</p>
+<p>This code, for example, will not work:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="cf">function</span>(input, output, session) {
+  r1 &lt;-<span class="st"> </span><span class="kw">reactive</span>({ ... })
+  
+  r2 &lt;-<span class="st"> </span><span class="kw">reactive</span>({
+    <span class="kw">future</span>({
+      <span class="kw">r1</span>() <span class="co"># Will error--don't do this!</span>
+    })
+  })
+}</code></pre></div>
+<p>Even though <code>r1()</code> is called from inside the <code>r2</code> reactive expression, the fact that it’s also in a future means the call will fail. Instead, you must read any reactive values/expressions you need in advance of launching the future:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="cf">function</span>(input, output, session) {
+  r1 &lt;-<span class="st"> </span><span class="kw">reactive</span>({ ... })
+  
+  r2 &lt;-<span class="st"> </span><span class="kw">reactive</span>({
+    val &lt;-<span class="st"> </span><span class="kw">r1</span>()
+    <span class="kw">future</span>({
+      val <span class="co"># No problem!</span>
+    })
+  })
+}</code></pre></div>
+<p>However, it’s perfectly fine to read reactive values/expressions from inside a promise <em>handler</em>. Handlers run in the original process, not a child process, so reactive operations are allowed.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="cf">function</span>(input, output, session) {
+  r1 &lt;-<span class="st"> </span><span class="kw">reactive</span>({ ... })
+  
+  r2 &lt;-<span class="st"> </span><span class="kw">reactive</span>({
+    <span class="kw">future</span>({ ... }) <span class="op">%...&gt;%</span>
+<span class="st">      </span><span class="kw">rbind</span>(<span class="kw">r1</span>()) <span class="co"># OK!</span>
+  })
+}</code></pre></div>
+</div>
+</div>
+<div id="integrating-promises-with-shiny" class="section level2">
+<h2>Integrating promises with Shiny</h2>
+<p>Generally, you’ll be using promises with Shiny from within outputs, reactive expressions, and observers. We’ve tried to integrate promises into these constructs in as natural a way as possible.</p>
+<div id="outputs" class="section level3">
+<h3>Outputs</h3>
+<p>Most outputs (<code>renderXXX({ ... })</code>) functions expect your code block to return a value; for example, <code>renderText()</code> expects a character vector and <code>renderTable()</code> expects a data frame. All such render functions that are included within the <code>shiny</code> package can now optionally be given a promise for such a value instead.</p>
+<p>So this:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">output<span class="op">$</span>table &lt;-<span class="st"> </span><span class="kw">renderTable</span>({
+  <span class="kw">read.csv</span>(url) <span class="op">%&gt;%</span>
+<span class="st">    </span><span class="kw">filter</span>(date <span class="op">==</span><span class="st"> </span>input<span class="op">$</span>date)
+})</code></pre></div>
+<p>could become:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">output<span class="op">$</span>table &lt;-<span class="st"> </span><span class="kw">renderTable</span>({
+  <span class="kw">future</span>({ <span class="kw">read.csv</span>(url) }) <span class="op">%...&gt;%</span>
+<span class="st">    </span><span class="kw">filter</span>(date <span class="op">==</span><span class="st"> </span>input<span class="op">$</span>date)
+})</code></pre></div>
+<p>or, trading elegance for efficiency:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">output<span class="op">$</span>table &lt;-<span class="st"> </span><span class="kw">renderTable</span>({
+  input_date &lt;-<span class="st"> </span>input<span class="op">$</span>date
+  <span class="kw">future</span>({
+    <span class="kw">read.csv</span>(url) <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">filter</span>(date <span class="op">==</span><span class="st"> </span>input_date)
+  })
+})</code></pre></div>
+<p>The important thing to keep in mind is that the promise (or promise pipeline) must be the final expression in the code block. Shiny only knows about promises you actually return to it when you hand control back.</p>
+<div id="render-functions-with-side-effects-renderprint-and-renderplot" class="section level4">
+<h4>Render functions with side effects: <code>renderPrint</code> and <code>renderPlot</code></h4>
+<p>The render functions <code>renderPrint()</code> and <code>renderPlot()</code> are slightly different than other render functions, in that they can be affected by side effects in the code block you provide. In <code>renderPrint</code> you can print to the console, and in <code>renderPlot</code> you can plot to the active R graphics device.</p>
+<p>With promises, these render functions can work in a similar way, but with a caveat. As you hopefully understand by now, futures execute their code in a separate R process, and printing/plotting in a separate process won’t have any effect on the Shiny output in the original process. These examples, then, are incorrect:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">output<span class="op">$</span>summary &lt;-<span class="st"> </span><span class="kw">renderPrint</span>({
+  <span class="kw">future</span>({
+    <span class="kw">read.csv</span>(url) <span class="op">%&gt;%</span>
+<span class="st">      </span><span class="kw">summary</span>() <span class="op">%&gt;%</span>
+<span class="st">      </span><span class="kw">print</span>()
+  })
+})
+
+output<span class="op">$</span>plot &lt;-<span class="st"> </span><span class="kw">renderPlot</span>({
+  <span class="kw">future</span>({
+    df &lt;-<span class="st"> </span><span class="kw">read.csv</span>(url)
+    <span class="kw">ggplot</span>(df, <span class="kw">aes</span>(length, width)) <span class="op">+</span><span class="st"> </span><span class="kw">geom_point</span>()
+  })
+})</code></pre></div>
+<p>Instead, do printing and plotting after control returns back to the original process, via a promise handler:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">output<span class="op">$</span>summary &lt;-<span class="st"> </span><span class="kw">renderPrint</span>({
+  <span class="kw">future</span>({ <span class="kw">read.csv</span>(url) }) <span class="op">%...&gt;%</span>
+<span class="st">    </span><span class="kw">summary</span>() <span class="op">%...&gt;%</span>
+<span class="st">    </span><span class="kw">print</span>()
+})
+
+output<span class="op">$</span>plot &lt;-<span class="st"> </span><span class="kw">renderPlot</span>({
+  <span class="kw">future</span>({ <span class="kw">read.csv</span>(url) }) <span class="op">%...&gt;%</span>
+<span class="st">  </span>{
+    <span class="kw">ggplot</span>(., <span class="kw">aes</span>(length, width)) <span class="op">+</span><span class="st"> </span><span class="kw">geom_point</span>()
+  }
+})</code></pre></div>
+<p>Again, you do need to be careful to make sure that the last expression in your code block is the promise/pipeline; this is the only way the rendering logic can know whether and when your logic has completed, and if any errors occurred (so they can be displayed to the user).</p>
+</div>
+</div>
+<div id="observers" class="section level3">
+<h3>Observers</h3>
+<p>Observers are very similar to outputs: you must make sure that the last expression in your code block is the promise/pipeline. Like outputs, observers need to know whether and when they’re done running, and if any errors occured (so they can log them and terminate the user session). The way to communicate this from your async user code is by returning the promise.</p>
+<p>Here’s a synchronous example that we’ll convert to async. Clicking the <code>refresh_data</code> action button causes data to be downloaded, which is then saved to disk as <code>cached.rds</code> and also used to update the reactive value <code>data</code>.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">data &lt;-<span class="st"> </span><span class="kw">reactiveVal</span>(<span class="kw">readRDS</span>(<span class="st">&quot;cached.rds&quot;</span>))
+
+<span class="cf">function</span>(input, output, session) {  
+  <span class="kw">observeEvent</span>(input<span class="op">$</span>refresh_data, {
+    df &lt;-<span class="st"> </span><span class="kw">read.csv</span>(url)
+    <span class="kw">saveRDS</span>(df, <span class="st">&quot;cached.rds&quot;</span>)
+    <span class="kw">data</span>(df)
+  })
+}</code></pre></div>
+<p>And the async version:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">data &lt;-<span class="st"> </span><span class="kw">reactiveVal</span>(<span class="kw">readRDS</span>(<span class="st">&quot;cached.rds&quot;</span>))
+
+<span class="cf">function</span>(input, output, session) {
+  <span class="kw">observeEvent</span>(input<span class="op">$</span>refresh_data, {
+    <span class="kw">future</span>({
+      df &lt;-<span class="st"> </span><span class="kw">read.csv</span>(url)
+      <span class="kw">saveRDS</span>(df, <span class="st">&quot;cached.rds&quot;</span>)
+      df
+    }) <span class="op">%...&gt;%</span>
+<span class="st">      </span><span class="kw">data</span>()
+  })
+}</code></pre></div>
+<p>Note that in this version, we cannot call <code>data(df)</code> inside the future, as this would cause the update to happen in the wrong process. Instead, we use the <code>%...&gt;%</code> operator to perform the assignment back in the main process once the future resolves.</p>
+</div>
+<div id="reactive-expressions" class="section level3">
+<h3>Reactive expressions</h3>
+<p>Recall that reactive expressions are used to calculate values, and are cached until they are automatically invalidated by one of their dependencies. Unlike outputs and observers, reactive expressions can be used from other reactive consumers.</p>
+<p>Asynchronous reactive expressions are similar to regular (synchronous) reactive expressions: instead of a “normal” value, they return a promise that will yield the desired value; and a normal reactive will cache a normal value, while an async reactive will cache the promise.</p>
+<p>The upshot is that when defining an async reactive expression, your code block should return a promise or promise pipeline, following the same rules as reactive outputs. And when calling an async reactive expression, call it like a function like you would a regular reactive expression, and treat the value that’s returned like any other promise.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="cf">function</span>(input, output, session) {
+  data &lt;-<span class="st"> </span><span class="kw">eventReactive</span>(input<span class="op">$</span>refresh_data, {
+    <span class="kw">read.csv</span>(url)
+  })
+  
+  filteredData &lt;-<span class="st"> </span><span class="kw">reactive</span>({
+    <span class="kw">data</span>() <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">filter</span>(date <span class="op">==</span><span class="st"> </span>input<span class="op">$</span>date)
+  })
+  
+  output<span class="op">$</span>table &lt;-<span class="st"> </span><span class="kw">renderTable</span>({
+    <span class="kw">filteredData</span>() <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">head</span>(<span class="dv">5</span>)
+  })
+}</code></pre></div>
+<p>And now in async:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="cf">function</span>(input, output, session) {
+  data &lt;-<span class="st"> </span><span class="kw">eventReactive</span>(input<span class="op">$</span>refresh_data, {
+    <span class="kw">future</span>({ <span class="kw">read.csv</span>(url) })
+  })
+  
+  filteredData &lt;-<span class="st"> </span><span class="kw">reactive</span>({
+    <span class="kw">data</span>() <span class="op">%...&gt;%</span><span class="st"> </span><span class="kw">filter</span>(date <span class="op">==</span><span class="st"> </span>input<span class="op">$</span>date)
+  })
+  
+  output<span class="op">$</span>table &lt;-<span class="st"> </span><span class="kw">renderTable</span>({
+    <span class="kw">filteredData</span>() <span class="op">%...&gt;%</span><span class="st"> </span><span class="kw">head</span>(<span class="dv">5</span>)
+  })
+}</code></pre></div>
+</div>
+</div>
+<div id="the-flush-cycle" class="section level2">
+<h2>The flush cycle</h2>
+<p>In the past, Shiny’s reactive programming model has operated using a mostly traditional <a href="https://en.wikipedia.org/wiki/Event_loop">event loop</a> model. Somewhere many levels beneath <code>shiny::runApp()</code> was a piece of code that looked a bit like this:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="cf">while</span> (<span class="ot">TRUE</span>) {
+  <span class="co"># Do nothing until a browser sends some data</span>
+  input &lt;-<span class="st"> </span><span class="kw">receiveInputFromBrowser</span>()
+  <span class="co"># Use the received data to update reactive inputs</span>
+  session<span class="op">$</span><span class="kw">updateInput</span>(input)
+  <span class="co"># Execute all invalidated outputs/observers</span>
+  <span class="kw">flushReact</span>()
+  <span class="co"># After ALL outputs execute, send the results back</span>
+  <span class="kw">flushOutputs</span>()
+}</code></pre></div>
+<p>We call this Shiny’s “flush cycle”. There are two important properties to our flush cycle.</p>
+<ol style="list-style-type: decimal">
+<li>Only one of the four steps—receiving, updating, reacting, and sending—can be executing a time. (Remember, R is single threaded.) In particular, it’s not possible for inputs to be updated while outputs/observers are running. This is important in order to avoid race conditions that would be all but impossible to defend against.</li>
+<li>Many outputs may change as a result of a single input value received from the browser, but none of them are sent back to the client until all of the outputs are ready. The advantage of this is a smoother experience for the end-user in most cases. (Admittedly, there has been some controversy regarding this property of Shiny; some app authors would strongly prefer to show outputs as soon as they are ready, or at least to have manual control over this behavior.)</li>
+</ol>
+<p>While adding async support to Shiny, we aimed to keep these two properties intact. Imagine now that <code>flushReact()</code>, the line that executes invalidated outputs/observers, returns a promise that combines all of the async outputs/observers (i.e. a promise that resolves only after all of the async outputs/observers have resolved). The new, async-aware event loop is conceptually more like this:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">doEventLoop &lt;-<span class="st"> </span><span class="cf">function</span>() {
+  <span class="co"># Do nothing until a browser sends some data</span>
+  input &lt;-<span class="st"> </span><span class="kw">receiveInputFromBrowser</span>()
+  <span class="co"># Use the received data to update reactive inputs</span>
+  session<span class="op">$</span><span class="kw">updateInput</span>(input)
+  <span class="co"># Execute all invalidated outputs/observers</span>
+  <span class="kw">flushReact</span>() <span class="op">%...&gt;%</span><span class="st"> </span>{
+    <span class="co"># After ALL outputs execute, send the results back</span>
+    <span class="kw">flushOutputs</span>()
+    <span class="co"># Continue the event loop</span>
+    <span class="kw">doEventLoop</span>()
+  }
+}</code></pre></div>
+<p>The resulting behavior matches the synchronous version of the event loop, in that:</p>
+<ol style="list-style-type: decimal">
+<li>No inputs are received from the browser until all pending async outputs/observers have completed. Unlike the synchronous version, this separation is enforced at the session level: if Session A has some async observers that have not finished executing, that only prevents Session A from processing new input values, while new input values from Session B can be handled immediately because they belong to a different session. Again, the goal of keeping input updates separate from output/observer execution is to prevent race conditions, which are even more pernicious to debug and understand when async code is involved.</li>
+<li>For a given session, no outputs are sent back to the client, until all outputs are ready. It doesn’t matter whether the outputs in question are synchronous, asynchronous, or some combination; they all must complete execution before any can be sent.</li>
+</ol>
+</div>
+
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

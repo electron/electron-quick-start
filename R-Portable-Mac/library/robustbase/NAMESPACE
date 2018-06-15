@@ -1,0 +1,197 @@
+useDynLib(robustbase, .registration=TRUE)
+
+if(FALSE) {##MM
+    stopifnot(require(codetoolsBioC), require(robustbase))
+    findExternalDeps("robustbase")
+}
+importFrom("grDevices", dev.interactive, extendrange)
+importFrom("graphics", abline, box, legend, lines, matplot, mtext,
+           panel.smooth, par, plot, points, strheight, text, title)
+importFrom("stats",
+           aggregate, alias, as.formula, binomial,
+           coef, cor, cov, cov.wt, cov2cor, delete.response, deviance, dnorm, dpois,
+           family, fitted, fivenum, formula,
+           gaussian, glm, glm.fit, hatvalues,
+           integrate, is.empty.model, lm.fit, lm.wfit,
+           mad, mahalanobis, median, model.frame, model.matrix, model.matrix.lm,
+           model.offset, model.response, model.weights,
+           na.fail, na.omit, na.pass, napredict, naresid,
+           nlminb, nls, nls.control, nobs,
+           optim, optimize, pbinom, pchisq, pf, pgamma, pnorm, poisson, ppois,
+           predict, printCoefmat, pt,
+           qchisq, qnorm, qpois, qqline, qqnorm, qt, quantile,
+           resid, residuals, residuals.lm, setNames, splinefun, symnum,
+           terms, uniroot, var, vcov, weights, .checkMFClasses, .getXlevels,
+
+           ## S3 generics (*not* shown yet by  findExternalDeps() above):
+           anova, case.names, confint,
+           dummy.coef, logLik, profile, variable.names
+           )
+
+
+## ^^^^ MASS has a bit more; take it as example
+if(getRversion() >= "3.1.0")
+importFrom("stats", .lm.fit, confint.lm, dummy.coef.lm)
+if(getRversion() >= "3.3.0") {
+    importFrom("stats", sigma)
+} else {
+    export(sigma)
+    S3method(sigma, nls)
+}
+
+importFrom("utils", globalVariables, str)
+
+## MASS has many rlm S3 methods; should we use some of them - for rnls() ?!
+## we also currently use MASS::cov.rob(); but probably only temporarily
+importFrom("methods", is, new, setClass, setMethod, slot, "slot<-",
+	   ## needed, e.g. for 'robustlmm' to work w/o warning:
+	   as, "as<-", coerce, "coerce<-")
+
+importFrom("DEoptimR", JDEoptim)
+
+## Functions defined in this package
+export(Sn, Qn, Qn.old,
+       s_Sn, s_Qn, s_mad, s_IQR,
+
+       summarizeRobWeights,
+       wgt.himedian,
+
+       h.alpha.n,
+       covMcd, .MCDcons, .MCDcnp2, .MCDcnp2.rew, .MCDsingularityMsg,
+       robMD, mahalanobisD, # <- still "internal"
+       ltsReg,
+       tolEllipsePlot,
+       ## RENAME ?!? :
+       covPlot, ltsPlot,
+       ## NO! ddplot, distplot, chi2qqplot
+       rrcov.control,##  << RENAME --- FIXME
+       huberM,
+       colMedians, rowMedians,
+       covOGK, covGK, hard.rejection, scaleTau2,
+       covComed,
+       ## comedian, COM, -- not yet
+       smoothWgt, .wgtFUN.covMcd, .wgtFUN.covComed,
+       psiFunc, huberPsi, hampelPsi,
+## Not yet:
+##     tukeyPsi, # = biweight / bisquare
+       tukeyChi, tukeyPsi1, # TODO deprecate: see ./TODO
+       Mpsi, Mchi, Mwgt, MrhoInf, .Mpsi, .Mchi, .Mwgt, .MrhoInf,
+       .Mwgt.psi1,
+       .Mchi.tuning.default,  .Mpsi.tuning.default, .regularize.Mpsi,
+       .Mchi.tuning.defaults, .Mpsi.tuning.defaults,
+       .psi2ipsi, .psi.const, .psi.ggw.findc, .psi.lqq.findc,
+
+       lmrob, lmrob.fit,
+       lmrob.fit.MM, lmrob..M..fit, lmrob..D..fit,
+       lmrob.S, lmrob.lar, lmrob.M.S,
+       lmrob.control,
+       .lmrob.hat, # was lmrob.leverages()
+       splitFrame,
+       outlierStats,
+
+       mc, # Mia Hubers's medcouple
+       adjbox,
+       adjboxStats,
+       adjOutlyingness,
+       fullRank,
+       glmrob,
+       nlrob, nlrob.control
+       , glmrobMqle.control, glmrobBY.control, glmrobMT.control
+       , BYlogreg ## R/BYlogreg.R FIXME: add to glmrob() and "deprecate"
+       ## , glmrobMT ## R/MTestimador2.R
+       , estimethod
+       ## related to detMCD() and to be used in rrcov etc:
+       , r6pack, doScale
+       , rankMM, classPC, .signflip
+       )
+
+
+## S3 methods for ``our own'' S3 generics:
+S3method(ltsReg, default)
+S3method(ltsReg, formula)
+
+S3method(adjbox, default)
+S3method(adjbox, formula)
+
+
+## Register all the methods for S3 generics elsewhere
+## in case namespace is loaded but not currently attached.
+
+S3method(anova, lmrob)
+S3method(anova, glmrob)
+
+S3method(alias, lmrob)
+S3method(case.names, lmrob)
+S3method(confint, lmrob)
+S3method(confint, nlrob)
+S3method(dummy.coef, lmrob)
+S3method(estimethod, nlrob)
+S3method(family, lmrob)
+S3method(hatvalues, lmrob)
+S3method(kappa, lmrob)
+S3method(labels, lmrob)
+S3method(model.matrix, lmrob)
+S3method(nobs, lmrob)
+S3method(nobs, lmrob.S, nobs.lmrob)# use the same as "lmrob"
+S3method(nobs, mcd)
+S3method(residuals, lmrob)
+S3method(variable.names, lmrob)
+S3method(weights, glmrob)
+S3method(weights, lmrob)
+S3method(weights, lmrob.S, weights.lmrob)# use the same as "lmrob"
+S3method(weights, nlrob, weights.lmrob)# use the same as "lmrob"
+
+S3method(formula, nlrob)
+S3method(fitted, nlrob)
+S3method(plot, lts)
+S3method(plot, mcd)
+S3method(plot, lmrob)
+S3method(predict, lmrob)
+S3method(predict, glmrob)
+S3method(predict, nlrob)
+
+S3method(print, glmrob)
+S3method(print, lts)
+S3method(print, mcd)
+S3method(print, nlrob)
+S3method(print, lmrob)
+S3method(print, lmrob.S)
+S3method(print, summary.glmrob)
+S3method(print, summary.lmrob)
+S3method(print, summary.nlrob)
+S3method(print, summary.lts)
+
+S3method(qr, lmrob)
+## lmrob uses residuals.default
+S3method(residuals, nlrob)
+S3method(residuals, glmrob)
+
+S3method(summary, glmrob)
+S3method(summary, lmrob)
+S3method(summary, lts)
+S3method(summary, mcd)
+S3method(summary, nlrob)
+
+S3method(sigma, lmrob)
+S3method(sigma, nlrob)
+S3method(vcov, glmrob)
+S3method(vcov, lmrob)
+S3method(vcov, nlrob)
+S3method(print, summary.mcd)
+
+## S4 Generics {only those defined in this package}:
+export(
+       chgDefaults
+       )
+
+exportClasses(
+              "functionX",   # function(x, <tune_par>): VECTORIZED in 'x'
+              "functionXal", # a functional: function of tuning par.s only
+              "psi_func"     # containing  rho(), psi(), psi'(), ...
+              )
+
+exportMethods(
+              chgDefaults,
+              plot
+              )
+

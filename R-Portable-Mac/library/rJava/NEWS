@@ -1,0 +1,611 @@
+ NEWS/ChangeLog for rJava
+--------------------------
+
+0.9-9	(released to CRAN)
+    o	Work around a bug of Oracle's Java on Linux which caps the stack of
+        R at 2M.  The bug leads to segfaults in recursive computations (not
+        an R error as R doesn't know the stack size has been reduced).  The
+        workaround can be disabled via environment variable
+        RJAVA_JVM_STACK_WORKAROUND=0, which may produce better results with
+        memory access checkers (ASAN, valgrind), because the workaround
+        detects the new stack size by trying to access inaccessible memory. 
+        This JVM behavior was a workaround for an issue in old Linux systems
+        (JDK-4466587) and is going to be fixed in Java 10.
+
+    o   Java 9 only supports versions >= 1.6, so change many Makefiles to 1.6.
+
+0.9-8	2016-01-07
+    o	Work around a bug on Oracle's Java on OS X by pre-loading jli
+
+    o	Work around DYLD_FALLBACK_LIBRARY_PATH being dropped in OS X 10.11
+
+
+0.9-7	2015-07-27
+    o	explicitly set -classpath in configure for getps since the user
+	may have set CLASSPATH and thus override the default
+	(see #3)
+
+    o	when constructing String references from character vectors,
+	treat NA as null on the Java side (see #15)
+
+    o	add .jsimplify(..., promote=TRUE) option to promote int
+	to double if integer NAs are to be interpreted literally as
+	-2147483648 values. (see #39)
+
+    o	fix .jarray(.jshort(...)) to respect the `jshort` tag (see #40)
+
+
+0.9-6	2012-12-23
+    o	bugfix: the first JVM parameters was shadowed by headless
+	mode parameter if enabled (default on OS X).
+
+
+0.9-5	2012-12-03
+    o	add more debugging information in RJavaClassLoader to trace
+	cases where class path entries are invalid or discarded
+
+    o	detect support for -Xrs and enable it by default (this prevents
+	Java from killing R process on interrupt)
+
+    o	restore locales after Java initialization (some JVMs clobber
+	locales with incompatible settings).
+
+    o	add --enable-headless option which sets the java.awt.headless
+	to true. In the auto mode this flag is only enabled on Mac OS X.
+	Note that it is only set upon initialization, it does not
+	affect already running JVMs.
+
+0.9-4	2013-03-11
+    o	added support for unboxing of Double[], Integer[] and Boolean[]
+	to .jevalArray(.., simplify=TRUE) and thus also to .jcall()
+
+    o	Windows: add Java configuartion paths before existing PATH
+	entries
+
+    o	Windows: honor a new option "java.home" to override JAVA_HOME
+	environment variable and system settings to allow co-existence
+	of other tools that may require differen Java paths.
+
+    o	Windows: fix a buglet in error reporting when no Java is installed
+
+    o	raise an error if the number of arguments to a Java call exceeds
+	maxJavaPars. Previously, calls woud be silently truncated.
+	Note that maxJavaPars can be raised by compiling rJava, e.g. with:
+	PKG_CFLAGS=-DmaxJavaPars=96 R CMD INSTAL rJava_...
+
+0.9-3	2011-12-10
+    o	bugfix: .jinit() was failing on Java 1.4 with
+	"cannot obtain Class.getSimpleName method ID"
+	since the method is only present in Java 1.5+
+	This was inadvertent, rJava aims to support Java 1.2+
+
+0.9-2	2011-10-26
+    o	When NOAWT is set, rJava will enable headless mode in the JVM
+	by setting the java.awt.headless property to true during
+	initialization in .jinit()
+
+    o	All C-level entry points are now pre-cached when rJava is
+	loaded such that calls can be made much faster since symbols
+	don't need to be looked up. This should speed up calls to
+	methods that take very little time as well as other parts
+	such as checking for exceptions.
+
+0.9-1	2011-06-28
+    o	fixed Java detection from registry on Windows (bug introduced
+	in 0.9-0)
+
+0.9-0	2011-06-22
+    o	fixes issues introduced by several new features in the late
+	0.8 series. Most imporantly .jarray() and .jevalArray() behave
+	as intended (and as implemented in previous versions). The
+	same applies to .jcall() behavior with respect to arrays and
+	its evalArray arument. The defaults for some new arguments
+	have been changed to reflect the original behavior.
+
+    o	.jevalArray() has an additional argument `simplify' which allows
+	multi-dimensional arrays to be converted to native R
+	types. Use with care - it may convert more recursive types in
+	the future so it should be used preferrably where you have
+	control over the types converted.
+
+    o	fixed a bug in .jevalArray that was not simplifying string
+	vectors correctly when the array type was not specified
+	(.jclass returns dot notation whereas signatures use JNI
+	notation so a conversion was necessary)
+
+    o	use install.libs.R in R 2.13.1 to install multi-arch JRI
+
+
+0.8-8	2010-12-20
+    o	Add support for r.arch in RJavaClassLoader on Windows as well
+
+    o   javaImport was only able to import java packages from the system class
+        loader (not from additional jars)
+
+0.8-7	2010-10-18
+    o	Windows updates to accomodate changes in R 2.12 and layout
+	changes in recent Sun Java installations.
+
+0.8-6	2010-09-17
+    o	JRI 0.5-4: rniStop() provides several ways to notify R on unix.
+	It improves handing of user interrupts via rniStop() by
+	allowing to avoid signals (signals can cause problems in some
+	recent JVM implementations).
+
+0.8-5	2010-09-02
+    o	fix a bug introduced in 0.8-2 where .jclassPath() would not
+	show the real class path
+
+    o	if the rJava class loader is used as a primary loader it will
+	also register as the context class loader. Some projects
+	rely on the thread context class loader instead of
+	Class.getClassLoader() [which is still more reliable] 
+	so those will now work as well.
+
+    o	JRI 0.5-3 (bugfixes)
+
+
+0.8-4	2010-04-28
+    o	JRI 0.5-2
+	IMPORTANT NOTE: handling of NAs in character vectors has been
+	fixed, NAs were	incorrectly passed as "NA" from R to Java
+	instead of nulls (it was correct the other way round). Any
+	code that relies on such incorrect behavior will need to be
+	fixed!
+
+	Other changes in JRI are mostly related to Windows support
+	(bugfixes R 2.11.0 and Windows 64-bit support)
+
+    o	run.bat is now installed as part of JRI
+
+0.8-3	2010-03-16
+    o	REngine and JRIEngine classes are now included in rJava/JRI
+	although they are not loaded by default.
+
+    o	.r2j now has convert parameter to allow the creation of
+	pure references (convert=FALSE)
+
+    o	toJava() is a new function equivalent to .r2j but resulting
+	in REngine API references (instances of REXPReference).
+	By default the references are not resolved since the primary
+	use is to pass R functions to Java for callbacks.
+
+    o	set text mode for stdin on Windows (thanks to Brian Ripley)
+
+    o	fix support of NULL arguments in new(J("SomeClass"), ...)
+
+    o	fixed issues in with() and within() when used on jobjRef;
+	also the evaluation environment is now the parent frame as
+	expected
+
+    o	disable AWT tests if NOAWT is set; enable a few more tests
+
+
+0.8-2	2010-01-22
+    o	faster class loader implementation
+
+    o	added support for 64-bit Windows (thanks to Brian Ripley)
+
+
+0.8-1	2009-10-30
+    o	fixed exception handling on Windows: the access to "call"
+	was off for Windows builds causing incorrect "call" entries
+	in exceptions which broke when encountered in try().
+
+    o	fixed .jcall() which had inadvertently the default for
+	use.true.class argument set to TRUE. That is considered
+	a bug since it breaks the original behavior and is against the
+	idea of .jcall being the low-level interface.
+
+
+0.8-0	2009-10-27
+    o	new exception handling was introduced:
+
+	Java exceptions are mapped to Exception conditions which can
+	be used to catch the exception at R level using e.g tryCatch. 
+	
+	The class name automatically contains "Exception", "error"
+	and "condition", as well as all the names (without package path)
+	of the classes in the inheritance tree of the actual class of the 
+	Exception. This allows targetted handlers:
+	tryCatch(.jnew("foo"), NoClassDefFoundError=function(e) ...)
+
+	In addition JNI code now causes an error instead of a warning,
+	however, some errors internal to JNI may not have an associated
+	Java exception and thus will fire the usual simpleError
+	condition.
+
+	As a consequence of the new error handling exception objects
+	are now supplied in e$jobj of the handler and .jgetEx()
+	becomes obsolete.
+
+    o	added new high-level API using the "J" function. It replaces
+	the previously used .J()/.jrnew() and .jrcall().
+
+	New Java objects are created using new(J("class"), ...) and
+	static methods and fields are accessed using J("class")$...
+	The corresponding implementation uses reflection in all cases.
+
+	An additional class "jclassName" was created to support static
+	calls to accessor methods such as $ and calls to new().
+	
+    o   [RF] arrays are now split in two classes : "jrectRef" for rectangular
+        arrays, similar to R arrays, and jarrayRef for rugged arrays. 
+        Indexing of all arrays is supported using the double bracket 
+        indexer "[[" and "[[<-"
+        
+        The single indexer "[" is only currently implemented for 
+        rectangular arrays. This is experimental. Replacement ([<-) 
+        is not supported yet.
+
+    o   [RF] with.jclassName and within.jclassName is added to support
+        "with" semantics on static fields and methods of java classes. 
+        
+        Double <- J("java.lang.Double" )
+        with( Double, parseDouble( "10.2" ) )
+        
+
+    o   [RF] length.jarrayRef queries the number
+        of objects in a java array. An exception is generated if the 
+        object is not an array. Also array$length can be used 
+        similary to array.length in java
+        
+    o   [RF] .jcast gains arguments "check" and "convert.array". Their 
+             default value is FALSE for backwards compatibility with 
+             previous releases of rJava
+             
+    o   [RF] Binary operators <, >, <=, >= to compare two objects where 
+             at least one is a java object reference. 
+             d <- new( J("java.lang.Double"), 0.0 )
+             d < 1.0
+             d < 1L
+             Comparison of arrays is not currently supported
+             
+    o   [RF] lapply and sapply may now be used on Iterable java objects
+             such as Vector and java arrays. see ?as.list.jobjRef
+             
+    o   [RF] The generic "clone" function is added, and an implementation for 
+             java objects. an Object must implement the Cloneable 
+             interface, otherwise an exception will be raised. 
+             Furthermore, careful reading of the java documentation 
+             of Object#clone is recommended since this is not standard
+             java behaviour. Currently "clone" is not supported on 
+             arrays
+             
+    o   [RF] A mechanism for "attach"ing java packages has been introduced, 
+             following the mechanism of the RObjectTables package
+             from the OmegaHat project. This allows to "attach" a set of
+             java package paths to R's search path: 
+             
+             > attach( javaImport( "java.util", "java.lang" ) )
+             
+             and then use classes from this package like this :
+             
+             > new( Vector )
+             > new( HashMap )
+             > new( Double, 10.2 )
+             > new( Integer, 10L ) 
+             > Collections$EMPTY_MAP
+             
+             This feature is currently __very__ experimental and is as
+             dangerous as any other use of attach
+
+
+0.7-1	(never released)
+    o	[RF] added .J high-level java constructor (based on reflection 
+	as opposed to complete match as .jnew does)
+
+    o	[RF] added .jinstanceof and instanceof operator
+
+    o	when loaded into another JVM (e.g. via JRI), rJava would crash
+	on any call if .jinit() was missing. Now it correctly reports
+	the error.
+
+    o	fixed synchronization issues in both JRI and REngine
+
+0.7-0	2009-08-22
+    o	fixed bug in $ getter of fields using old .jfield API
+
+    o	fixed a bug in .jevalArray which failed when the signature
+	was specified directly (and subsequently .jfield failed in
+	most cases)
+
+    o	improve speed of reflection-based API (.jrcall and `$')
+	by using native array support in rJava
+
+    o	reflection API now returns NULL invisibly for void results
+
+    o	try to find the best match in reflection-based API
+	using internal Java code (code and idea by
+	Romain Francois)
+
+    o	added with() method for jobjRef (by Romain Francois), see
+	http://romainfrancois.blog.free.fr/index.php?
+	post/2009/06/17/with-semantics-for-java-objects-in-rJava
+
+    o	added names() method for jobjRef to facilitate code
+	completion (based on code by RF: http://tr.im/w33B)
+
+    o	update to JRI 0.5-0
+
+0.6-3	2009-06-14
+    o	update to JRI 0.4-3 (adds REngine API, enhanced support for
+	environments and references)
+
+    o	allow signatures longer than 256 bytes
+
+    o	added lib.loc parameter to .jpackage()
+
+0.6-2	2009-01-26
+    o	fix --enable-debug to really enable debug code
+
+    o	improve Windows setup (add only paths if they are not already
+	listed and check thier presence first) and warn if the system
+	suffers from PATH truncation bug (or PATH is truncated in
+	general)
+
+[0.6-branch is created as a stable branch -- see trunk for development]
+
+
+0.6-1	2008-12-23
+    o	substitute $(JAVA_HOME) in configuration flags when necessary
+
+    o	flag generated strings as UTF-8 and convert incoming strings
+	into UTF-8 (see note in ?.jcall for details)
+	This should improve interoperability in non-UTF-8 locales
+	(most prominent example is Windows)
+
+
+0.6-0	2008-09-22
+    o	add support for object cache - see .jcache() - based
+	on Java serialization
+
+
+0.5-2	(never released, turned into 0.6-0)
+    o	add direct support for raw vectors as method parameters
+	(before .jarray(r) had to be used)
+
+    o	add .jserialize() and .junserialize() functions for
+	Java-serialization (do not confuse with R serialization!)
+
+
+0.5-1	2007-11-05
+    o	fix crashes in Windows when Java calls the vfprintf hook
+
+    o	enhance Java environment checks, add more specific errors
+
+    o	add support for r.arch system property which allows multi-arch
+	support on platforms that don't have fat binaries (e.g. Linux)
+
+
+0.5-0	2007-08-22
+    o	**API CHANGE**
+	The order of arguments of .jfield has been changed to match
+	the order used in .jcall and the return value is as expected
+	and doesn't need .jsimplify anymore.
+
+    o	The implementation of .jfield no longer uses reflection
+	it supports static fields and .jfield<-() was added.
+
+    o	Consolidate interface code for static/non-static calls.
+	It is now possible to call a static method using a non-static
+	object.
+
+    o	Add .jpackage function for initialization of Java packages.
+	See documentation for details, packages should no longer
+	use .jinit in their initialization code.
+
+    o	Add preliminary JRI support from R (see .jengine)
+
+    o	Prepare hooks for de-serialization
+
+    o	Add support for short Java type
+
+    o	Add support for convertors
+
+    o	Fix R-devel compatibility issues
+
+    o	Fix a memory leak in string array handling
+
+    o	Use Java settings from R for compilation
+
+    o	Add a custom class loader
+
+    o	Fix a bug in .jcastToArray that produced invalid signatures
+
+    o	Added support for [Z in .jevalArray
+
+    o	Fix a bug in .jarray missing [ prefix for native type arrays
+
+
+
+0.4 branch has been branched off the trunk, see 0.4-branch for NEWS
+
+0.4-13	2007-01-14
+    o	Fix Java-side memory leaks (temporary parameters to methods
+	were not propery released, thanks to Erik van Barneveld for
+	supplying a reproducible example).
+
+    o	Fix a bug that caused only the first VM parameter to be passed
+	on during initialization (thanks to Bernard Rosman for
+	reporting).
+
+    o	.jmkref now accepts plain class names (with .)
+
+    o	Fix bug in .jarray (and underlying RcreateArray) that was
+	returning wrong class name if the contents class was an array.
+
+    o	Add --enable-callbacks option to configure (disabled by
+	default). The callbacks support is currently incomplete and
+	experimental.
+
+    o	Update URL to http://www.rforge.net/rJava/
+
+    o	Update to JRI 0.3-7 (LCons, createRJavaRef, assign XT_NONE) 
+
+0.4-12	2006-11-29
+    o	Added documentation for .jthrow, .jclear and .jgetEx and
+	a bugfix in .jgetEx
+
+    o	rJava now uses a namespace. This is still somewhat experimental,
+	because rJava needs to perform some dirty tricks to unseal
+	the namespace during initialization. Please test and report!
+
+    o	Update to JRI 0.3-6 (GIJ fix and fix for R-devel interface changes)
+
+0.4-11  2006-10-10
+    o	Replace variadic macros with wrappers (for compilers that don't
+	support ISO C99).
+
+    o	Modify JNI error reporting - use warnings instead of direct stderr.
+
+    o	Update to JRI 0.3-5
+
+0.4-10	2006-09-14
+    o	Removed obsolete JNI 1.1 support that is no longer provided
+	in JDK 1.6 and thus prevented rJava from being used with JDK 1.6
+
+    o	Update to JRI 0.3-4 (change compilation to force Java 1.4
+	compatibility even when more recent JDK is used)
+
+0.4-9	2006-09-12
+    o	Update to JRI 0.3-3 which fixes API version mistake which
+
+0.4-8	2006-09-11
+    o	Added --enable-jri=auto option which will build JRI only if R
+	shared library is present. It is now the default.
+
+    o	Update to JRI 0.3-2 (added boolean support)
+
+0.4-7	2006-09-05
+    o	.jevalArray now works with Java objects that have not been
+	cast to a Java array explicitly. The function is now also
+	documented properly.
+
+    o	Added .jgetEx and .jclear functions for querying and clearing
+	of Java exceptions/throwables.
+
+    o	Added .jthrow to allow throwing of exceptions from R code.
+
+    o	Fixed a typo in .jrcall when handling string return values.
+
+0.4-6	2006-08-20
+    o	Fixed bug in initialization on Windows, introduced in 0.4-4
+
+0.4-5	2006-06-24
+    o	Added support for scalar bytes as .jbyte (byte arrays are still
+	natively represented as RAW vectors)
+
+    o	Added .r2j function which allows to push R objects into Java as
+	references. This works only if R is run via JRI, because it
+	requires a working Rengine instance.
+
+0.4-4	2006-06-21
+    o	Fixed bug that prevented loading into existing VM
+	if the classpath contained duplicate items.
+	.jmergeClassPath now filters out duplicate paths.
+
+    o	.jcall and .jnew discard all named parameters that are passed
+	as `...'. Named parameters are now reserved for future call options
+
+    o	Converted all S3-methods into S4 methods.
+	Also `show' is now used instead of `print' and the
+	output format was changed.
+
+    o	Protoype for jobjRef is now a valid null-Object
+
+    o	Added .jequals and corresponding ==, != op methods.
+	Currently == and != operators feature the same behavior as
+	.jequals(...,strict=FALSE), i.e. scalar non-Java objects are
+	converted into Java objects if possible and then compared, so
+	 s <- .jnew("java/lang/String","foo")
+	 s == "foo"  # returns TRUE
+
+    o	Added .jinherits which allows to check Java-side
+	inheritance using JNI (= isAssignableTo).
+
+    o   Added .jfindClass and .jclassRef that return Java
+	class object
+
+    o	Added check parameter to .jcall and .jnew that allows the caller
+	to prevent implicit call to .jcheck
+	It is mainly useful in cases where silent operation
+	is desired (e.g. in conjunction with try).
+	Additionally, silent parameter was added to .jnew
+
+    o	Added is.jnull which is like is.null but also returns
+	TRUE if the supplied Java object is a null-reference
+
+    o	Added jlong class and .jlong function. Those were documented in
+	the tutorial but never really implemented. Still, they may not
+	be supported in all parts of rJava.
+	WARNING: conversion between Java's long and R's jlong is lossy!
+	R stores jlong in doubles so the conversion implies loss of
+	precision.
+
+0.4-3	2006-05-16
+    o	improved, documented and fixed handling of fields
+	.jfield is dedicated accessor with more options
+
+0.4-2	2006-05-08
+    o	Update to JRI 0.2-5 (no change in rJava)
+
+0.4-1	2006-05-05
+    o	Fixed bug in Windows initialization
+
+0.4-0	2006-05-03
+    o	JRI is now included in rJava
+
+0.3-9	2006-04-20
+     o	fixed a minor bug in Rglue.c that may prevent older
+	compilers from compiling it.
+
+0.3-8	2006-04-17
+     o	.jinit has an additional parameter 'parameters' that allows
+	users to pass additional parameters to the VM (such as -X...)
+
+     o	.jinit now uses a hack (defined in .jmergeClassPath) that
+	allows us to modify the class path of a running VM. This may
+	or may not work for a specific VM, because it is an ugly hack
+	exploiting some implementational features of the VM.
+	See .jmergeClassPath source for reference and explanation.
+
+     o	.jarray now supports the use of .jarray(x) where x is a Java
+	reference. The documentation requires you to use
+	.jarray(list(x)), but since the use of .jarray(x) seems to be
+	a very common mistake, we may as well silently support it.
+
+     o	.jarray has an optional parameter contents.class which allows
+	the global specification of the class type for arrays of
+	objects. (Untested, use with care! In most cases .jcast is
+	probably what you really want.)
+
+     o	Added some more support for floats, longs and byte arrays.
+	(Again, untested)
+
+0.3-7	2006-01-31 (non-public release)
+     o	New, experimental feature has been added - JNI cache. This
+	feature can be enabled by passing --enable-jni-cache argument
+	to configure. Normally, each time we access JVM we retrieve
+	new JNI environment to make sure there are no threading
+	issues. In single-threaded environment this is superfluous, so
+	we may as well cache it. The idea is to reduce the
+	overhead. However, the gain is not as huge as expected, so it
+	is not enabled by default. Also note that threads and
+	jni-cache are mutually exclusive.
+
+     o	Another even more experimental feature has been added -
+	support for threads. This feature is enabled by using
+	--enable-threads configure argument. When threads support is
+	enabled, JVM is started on a thread separate from the main
+	thread. Some implementations of AWT classes require
+	this. However, it is not always safe to use, because R event
+	loop is unaware of the separate thread and can deadlock it.
+
+0.3-6	2006-01-30
+0.3-5	2006-01-02
+0.3-4	2005-12-28
+0.3-3	2005-12-20
+0.3	2005-12-19	[finalizers, arrays]
+0.2	2005-09-03	[S4 classes]
+0.1	2003-08-26	[initial release]

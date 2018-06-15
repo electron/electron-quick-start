@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<meta name="author" content="Kirill Müller, Hadley Wickham" />
+
+<meta name="date" content="2018-01-22" />
+
+<title>Extending tibble</title>
+
+
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+div.sourceCode { overflow-x: auto; }
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code > span.dt { color: #902000; } /* DataType */
+code > span.dv { color: #40a070; } /* DecVal */
+code > span.bn { color: #40a070; } /* BaseN */
+code > span.fl { color: #40a070; } /* Float */
+code > span.ch { color: #4070a0; } /* Char */
+code > span.st { color: #4070a0; } /* String */
+code > span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code > span.ot { color: #007020; } /* Other */
+code > span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code > span.fu { color: #06287e; } /* Function */
+code > span.er { color: #ff0000; font-weight: bold; } /* Error */
+code > span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+code > span.cn { color: #880000; } /* Constant */
+code > span.sc { color: #4070a0; } /* SpecialChar */
+code > span.vs { color: #4070a0; } /* VerbatimString */
+code > span.ss { color: #bb6688; } /* SpecialString */
+code > span.im { } /* Import */
+code > span.va { color: #19177c; } /* Variable */
+code > span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code > span.op { color: #666666; } /* Operator */
+code > span.bu { } /* BuiltIn */
+code > span.ex { } /* Extension */
+code > span.pp { color: #bc7a00; } /* Preprocessor */
+code > span.at { color: #7d9029; } /* Attribute */
+code > span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+</style>
+
+
+
+<link href="data:text/css;charset=utf-8,body%20%7B%0Abackground%2Dcolor%3A%20%23fff%3B%0Amargin%3A%201em%20auto%3B%0Amax%2Dwidth%3A%20700px%3B%0Aoverflow%3A%20visible%3B%0Apadding%2Dleft%3A%202em%3B%0Apadding%2Dright%3A%202em%3B%0Afont%2Dfamily%3A%20%22Open%20Sans%22%2C%20%22Helvetica%20Neue%22%2C%20Helvetica%2C%20Arial%2C%20sans%2Dserif%3B%0Afont%2Dsize%3A%2014px%3B%0Aline%2Dheight%3A%201%2E35%3B%0A%7D%0A%23header%20%7B%0Atext%2Dalign%3A%20center%3B%0A%7D%0A%23TOC%20%7B%0Aclear%3A%20both%3B%0Amargin%3A%200%200%2010px%2010px%3B%0Apadding%3A%204px%3B%0Awidth%3A%20400px%3B%0Aborder%3A%201px%20solid%20%23CCCCCC%3B%0Aborder%2Dradius%3A%205px%3B%0Abackground%2Dcolor%3A%20%23f6f6f6%3B%0Afont%2Dsize%3A%2013px%3B%0Aline%2Dheight%3A%201%2E3%3B%0A%7D%0A%23TOC%20%2Etoctitle%20%7B%0Afont%2Dweight%3A%20bold%3B%0Afont%2Dsize%3A%2015px%3B%0Amargin%2Dleft%3A%205px%3B%0A%7D%0A%23TOC%20ul%20%7B%0Apadding%2Dleft%3A%2040px%3B%0Amargin%2Dleft%3A%20%2D1%2E5em%3B%0Amargin%2Dtop%3A%205px%3B%0Amargin%2Dbottom%3A%205px%3B%0A%7D%0A%23TOC%20ul%20ul%20%7B%0Amargin%2Dleft%3A%20%2D2em%3B%0A%7D%0A%23TOC%20li%20%7B%0Aline%2Dheight%3A%2016px%3B%0A%7D%0Atable%20%7B%0Amargin%3A%201em%20auto%3B%0Aborder%2Dwidth%3A%201px%3B%0Aborder%2Dcolor%3A%20%23DDDDDD%3B%0Aborder%2Dstyle%3A%20outset%3B%0Aborder%2Dcollapse%3A%20collapse%3B%0A%7D%0Atable%20th%20%7B%0Aborder%2Dwidth%3A%202px%3B%0Apadding%3A%205px%3B%0Aborder%2Dstyle%3A%20inset%3B%0A%7D%0Atable%20td%20%7B%0Aborder%2Dwidth%3A%201px%3B%0Aborder%2Dstyle%3A%20inset%3B%0Aline%2Dheight%3A%2018px%3B%0Apadding%3A%205px%205px%3B%0A%7D%0Atable%2C%20table%20th%2C%20table%20td%20%7B%0Aborder%2Dleft%2Dstyle%3A%20none%3B%0Aborder%2Dright%2Dstyle%3A%20none%3B%0A%7D%0Atable%20thead%2C%20table%20tr%2Eeven%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0A%7D%0Ap%20%7B%0Amargin%3A%200%2E5em%200%3B%0A%7D%0Ablockquote%20%7B%0Abackground%2Dcolor%3A%20%23f6f6f6%3B%0Apadding%3A%200%2E25em%200%2E75em%3B%0A%7D%0Ahr%20%7B%0Aborder%2Dstyle%3A%20solid%3B%0Aborder%3A%20none%3B%0Aborder%2Dtop%3A%201px%20solid%20%23777%3B%0Amargin%3A%2028px%200%3B%0A%7D%0Adl%20%7B%0Amargin%2Dleft%3A%200%3B%0A%7D%0Adl%20dd%20%7B%0Amargin%2Dbottom%3A%2013px%3B%0Amargin%2Dleft%3A%2013px%3B%0A%7D%0Adl%20dt%20%7B%0Afont%2Dweight%3A%20bold%3B%0A%7D%0Aul%20%7B%0Amargin%2Dtop%3A%200%3B%0A%7D%0Aul%20li%20%7B%0Alist%2Dstyle%3A%20circle%20outside%3B%0A%7D%0Aul%20ul%20%7B%0Amargin%2Dbottom%3A%200%3B%0A%7D%0Apre%2C%20code%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0Aborder%2Dradius%3A%203px%3B%0Acolor%3A%20%23333%3B%0Awhite%2Dspace%3A%20pre%2Dwrap%3B%20%0A%7D%0Apre%20%7B%0Aborder%2Dradius%3A%203px%3B%0Amargin%3A%205px%200px%2010px%200px%3B%0Apadding%3A%2010px%3B%0A%7D%0Apre%3Anot%28%5Bclass%5D%29%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0A%7D%0Acode%20%7B%0Afont%2Dfamily%3A%20Consolas%2C%20Monaco%2C%20%27Courier%20New%27%2C%20monospace%3B%0Afont%2Dsize%3A%2085%25%3B%0A%7D%0Ap%20%3E%20code%2C%20li%20%3E%20code%20%7B%0Apadding%3A%202px%200px%3B%0A%7D%0Adiv%2Efigure%20%7B%0Atext%2Dalign%3A%20center%3B%0A%7D%0Aimg%20%7B%0Abackground%2Dcolor%3A%20%23FFFFFF%3B%0Apadding%3A%202px%3B%0Aborder%3A%201px%20solid%20%23DDDDDD%3B%0Aborder%2Dradius%3A%203px%3B%0Aborder%3A%201px%20solid%20%23CCCCCC%3B%0Amargin%3A%200%205px%3B%0A%7D%0Ah1%20%7B%0Amargin%2Dtop%3A%200%3B%0Afont%2Dsize%3A%2035px%3B%0Aline%2Dheight%3A%2040px%3B%0A%7D%0Ah2%20%7B%0Aborder%2Dbottom%3A%204px%20solid%20%23f7f7f7%3B%0Apadding%2Dtop%3A%2010px%3B%0Apadding%2Dbottom%3A%202px%3B%0Afont%2Dsize%3A%20145%25%3B%0A%7D%0Ah3%20%7B%0Aborder%2Dbottom%3A%202px%20solid%20%23f7f7f7%3B%0Apadding%2Dtop%3A%2010px%3B%0Afont%2Dsize%3A%20120%25%3B%0A%7D%0Ah4%20%7B%0Aborder%2Dbottom%3A%201px%20solid%20%23f7f7f7%3B%0Amargin%2Dleft%3A%208px%3B%0Afont%2Dsize%3A%20105%25%3B%0A%7D%0Ah5%2C%20h6%20%7B%0Aborder%2Dbottom%3A%201px%20solid%20%23ccc%3B%0Afont%2Dsize%3A%20105%25%3B%0A%7D%0Aa%20%7B%0Acolor%3A%20%230033dd%3B%0Atext%2Ddecoration%3A%20none%3B%0A%7D%0Aa%3Ahover%20%7B%0Acolor%3A%20%236666ff%3B%20%7D%0Aa%3Avisited%20%7B%0Acolor%3A%20%23800080%3B%20%7D%0Aa%3Avisited%3Ahover%20%7B%0Acolor%3A%20%23BB00BB%3B%20%7D%0Aa%5Bhref%5E%3D%22http%3A%22%5D%20%7B%0Atext%2Ddecoration%3A%20underline%3B%20%7D%0Aa%5Bhref%5E%3D%22https%3A%22%5D%20%7B%0Atext%2Ddecoration%3A%20underline%3B%20%7D%0A%0Acode%20%3E%20span%2Ekw%20%7B%20color%3A%20%23555%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Edt%20%7B%20color%3A%20%23902000%3B%20%7D%20%0Acode%20%3E%20span%2Edv%20%7B%20color%3A%20%2340a070%3B%20%7D%20%0Acode%20%3E%20span%2Ebn%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Efl%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Ech%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Est%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Eco%20%7B%20color%3A%20%23888888%3B%20font%2Dstyle%3A%20italic%3B%20%7D%20%0Acode%20%3E%20span%2Eot%20%7B%20color%3A%20%23007020%3B%20%7D%20%0Acode%20%3E%20span%2Eal%20%7B%20color%3A%20%23ff0000%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Efu%20%7B%20color%3A%20%23900%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%20code%20%3E%20span%2Eer%20%7B%20color%3A%20%23a61717%3B%20background%2Dcolor%3A%20%23e3d2d2%3B%20%7D%20%0A" rel="stylesheet" type="text/css" />
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Extending tibble</h1>
+<h4 class="author"><em>Kirill Müller, Hadley Wickham</em></h4>
+<h4 class="date"><em>2018-01-22</em></h4>
+
+
+
+<p>To extend the tibble package for new types of columnar data, you need to understand how printing works. The presentation of a column in a tibble is powered by four S3 generics:</p>
+<ul>
+<li><code>type_sum()</code> determines what goes into the column header.</li>
+<li><code>pillar_shaft()</code> determines what goes into the body of the column.</li>
+<li><code>is_vector_s3()</code> and <code>obj_sum()</code> are used when rendering list columns.</li>
+</ul>
+<p>If you have written an S3 or S4 class that can be used as a column, you can override these generics to make sure your data prints well in a tibble. To start, you must import the <code>pillar</code> package that powers the printing of tibbles. Either add <code>pillar</code> to the <code>Imports:</code> section of your <code>DESCRIPTION</code>, or simply call:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">usethis<span class="op">::</span><span class="kw">use_package</span>(<span class="st">&quot;pillar&quot;</span>)</code></pre></div>
+<p>This short vignette assumes a package that implements an S3 class <code>&quot;latlon&quot;</code> and uses <code>roxygen2</code> to create documentation and the <code>NAMESPACE</code> file. For this vignette to work we need to attach pillar:</p>
+<div id="prerequisites" class="section level2">
+<h2>Prerequisites</h2>
+<p>We define a class <code>&quot;latlon&quot;</code> that encodes geographic coordinates in a complex number. For simplicity, the values are printed as degrees and minutes only.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co">#' @export</span>
+latlon &lt;-<span class="st"> </span><span class="cf">function</span>(lat, lon) {
+  <span class="kw">as_latlon</span>(<span class="kw">complex</span>(<span class="dt">real =</span> lon, <span class="dt">imaginary =</span> lat))
+}
+
+<span class="co">#' @export</span>
+as_latlon &lt;-<span class="st"> </span><span class="cf">function</span>(x) {
+  <span class="kw">structure</span>(x, <span class="dt">class =</span> <span class="st">&quot;latlon&quot;</span>)
+}
+
+<span class="co">#' @export</span>
+c.latlon &lt;-<span class="st"> </span><span class="cf">function</span>(x, ...) {
+  <span class="kw">as_latlon</span>(<span class="kw">NextMethod</span>())
+}
+
+<span class="co">#' @export</span>
+<span class="st">`</span><span class="dt">[.latlon</span><span class="st">`</span> &lt;-<span class="st"> </span><span class="cf">function</span>(x, i) {
+  <span class="kw">as_latlon</span>(<span class="kw">NextMethod</span>())
+}
+
+<span class="co">#' @export</span>
+format.latlon &lt;-<span class="st"> </span><span class="cf">function</span>(x, ..., <span class="dt">formatter =</span> deg_min) {
+  x_valid &lt;-<span class="st"> </span><span class="kw">which</span>(<span class="op">!</span><span class="kw">is.na</span>(x))
+
+  lat &lt;-<span class="st"> </span><span class="kw">unclass</span>(<span class="kw">Im</span>(x[x_valid]))
+  lon &lt;-<span class="st"> </span><span class="kw">unclass</span>(<span class="kw">Re</span>(x[x_valid]))
+
+  ret &lt;-<span class="st"> </span><span class="kw">rep</span>(<span class="st">&quot;&lt;NA&gt;&quot;</span>, <span class="kw">length</span>(x))
+  ret[x_valid] &lt;-<span class="st"> </span><span class="kw">paste</span>(
+    <span class="kw">formatter</span>(lat, <span class="kw">c</span>(<span class="st">&quot;N&quot;</span>, <span class="st">&quot;S&quot;</span>)),
+    <span class="kw">formatter</span>(lon, <span class="kw">c</span>(<span class="st">&quot;E&quot;</span>, <span class="st">&quot;W&quot;</span>))
+  )
+  <span class="kw">format</span>(ret, <span class="dt">justify =</span> <span class="st">&quot;right&quot;</span>)
+}
+
+deg_min &lt;-<span class="st"> </span><span class="cf">function</span>(x, pm) {
+  sign &lt;-<span class="st"> </span><span class="kw">sign</span>(x)
+  x &lt;-<span class="st"> </span><span class="kw">abs</span>(x)
+  deg &lt;-<span class="st"> </span><span class="kw">trunc</span>(x)
+  x &lt;-<span class="st"> </span>x <span class="op">-</span><span class="st"> </span>deg
+  min &lt;-<span class="st"> </span><span class="kw">round</span>(x <span class="op">*</span><span class="st"> </span><span class="dv">60</span>)
+
+  ret &lt;-<span class="st"> </span><span class="kw">sprintf</span>(<span class="st">&quot;%d°%.2d'%s&quot;</span>, deg, min, pm[<span class="kw">ifelse</span>(sign <span class="op">&gt;=</span><span class="st"> </span><span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">2</span>)])
+  <span class="kw">format</span>(ret, <span class="dt">justify =</span> <span class="st">&quot;right&quot;</span>)
+}
+
+<span class="co">#' @export</span>
+print.latlon &lt;-<span class="st"> </span><span class="cf">function</span>(x, ...) {
+  <span class="kw">cat</span>(<span class="kw">format</span>(x), <span class="dt">sep =</span> <span class="st">&quot;</span><span class="ch">\n</span><span class="st">&quot;</span>)
+  <span class="kw">invisible</span>(x)
+}
+
+<span class="kw">latlon</span>(<span class="fl">32.7102978</span>, <span class="op">-</span><span class="fl">117.1704058</span>)</code></pre></div>
+<pre><code>## 32°43'N 117°10'W</code></pre>
+<p>More methods are needed to make this class fully compatible with data frames, see e.g. the <a href="https://github.com/tidyverse/hms/">hms</a> package for a more complete example.</p>
+</div>
+<div id="using-in-a-tibble" class="section level2">
+<h2>Using in a tibble</h2>
+<p>Columns on this class can be used in a tibble right away, but the output will be less than ideal:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(tibble)
+data &lt;-<span class="st"> </span><span class="kw">tibble</span>(
+  <span class="dt">venue =</span> <span class="st">&quot;rstudio::conf&quot;</span>,
+  <span class="dt">year  =</span> <span class="dv">2017</span><span class="op">:</span><span class="dv">2019</span>,
+  <span class="dt">loc   =</span> <span class="kw">latlon</span>(
+    <span class="kw">c</span>(<span class="fl">28.3411783</span>, <span class="fl">32.7102978</span>, <span class="ot">NA</span>),
+    <span class="kw">c</span>(<span class="op">-</span><span class="fl">81.5480348</span>, <span class="op">-</span><span class="fl">117.1704058</span>, <span class="ot">NA</span>)
+  ),
+  <span class="dt">paths =</span> <span class="kw">list</span>(
+    loc[<span class="dv">1</span>],
+    <span class="kw">c</span>(loc[<span class="dv">1</span>], loc[<span class="dv">2</span>]),
+    loc[<span class="dv">2</span>]
+  )
+)
+
+data</code></pre></div>
+<pre><code>## # A tibble: 3 x 4
+##   venue          year loc                      paths       
+##   &lt;chr&gt;         &lt;int&gt; &lt;S3: latlon&gt;             &lt;list&gt;      
+## 1 rstudio::conf  2017 -81.5480348+28.3411783i  &lt;S3: latlon&gt;
+## 2 rstudio::conf  2018 -117.1704058+32.7102978i &lt;S3: latlon&gt;
+## 3 rstudio::conf  2019 &lt;NA&gt;                     &lt;S3: latlon&gt;</code></pre>
+<p>(The <code>paths</code> column is a list that contains arbitrary data, in our case <code>latlon</code> vectors. A list column is a powerful way to attach hierarchical or unstructured data to an observation in a data frame.)</p>
+<p>The output has three main problems:</p>
+<ol style="list-style-type: decimal">
+<li>The column type of the <code>loc</code> column is displayed as <code>&lt;S3: latlon&gt;</code>. This default formatting works reasonably well for any kind of object, but the generated output may be too wide and waste precious space when displaying the tibble.</li>
+<li>The values in the <code>loc</code> column are formatted as complex numbers (the underlying storage), without using the <code>format()</code> method we have defined. This is by design.</li>
+<li>The cells in the <code>paths</code> column are also displayed as <code>&lt;S3: latlon&gt;</code>.</li>
+</ol>
+<p>In the remainder I’ll show how to fix these problems, and also how to implement rendering that adapts to the available width.</p>
+</div>
+<div id="fixing-the-data-type" class="section level2">
+<h2>Fixing the data type</h2>
+<p>To display <code>&lt;geo&gt;</code> as data type, we need to override the <code>type_sum()</code> method. This method should return a string that can be used in a column header. For your own classes, strive for an evocative abbreviation that’s under 6 characters.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co">#' @importFrom pillar type_sum</span>
+<span class="co">#' @export</span>
+type_sum.latlon &lt;-<span class="st"> </span><span class="cf">function</span>(x) {
+  <span class="st">&quot;geo&quot;</span>
+}</code></pre></div>
+<p>Because the value shown there doesn’t depend on the data, we just return a constant. (For date-times, the column info will eventually contain information about the timezone, see <a href="https://github.com/r-lib/pillar/pull/53">#53</a>.)</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">data</code></pre></div>
+<pre><code>## # A tibble: 3 x 4
+##   venue          year loc                      paths 
+##   &lt;chr&gt;         &lt;int&gt; &lt;geo&gt;                    &lt;list&gt;
+## 1 rstudio::conf  2017 -81.5480348+28.3411783i  &lt;geo&gt; 
+## 2 rstudio::conf  2018 -117.1704058+32.7102978i &lt;geo&gt; 
+## 3 rstudio::conf  2019 &lt;NA&gt;                     &lt;geo&gt;</code></pre>
+</div>
+<div id="rendering-the-value" class="section level2">
+<h2>Rendering the value</h2>
+<p>To use our format method for rendering, we implement the <code>pillar_shaft()</code> method for our class. (A <a href="https://en.wikipedia.org/wiki/Column#Nomenclature"><em>pillar</em></a> is mainly a <em>shaft</em> (decorated with an <em>ornament</em>), with a <em>capital</em> above and a <em>base</em> below. Multiple pillars form a <em>colonnade</em>, which can be stacked in multiple <em>tiers</em>. This is the motivation behind the names in our API.)</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co">#' @importFrom pillar pillar_shaft</span>
+<span class="co">#' @export</span>
+pillar_shaft.latlon &lt;-<span class="st"> </span><span class="cf">function</span>(x, ...) {
+  out &lt;-<span class="st"> </span><span class="kw">format</span>(x)
+  out[<span class="kw">is.na</span>(x)] &lt;-<span class="st"> </span><span class="ot">NA</span>
+  pillar<span class="op">::</span><span class="kw">new_pillar_shaft_simple</span>(out, <span class="dt">align =</span> <span class="st">&quot;right&quot;</span>)
+}</code></pre></div>
+<p>The simplest variant calls our <code>format()</code> method, everything else is handled by pillar, in particular by the <code>new_pillar_shaft_simple()</code> helper. Note how the <code>align</code> argument affects the alignment of NA values and of the column name and type.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">data</code></pre></div>
+<pre><code>## # A tibble: 3 x 4
+##   venue          year              loc paths 
+##   &lt;chr&gt;         &lt;int&gt;            &lt;geo&gt; &lt;list&gt;
+## 1 rstudio::conf  2017 28°20'N  81°33'W &lt;geo&gt; 
+## 2 rstudio::conf  2018 32°43'N 117°10'W &lt;geo&gt; 
+## 3 rstudio::conf  2019               NA &lt;geo&gt;</code></pre>
+<p>We could also use left alignment and indent only the <code>NA</code> values:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co">#' @importFrom pillar pillar_shaft</span>
+<span class="co">#' @export</span>
+pillar_shaft.latlon &lt;-<span class="st"> </span><span class="cf">function</span>(x, ...) {
+  out &lt;-<span class="st"> </span><span class="kw">format</span>(x)
+  out[<span class="kw">is.na</span>(x)] &lt;-<span class="st"> </span><span class="ot">NA</span>
+  pillar<span class="op">::</span><span class="kw">new_pillar_shaft_simple</span>(out, <span class="dt">align =</span> <span class="st">&quot;left&quot;</span>, <span class="dt">na_indent =</span> <span class="dv">5</span>)
+}
+
+data</code></pre></div>
+<pre><code>## # A tibble: 3 x 4
+##   venue          year loc              paths 
+##   &lt;chr&gt;         &lt;int&gt; &lt;geo&gt;            &lt;list&gt;
+## 1 rstudio::conf  2017 28°20'N  81°33'W &lt;geo&gt; 
+## 2 rstudio::conf  2018 32°43'N 117°10'W &lt;geo&gt; 
+## 3 rstudio::conf  2019      NA          &lt;geo&gt;</code></pre>
+</div>
+<div id="adaptive-rendering" class="section level2">
+<h2>Adaptive rendering</h2>
+<p>If there is not enough space to render the values, the formatted values are truncated with an ellipsis. This doesn’t currently apply to our class, because we haven’t specified a minimum width for our values:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">print</span>(data, <span class="dt">width =</span> <span class="dv">35</span>)</code></pre></div>
+<pre><code>## # A tibble: 3 x 4
+##   venue      year loc             
+##   &lt;chr&gt;     &lt;int&gt; &lt;geo&gt;           
+## 1 rstudio:…  2017 28°20'N  81°33'W
+## 2 rstudio:…  2018 32°43'N 117°10'W
+## 3 rstudio:…  2019      NA         
+## # ... with 1 more variable:
+## #   paths &lt;list&gt;</code></pre>
+<p>If we specify a minimum width when constructing the shaft, the <code>loc</code> column will be truncated:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co">#' @importFrom pillar pillar_shaft</span>
+<span class="co">#' @export</span>
+pillar_shaft.latlon &lt;-<span class="st"> </span><span class="cf">function</span>(x, ...) {
+  out &lt;-<span class="st"> </span><span class="kw">format</span>(x)
+  out[<span class="kw">is.na</span>(x)] &lt;-<span class="st"> </span><span class="ot">NA</span>
+  pillar<span class="op">::</span><span class="kw">new_pillar_shaft_simple</span>(out, <span class="dt">align =</span> <span class="st">&quot;right&quot;</span>, <span class="dt">min_width =</span> <span class="dv">10</span>)
+}
+
+<span class="kw">print</span>(data, <span class="dt">width =</span> <span class="dv">35</span>)</code></pre></div>
+<pre><code>## # A tibble: 3 x 4
+##   venue     year         loc paths
+##   &lt;chr&gt;    &lt;int&gt;       &lt;geo&gt; &lt;lis&gt;
+## 1 rstudio…  2017 28°20'N  8… &lt;geo&gt;
+## 2 rstudio…  2018 32°43'N 11… &lt;geo&gt;
+## 3 rstudio…  2019          NA &lt;geo&gt;</code></pre>
+<p>This may be useful for character data, but for lat-lon data we may prefer to show full degrees and remove the minutes if the available space is not enough to show accurate values. A more sophisticated implementation of the <code>pillar_shaft()</code> method is required to achieve this:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co">#' @importFrom pillar pillar_shaft</span>
+<span class="co">#' @export</span>
+pillar_shaft.latlon &lt;-<span class="st"> </span><span class="cf">function</span>(x, ...) {
+  deg &lt;-<span class="st"> </span><span class="kw">format</span>(x, <span class="dt">formatter =</span> deg)
+  deg[<span class="kw">is.na</span>(x)] &lt;-<span class="st"> </span>pillar<span class="op">::</span><span class="kw">style_na</span>(<span class="st">&quot;NA&quot;</span>)
+  deg_min &lt;-<span class="st"> </span><span class="kw">format</span>(x)
+  deg_min[<span class="kw">is.na</span>(x)] &lt;-<span class="st"> </span>pillar<span class="op">::</span><span class="kw">style_na</span>(<span class="st">&quot;NA&quot;</span>)
+  pillar<span class="op">::</span><span class="kw">new_pillar_shaft</span>(
+    <span class="kw">list</span>(<span class="dt">deg =</span> deg, <span class="dt">deg_min =</span> deg_min),
+    <span class="dt">width =</span> pillar<span class="op">::</span><span class="kw">get_max_extent</span>(deg_min),
+    <span class="dt">min_width =</span> pillar<span class="op">::</span><span class="kw">get_max_extent</span>(deg),
+    <span class="dt">subclass =</span> <span class="st">&quot;pillar_shaft_latlon&quot;</span>
+  )
+}</code></pre></div>
+<p>Here, <code>pillar_shaft()</code> returns an object of the <code>&quot;pillar_shaft_latlon&quot;</code> class created by the generic <code>new_pillar_shaft()</code> constructor. This object contains the necessary information to render the values, and also minimum and maximum width values. For simplicity, both formattings are pre-rendered, and the minimum and maximum widths are computed from there. Note that we also need to take care of <code>NA</code> values explicitly. (<code>get_max_extent()</code> is a helper that computes the maximum display width occupied by the values in a character vector.)</p>
+<p>For completeness, the code that implements the degree-only formatting looks like this:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">deg &lt;-<span class="st"> </span><span class="cf">function</span>(x, pm) {
+  sign &lt;-<span class="st"> </span><span class="kw">sign</span>(x)
+  x &lt;-<span class="st"> </span><span class="kw">abs</span>(x)
+  deg &lt;-<span class="st"> </span><span class="kw">round</span>(x)
+
+  ret &lt;-<span class="st"> </span><span class="kw">sprintf</span>(<span class="st">&quot;%d°%s&quot;</span>, deg, pm[<span class="kw">ifelse</span>(sign <span class="op">&gt;=</span><span class="st"> </span><span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">2</span>)])
+  <span class="kw">format</span>(ret, <span class="dt">justify =</span> <span class="st">&quot;right&quot;</span>)
+}</code></pre></div>
+<p>All that’s left to do is to implement a <code>format()</code> method for our new <code>&quot;pillar_shaft_latlon&quot;</code> class. This method will be called with a <code>width</code> argument, which then determines which of the formattings to choose:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co">#' @export</span>
+format.pillar_shaft_latlon &lt;-<span class="st"> </span><span class="cf">function</span>(x, width, ...) {
+  <span class="cf">if</span> (<span class="kw">all</span>(crayon<span class="op">::</span><span class="kw">col_nchar</span>(x<span class="op">$</span>deg_min) <span class="op">&lt;=</span><span class="st"> </span>width)) {
+    ornament &lt;-<span class="st"> </span>x<span class="op">$</span>deg_min
+  } <span class="cf">else</span> {
+    ornament &lt;-<span class="st"> </span>x<span class="op">$</span>deg
+  }
+
+  pillar<span class="op">::</span><span class="kw">new_ornament</span>(ornament)
+}
+
+data</code></pre></div>
+<pre><code>## # A tibble: 3 x 4
+##   venue          year loc              paths 
+##   &lt;chr&gt;         &lt;int&gt; &lt;geo&gt;            &lt;list&gt;
+## 1 rstudio::conf  2017 28°20'N  81°33'W &lt;geo&gt; 
+## 2 rstudio::conf  2018 32°43'N 117°10'W &lt;geo&gt; 
+## 3 rstudio::conf  2019 NA               &lt;geo&gt;</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">print</span>(data, <span class="dt">width =</span> <span class="dv">35</span>)</code></pre></div>
+<pre><code>## # A tibble: 3 x 4
+##   venue     year loc         paths
+##   &lt;chr&gt;    &lt;int&gt; &lt;geo&gt;       &lt;lis&gt;
+## 1 rstudio…  2017 28°N  82°W  &lt;geo&gt;
+## 2 rstudio…  2018 33°N 117°W  &lt;geo&gt;
+## 3 rstudio…  2019 NA          &lt;geo&gt;</code></pre>
+</div>
+<div id="adding-color" class="section level2">
+<h2>Adding color</h2>
+<p>Both <code>new_pillar_shaft_simple()</code> and <code>new_ornament()</code> accept ANSI escape codes for coloring, emphasis, or other ways of highlighting text on terminals that support it. Some formattings are predefined, e.g. <code>style_subtle()</code> displays text in a light gray. For default data types, this style is used for insignificant digits. We’ll be formatting the degree and minute signs in a subtle style, because they serve only as separators. You can also use the <a href="https://cran.r-project.org/package=crayon">crayon</a> package to add custom formattings to your output.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co">#' @importFrom pillar pillar_shaft</span>
+<span class="co">#' @export</span>
+pillar_shaft.latlon &lt;-<span class="st"> </span><span class="cf">function</span>(x, ...) {
+  out &lt;-<span class="st"> </span><span class="kw">format</span>(x, <span class="dt">formatter =</span> deg_min_color)
+  out[<span class="kw">is.na</span>(x)] &lt;-<span class="st"> </span><span class="ot">NA</span>
+  pillar<span class="op">::</span><span class="kw">new_pillar_shaft_simple</span>(out, <span class="dt">align =</span> <span class="st">&quot;left&quot;</span>, <span class="dt">na_indent =</span> <span class="dv">5</span>)
+}
+
+deg_min_color &lt;-<span class="st"> </span><span class="cf">function</span>(x, pm) {
+  sign &lt;-<span class="st"> </span><span class="kw">sign</span>(x)
+  x &lt;-<span class="st"> </span><span class="kw">abs</span>(x)
+  deg &lt;-<span class="st"> </span><span class="kw">trunc</span>(x)
+  x &lt;-<span class="st"> </span>x <span class="op">-</span><span class="st"> </span>deg
+  rad &lt;-<span class="st"> </span><span class="kw">round</span>(x <span class="op">*</span><span class="st"> </span><span class="dv">60</span>)
+  ret &lt;-<span class="st"> </span><span class="kw">sprintf</span>(
+    <span class="st">&quot;%d%s%.2d%s%s&quot;</span>,
+    deg,
+    pillar<span class="op">::</span><span class="kw">style_subtle</span>(<span class="st">&quot;°&quot;</span>),
+    rad,
+    pillar<span class="op">::</span><span class="kw">style_subtle</span>(<span class="st">&quot;'&quot;</span>),
+    pm[<span class="kw">ifelse</span>(sign <span class="op">&gt;=</span><span class="st"> </span><span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">2</span>)]
+  )
+  ret[<span class="kw">is.na</span>(x)] &lt;-<span class="st"> &quot;&quot;</span>
+  <span class="kw">format</span>(ret, <span class="dt">justify =</span> <span class="st">&quot;right&quot;</span>)
+}
+
+data</code></pre></div>
+<pre><code>## # A tibble: 3 x 4
+##   venue          year loc              paths 
+##   &lt;chr&gt;         &lt;int&gt; &lt;geo&gt;            &lt;list&gt;
+## 1 rstudio::conf  2017 28°20'N  81°33'W &lt;geo&gt; 
+## 2 rstudio::conf  2018 32°43'N 117°10'W &lt;geo&gt; 
+## 3 rstudio::conf  2019      NA          &lt;geo&gt;</code></pre>
+<p>Currently, ANSI escapes are not rendered in vignettes, so the display here isn’t much different from earlier examples. This may change in the future.</p>
+</div>
+<div id="fixing-list-columns" class="section level2">
+<h2>Fixing list columns</h2>
+<p>To tweak the output in the <code>paths</code> column, we simply need to indicate that our class is an S3 vector:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co">#' @importFrom pillar is_vector_s3</span>
+<span class="co">#' @export</span>
+is_vector_s3.latlon &lt;-<span class="st"> </span><span class="cf">function</span>(x) <span class="ot">TRUE</span>
+
+data</code></pre></div>
+<pre><code>## # A tibble: 3 x 4
+##   venue          year loc              paths    
+##   &lt;chr&gt;         &lt;int&gt; &lt;geo&gt;            &lt;list&gt;   
+## 1 rstudio::conf  2017 28°20'N  81°33'W &lt;geo [1]&gt;
+## 2 rstudio::conf  2018 32°43'N 117°10'W &lt;geo [2]&gt;
+## 3 rstudio::conf  2019      NA          &lt;geo [1]&gt;</code></pre>
+<p>This is picked up by the default implementation of <code>obj_sum()</code>, which then shows the type and the length in brackets. If your object is built on top of an atomic vector the default will be adequate. You, will, however, need to provide an <code>obj_sum()</code> method for your class if your object is vectorised and built on top of a list.</p>
+<p>An example of an object of this type in base R is <code>POSIXlt</code>: it is a list with 9 components.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">x &lt;-<span class="st"> </span><span class="kw">as.POSIXlt</span>(<span class="kw">Sys.time</span>() <span class="op">+</span><span class="st"> </span><span class="kw">c</span>(<span class="dv">0</span>, <span class="dv">60</span>, <span class="dv">3600</span>)) 
+<span class="kw">str</span>(<span class="kw">unclass</span>(x))</code></pre></div>
+<pre><code>## List of 11
+##  $ sec   : num [1:3] 52 52 52
+##  $ min   : int [1:3] 58 59 58
+##  $ hour  : int [1:3] 0 0 1
+##  $ mday  : int [1:3] 22 22 22
+##  $ mon   : int [1:3] 0 0 0
+##  $ year  : int [1:3] 118 118 118
+##  $ wday  : int [1:3] 1 1 1
+##  $ yday  : int [1:3] 21 21 21
+##  $ isdst : int [1:3] 0 0 0
+##  $ zone  : chr [1:3] &quot;CET&quot; &quot;CET&quot; &quot;CET&quot;
+##  $ gmtoff: int [1:3] 3600 3600 3600
+##  - attr(*, &quot;tzone&quot;)= chr [1:3] &quot;&quot; &quot;CET&quot; &quot;CEST&quot;</code></pre>
+<p>But it pretends to be a vector with 3 elements:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">x</code></pre></div>
+<pre><code>## [1] &quot;2018-01-22 00:58:52 CET&quot; &quot;2018-01-22 00:59:52 CET&quot;
+## [3] &quot;2018-01-22 01:58:52 CET&quot;</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">length</span>(x)</code></pre></div>
+<pre><code>## [1] 3</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">str</span>(x)</code></pre></div>
+<pre><code>##  POSIXlt[1:3], format: &quot;2018-01-22 00:58:52&quot; &quot;2018-01-22 00:59:52&quot; ...</code></pre>
+<p>So we need to define a method that returns a character vector the same length as <code>x</code>:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co">#' @importFrom pillar obj_sum</span>
+<span class="co">#' @export</span>
+obj_sum.POSIXlt &lt;-<span class="st"> </span><span class="cf">function</span>(x) {
+  <span class="kw">rep</span>(<span class="st">&quot;POSIXlt&quot;</span>, <span class="kw">length</span>(x))
+}</code></pre></div>
+</div>
+<div id="testing" class="section level2">
+<h2>Testing</h2>
+<p>If you want to test the output of your code, you can compare it with a known state recorded in a text file. For this, pillar offers the <code>expect_known_display()</code> expectation which requires and works best with the testthat package. Make sure that the output is generated only by your package to avoid inconsistencies when external code is updated. Here, this means that you test only the shaft portion of the pillar, and not the entire pillar or even a tibble that contains a column with your data type!</p>
+<p>The tests work best with the testthat package:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(testthat)</code></pre></div>
+<p>The code below will compare the output of <code>pillar_shaft(data$loc)</code> with known output stored in the <code>latlon.txt</code> file. The first run warns because the file doesn’t exist yet.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">test_that</span>(<span class="st">&quot;latlon pillar matches known output&quot;</span>, {
+  pillar<span class="op">::</span><span class="kw">expect_known_display</span>(
+    <span class="kw">pillar_shaft</span>(data<span class="op">$</span>loc),
+    <span class="dt">file =</span> <span class="st">&quot;latlon.txt&quot;</span>
+  )
+})</code></pre></div>
+<p>From the second run on, the printing will be compared with the file:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">test_that</span>(<span class="st">&quot;latlon pillar matches known output&quot;</span>, {
+  pillar<span class="op">::</span><span class="kw">expect_known_display</span>(
+    <span class="kw">pillar_shaft</span>(data<span class="op">$</span>loc),
+    <span class="dt">file =</span> <span class="st">&quot;latlon.txt&quot;</span>
+  )
+})</code></pre></div>
+<p>However, if we look at the file we’ll notice strange things: The output contains ANSI escapes!</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">readLines</span>(<span class="st">&quot;latlon.txt&quot;</span>)</code></pre></div>
+<pre><code>## [1] &quot;28\033[90m°\033[39m20\033[90m'\033[39mN  81\033[90m°\033[39m33\033[90m'\033[39mW&quot;
+## [2] &quot;32\033[90m°\033[39m43\033[90m'\033[39mN 117\033[90m°\033[39m10\033[90m'\033[39mW&quot;
+## [3] &quot;     \033[31mNA\033[39m         &quot;</code></pre>
+<p>We can turn them off by passing <code>crayon = FALSE</code> to the expectation, but we need to run twice again:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(testthat)
+<span class="kw">test_that</span>(<span class="st">&quot;latlon pillar matches known output&quot;</span>, {
+  pillar<span class="op">::</span><span class="kw">expect_known_display</span>(
+    <span class="kw">pillar_shaft</span>(data<span class="op">$</span>loc),
+    <span class="dt">file =</span> <span class="st">&quot;latlon.txt&quot;</span>,
+    <span class="dt">crayon =</span> <span class="ot">FALSE</span>
+  )
+})</code></pre></div>
+<pre><code>## Error: Test failed: 'latlon pillar matches known output'
+## * `print(eval_tidy(object))` has changed from known value recorded in 'latlon.txt'.
+## 3/3 mismatches
+## x[1]: &quot;28°20'N  81°33'W&quot;
+## y[1]: &quot;28\033[90m°\033[39m20\033[90m'\033[39mN  81\033[90m°\033[39m33\033[90m'\033[39mW&quot;
+## 
+## x[2]: &quot;32°43'N 117°10'W&quot;
+## y[2]: &quot;32\033[90m°\033[39m43\033[90m'\033[39mN 117\033[90m°\033[39m10\033[90m'\033[39mW&quot;
+## 
+## x[3]: &quot;     NA         &quot;
+## y[3]: &quot;     \033[31mNA\033[39m         &quot;</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">test_that</span>(<span class="st">&quot;latlon pillar matches known output&quot;</span>, {
+  pillar<span class="op">::</span><span class="kw">expect_known_display</span>(
+    <span class="kw">pillar_shaft</span>(data<span class="op">$</span>loc),
+    <span class="dt">file =</span> <span class="st">&quot;latlon.txt&quot;</span>,
+    <span class="dt">crayon =</span> <span class="ot">FALSE</span>
+  )
+})
+
+<span class="kw">readLines</span>(<span class="st">&quot;latlon.txt&quot;</span>)</code></pre></div>
+<pre><code>## [1] &quot;28°20'N  81°33'W&quot; &quot;32°43'N 117°10'W&quot; &quot;     NA         &quot;</code></pre>
+<p>You may want to create a series of output files for different scenarios:</p>
+<ul>
+<li>Colored vs. plain (to simplify viewing differences)</li>
+<li>With or without special Unicode characters (if your output uses them)</li>
+<li>Different widths</li>
+</ul>
+<p>For this it is helpful to create your own expectation function. Use the tidy evaluation framework to make sure that construction and printing happens at the right time:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">expect_known_latlon_display &lt;-<span class="st"> </span><span class="cf">function</span>(x, file_base) {
+  quo &lt;-<span class="st"> </span>rlang<span class="op">::</span><span class="kw">quo</span>(pillar<span class="op">::</span><span class="kw">pillar_shaft</span>(x))
+  pillar<span class="op">::</span><span class="kw">expect_known_display</span>(
+    <span class="op">!!</span><span class="st"> </span>quo,
+    <span class="dt">file =</span> <span class="kw">paste0</span>(file_base, <span class="st">&quot;.txt&quot;</span>)
+  )
+  pillar<span class="op">::</span><span class="kw">expect_known_display</span>(
+    <span class="op">!!</span><span class="st"> </span>quo,
+    <span class="dt">file =</span> <span class="kw">paste0</span>(file_base, <span class="st">&quot;-bw.txt&quot;</span>),
+    <span class="dt">crayon =</span> <span class="ot">FALSE</span>
+  )
+}</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">test_that</span>(<span class="st">&quot;latlon pillar matches known output&quot;</span>, {
+  <span class="kw">expect_known_latlon_display</span>(data<span class="op">$</span>loc, <span class="dt">file_base =</span> <span class="st">&quot;latlon&quot;</span>)
+})</code></pre></div>
+<pre><code>## Error: Test failed: 'latlon pillar matches known output'
+## * `print(eval_tidy(object))` has changed from known value recorded in 'latlon.txt'.
+## 3/3 mismatches
+## x[1]: &quot;28\033[90m°\033[39m20\033[90m'\033[39mN  81\033[90m°\033[39m33\033[90m'\033[39mW&quot;
+## y[1]: &quot;28°20'N  81°33'W&quot;
+## 
+## x[2]: &quot;32\033[90m°\033[39m43\033[90m'\033[39mN 117\033[90m°\033[39m10\033[90m'\033[39mW&quot;
+## y[2]: &quot;32°43'N 117°10'W&quot;
+## 
+## x[3]: &quot;     \033[31mNA\033[39m         &quot;
+## y[3]: &quot;     NA         &quot;</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">readLines</span>(<span class="st">&quot;latlon.txt&quot;</span>)</code></pre></div>
+<pre><code>## [1] &quot;28\033[90m°\033[39m20\033[90m'\033[39mN  81\033[90m°\033[39m33\033[90m'\033[39mW&quot;
+## [2] &quot;32\033[90m°\033[39m43\033[90m'\033[39mN 117\033[90m°\033[39m10\033[90m'\033[39mW&quot;
+## [3] &quot;     \033[31mNA\033[39m         &quot;</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">readLines</span>(<span class="st">&quot;latlon-bw.txt&quot;</span>)</code></pre></div>
+<pre><code>## [1] &quot;28°20'N  81°33'W&quot; &quot;32°43'N 117°10'W&quot; &quot;     NA         &quot;</code></pre>
+<p>Learn more about the tidyeval framework in the <a href="http://dplyr.tidyverse.org/articles/programming.html">dplyr vignette</a>.</p>
+</div>
+
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

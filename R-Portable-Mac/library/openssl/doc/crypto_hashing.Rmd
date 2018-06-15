@@ -1,0 +1,58 @@
+---
+title: "Cryptographic Hashing in R"
+date: "`r Sys.Date()`"
+vignette: >
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteIndexEntry{Cryptographic Hashing in R}
+  \usepackage[utf8]{inputenc}  
+output:
+  html_document
+---
+
+```{r, echo = FALSE, message = FALSE}
+knitr::opts_chunk$set(comment = "")
+library(openssl)
+```
+
+The functions `sha1`, `sha256`, `sha512`, `md4`, `md5` and `ripemd160` bind to the respective [digest functions](https://www.openssl.org/docs/manmaster/man1/dgst.html) in OpenSSL's libcrypto. Both binary and string inputs are supported and the output type will match the input type.
+
+```{r}
+md5("foo")
+md5(charToRaw("foo"))
+```
+
+Functions are fully vectorized for the case of character vectors: a vector with n strings will return n hashes.
+
+```{r}
+# Vectorized for strings
+md5(c("foo", "bar", "baz"))
+```
+
+Besides character and raw vectors we can pass a connection object (e.g. a file, socket or url). In this case the function will stream-hash the binary contents of the connection.
+
+```{r}
+# Stream-hash a file
+myfile <- system.file("CITATION")
+md5(file(myfile))
+```
+
+Same for URLs. The hash of the [`R-3.1.1-win.exe`](http://cran.us.r-project.org/bin/windows/base/old/3.1.1/R-3.1.1-win.exe) below should match the one in [`md5sum.txt`](http://cran.us.r-project.org/bin/windows/base/old/3.1.1/md5sum.txt) 
+
+```{r eval=FALSE}
+# Stream-hash from a network connection
+md5(url("http://cran.us.r-project.org/bin/windows/base/old/3.1.1/R-3.1.1-win.exe"))
+```
+
+## Compare to digest
+
+Similar functionality is also available in the **digest** package, but with a slightly different interface:
+
+```{r}
+# Compare to digest
+library(digest)
+digest("foo", "md5", serialize = FALSE)
+
+# Other way around
+digest(cars, skip = 0)
+md5(serialize(cars, NULL))
+```

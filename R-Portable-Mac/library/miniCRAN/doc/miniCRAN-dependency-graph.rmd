@@ -1,0 +1,77 @@
+---
+title:  "Using miniCRAN to identify package dependencies"
+author: "Andrie de Vries"
+date:   "`r as.character(format(Sys.Date(), format='%B %d, %Y'))`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteIndexEntry{Using miniCRAN to identify package dependencies}
+  %\VignettePackage{miniCRAN}
+  %\VignetteKeyword{miniCRAN}
+  %\usepackage[utf8]{inputenc}
+--- 
+
+The `miniCRAN` package exposes two functions that provide information about dependencies:
+
+- The function `pkgDep()` returns a character vector with the names of dependencies. Internally, `pkgDep()` is a wrapper around `tools::package_dependencies()`, a base R function that, well, tells you about package dependencies. My `pkgDep()` function is in one way a convenience, but more importantly it sets different defaults (more about this later).
+
+- The function `makeDepGraph()` creates a graph representation of the dependencies.
+
+The package `chron` neatly illustrates the different roles of Imports, Suggests and Enhances:
+
+- `chron` **Imports** the base packages graphics and stats. This means that `chron` internally makes use of graphics and stats and will always load these packages.
+
+- `chron` **Suggests** the packages scales and ggplot2. This means that `chron` uses some functions from these packages in examples or in its vignettes.  However, these functions are not necessary to use `chron`
+
+- `chron` **Enhances** the package `zoo`, meaning that it adds something to `zoo` packages. These enhancements are made available to you if you have `zoo` installed.
+
+
+## A worked example using the package chron
+
+The function `pkgDep()` exposes not only these dependencies, but also all recursive dependencies. In other words, it answers the question which packages need to be installed to satisfy all dependencies of dependencies.
+
+This means that the algorithm is as follows:
+
+* First retrieve a list of Suggests and Enhances, using a non-recursive dependency search
+* Next, perform a recursive search for all Imports, Depends and LinkingTo
+
+The resulting list of packages should then contain the complete list necessary to satisfy all dependencies. In code:
+
+```{r init}
+library("miniCRAN")
+```
+
+
+
+```{r pkgdep}
+tags <- "chron"
+pkgDep(tags, availPkgs = cranJuly2014)
+```
+
+
+To create an igraph plot of the dependencies, use the function `makeDepGraph()` and plot the results: 
+
+```{r makeDepGraph, warning=FALSE}
+dg <- makeDepGraph(tags, enhances = TRUE, availPkgs = cranJuly2014)
+set.seed(1)
+plot(dg, legendPosition = c(-1, 1), vertex.size = 20)
+```
+
+
+Note how the dependencies expand to `zoo` (enhanced), `scales` and `ggplot` (suggested) and then recursively from there to get all the `Imports` and `LinkingTo` dependencies.
+
+
+
+## An example with multiple input packages
+
+As a final example, create a dependency graph of seven very popular R packages:
+
+```{r so-tags, warning=FALSE, fig.width=10, fig.height=10}
+tags <- c("ggplot2", "data.table", "plyr", "knitr", "shiny", "xts", "lattice")
+pkgDep(tags, suggests = TRUE, enhances = FALSE, availPkgs = cranJuly2014)
+
+dg <- makeDepGraph(tags, enhances = TRUE, availPkgs = cranJuly2014)
+set.seed(1)
+plot(dg, legendPosition = c(-1, -1), vertex.size = 10, cex = 0.7)
+```
+
