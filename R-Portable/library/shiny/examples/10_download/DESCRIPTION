@@ -1,7 +1,0 @@
-Title: File Download
-Author: RStudio, Inc.
-AuthorUrl: http://www.rstudio.com/
-License: MIT
-DisplayMode: Showcase
-Tags: getting-started
-Type: Shiny
