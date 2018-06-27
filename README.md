@@ -29,7 +29,7 @@ To clone and run this repository you'll need [Git](https://git-scm.com) and [Nod
 
 ```bash
 # Clone this repository
-https://github.com/ColumbusCollaboratory/electron-quick-start
+git clone https://github.com/ColumbusCollaboratory/electron-quick-start
 # Install Electron Packager (if first time)
 npm install electron-packager -g 
 # Go into the repository
