@@ -65,10 +65,11 @@ function createWindow () {
           mainWindow.show()
           if(process.platform=MACOS){
             mainWindow.reload()
-            loading.hide()
-            loading.close()
           }
-        }, 500)
+          loading.hide()
+          loading.close()
+
+        }, 2000)
 
       })
       console.log(port)
