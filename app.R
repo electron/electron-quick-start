@@ -1,4 +1,3 @@
-if (!require("shiny")) install.packages("shiny")
 library(shiny)
 
 
@@ -39,7 +38,7 @@ fluidPage(
     # Show a plot of the generated distribution
 
     mainPanel(
-
+      plotOutput("distPlot"),
       h4(".libPaths::"),
       p(.libPaths()),
       h4("R.Version()::"),
@@ -48,8 +47,8 @@ fluidPage(
       p(R.home()),
       h4("getwd()::"),
       p(getwd()), 
-
-      plotOutput("distPlot")
+      h4("sessionInfo()::"),
+      p(sessionInfo())
 
     )
 
@@ -91,6 +90,7 @@ function(input, output) {
     hist(x, breaks = bins, col = 'darkgray', border = 'white')
 
   })
+  
 
 
 

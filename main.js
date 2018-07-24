@@ -30,8 +30,10 @@ if(process.platform == WINDOWS){
   var env_libs_site = macAbsolutePath+"/library"+((process.env.R_LIBS_SITE)?":"+process.env.R_LIBS_SITE:"");
   process.env.PATH = env_path
   process.env.R_LIBS_SITE = env_libs_site
-  process.env.R_HOME = macAbsolutePath
-  execPath = path.join(app.getAppPath(), "R-Portable-Mac", "bin", "Rscript" )
+  process.env.NODE_R_HOME = macAbsolutePath
+  
+  //process.env.R_HOME = macAbsolutePath
+  execPath = path.join(app.getAppPath(), "R-Portable-Mac", "bin", "R" )
 } else {
   console.log("not on windows or macos?")
   throw new Error("not on windows or macos?")
