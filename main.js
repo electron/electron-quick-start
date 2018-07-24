@@ -16,18 +16,28 @@ const WINDOWS = "win32"
 var killStr = ""
 var appPath = path.join(app.getAppPath(), "app.R" )
 var execPath = "RScript"
+
+
 if(process.platform == WINDOWS){
   killStr = "taskkill /im Rscript.exe /f"
   appPath = appPath.replace(/\\/g, "\\\\");
   execPath = path.join(app.getAppPath(), "R-Portable-Win", "bin", "RScript.exe" )
 } else if(process.platform == MACOS){
   //killStr = 'pkill -9 "R"'
+  //execPath = "export PATH=\""+path.join(app.getAppPath(), "R-Portable-Win")+":$PATH\"
+  var macAbsolutePath = path.join(app.getAppPath(), "R-Portable-Mac")
+  var env_path = macAbsolutePath+((process.env.PATH)?":"+process.env.PATH:"");
+  var env_libs_site = macAbsolutePath+"/library"+((process.env.R_LIBS_SITE)?":"+process.env.R_LIBS_SITE:"");
+  process.env.PATH = env_path
+  process.env.R_LIBS_SITE = env_libs_site
+  process.env.R_HOME = macAbsolutePath
   execPath = path.join(app.getAppPath(), "R-Portable-Mac", "bin", "Rscript" )
 } else {
   console.log("not on windows or macos?")
   throw new Error("not on windows or macos?")
 }
 
+console.log(process.env)
 
 const childProcess = child.spawn(execPath, ["-e", "shiny::runApp(file.path('"+appPath+"'), port="+port+")"])
 childProcess.stdout.on('data', (data) => {

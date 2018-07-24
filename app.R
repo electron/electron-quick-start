@@ -40,6 +40,15 @@ fluidPage(
 
     mainPanel(
 
+      h4(".libPaths::"),
+      p(.libPaths()),
+      h4("R.Version()::"),
+      p(R.Version()),
+      h4("R.home()::"),
+      p(R.home()),
+      h4("getwd()::"),
+      p(getwd()), 
+
       plotOutput("distPlot")
 
     )
