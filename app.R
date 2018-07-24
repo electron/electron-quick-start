@@ -48,7 +48,9 @@ fluidPage(
       h4("getwd()::"),
       p(getwd()), 
       h4("sessionInfo()::"),
-      p(sessionInfo())
+      p(sessionInfo()),
+      h4("Sys.getenv('DYLD_FALLBACK_LIBRARY_PATH')"),
+      p(Sys.getenv("DYLD_FALLBACK_LIBRARY_PATH"))
 
     )
 
