@@ -19,7 +19,7 @@ var execPath = "RScript"
 
 
 if(process.platform == WINDOWS){
-  killStr = "taskkill /im Rscript.exe /f"
+  //killStr = "taskkill /im Rscript.exe /f"
   appPath = appPath.replace(/\\/g, "\\\\");
   execPath = path.join(app.getAppPath(), "R-Portable-Win", "bin", "RScript.exe" )
 } else if(process.platform == MACOS){
@@ -127,10 +127,9 @@ function createWindow () {
 
 
 function cleanUpApplication(){
-  if(process.platform == MACOS){
-    app.quit()
-  }
 
+  app.quit()
+  
   if(childProcess){
     childProcess.kill();
     if(killStr != "")
