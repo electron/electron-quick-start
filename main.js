@@ -22,6 +22,19 @@ function createWindow () {
     // when you should delete the corresponding element.
     mainWindow = null
   })
+  
+   mainWindow.on('close', function(e) {
+   //Shows Dialogbox when window close button is clicked
+   var choice = require('electron').dialog.showMessageBox(this, {
+        type: 'question',
+        buttons: ['Yes', 'No'],
+        title: 'Confirm',
+        message: 'Are you sure you want to quit?'
+    });
+    if (choice == 1) {
+        e.preventDefault();
+    }
+   });
 }
 
 // This method will be called when Electron has finished
