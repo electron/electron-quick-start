@@ -1,1 +1,0 @@
-electron E:\Electron\electron-quick-start
