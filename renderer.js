@@ -1,14 +1,33 @@
-// This file is required by the index.html file and will
-// be executed in the renderer process for that window.
-// All of the Node.js APIs are available in this process.
-
-
 document.addEventListener('DOMContentLoaded', () => {
+
   let button = document.querySelector("#button-1");
+  let tools = document.querySelector(".button-and-search")
+  let search = document.querySelector(".input-text");
+  let container = document.getElementById('container');
 
-  button.addEventListener('click', () => {
-    fetch("")
+  tools.addEventListener('click', () => {
+    event.preventDefault();
+    if (event.target==button){
 
+
+      console.log(search.value)
+      fetch(`https://api.binance.com/api/v1/exchangeInfo`)
+      .then(response => response.json())
+      .then(json => {
+        let result = json.symbols.find( (crypto) => {
+          return crypto.symbol == search.value
+        })
+        allCryptos.push(result.symbol)
+
+        let crypto = `
+          <div class="card">
+          <ul><h2>Crypto: </h2>${result.symbol}</ul>
+          <ul>Max: ${result.filters[0].maxPrice}</ul>
+          <ul>Min: ${result.filters[0].minPrice}}</ul>
+          </div>
+          `
+        container.innerHTML += crypto;
+      })
+    }
   })
-
 })
