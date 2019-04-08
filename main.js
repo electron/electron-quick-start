@@ -7,13 +7,14 @@ let mainWindow
 
 function createWindow () {
   // Create the browser window.
-  mainWindow = new BrowserWindow({width: 800, height: 600})
+  mainWindow = new BrowserWindow({width: 600, height: 800})
 
-  // and load the index.html of the app.
-  mainWindow.loadFile('index.html')
+  mainWindow.loadFile('login/login.html')
 
-  // Open the DevTools.
-  // mainWindow.webContents.openDevTools()
+
+  // mainWindow.loadFile('cms/index.html')
+
+   mainWindow.webContents.openDevTools()
 
   // Emitted when the window is closed.
   mainWindow.on('closed', function () {
@@ -21,6 +22,25 @@ function createWindow () {
     // in an array if your app supports multi windows, this is the time
     // when you should delete the corresponding element.
     mainWindow = null
+  })
+}
+
+function createBarWindow () {
+  // Create the browser window.
+  barWindow = new BrowserWindow({width: 1920, height: 1680})
+
+  barWindow.loadFile('cms/index.html')
+
+
+
+  barWindow.webContents.openDevTools()
+
+  // Emitted when the window is closed.
+  barWindow.on('closed', function () {
+    // Dereference the window object, usually you would store windows
+    // in an array if your app supports multi windows, this is the time
+    // when you should delete the corresponding element.
+    barWindow = null
   })
 }
 
@@ -46,5 +66,21 @@ app.on('activate', function () {
   }
 })
 
-// In this file you can include the rest of your app's specific main process
-// code. You can also put them in separate files and require them here.
+
+const ipcMain = require('electron').ipcMain;
+
+ipcMain.on('synchronous-message', function(event, arg) {
+  console.log(arg);  // prints "ping"
+  //event.returnValue = 'pong';
+  createBarWindow()
+  mainWindow.close()
+});
+
+ipcMain.on('user-logout', function(event, arg) {
+  console.log(arg);  // prints "ping"
+  //event.returnValue = 'pong';
+  createWindow()
+  barWindow.close()
+  
+
+});

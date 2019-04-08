@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>优惠劵</title>
+    <link rel="stylesheet" href="../../layui/css/layui.css" media="all" />
+    <link rel="stylesheet" href="../../css/public.css" media="all" />
+    <script type="text/javascript" src="https://pay.imbatv.cn/style/js/jquery-3.3.1.js"></script>
+</head>
+<style type="text/css">
+.layui-form-label {
+    width: 110px;
+}
+
+.layui-input-block {
+    width: 600px;
+    margin-left: 142px;
+}
+</style>
+
+<body>
+    <div action='' method="" class="layui-form">
+        <div class="layui-form-item item1">
+            <label class="layui-form-label">优惠劵名称</label>
+            <div class="layui-input-block">
+                <input type="text" name="name" lay-verify="desc" autocomplete="off" placeholder="优惠劵名称" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item item2">
+            <label class="layui-form-label">小程序名称</label>
+            <div class="layui-input-block">
+                <input type="text" name="show_name" lay-verify="desc" autocomplete="off" placeholder="小程序显示名称" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item item3" type="1">
+            <label class="layui-form-label">优惠劵类型</label>
+            <div class="layui-input-block">
+                <select name="type" lay-filter="type" class='cc' type="select">
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item item4" style="display: none;" good_ids="0">
+            <label class="layui-form-label">饮料名称</label>
+            <div class="layui-input-block dd">
+            </div>
+        </div>
+        <div class="layui-form-item item5">
+            <label class="layui-form-label">使用有效期</label>
+            <div class="layui-input-block">
+                <input type="text" name="validity" lay-verify="number" autocomplete="off" placeholder="有效期" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item item6">
+            <label class="layui-form-label">优惠时长/杯数</label>
+            <div class="layui-input-block">
+                <input type="text" name="num" lay-verify="number" autocomplete="off" placeholder="数量" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item item7">
+            <label class="layui-form-label">优惠劵折扣</label>
+            <div class="layui-input-block">
+                <input type="text" name="discount" lay-verify="number" autocomplete="off" placeholder="折扣(必须是小数)" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item item8">
+            <label class="layui-form-label">是否开放</label>
+            <div class="layui-input-block spc">
+                <input type="checkbox" checked="" value="1" name="state" lay-skin="switch" lay-filter="switchTest" lay-text="ON|OFF">
+            </div>
+        </div>
+        <div class="layui-form-item item9">
+            <div class="layui-input-block">
+                <button class="layui-btn btn1" lay-submit="" lay-filter="demo1">立即提交</button>
+                <button type="reset" class="layui-btn layui-btn-primary btn2">重置</button>
+            </div>
+        </div>
+    </div>
+</body>
+<script type="text/javascript" src="../../layui/layui.all.js"></script>
+<script>
+layui.use(['form', 'layedit', 'laydate'], function() {
+    var form = layui.form,
+        layer = layui.layer,
+        layedit = layui.layedit,
+        laydate = layui.laydate;
+    $ = layui.jquery;
+
+    function fuck() {
+        var html_checkbox = '';
+        var checkbox = $(".item8 input").val();
+        console.log(checkbox);
+        if (checkbox == 0) {
+            console.log("关闭");
+            html_checkbox += '<input type="checkbox"  value="0" name="state" lay-skin="switch" lay-filter="switchTest" lay-text="ON|OFF">';
+        } else {
+            console.log("开启");
+            html_checkbox += '<input type="checkbox"  value="1" checked="" name="state" lay-skin="switch" lay-filter="switchTest" lay-text="ON|OFF">';
+        }
+        $(".item8 .spc").html(html_checkbox);
+        $.ajax({
+            type: "GET",
+            catch: true,
+            dataType: "jsonp",
+            url: "https://pay.imbatv.cn/tool/coupon/config_info",
+            error: function(request) {
+                console.log(request);
+            },
+            success: function(res) {
+                console.log(res);
+                var html = '';
+                var html1 = '';
+                var data = res.data;
+                // 判断优惠劵类型
+                var datatype = $(".item3").attr("type");
+                html = '<option value=""></option>';
+                for (var i = 0; i < data.coupon_type.length; i++) {
+                    if (datatype == 1) {
+                        if (i == 0) {
+                            html += "<option selected='' value=" + data.coupon_type[i].id + ">" + data.coupon_type[i].name + "</option>";
+                        } else {
+                            html += "<option value=" + data.coupon_type[i].id + ">" + data.coupon_type[i].name + "</option>";
+                        }
+                        $(".item4").hide();
+                    } else {
+                        if (i == 0) {
+                            html += "<option value=" + data.coupon_type[i].id + ">" + data.coupon_type[i].name + "</option>";
+                        } else {
+                            html += "<option selected=''  value=" + data.coupon_type[i].id + ">" + data.coupon_type[i].name + "</option>";
+                        }
+                        $(".item4").show();
+                    }
+                };
+                // 饮料名称
+                var good_ids = $(".item4").attr("good_ids");
+                if(good_ids != 0){
+                    var s = good_ids.split(',');
+                    for (var j = 0; j < data.drink_list.length; j++) {
+                        html1 += "<input type='checkbox'  name='" + data.drink_list[j].id + "' title='" + data.drink_list[j].name + "' value='" + data.drink_list[j].name + "'>";
+                    }
+                }else{
+                    var s = good_ids.split(',');
+                    for (var j = 0; j < data.drink_list.length; j++) {
+                        html1 += "<input type='checkbox'  name='" + data.drink_list[j].id + "' title='" + data.drink_list[j].name + "' value='" + data.drink_list[j].name + "'>";
+                    }
+                     $(".item4").hide();
+                }
+                $(".cc").html(html);
+                $(".dd").html(html1);
+                if(good_ids != 0){
+                for (var i = 0; i < s.length; i++) {
+                    $('.item4 input').each(function() {
+                        if ($(this).attr("name") == s[i]) {
+                            $(this).attr("checked", "");
+                        }
+                    });
+                }
+                }
+
+                form.render();
+                form.on("select", function(data) {
+                    console.log(data);
+                    if (data.value == 1) {
+                        $(".item4").hide();
+                    } else {
+                        $(".item4").show();
+                    }
+                });
+            },
+        });
+    }
+
+    //创建一个编辑器
+    var editIndex = layedit.build('LAY_demo_editor');
+
+    //自定义验证规则
+    form.verify({
+        desc: function(value) {
+            if (value.length < 1) {
+                return '名称不能为空';
+            }
+        },
+        type: function(value) {
+            if (value.length < 1) {
+                return '类型不能为空';
+            }
+        },
+        img: function(value) {
+            if (value.length < 1) {
+                return '商品价图片不能为空';
+            }
+        },
+
+        content: function(value) {
+            layedit.sync(editIndex);
+        }
+    });
+
+    //监听提交
+    form.on('submit(demo1)', function(data) {
+        var display = $('.item4').css('display');
+        var arr = new Array();
+        $('.layui-form-checked span').each(function() {
+            arr.push($(this).attr("data-id"));
+        });
+        arr = arr.join(',');
+        console.log(arr);
+        var state = 1;
+        if (data.field.state == 1) {
+            state = 1;
+        } else {
+            state = 0;
+        }
+        if (display == 'none') {
+            var json = {
+                "name": data.field.name,
+                "num": data.field.num,
+                "show_name": data.field.show_name,
+                "validity": data.field.validity,
+                "discount": data.field.discount,
+                "type": data.field.type,
+                "state": state,
+                "good_ids": 0,
+            };
+        } else {
+            var json = {
+                "name": data.field.name,
+                "num": data.field.num,
+                "show_name": data.field.show_name,
+                "validity": data.field.validity,
+                "discount": data.field.discount,
+                "type": data.field.type,
+                "state": state,
+                "good_ids": arr,
+            };
+        }
+        var data = JSON.stringify(json);
+        console.log(data);
+        var index = top.layer.msg('数据提交中，请稍候', { icon: 16, time: false, shade: 0.8 });
+        $.ajax({
+            type: "POST",
+            catch: true,
+            data: {
+                data: data,
+            },
+            dataType: "json",
+            url: "https://pay.imbatv.cn/tool/coupon/insert",
+            success: function(res) {
+                console.log(res);
+                setTimeout(function() {
+                    top.layer.close(index);
+                    top.layer.msg(res.message);
+                    layer.closeAll("iframe");
+                    //刷新父页面
+                    parent.location.reload();
+                }, 500);
+                return false;
+            },
+            error: function(request) {
+                console.log(request);
+            },
+        });
+    });
+
+    form.on('submit(demo2)', function(data) {
+        var display = $('.item4').css('display');
+        var arr = new Array();
+        $('.layui-form-checked span').each(function() {
+            arr.push($(this).attr("data-id"));
+        });
+        arr = arr.join(',');
+        console.log(data.field);
+        var state = $(".item8 em").html();
+        if (state == "ON") {
+            state = 1;
+        } else {
+            state = 0;
+        }
+        if (display == 'none') {
+            var json = {
+                "name": data.field.name,
+                "num": data.field.num,
+                "show_name": data.field.show_name,
+                "validity": data.field.validity,
+                "discount": data.field.discount,
+                "type": data.field.type,
+                "state": state,
+                "good_ids": 0,
+            };
+        } else {
+            var json = {
+                "name": data.field.name,
+                "num": data.field.num,
+                "show_name": data.field.show_name,
+                "validity": data.field.validity,
+                "discount": data.field.discount,
+                "type": data.field.type,
+                "state": state,
+                "good_ids": arr,
+            };
+        }
+        var data = JSON.stringify(json);
+        var index = top.layer.msg('数据提交中，请稍候', { icon: 16, time: false, shade: 0.8 });
+        var id = $(".btn2").attr('data-id');
+        console.log(data);
+        $.ajax({
+            type: "POST",
+            catch: true,
+            data: {
+                data: data,
+            },
+            dataType: "json",
+            url: "https://pay.imbatv.cn/tool/coupon/update/" + id,
+            success: function(res) {
+                console.log(res);
+                setTimeout(function() {
+                    top.layer.close(index);
+                    top.layer.msg(res.message);
+                    layer.closeAll("iframe");
+                    //刷新父页面
+                    parent.location.reload();
+                }, 500);
+                return false;
+            },
+            error: function(request) {
+                console.log(request);
+            },
+        });
+    });
+
+
+    //以下两种方式都行：
+    setTimeout(function() { fuck(); }, 500);
+    setTimeout(function() { form.render(); }, 500);
+
+});
+</script>
+
+</html>

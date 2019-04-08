@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>增加新商品</title>
+    <link rel="stylesheet" href="../../layui/css/layui.css" media="all" />
+    <link rel="stylesheet" href="../../css/public.css" media="all" />
+    <script type="text/javascript" src="https://pay.imbatv.cn/style/js/jquery-3.3.1.js"></script>
+</head>
+
+<body>
+    <div action='' method="" class="layui-form">
+        <div class="layui-form-item item1">
+            <label class="layui-form-label">机器号</label>
+            <div class="layui-input-block">
+                <input type="text" name="machine_name" lay-verify="machine_name" autocomplete="off" placeholder="机器号" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item item2">
+            <label class="layui-form-label">IP</label>
+            <div class="layui-input-block">
+                <input type="text" name="ip" lay-verify="ip" autocomplete="off" placeholder="IP" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item item3">
+            <label class="layui-form-label">类型</label>
+            <div class="layui-input-block">
+                <select name="type" lay-filter="type" class='cc' type="select">
+                    
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item item4">
+            <label class="layui-form-label">硬件状态</label>
+            <div class="layui-input-block">
+                <select name="status" lay-filter="status">
+                    <option value=""></option>
+                    <option value="1" selected="">正常</option>
+                    <option value="2">损坏</option>
+                </select>
+            </div>
+        </div>
+      <div class="layui-form-item item5">
+            <label class="layui-form-label">位置</label>
+            <div class="layui-input-block">
+                <input type="text" name="position" lay-verify="number" autocomplete="off" placeholder="position" class="layui-input">
+            </div>
+        </div>
+         <div class="layui-form-item item6">
+            <label class="layui-form-label">房间名称</label>
+            <div class="layui-input-block">
+                <input type="text" name="box_id" lay-verify="box_id" autocomplete="off" placeholder="box_id" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item item7">
+            <div class="layui-input-block">
+                <button class="layui-btn btn1" lay-submit="" lay-filter="demo1">立即提交</button>
+                <button type="reset" class="layui-btn layui-btn-primary btn2">重置</button>
+            </div>
+        </div>
+    </div>
+</body>
+<script type="text/javascript" src="../../layui/layui.js"></script>
+<script>
+layui.use(['form', 'layedit', 'laydate'], function() {
+    var form = layui.form,
+        layer = layui.layer,
+        layedit = layui.layedit,
+        laydate = layui.laydate;
+        $ = layui.jquery;
+    function getQueryString(name) {
+        var reg = new RegExp('(^|&)' + name + '=([^&]*)(&|$)', 'i');
+        var r = window.location.search.substr(1).match(reg);
+        if (r != null) {
+            return unescape(r[2]);
+        }
+        return null;
+    }
+    var m = getQueryString("m");
+    var n = getQueryString("n");
+    $.ajax({
+            type: "GET",
+            catch: true,
+            dataType: "jsonp",
+            url: "https://pay.imbatv.cn/tool/machine/config_info",
+            error: function(request) {
+                console.log(request);
+            },
+            success: function(res) {
+                console.log(res);
+                var html = '';
+                var data = res.data;
+                html = '<option value=""></option>';
+                for (var i = 0; i < data.type_list.length; i++) {
+                    if (i == 0) {
+                       html += "<option selected='' value=" + data.type_list[i].id + ">" + data.type_list[i].name + "</option>"; 
+                    }else{
+                       html += "<option value=" + data.type_list[i].id + ">" + data.type_list[i].name + "</option>";   
+                    }
+                    
+                };
+                console.log(html);
+                $(".cc").html(html);
+                form.render();
+                var select1 = 'dd[lay-value="'+m+'"]';
+                var select2 = 'dd[lay-value="'+n+'"]';
+                console.log(select1);
+                console.log(select2);
+                $('.item3 select').siblings("div.layui-form-select").find('dl').find(select1).click();
+                $('.item4 select').siblings("div.layui-form-select").find('dl').find(select2).click();
+            },
+        });
+    //创建一个编辑器
+    var editIndex = layedit.build('LAY_demo_editor');
+
+    //自定义验证规则
+    form.verify({
+        name: function(value) {
+            if (value.length < 1) {
+                return '商品名称不能为空';
+            }
+        },price: function(value) {
+            if (value.length < 1) {
+                return '商品价格不能为空';
+            }
+        },img: function(value) {
+            if (value.length < 1) {
+                return '商品价图片不能为空';
+            }
+        },
+        
+        content: function(value) {
+            layedit.sync(editIndex);
+        }
+    });
+
+    //增加
+    form.on('submit(demo1)', function(data) {
+        alert(1);
+        var data =  JSON.stringify(data.field);
+        var index = top.layer.msg('数据提交中，请稍候',{icon: 16,time:false,shade:0.8});
+        console.log(data);
+        // $.ajax({
+        //     type: "POST",
+        //     catch: true,
+        //     data: {
+        //         data: data,
+        //     },
+        //     dataType: "json",
+        //     url: "https://pay.imbatv.cn/tool/goods/insert",
+        //     success: function(res) {
+        //         console.log(res);
+        //         setTimeout(function(){
+        //             top.layer.close(index);
+        //             top.layer.msg(res.message);
+        //             layer.closeAll("iframe");
+        //             //刷新父页面
+        //             parent.location.reload();
+        //         },500);
+        //         return false;
+        //     },
+        //     error: function(request) {
+        //         console.log(request);
+        //     },
+        // });
+    });
+    // 修改
+    form.on('submit(demo2)', function(data) {
+        var data =  JSON.stringify(data.field);
+        var index = top.layer.msg('数据提交中，请稍候',{icon: 16,time:false,shade:0.8});
+        var id = $(".btn2").attr('data-id'); 
+        console.log(data);
+        $.ajax({
+            type: "POST",
+            catch: true,
+            data: {
+                data: data,
+            },
+            dataType: "json",
+            url: "https://pay.imbatv.cn/tool/machine/update/"+id,
+            success: function(res) {
+                console.log(res);
+                setTimeout(function(){
+                    top.layer.close(index);
+                    top.layer.msg(res.message);
+                    layer.closeAll("iframe");
+                    //刷新父页面
+                    parent.location.reload();
+                },500);
+                return false;
+            },
+            error: function(request) {
+                console.log(request);
+            },
+        });
+    });
+
+
+
+
+});
+</script>
+
+</html>

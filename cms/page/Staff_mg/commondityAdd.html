@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>增加新员工</title>
+    <link rel="stylesheet" href="../../layui/css/layui.css" media="all" />
+    <link rel="stylesheet" href="../../css/public.css" media="all" />
+    <script type="text/javascript" src="https://pay.imbatv.cn/style/js/jquery-3.3.1.js"></script>
+</head>
+
+<body>
+    <div action='' method="" class="layui-form">
+        <div class="layui-form-item item1">
+            <label class="layui-form-label">用户名</label>
+            <div class="layui-input-block">
+                <input type="text" name="username" lay-verify="name" autocomplete="off" placeholder="用户名" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item item2">
+            <label class="layui-form-label">密码</label>
+            <div class="layui-input-block">
+                <input type="text" name="password" lay-verify="num" autocomplete="off" placeholder="密码" class="layui-input">
+            </div>
+        </div>
+         <div class="layui-form-item item3">
+            <label class="layui-form-label">手机</label>
+            <div class="layui-input-block">
+                <input type="text" name="phone" lay-verify="phone" autocomplete="off" placeholder="手机" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item item4">
+            <label class="layui-form-label">姓名</label>
+            <div class="layui-input-block">
+                <input type="text" name="name" lay-verify="name" autocomplete="off" placeholder="姓名" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item item5">
+            <label class="layui-form-label">所属角色</label>
+            <div class="layui-input-block">
+                <select name="authority" lay-filter="type" class='cc' type="select">
+                    
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item item6">
+            <div class="layui-input-block">
+                <button class="layui-btn btn1" lay-submit="" lay-filter="demo1">立即提交</button>
+                <button type="reset" class="layui-btn layui-btn-primary btn2">重置</button>
+            </div>
+        </div>
+    </div>
+
+</body>
+<script type="text/javascript" src="../../layui/layui.js"></script>
+<script>
+layui.use(['form', 'layedit', 'laydate'], function() {
+    var form = layui.form,
+        layer = layui.layer,
+        layedit = layui.layedit,
+        laydate = layui.laydate;
+        $ = layui.jquery;
+
+    function getQueryString(name) {
+        var reg = new RegExp('(^|&)' + name + '=([^&]*)(&|$)', 'i');
+        var r = window.location.search.substr(1).match(reg);
+        if (r != null) {
+            return unescape(r[2]);
+        }
+        return null;
+    }
+    var authority = getQueryString("authority");
+    console.log(authority);
+    $.ajax({
+            type: "GET",
+            catch: true,
+            dataType: "jsonp",
+            url: "https://pay.imbatv.cn/tool/admin/admin_role_info",
+            error: function(request) {
+                console.log(request);
+            },
+            success: function(res) {
+                console.log(res);
+                var html = '';
+                var data = res.data;
+                html = '<option value=""></option>';
+                for (var i = 0; i < data.role_list.length; i++) {
+                    if (i == 0) {
+                       html += "<option selected='' value=" + data.role_list[i].authority + ">" + data.role_list[i].role + "</option>"; 
+                    }else{
+                       html += "<option value=" + data.role_list[i].authority + ">" + data.role_list[i].role + "</option>";   
+                    }
+                    
+                };
+                console.log(html);
+                $(".cc").html(html);
+                form.render();
+                var select = 'dd[lay-value="'+authority+'"]';
+                $('.cc').siblings("div.layui-form-select").find('dl').find(select).click();
+                console.log(select);
+
+            },
+        });
+    //创建一个编辑器
+    var editIndex = layedit.build('LAY_demo_editor');
+
+    //自定义验证规则
+    form.verify({
+        name: function(value) {
+            if (value.length < 1) {
+                return '不能为空';
+            }
+        },price: function(value) {
+            if (value.length < 1) {
+                return '商品价格不能为空';
+            }
+        },img: function(value) {
+            if (value.length < 1) {
+                return '商品价图片不能为空';
+            }
+        },
+        
+        content: function(value) {
+            layedit.sync(editIndex);
+        }
+    });
+
+    //监听提交
+    form.on('submit(demo1)', function(data) {
+        var data =  JSON.stringify(data.field);
+        var index = top.layer.msg('数据提交中，请稍候',{icon: 16,time:false,shade:0.8});
+       
+        $.ajax({
+            type: "POST",
+            catch: true,
+            data: {
+                data: data,
+            },
+            dataType: "json",
+            url: "https://pay.imbatv.cn/tool/admin/insert",
+            success: function(res) {
+                console.log(res);
+                setTimeout(function(){
+                    top.layer.close(index);
+                    top.layer.msg(res.message);
+                    layer.closeAll("iframe");
+                    //刷新父页面
+                    parent.location.reload();
+                },500);
+                return false;
+            },
+            error: function(request) {
+                console.log(request);
+            },
+        });
+    });
+
+    form.on('submit(demo2)', function(data) {
+        var newdata ={"username":data.field.username,"phone":data.field.phone,"name":data.field.name,"authority":data.field.authority}
+        var data =  JSON.stringify(newdata);
+        var index = top.layer.msg('数据提交中，请稍候',{icon: 16,time:false,shade:0.8});
+        var id = $(".btn2").attr('data-id'); 
+        console.log(id);
+        $.ajax({
+            type: "POST",
+            catch: true,
+            data: {
+                data: data,
+            },
+            dataType: "json",
+            url: "https://pay.imbatv.cn/tool/admin/update/"+id,
+            success: function(res) {
+                console.log(res);
+                setTimeout(function(){
+                    top.layer.close(index);
+                    top.layer.msg(res.message);
+                    layer.closeAll("iframe");
+                    //刷新父页面
+                    parent.location.reload();
+                },500);
+                return false;
+            },
+            error: function(request) {
+                console.log(request);
+            },
+        });
+    });
+
+
+
+
+});
+</script>
+
+</html>

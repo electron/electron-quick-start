@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html class="loginHtml">
+
+<head>
+    <meta charset="utf-8">
+    <title>充值--Imba电竞馆管理后台</title>
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="format-detection" content="telephone=no">
+    <link rel="icon" href="../../favicon.ico">
+    <link rel="stylesheet" href="../../layui/css/layui.css" media="all" />
+    <link rel="stylesheet" href="give.css" media="all" />
+</head>
+
+<body class="rechargeBody">
+    <div class="recharge">
+        <div class="layui-form" action="">
+        <div class="layui-form-item item3">
+            <label class="layui-form-label">优惠劵类型</label>
+            <div class="layui-input-block">
+                <select name="type" lay-filter="type" class='cc' type="select">
+                </select>
+            </div>
+        </div>
+         <div class="layui-form-item item6">
+            <label class="layui-form-label cz">数量</label>
+            <div class="layui-input-block">
+                <input type="text" name="num" lay-verify="number" autocomplete="off" placeholder="数量" class="layui-input">
+            </div>
+        </div>
+            <div class="layui-form-item">
+                <div class="layui-input-block">
+                    <button class="layui-btn" lay-submit lay-filter="formDemo">立即提交</button>
+                    <button type="reset" class="layui-btn layui-btn-primary cz">重置</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script type="text/javascript" src="../../layui/layui.js"></script>
+</body>
+<script type="text/javascript">
+layui.use('form', function() {
+    var form = layui.form,
+        layer = parent.layer === undefined ? layui.layer : top.layer,
+        $ = layui.jquery,
+        laydate = layui.laydate,
+        laytpl = layui.laytpl,
+        table = layui.table;
+    // // 获取userid
+    // function getQueryString(name) {
+    //     var reg = new RegExp('(^|&)' + name + '=([^&]*)(&|$)', 'i');
+    //     var r = window.location.search.substr(1).match(reg);
+    //     if (r != null) {
+    //         return unescape(r[2]);
+    //     }
+    //     return null;
+    // }
+     $.ajax({
+            type: "GET",
+            catch: true,
+            dataType: "jsonp",
+            url: "https://pay.imbatv.cn/tool/coupon",
+            error: function(request) {
+                console.log(request);
+            },
+            success: function(res) {
+                console.log(res);
+                var html = '';
+                var data = res.data;
+                // 判断优惠劵类型
+                var datatype = $(".item3").attr("type");
+                html = '<option value=""></option>';
+                for (var i = 0; i < data.length; i++) {
+                        if (i == 0) {
+                            html += "<option selected='' value=" + data[i].id + ">" + data[i].name + "</option>";
+                        } else {
+                            html += "<option value=" + data[i].id + ">" + data[i].name + "</option>";
+                        }    
+                };
+                $(".cc").html(html);
+                form.render();
+            },
+        });
+    //监听提交
+    form.on('submit(formDemo)', function(data) {
+        var index = parent.layer.getFrameIndex(window.name);
+        var user_id = $('.cz').attr('userid');
+        console.log(user_id);
+        console.log(data.field.num);
+        console.log(data.field.type);
+        $.ajax({
+            url: "https://pay.imbatv.cn/api/coupon/give",
+            type: "POST",
+            data: {
+                user_id: user_id,
+                number: data.field.num,
+                coupon_id: data.field.type
+            },
+            dataType: 'json',
+            success: function(data) {
+                console.log(data);
+                layer.msg(data.message);
+                layer.close(index);
+                // var index = parent.layer.getFrameIndex(window.name); //先得到当前iframe层的索引
+                // parent.layer.close(index); //再执行关闭  
+
+
+            },
+            error: function(err) {
+                console.log(err);
+            }
+        });
+
+
+    });
+});
+</script>
+
+</html>
