@@ -14,7 +14,7 @@ function createWindow () {
 
   // mainWindow.loadFile('cms/index.html')
 
-   mainWindow.webContents.openDevTools()
+  //  mainWindow.webContents.openDevTools()
 
   // Emitted when the window is closed.
   mainWindow.on('closed', function () {
@@ -33,7 +33,7 @@ function createBarWindow () {
 
 
 
-  barWindow.webContents.openDevTools()
+  // barWindow.webContents.openDevTools()
 
   // Emitted when the window is closed.
   barWindow.on('closed', function () {

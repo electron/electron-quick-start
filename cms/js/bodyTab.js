@@ -344,7 +344,7 @@ layui.define(["element","jquery"],function(exports){
 			layer.msg("您点击的速度超过了服务器的响应速度，还是等两秒再刷新吧！");
 		}
 	})
-
+	
 	//关闭其他
 	$(".closePageOther").on("click",function(){
 		if($("#top_tabs li").length>2 && $("#top_tabs li.layui-this cite").text()!="后台首页"){
