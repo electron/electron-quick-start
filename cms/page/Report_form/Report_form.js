@@ -22,75 +22,6 @@ layui.use(['form', 'util', 'layer', 'laydate', 'table', 'laytpl', 'util'], funct
             $("#test8").val("");
         }
     });
-    // var tableIns = table.render({
-    //     elem: '#newsList1',
-    //     url: 'https://pay.imbatv.cn/tool/log/report',
-    //     page: false,
-    //     toolbar: '#toolbarDemo',
-    //     //,…… //其他参数
-    //     cols: [
-    //         [
-    //             { field: '总单机', title: '总单机', align: 'center', class: '1', width: 100 },
-    //             { field: '上座率', title: '上座率', align: 'center', width: 100 },
-    //             { field: '上网均价', title: '上网均价', align: "center", width: 100 },
-    //             { field: '上网占比', title: '上网占比', align: "center", width: 100 },
-    //             { field: '上网收入', title: '上网收入', align: 'center', width: 100 },
-    //             { field: '饮料收入', title: '饮料收入', align: 'center', width: 100 },
-    //             { field: '休闲食品收入', title: '休闲食品收入', align: 'center', width: 150 },
-    //             { field: '会员充值收入', title: '会员充值收入', align: 'center', width: 150 },
-    //             { field: '总营业额', title: '总营业额', align: 'center', width: 100 },
-    //             { field: '人次', title: '人次', align: 'center', width: 100 },
-    //             { field: '饮料捕获率', title: '饮料捕获率', align: 'center', width: 100 },
-    //             { field: '翻机率', title: '翻机率', align: 'center', width: 100 },
-    //             { field: '总客单价', title: '总客单价', align: 'center', width: 100 },
-    //             { field: '人均上机时长', title: '人均上机时长', align: 'center' },
-    //             { field: '新办会员', title: '新办会员', align: 'center', width: 100 },
-    //             { field: 'PC机台数/可运营台数', title: 'PC机台数/可运营台数', align: 'center' },
-    //         ]
-    //     ],
-    //     done: function(res, curr, count) {
-    //         // 隐藏列
-    //         console.log(res);
-    //         var layEvent = res.event,
-    //             data = res.data;
-    //     }
-    // });
-    // //头工具栏事件
-    // table.on('toolbar(newsList1)', function(obj) {
-    //     var checkStatus = table.checkStatus(obj.config.id);
-    //     switch (obj.event) {
-    //         case 'getCheckData':
-    //             var data = checkStatus.data;
-    //             layer.alert(JSON.stringify(data));
-    //             break;
-    //         case 'getCheckLength':
-    //             var data = checkStatus.data;
-    //             layer.msg('选中了：' + data.length + ' 个');
-    //             break;
-    //         case 'isAll':
-    //             layer.msg(checkStatus.isAll ? '全选' : '未全选');
-    //             break;
-    //     };
-    // });
-    // // 搜索
-    // var $ = layui.$,
-    //     active = {
-    //         reload: function() {
-    //             console.log(startT);
-    //             $(".spc1").show();
-    //             table.reload('newsList1', {
-    //                 url: 'https://pay.imbatv.cn/tool/log/report',
-    //                 where: {
-    //                     startdate: startT,
-    //                     enddate: endT,
-    //                 },
-    //                 // page: {
-    //                 //     curr: 1 //重新从第 1 页开始
-    //                 // }
-    //             });
-    //         }
-    //     };
-
     $('.record').on('click', function() {
         // var type = $(this).data('type');
         console.log(startT);
@@ -126,6 +57,10 @@ layui.use(['form', 'util', 'layer', 'laydate', 'table', 'laytpl', 'util'], funct
                 $(".item16").html(res.data[0]["人均上机时长"]);
                 $(".item17").html(res.data[0]["新办会员"]);
                 $(".item18").html(res.data[0]["PC机台数/可运营台数"]);
+                $(".item19").html(res.data[0]["美团POS机支付金额"]);
+                $(".item20").html(res.data[0]["美团小白盒支付金额"]);
+                $(".item21").html(res.data[0]["现金支付金额"]);
+                $(".item22").html(res.data[0]["微信小程序支付金额"]);
             },
             error: function(e) {
                 console.log(e);

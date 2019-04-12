@@ -6,6 +6,7 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl', 'element'], function()
         laytpl = layui.laytpl,
         table = layui.table;
     element = layui.element;
+        num = 0;
     $.ajax({
         url: "https://pay.imbatv.cn/api/machine/all",
         type: "GET",
@@ -54,6 +55,8 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl', 'element'], function()
             for (var i = 0; i < 17; i++) {
                 if (data[i].state == 1) {
                     html_1 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='a" + (i + 1) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
+                }else if(data[i].state == 4){
+                    html_1 += "<span  mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='damage a" + (i + 1) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 } else {
                     html_1 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='cur a" + (i + 1) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 }
@@ -61,6 +64,8 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl', 'element'], function()
             for (var i = 17; i < 18; i++) {
                 if (data[i].state == 1) {
                     html_2 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='a" + (i + 1) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
+                }else if (data[i].state == 4) {
+                    html_2 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "'  class='damage a" + (i - 57) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 } else {
                     html_2 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='cur a" + (i + 1) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 }
@@ -68,6 +73,8 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl', 'element'], function()
             for (var i = 18; i < 23; i++) {
                 if (data[i].state == 1) {
                     html_3 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='a" + (i - 17) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
+                }else if (data[i].state == 4) {
+                    html_3 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "'  class='damage a" + (i - 57) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 } else {
                     html_3 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='cur a" + (i - 17) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 }
@@ -75,6 +82,8 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl', 'element'], function()
             for (var i = 23; i < 28; i++) {
                 if (data[i].state == 1) {
                     html_4 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='a" + (i - 22) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
+                }else if (data[i].state == 4) {
+                    html_4 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "'  class='damage a" + (i - 57) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 } else {
                     html_4 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='cur a" + (i - 22) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 }
@@ -82,6 +91,8 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl', 'element'], function()
             for (var i = 28; i < 33; i++) {
                 if (data[i].state == 1) {
                     html_5 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='a" + (i - 27) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
+                }else if (data[i].state == 4) {
+                    html_5 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "'  class='damage a" + (i - 57) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 } else {
                     html_5 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='cur a" + (i - 27) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 }
@@ -89,6 +100,8 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl', 'element'], function()
             for (var i = 33; i < 38; i++) {
                 if (data[i].state == 1) {
                     html_6 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='a" + (i - 32) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
+                }else if (data[i].state == 4) {
+                    html_6 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "'  class='damage a" + (i - 57) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 } else {
                     html_6 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='cur a" + (i - 32) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 }
@@ -96,6 +109,8 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl', 'element'], function()
             for (var i = 38; i < 43; i++) {
                 if (data[i].state == 1) {
                     html_7 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='a" + (i - 37) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
+                }else if (data[i].state == 4) {
+                    html_7 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "'  class='damage a" + (i - 57) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 } else {
                     html_7 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='cur a" + (i - 37) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 }
@@ -103,6 +118,8 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl', 'element'], function()
             for (var i = 43; i < 48; i++) {
                 if (data[i].state == 1) {
                     html_8 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='a" + (i - 42) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
+                }else if (data[i].state == 4) {
+                    html_8 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "'  class='damage a" + (i - 57) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 } else {
                     html_8 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='cur a" + (i - 42) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 }
@@ -110,6 +127,8 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl', 'element'], function()
             for (var i = 48; i < 53; i++) {
                 if (data[i].state == 1) {
                     html_9 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='a" + (i - 47) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
+                }else if (data[i].state == 4) {
+                    html_9 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "'  class='damage a" + (i - 57) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 } else {
                     html_9 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='cur a" + (i - 47) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 }
@@ -117,6 +136,8 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl', 'element'], function()
             for (var i = 53; i < 58; i++) {
                 if (data[i].state == 1) {
                     html_10 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='a" + (i - 52) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
+                }else if (data[i].state == 4) {
+                    html_10 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "'  class='damage a" + (i - 57) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 } else {
                     html_10 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='cur a" + (i - 52) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 }
@@ -125,7 +146,9 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl', 'element'], function()
             for (var i = 58; i < 63; i++) {
                 if (data[i].state == 1) {
                     html_11 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "'  class='a" + (i - 57) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
-                } else {
+                }else if (data[i].state == 4) {
+                    html_11 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "'  class='damage a" + (i - 57) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
+                }  else {
                     html_11 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='cur a" + (i - 57) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 }
             }
@@ -133,6 +156,8 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl', 'element'], function()
             for (var i = 63; i < 68; i++) {
                 if (data[i].state == 1) {
                     html_12 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "'  class='a" + (i - 62) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
+                }else if (data[i].state == 4) {
+                    html_12 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "'  class='damage a" + (i - 57) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 } else {
                     html_12 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='cur a" + (i - 62) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 }
@@ -141,6 +166,8 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl', 'element'], function()
             for (var i = 68; i < 73; i++) {
                 if (data[i].state == 1) {
                     html_13 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='a" + (i - 67) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
+                }else if (data[i].state == 4) {
+                    html_13 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "'  class='damage a" + (i - 57) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 } else {
                     html_13 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='cur a" + (i - 67) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 }
@@ -148,6 +175,8 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl', 'element'], function()
             for (var i = 73; i < 78; i++) {
                 if (data[i].state == 1) {
                     html_14 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='a" + (i - 72) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
+                }else if (data[i].state == 4) {
+                    html_14 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "'  class='damage a" + (i - 57) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 } else {
                     html_14 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='cur a" + (i - 72) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 }
@@ -156,6 +185,8 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl', 'element'], function()
             for (var i = 78; i < 83; i++) {
                 if (data[i].state == 1) {
                     html_15 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='a" + (i - 77) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
+                }else if (data[i].state == 4) {
+                    html_15 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "'  class='damage a" + (i - 57) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 } else {
                     html_15 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='cur a" + (i - 77) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 }
@@ -163,6 +194,8 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl', 'element'], function()
             for (var i = 83; i < 88; i++) {
                 if (data[i].state == 1) {
                     html_16 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='a" + (i - 82) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
+                }else if (data[i].state == 4) {
+                    html_16 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "'  class='damage a" + (i - 57) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 } else {
                     html_16 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='cur a" + (i - 82) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 }
@@ -171,6 +204,8 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl', 'element'], function()
             for (var i = 88; i < 93; i++) {
                 if (data[i].state == 1) {
                     html_17 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='a" + (i - 87) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
+                }else if (data[i].state == 4) {
+                    html_17 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "'  class='damage a" + (i - 57) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 } else {
                     html_17 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='cur a" + (i - 87) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 }
@@ -179,6 +214,8 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl', 'element'], function()
             for (var i = 93; i < 98; i++) {
                 if (data[i].state == 1) {
                     html_18 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='a" + (i - 92) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
+                }else if (data[i].state == 4) {
+                    html_18 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "'  class='damage a" + (i - 57) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 } else {
                     html_18 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='cur a" + (i - 92) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 }
@@ -187,6 +224,8 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl', 'element'], function()
             for (var i = 98; i < 103; i++) {
                 if (data[i].state == 1) {
                     html_19 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='a" + (i - 97) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
+                }else if (data[i].state == 4) {
+                    html_19 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "'  class='damage a" + (i - 57) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 } else {
                     html_19 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='cur a" + (i - 97) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 }
@@ -194,6 +233,8 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl', 'element'], function()
             for (var i = 103; i < 108; i++) {
                 if (data[i].state == 1) {
                     html_19 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='a" + (i - 102) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
+                }else if (data[i].state == 4) {
+                    html_19 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "'  class='damage a" + (i - 57) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 } else {
                     html_19 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='cur a" + (i - 102) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 }
@@ -202,6 +243,8 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl', 'element'], function()
             for (var i = 108; i < 113; i++) {
                 if (data[i].state == 1) {
                     html_20 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='a" + (i - 107) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
+                }else if (data[i].state == 4) {
+                    html_20 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "'  class='damage a" + (i - 57) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 } else {
                     html_20 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='cur a" + (i - 107) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 }
@@ -209,6 +252,8 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl', 'element'], function()
             for (var i = 113; i < 118; i++) {
                 if (data[i].state == 1) {
                     html_21 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='a" + (i - 112) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
+                }else if (data[i].state == 4) {
+                    html_21 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "'  class='damage a" + (i - 57) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 } else {
                     html_21 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='cur a" + (i - 112) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 }
@@ -217,6 +262,8 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl', 'element'], function()
             for (var i = 118; i < 123; i++) {
                 if (data[i].state == 1) {
                     html_22 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='a" + (i - 117) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
+                }else if (data[i].state == 4) {
+                    html_22 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "'  class='damage a" + (i - 57) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 } else {
                     html_22 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='cur a" + (i - 117) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 }
@@ -224,6 +271,8 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl', 'element'], function()
             for (var i = 123; i < 128; i++) {
                 if (data[i].state == 1) {
                     html_23 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='a" + (i - 122) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
+                }else if (data[i].state == 4) {
+                    html_23 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "'  class='damage a" + (i - 57) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 } else {
                     html_23 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='cur a" + (i - 122) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 }
@@ -232,6 +281,8 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl', 'element'], function()
             for (var i = 128; i < 133; i++) {
                 if (data[i].state == 1) {
                     html_24 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "'class='a" + (i - 127) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
+                }else if (data[i].state == 4) {
+                    html_24 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "'  class='damage a" + (i - 57) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 } else {
                     html_24 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='cur a" + (i - 127) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 }
@@ -239,6 +290,8 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl', 'element'], function()
             for (var i = 133; i < 138; i++) {
                 if (data[i].state == 1) {
                     html_25 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='a" + (i - 132) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
+                }else if (data[i].state == 4) {
+                    html_25 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "'  class='damage a" + (i - 57) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 } else {
                     html_25 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='cur a" + (i - 132) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 }
@@ -247,6 +300,8 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl', 'element'], function()
             for (var i = 138; i < 143; i++) {
                 if (data[i].state == 1) {
                     html_26 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='a" + (i - 137) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
+                }else if (data[i].state == 4) {
+                    html_26 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "'  class='damage a" + (i - 57) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 } else {
                     html_26 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='cur a" + (i - 137) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 }
@@ -254,6 +309,8 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl', 'element'], function()
             for (var i = 143; i < 148; i++) {
                 if (data[i].state == 1) {
                     html_27 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='a" + (i - 142) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
+                }else if (data[i].state == 4) {
+                    html_27 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "'  class='damage a" + (i - 57) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 } else {
                     html_27 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='cur a" + (i - 142) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 }
@@ -262,6 +319,8 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl', 'element'], function()
             for (var i = 148; i < 153; i++) {
                 if (data[i].state == 1) {
                     html_28 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='a" + (i - 147) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
+                }else if (data[i].state == 4) {
+                    html_28 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "'  class='damage a" + (i - 57) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 } else {
                     html_28 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='cur a" + (i - 147) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 }
@@ -269,6 +328,8 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl', 'element'], function()
             for (var i = 153; i < 158; i++) {
                 if (data[i].state == 1) {
                     html_29 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='a" + (i - 152) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
+                }else if (data[i].state == 4) {
+                    html_29 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "'  class='damage a" + (i - 57) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 } else {
                     html_29 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='cur a" + (i - 152) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 }
@@ -277,6 +338,8 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl', 'element'], function()
             for (var i = 158; i < 163; i++) {
                 if (data[i].state == 1) {
                     html_30 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='a" + (i - 157) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
+                }else if (data[i].state == 4) {
+                    html_30 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "'  class='damage a" + (i - 57) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 } else {
                     html_30 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='cur a" + (i - 157) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 }
@@ -284,6 +347,8 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl', 'element'], function()
             for (var i = 163; i < 168; i++) {
                 if (data[i].state == 1) {
                     html_31 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='a" + (i - 162) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
+                }else if (data[i].state == 4) {
+                    html_31 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "'  class='damage a" + (i - 57) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 } else {
                     html_31 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='cur a" + (i - 162) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 }
@@ -291,6 +356,8 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl', 'element'], function()
             for (var i = 168; i < 174; i++) {
                 if (data[i].state == 1) {
                     html_32 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='a" + (i - 167) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
+                }else if (data[i].state == 4) {
+                    html_32 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "'  class='damage a" + (i - 57) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 } else {
                     html_32 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='cur a" + (i - 167) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 }
@@ -298,6 +365,8 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl', 'element'], function()
             for (var i = 174; i < 180; i++) {
                 if (data[i].state == 1) {
                     html_33 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='a" + (i - 173) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
+                }else if (data[i].state == 4) {
+                    html_33 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "'  class='damage a" + (i - 57) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 } else {
                     html_33 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='cur a" + (i - 173) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 }
@@ -305,6 +374,8 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl', 'element'], function()
             for (var i = 180; i < 186; i++) {
                 if (data[i].state == 1) {
                     html_34 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='a" + (i - 179) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
+                }else if (data[i].state == 4) {
+                    html_34 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "'  class='damage a" + (i - 57) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 } else {
                     html_34 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='cur a" + (i - 179) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 }
@@ -312,6 +383,8 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl', 'element'], function()
             for (var i = 186; i < 196; i++) {
                 if (data[i].state == 1) {
                     html_35 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='a" + (i - 185) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
+                }else if (data[i].state == 4) {
+                    html_35 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "'  class='damage a" + (i - 57) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 } else {
                     html_35 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='cur a" + (i - 185) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 }
@@ -319,6 +392,8 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl', 'element'], function()
             for (var i = 196; i < 206; i++) {
                 if (data[i].state == 1) {
                     html_36 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='a" + (i - 195) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
+                }else if (data[i].state == 4) {
+                    html_36 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "'  class='damage a" + (i - 57) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 } else {
                     html_36 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='cur a" + (i - 195) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 }
@@ -326,6 +401,8 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl', 'element'], function()
             for (var i = 206; i < 226; i++) {
                 if (data[i].state == 1) {
                     html_37 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='a" + (i - 205) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
+                }else if (data[i].state == 4) {
+                    html_37 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "'  class='damage a" + (i - 57) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 } else {
                     html_37 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='cur a" + (i - 205) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 }
@@ -333,6 +410,8 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl', 'element'], function()
             for (var i = 226; i < 236; i++) {
                 if (data[i].state == 1) {
                     html_38 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='a" + (i - 225) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
+                }else if (data[i].state == 4) {
+                    html_38 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "'  class='damage a" + (i - 57) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 } else {
                     html_38 += "<span mid='" + data[i].mid + "' data-uid='" + data[i].uid + "' class='cur a" + (i - 225) + " m" + data[i].mid + "'>" + data[i].machine_name + "</span>";
                 }
@@ -589,8 +668,17 @@ function onMessage(evt) {
             offset: 'rb',
             anim: 8
         });
+    }else if(res.cmd == 'new_order'){
+        $(".new_order").html("您有新订单未处理！");
+        num = num + 1;
+    }else if(res.cmd == 'order_down'){
+        num = num - 1;
     }
     $(".m" + res.mid).attr('data-uid', res.uid);
+    console.log(num);
+    if (num == 0) {
+       $(".new_order").html(""); 
+    }
 }
 
 function onError(evt) {
