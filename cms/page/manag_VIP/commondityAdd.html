@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>修改VIP信息</title>
+    <link rel="stylesheet" href="../../layui/css/layui.css" media="all" />
+    <link rel="stylesheet" href="../../css/public.css" media="all" />
+    <script type="text/javascript" src="https://pay.imbatv.cn/style/js/jquery-3.3.1.js"></script>
+</head>
+
+<body>
+    <div action='' method="" class="layui-form">
+        <div class="layui-form-item item1">
+            <label class="layui-form-label">会员等级</label>
+            <div class="layui-input-block">
+                <input type="text" name="level" lay-verify="number" autocomplete="off" placeholder="会员等级" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form">
+            <div class="layui-form-item">
+                <div class="layui-inline">
+                    <label class="layui-form-label">截止时间</label>
+                    <div class="layui-input-inline">
+                        <input type="text" class="layui-input" id="test1" placeholder="yyyy-MM-dd">
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="layui-form-item item6">
+            <div class="layui-input-block">
+                <button class="layui-btn btn1" lay-submit="" lay-filter="demo1">立即提交</button>
+                <button type="reset" class="layui-btn layui-btn-primary btn2">重置</button>
+            </div>
+        </div>
+    </div>
+</body>
+<script type="text/javascript" src="../../layui/layui.js"></script>
+<script>
+layui.use(['form', 'layedit', 'laydate'], function() {
+    var form = layui.form,
+        layer = layui.layer,
+        layedit = layui.layedit,
+        laydate = layui.laydate;
+    $ = layui.jquery;
+    var enddate;
+    function getQueryString(name) {
+        var reg = new RegExp('(^|&)' + name + '=([^&]*)(&|$)', 'i');
+        var r = window.location.search.substr(1).match(reg);
+        if (r != null) {
+            return unescape(r[2]);
+        }
+        return null;
+    }
+    var endT = getQueryString("m");
+    enddate = endT;
+    //常规用法
+    console.log(endT);
+    laydate.render({
+      elem: '#test1',
+      value: createTime(endT),
+      done: function(value, date, endDate){
+        enddate = Date.parse(value)/1000;
+      }
+    });
+    //创建一个编辑器
+    var editIndex = layedit.build('LAY_demo_editor');
+    form.on('submit(demo2)', function(data) {
+        var data = JSON.stringify(data.field);
+        console.log(data);
+        var index = top.layer.msg('数据提交中，请稍候', { icon: 16, time: false, shade: 0.8 });
+        var uid = $(".btn2").attr('data-uid');
+        var level = $(".item1 input").val();
+        console.log(uid);
+        console.log(level);
+        console.log(enddate);
+        $.ajax({
+            type: "POST",
+            catch: true,
+            data: {
+                "endtime": enddate,
+                "level": level,
+            },
+            dataType: "json",
+            url: "https://pay.imbatv.cn/api/vip/update/" + uid,
+            success: function(res) {
+                console.log(res);
+                setTimeout(function() {
+                    top.layer.close(index);
+                    top.layer.msg(res.message);
+                    layer.closeAll("iframe");
+                    //刷新父页面
+                    parent.location.reload();
+                }, 1000);
+                return false;
+            },
+            error: function(request) {
+                console.log(request);
+            },
+        });
+    });
+});
+
+function createTime(v) {
+    var date = new Date(v * 1000);
+    var y = date.getFullYear();
+    var m = date.getMonth() + 1;
+    m = m < 10 ? '0' + m : m;
+    var d = date.getDate();
+    d = d < 10 ? ("0" + d) : d;
+    var h = date.getHours();
+    h = h < 10 ? ("0" + h) : h;
+    var M = date.getMinutes();
+    M = M < 10 ? ("0" + M) : M;
+    var str = y + "-" + m + "-" + d ;
+    return str;
+}
+</script>
+</html>

@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html class="loginHtml">
+
+<head>
+    <meta charset="utf-8">
+    <title>充值--Imba电竞馆管理后台</title>
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="format-detection" content="telephone=no">
+    <link rel="icon" href="../../favicon.ico">
+    <link rel="stylesheet" href="../../layui/css/layui.css" media="all" />
+    <link rel="stylesheet" href="recharge.css" media="all" />
+    <link rel="stylesheet" href="commodity.css" media="all" />
+</head>
+<style type="text/css">
+.layui-input-block {
+    width: 600px;
+}
+</style>
+
+<body class="rechargeBody">
+    <div class="recharge">
+        <div class="c1" style="height: 24px;"></div>
+        <div class="layui-form-item m1 mpx_1">
+            <h1>充值</h1>
+            <div class="c1" style="height: 24px;"></div>
+            <label class="layui-form-label">输入充值金额</label>
+            <div class="layui-input-block">
+                <input type="text" name="title" id="money" required lay-verify="required" placeholder="50" value="50" autocomplete="off" class="layui-input" onkeyup="(this.v=function(){this.value=this.value.replace(/[^0-9-]+/,'');}).call(this)" onblur="this.v();">
+            </div>
+            <ul>
+                <li class="cur">50</li>
+                <li>100</li>
+                <li>200</li>
+                <li>500</li>
+                <li>1000</li>
+                <li>2000</li>
+            </ul>
+        </div>
+        <div class="c1" style="height: 18px;"></div>
+        <div class="layui-form" style="padding-left: 73px;margin-top: 30px;">
+            <h1>优惠劵</h1>
+            <div class="layui-form-item item3" style="margin-top: 20px;">
+                <label class="layui-form-label" style="padding: 9px 15px 9px 0;text-align: left;">赠送优惠劵</label>
+                <div class="layui-input-block">
+                    <select name="type" lay-filter="type" class='cc' type="select">
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="c1" style="height: 18px;"></div>
+        <div class="layui-form-item m1">
+            <button class="layui-btn layui-btn-lg" id="settlement">确定</button>
+        </div>
+        <div class="mask_box">
+            <div class="mask"></div>
+            <div class="box">
+                <div class="box_top">充值</div>
+                <div class="box_block box_block1">
+                    <div class="block_left"><label for="">充值金额：</label></div>
+                    <div class="block_right"><input type="text" class="layui-input" id="money1" value="0" readonly style="border: none;" /></div>
+                </div>
+                <div class="box_block box_block2">
+                    <div class="block_left"><label for="">确认金额：</label></div>
+                    <div class="block_right"><input type="text" class="layui-input" id="money2" value="0" readonly style="border: none;" /></div>
+                </div>
+                <div class="box_block box_block3">
+                </div>
+                <div class="bot" style="padding-top: 52px;">
+                    <input type="submit" value="提交">
+                    <input type="text" value="取消">
+                </div>
+            </div>
+        </div>
+        <script type="text/javascript" src="../../layui/layui.js"></script>
+        <script src="https://libs.baidu.com/jquery/2.1.1/jquery.min.js"></script>
+</body>
+<script type="text/javascript">
+const ipcRenderer = require('electron').ipcRenderer;
+layui.use(['form', 'layer', 'laydate', 'table', 'laytpl'], function() {
+    var form = layui.form,
+        layer = parent.layer === undefined ? layui.layer : top.layer,
+        $ = layui.jquery,
+        laydate = layui.laydate,
+        laytpl = layui.laytpl,
+        table = layui.table,
+        money = '',
+        coupon_id = ''
+        user_id = ''
+    // 获取userid
+    function getQueryString(name) {
+        var reg = new RegExp('(^|&)' + name + '=([^&]*)(&|$)', 'i');
+        var r = window.location.search.substr(1).match(reg);
+        if (r != null) {
+            return unescape(r[2]);
+        }
+        return null;
+    }
+    user_id = getQueryString("userid");
+    form.on('select', function(data) {
+        coupon_id = data.value;
+    });
+    $(".mpx_1 ul li").click(function() {
+        var h = $(this).html();
+        $(this).parent().siblings().children().val(h);
+        $(this).addClass('cur').siblings().removeClass('cur');
+    });
+    $(".mpx_3 ul li").click(function() {
+        var h = $(this).html();
+        $(this).parent().siblings().children().val(h);
+    });
+
+     // 结算
+    $("#settlement").click(function() {
+      money = $("#money").val();
+      $("#money1").val(money);
+      $("#money2").val(money);
+      ipcRenderer.send('recharge',1,money);
+      $(".mask_box").show(); 
+    })
+    $(".bot input:nth-child(1)").click(function() {
+       // 支付方式选择
+       var list = $('.box_block3 input:radio:checked').val();
+       if (list == null) {
+            layer.alert("请选中支付方式!");
+            return false;
+        }else{
+            var number = $('.box_block1 input').val();
+            var type = $('.box_block3 input[name="payment"]:checked').attr('data-type'); 
+            $.ajax({
+                url: "https://pay.imbatv.cn/api/user/pay",
+                type: "post",
+                data: {
+                    user_id: user_id,
+                    number: number,
+                    // extra_number: extra_number,
+                    type: type,
+                    coupon_id: coupon_id,
+                },
+                dataType: 'json',
+                success: function(data) {
+                    if (data.code == 200) {
+                        $(".mask_box").hide();
+                       layer.msg(data.message, { time: 3000, icon: 6 }, function() {
+                            ipcRenderer.send('recharge',0,0);
+                            window.location.href = '../../page/home/home.html';
+                        });
+                    } else {
+                        layer.msg(data.message, { time: 2000, icon: 5 });
+                    }
+                },
+                error: function(err) {
+                    console.log(err);
+                }
+            });
+        }
+    })
+    $(".bot input:nth-child(2)").click(function() {
+        $(".mask_box").hide();
+        $('.box_block2 .block_right input').val(0);
+    })
+
+// 支付方式 以及赠送优惠劵
+$.ajax({
+    url: "https://pay.imbatv.cn/api/config",
+    type: "GET",
+    dataType: 'json',
+    success: function(data) {
+        if (data.code == 200) {
+            var html = "";
+            var html1 = "";
+            for (var i = 0; i < data.data.pay_type.length; i++) {
+                html += '<div class="block_left">';
+                html += '<input type="radio" name="payment" data-type="' + data.data.pay_type[i].id + '" />';
+                html += '<label for="use_coupon" data-type="' + data.data.pay_type[i].id + '">' + data.data.pay_type[i].value + '</label>';
+                html += '</div>';
+            }
+            $(".box_block3").html(html);
+            html1 = '<option value=""></option>';
+            for (var i = 0; i < data.data.coupon_list.length; i++) {
+                html1 += "<option value=" + data.data.coupon_list[i].id + ">" + data.data.coupon_list[i].name + "</option>";
+            };
+            $(".cc").html(html1);
+            form.render();
+        } else {
+            layer.msg(data.message);
+        }
+
+    },
+    error: function(err) {
+        console.log(err);
+    }
+});
+})
+</script>
+
+</html>

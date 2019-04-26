@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="utf-8">
-    <title>充值--Imba电竞馆管理后台</title>
+    <title>下机--Imba电竞馆管理后台</title>
     <meta name="renderer" content="webkit">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
@@ -49,6 +49,7 @@
             <div class="layui-form-item">
                 <div class="layui-input-block">
                     <button class="layui-btn cz" lay-submit lay-filter="formDemo">确认下机</button>
+                    <button type="reset" class="layui-btn layui-btn-lg layui-btn-primary qx">取消</button>
                 </div>
             </div>
         </div>
@@ -56,6 +57,7 @@
     <script type="text/javascript" src="../../layui/layui.js"></script>
 </body>
 <script type="text/javascript">
+const ipcRenderer = require('electron').ipcRenderer;
 layui.use('form', function() {
     var form = layui.form,
         layer = parent.layer === undefined ? layui.layer : top.layer,
@@ -65,8 +67,19 @@ layui.use('form', function() {
         table = layui.table;
         Gourl = "";
         user_id = "";
-    var userid = $('.cz').attr('userid');
-    var machine_id = $('.cz').attr('machine_id');
+    // 获取userid
+    function getQueryString(name) {
+        var reg = new RegExp('(^|&)' + name + '=([^&]*)(&|$)', 'i');
+        var r = window.location.search.substr(1).match(reg);
+        if (r != null) {
+            return unescape(r[2]);
+        }
+        return null;
+    }
+    var userid = getQueryString("userid");
+    var machine_id = getQueryString("machine_id");
+    console.log(userid);
+    console.log(machine_id);
     if (machine_id != "0") {
         Gourl =  "https://pay.imbatv.cn/api/machine/down_info?machine_id=" + machine_id;
     }else{
@@ -81,7 +94,7 @@ layui.use('form', function() {
             console.log(request);
         },
         success: function(res) {
-            console.log(res);
+            ipcRenderer.send('checkout',1,res);
             user_id = res.data.user_info.uid;
             var html = '';
             var data = res.data;
@@ -111,15 +124,25 @@ layui.use('form', function() {
             },
             dataType: 'json',
             success: function(data) {
-                console.log(data);
-                layer.msg(data.message);
-                layer.close(index);
+                ipcRenderer.send('checkout',0,data);
+               if (data.code == 200) {
+                        layer.msg(data.message, { time: 2000, icon: 6 }, function() {
+                            window.location.href = '../../page/home/home.html';
+                        });
+                    } else {
+                        layer.msg(data.message, { time: 2000, icon: 5 });
+                    }
             },
             error: function(err) {
                 console.log(err);
             }
         });
     });
+     // 取消
+    $(".qx").click(function() {
+        window.location.href = '../../page/home/home.html';
+    });
+    // 取消
 });
 </script>
 

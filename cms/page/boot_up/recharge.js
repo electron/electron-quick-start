@@ -1,3 +1,4 @@
+const ipcRenderer = require('electron').ipcRenderer;
 layui.use(['form', 'layer', 'laydate', 'table', 'laytpl'], function() {
     var form = layui.form,
         layer = parent.layer === undefined ? layui.layer : top.layer,
@@ -5,6 +6,8 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl'], function() {
         laydate = layui.laydate,
         laytpl = layui.laytpl,
         table = layui.table;
+    san = 0;
+    mid = "";
     // 获取userid
     function getQueryString(name) {
         var reg = new RegExp('(^|&)' + name + '=([^&]*)(&|$)', 'i');
@@ -14,13 +17,28 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl'], function() {
         }
         return null;
     }
+    // 获取所有信息
+    function getAllCheckinInfo(mid) {
+        var box, p1, p2, p3, p4, san_or_box;
+        san_or_box = $(".top ul li.cur").attr("san_or_box");
+        if (san == '0' && san_or_box == 'san') {
+            box = "散座";
+        } else {
+            box = $(".classify ul li.cur").html(); // 包厢号
+        }
+        p1 = $(".select1 .layui-this").html();
+        p2 = $(".select2 .layui-this").html();
+        p3 = $(".select3 .layui-this").html();
+        p4 = $(".select4 .layui-this").html();
+        ipcRenderer.send('checkin',1,mid,box,p1,p2,p3,p4);
+    }
+
     var user_id = getQueryString("userid");
     $.ajax({
         url: "https://pay.imbatv.cn/api/checkin/single_info?user_id=" + user_id,
         type: "get",
         dataType: 'json',
         success: function(data) {
-            console.log(data);
             var html_1 = '';
             var html_2_1 = '';
             var html_2_2 = '';
@@ -214,6 +232,7 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl'], function() {
             $('.content2 .cn5 ul li:first(child)').addClass("cur");
             $('.content2 .cn6 ul li:first(child)').addClass("cur");
             $(".content2 .classify ul li").click(function() {
+                console.log("fuck");
                 $(this).addClass('cur').siblings().removeClass('cur').parent().parent().siblings().children().eq($(this).index()).show().siblings().hide();
                 $(this).parent().parent().parent().siblings('.cn').children().children().children().removeClass('cur');
             });
@@ -255,20 +274,103 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl'], function() {
             $('.cn5 .classify_cn ul.n2').html(html_5_2);
             $('.cn6 .classify_cn ul.n1').html(html_6_1);
             $(".cn .classify_cn ul li").click(function() {
-                console.log(document)
-                $(this).addClass('cur').siblings().removeClass('cur').parent().parent().parent().siblings().children('.classify_cn').children('').children('').removeClass('cur');
+                mid = $(this).html();
+                $(this).addClass('cur').siblings().removeClass('cur');
+                $(this).parent().siblings().children().removeClass('cur');
+                $(this).parent().parent().parent().siblings().children('.classify_cn').children('').children('').removeClass('cur');
+                getAllCheckinInfo(mid);
             });
         },
         error: function(err) {}
     });
+    // 获取包厢名
+    $.ajax({
+        url: "https://pay.imbatv.cn/api/checkin/single_info?user_id=" + user_id,
+        type: "get",
+        dataType: 'json',
+        success: function(data) {
+            var html0 = '';
+            var html1 = '';
+            var html2 = '';
+            var html3 = '';
+            var html4 = '';
+            var html5 = '';
+            for (var i = 0; i < 8; i++) {
+                if (i == 0) {
+                    html0 += ' <li class="cur q1">' + data.data.box_list[i].box_id + '</li>';
+                } else {
+                    html0 += ' <li>' + data.data.box_list[i].box_id + '</li>';
+                }
+            }
+            for (var i = 8; i < 30; i++) {
+                if (i == 8) {
+                    html1 += ' <li class="cur q1">' + data.data.box_list[i].box_id + '</li>';
+                } else {
+                    html1 += ' <li>' + data.data.box_list[i].box_id + '</li>';
+                }
+            }
+            for (var i = 30; i < 33; i++) {
+                if (i == 30) {
+                    html2 += ' <li class="cur q1">' + data.data.box_list[i].box_id + '</li>';
+                } else {
+                    html2 += ' <li>' + data.data.box_list[i].box_id + '</li>';
+                }
+            }
+            for (var i = 33; i < 35; i++) {
+                if (i == 33) {
+                    html3 += ' <li class="cur q1">' + data.data.box_list[i].box_id + '</li>';
+                } else {
+                    html3 += ' <li>' + data.data.box_list[i].box_id + '</li>';
+                }
+            }
+
+            html4 += ' <li class="cur q1">' + data.data.box_list[35].box_id + '</li>';
+
+
+            $('.f1').html(html0);
+            $('.f2').html(html1);
+            $('.f3').html(html2);
+            $('.f4').html(html3);
+            $('.f5').html(html4);
+            $(".classify ul li").click(function() {
+                $(this).addClass('cur').siblings().removeClass('cur').parent().parent().siblings().children().eq($(this).index()).show().siblings().hide();
+
+            });
+        },
+        error: function(err) {}
+    });
+
+
     $(".top ul li").click(function() {
         $(this).addClass('cur').siblings().removeClass('cur').parent().parent().siblings('.content').children().eq($(this).index()).show().siblings().hide();
     });
-    $(".classify ul li").click(function() {
-        $(this).addClass('cur').siblings().removeClass('cur').parent().parent().siblings().children().eq($(this).index()).show().siblings().hide();
-    });
+
     $(".tab ul li").click(function() {
         $(this).addClass('cur').siblings().removeClass('cur').parent().parent().siblings('.con').children().eq($(this).index()).show().siblings().hide();
+    });
+    $(".tab ul li.number1").click(function() {
+        san = 0;
+        $(".cn1").siblings('').children().children().children('li').removeClass("cur");
+    });
+    $(".tab ul li.number2").click(function() {
+        san = 1;
+        $(".cn2 ul li.q1").addClass("cur").parent().parent().parent().siblings('').children().children().children('li').removeClass("cur");
+    });
+    $(".tab ul li.number3").click(function() {
+        san = 1;
+        $(".cn3 ul li.q1").addClass("cur").parent().parent().parent().siblings('').children().children().children('li').removeClass("cur");
+    });
+    $(".tab ul li.number4").click(function() {
+        san = 1;
+        $(".cn4 ul li.q1").addClass("cur").parent().parent().parent().siblings('').children().children().children('li').removeClass("cur");
+    });
+    $(".tab ul li.number5").click(function() {
+        san = 1;
+        $(".cn5 ul li.q1").addClass("cur").parent().parent().parent().siblings('').children().children().children('li').removeClass("cur");
+    });
+    $(".tab ul li.number6").click(function() {
+        san = 1;
+        $(".cn6 ul li.q1").addClass("cur").parent().parent().parent().siblings('').children('.classify').children().children('li').removeClass("cur");
     });
 
 
@@ -360,7 +462,8 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl'], function() {
                 success: function(data) {
                     if (data.code == 200) {
                         layer.msg(data.message, { time: 2000, icon: 6 }, function() {
-                            parent.location.reload();
+                            ipcRenderer.send('checkin',0, 0, 0, 0, 0, 0, 0);
+                            window.location.href = '../../page/home/home.html';
                         });
                     } else {
                         layer.msg(data.message, { time: 2000, icon: 5 });
@@ -436,16 +539,45 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl'], function() {
         if (machine_id == undefined) {
             layer.msg("请选选择机器号", { time: 3000, icon: 5 });
         } else {
-           console.log(machine_id);
+            console.log(machine_id);
             var pjson = [{ "type": 1, "id": sec1_id }, { "type": 2, "id": sec2_id }, { "type": 3, "id": sec3_id }, { "type": 4, "id": sec4_id }];
-        pjson = JSON.stringify(pjson);
-        if (type == 3) {
-            var uid = $('.content2 .item3 .td1').attr('uid');
-            if (uid == undefined) {
-                layer.msg("请先进行会员查询");
+            pjson = JSON.stringify(pjson);
+            if (type == 3) {
+                var uid = $('.content2 .item3 .td1').attr('uid');
+                if (uid == undefined) {
+                    layer.msg("请先进行会员查询");
+                } else {
+                    // 获取包厢号
+                    console.log(pjson);
+                    $.ajax({
+                        url: "https://pay.imbatv.cn/api/checkin/single?san_or_box=" + san_or_box,
+                        type: "POST",
+                        data: {
+                            user_id: user_id,
+                            box_id: box_id,
+                            pjson: pjson,
+                            whopay: uid,
+                            pay_type: type,
+                            machine_id: machine_id
+                        },
+                        dataType: 'json',
+                        success: function(data) {
+                            if (data.code == 200) {
+                                layer.msg(data.message, { time: 2000, icon: 6 }, function() {
+                                    ipcRenderer.send('checkin',0, 0, 0, 0, 0, 0, 0);
+                                    window.location.href = '../../page/home/home.html';
+                                });
+                            } else {
+                                layer.msg(data.message, { time: 2000, icon: 5 });
+                            }
+
+                        },
+                        error: function(err) {
+                            console.log(err);
+                        }
+                    });
+                }
             } else {
-                // 获取包厢号
-                console.log(pjson);
                 $.ajax({
                     url: "https://pay.imbatv.cn/api/checkin/single?san_or_box=" + san_or_box,
                     type: "POST",
@@ -453,15 +585,17 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl'], function() {
                         user_id: user_id,
                         box_id: box_id,
                         pjson: pjson,
-                        whopay: uid,
                         pay_type: type,
                         machine_id: machine_id
                     },
                     dataType: 'json',
-                    success: function(data) {
-                        if (data.code == 200) {
+                    success: function(data) {  
+                                            
+                        if (data.code == 200) {     
+                                                       
                             layer.msg(data.message, { time: 2000, icon: 6 }, function() {
-                                parent.location.reload();
+                                ipcRenderer.send('checkin',0, 0, 0, 0, 0, 0, 0);
+                                window.location.href = '../../page/home/home.html';
                             });
                         } else {
                             layer.msg(data.message, { time: 2000, icon: 5 });
@@ -469,39 +603,24 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl'], function() {
 
                     },
                     error: function(err) {
+                        
                         console.log(err);
                     }
                 });
             }
-        } else {
-            $.ajax({
-                url: "https://pay.imbatv.cn/api/checkin/single?san_or_box=" + san_or_box,
-                type: "POST",
-                data: {
-                    user_id: user_id,
-                    box_id: box_id,
-                    pjson: pjson,
-                    pay_type: type,
-                    machine_id: machine_id
-                },
-                dataType: 'json',
-                success: function(data) {
-                    if (data.code == 200) {
-                        layer.msg(data.message, { time: 2000, icon: 6 }, function() {
-                            parent.location.reload();
-                        });
-                    } else {
-                        layer.msg(data.message, { time: 2000, icon: 5 });
-                    }
-
-                },
-                error: function(err) {
-                    console.log(err);
-                }
-            });
-        } 
         }
     });
+    // 选择外设监听
+    form.on('select()', function(data) {
+        getAllCheckinInfo(mid);
+    })
+    // 取消
+    $(".qx").click(function() {
+        ipcRenderer.send('checkin',0, 0, 0, 0, 0, 0, 0);    
+        window.location.href = '../../page/home/home.html';
+    });
+
+    getAllCheckinInfo()
 })
 // 验证手机号
 function isPhoneNo(phone) {
