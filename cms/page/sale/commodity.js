@@ -374,8 +374,8 @@ $.ajax({
             var html = "";
             for (var i = 0; i < data.data.pay_type.length; i++) {
                 html += '<div class="block_left">';
-                html += '<input type="radio" name="payment" data-type="' + data.data.pay_type[i].id + '" />';
-                html += '<label for="use_coupon" data-type="' + data.data.pay_type[i].id + '">' + data.data.pay_type[i].value + '</label>';
+                html += '<input type="radio" name="payment" id="' + data.data.pay_type[i].id + '" value="' + data.data.pay_type[i].id + '" data-type="' + data.data.pay_type[i].id + '" />';
+                html += '<label for="' + data.data.pay_type[i].id + '" data-type="' + data.data.pay_type[i].id + '">' + data.data.pay_type[i].value + '</label>';
                 html += '</div>';
             }
             $(".box_block3").html(html);
