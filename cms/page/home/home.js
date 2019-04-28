@@ -90,6 +90,9 @@ layui.use(['form', 'util', 'layer', 'laydate', 'table', 'laytpl', 'util'], funct
  $('.adduser').on('click', function() {
      window.location.href = '../../page/adduser/recharge.html';
  });
+ $('.give').on('click', function() {
+    window.location.href = '../../page/give/give.html?userid=' + userid;
+});
 });
 // 验证手机号
 function isPhoneNo(phone) {

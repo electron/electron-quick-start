@@ -17,17 +17,17 @@ layui.use(['form', 'util', 'layer', 'laydate', 'table', 'laytpl', 'util'], funct
         //,…… //其他参数
         cols: [
             [
-                { field: 'id', title: 'ID', align: 'center', width: 50 },
-                { field: 'state', title: '状态', align: 'center', width: 50, hide: false },
+                { field: 'id', title: 'ID', align: 'center', width: 100 },
+                { field: 'state', title: '状态', align: 'center', width: 100, hide: false },
                 { field: 'username', title: '会员号', width: 120, align: "center" },
-                { field: 'level', title: '会员等级', align: 'center' },
+                // { field: 'level', title: '会员等级', align: 'center' },
                 { field: 'name', title: '姓名', align: 'center' },
                 { field: 'phone', title: '手机号', width: 140, align: 'center' },
-                { field: 'box_id', title: '座位号', width: 180, align: "center" },
-                { field: 'machine_name', title: '机器号', width: 180, align: "center" },
+                // { field: 'box_id', title: '座位号', width: 100, align: "center" },
+                { field: 'machine_name', title: '机器号', width: 100, align: "center" },
                 { field: 'balance', title: '余额', align: 'center' },
                 // { field: 'aaa', title: '订单详情', align: 'center', class: 'aaa' },
-                { title: '操作', width: 270, templet: '#newsListBar', fixed: "right", align: "center" }
+                { title: '操作', width: 160, templet: '#newsListBar', fixed: "right", align: "center" }
             ]
         ],
         done: function(res, curr, count) {

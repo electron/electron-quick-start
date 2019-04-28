@@ -1,3 +1,6 @@
+//const ansible_task = require('./ansible_request.js')
+//ansible_task.task(7,'172.31.16.89')
+
 const electron = require('electron')
 const {app, BrowserWindow, Menu} = require('electron')
 
@@ -60,7 +63,7 @@ ipcMain.on('synchronous-message', function(event, arg) {
       fullscreen: true
     })
     showWindow.webContents.openDevTools()
-    showWindow.loadFile('show/show2.html')
+    showWindow.loadFile('show/show.html')
 
   }
   mainWindow.close()
@@ -74,6 +77,14 @@ ipcMain.on('user-logout', function(event, arg) {
 });
 
 let user_name = '';
+
+
+ipcMain.on('hide-all', ()=>{
+ 
+  showWindow.webContents.send('hide-all');
+  //更换用户
+});
+
 ipcMain.on('change-user', function(event, arg) {
   user_name = arg
   

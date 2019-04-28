@@ -14,8 +14,10 @@ layui.use(['form','layer','jquery'],function(){
             }else{
                 if(h == 1){
                     $(".show_checkin").show();
+                    $(".show_welcome").hide();
                 }else{
                     $(".show_checkin").hide();
+                    $(".show_welcome").show();
                 }
             }
             
@@ -38,18 +40,22 @@ layui.use(['form','layer','jquery'],function(){
                 $(".checkout_peripheral_2").html(h.data.peripheral_last_data[2].desc);
                 $(".checkout_peripheral_3").html(h.data.peripheral_last_data[3].desc);
                 $(".checkout_peripheral_4").html(h.data.peripheral_last_data[4].desc);
+                $(".show_welcome").hide();
                 $(".show_checkout").show();
             }else{
                 $(".show_checkout").hide();
+                $(".show_welcome").show();
             }
         })
 
         ipcRenderer.on('recharge',(e,st,num)=>{
             if(st == 1){
                 $(".show_money").show();
+                $(".show_welcome").hide();
                 $(".money_num").html(num);
             }else{
                 $(".show_money").hide();
+                $(".show_welcome").show();
             }
         })
 
@@ -70,11 +76,13 @@ layui.use(['form','layer','jquery'],function(){
                         }
                     }
                 }
+                $(".show_welcome").hide();
                 $(".show_sale").show();
-                $(".con ul").html(html);
+                $(".show_sale .con ul").html(html);
                 $(".show_sale_money").html(money)
             }else{
                 $(".show_sale").hide();
+                $(".show_welcome").show();
             }
         })
 })

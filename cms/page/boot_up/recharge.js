@@ -463,6 +463,8 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl'], function() {
                     if (data.code == 200) {
                         layer.msg(data.message, { time: 2000, icon: 6 }, function() {
                             ipcRenderer.send('checkin',0, 0, 0, 0, 0, 0, 0);
+
+                            
                             window.location.href = '../../page/home/home.html';
                         });
                     } else {
