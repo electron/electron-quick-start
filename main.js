@@ -24,6 +24,8 @@ function createBarWindow () {
   barWindow.loadFile('cms/page/home/home.html')
   barWindow.on('closed', function () {
     barWindow = null
+    showWindow.close()
+    showWindow = null 
   })
 }
 
