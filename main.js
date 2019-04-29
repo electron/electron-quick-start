@@ -19,7 +19,7 @@ function createWindow () {
 }
 
 function createBarWindow () {
-  barWindow = new BrowserWindow({width: 1024, height: 768})
+  barWindow = new BrowserWindow({width: 1024, height: 768,fullscreen: true})
   //barWindow.webContents.openDevTools()
   barWindow.loadFile('cms/page/home/home.html')
   barWindow.on('closed', function () {
@@ -62,7 +62,7 @@ ipcMain.on('synchronous-message', function(event, arg) {
       y: externalDisplay.bounds.y,
       fullscreen: true
     })
-    showWindow.webContents.openDevTools()
+    //showWindow.webContents.openDevTools()
     showWindow.loadFile('show/show.html')
 
   }

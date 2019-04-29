@@ -7,6 +7,7 @@ layui.use(['form', 'util', 'layer', 'laydate', 'table', 'laytpl', 'util'], funct
         laytpl = layui.laytpl,
         table = layui.table;
         userid = '';
+        level ='';
     // 搜索
     $('.search_btn1').on('click', function() {
         var searchVal1 = $(".searchVal1").val();
@@ -28,6 +29,7 @@ layui.use(['form', 'util', 'layer', 'laydate', 'table', 'laytpl', 'util'], funct
                         $(".sp5").html("会员等级："+data.data.level);
                         $(".sp6").html("余额："+data.data.balance);
                         userid = data.data.uid;
+                        level = data.data.level;
                     } else {
                         layer.msg(data.message);
                         $(".sp1").html("姓名：");
@@ -37,6 +39,7 @@ layui.use(['form', 'util', 'layer', 'laydate', 'table', 'laytpl', 'util'], funct
                         $(".sp5").html("会员等级：");
                         $(".sp6").html("余额：");
                         userid = "";
+                        level = "";
                     }
 
                 },
@@ -80,7 +83,12 @@ layui.use(['form', 'util', 'layer', 'laydate', 'table', 'laytpl', 'util'], funct
  });
  // 特殊vip管理
  $('.vip').on('click', function() {
-     window.location.href = '../../page/manag_VIP/vip.html';
+     if (userid == "") {
+        layer.msg("请输入正确信息！！！");
+    }else{
+        window.location.href = '../../page/manag_VIP/commondityAdd.html?userid='+ userid;
+    }
+    
  });
  // 手机订单
  $('.order').on('click', function() {
@@ -90,9 +98,22 @@ layui.use(['form', 'util', 'layer', 'laydate', 'table', 'laytpl', 'util'], funct
  $('.adduser').on('click', function() {
      window.location.href = '../../page/adduser/recharge.html';
  });
+ // 赠送优惠劵
  $('.give').on('click', function() {
-    window.location.href = '../../page/give/give.html?userid=' + userid;
-});
+    if (userid == "") {
+        layer.msg("请输入正确信息！！！");
+    }else{
+        window.location.href = '../../page/give/give.html?userid='+userid;
+    }
+ });
+// 交接班
+ $('.change_shifts').on('click', function() {
+     window.location.href = '../../page/change_shifts/index.html';
+ });
+  // 备用
+ $('.spare').on('click', function() {
+     layer.msg("敬请期待！");
+ });
 });
 // 验证手机号
 function isPhoneNo(phone) {

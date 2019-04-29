@@ -104,6 +104,7 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl', 'element'], function()
                         $(".box").css("height", "348px");
                         $('.box_block1 .block_right input').val(data.data.total_money + "元");
                         $('.box_block2 .block_right input').val(data.data.discount_money + "元");
+                        AllMoney = data.data.discount_money;
                     } else {
                         layer.msg(data.message);
                     }
