@@ -277,6 +277,8 @@ var totalQuantity = 0; //总数量
 var totalMoney = 0; //总金额
 var totalIntegral = 0; //总积分
 function onNodeClick(data, index) {
+    totalQuantity = $(".totalQuantity").html(); 
+    totalMoney = parseFloat($(".totalMoney").html());
     //获取选中节点的值
     var flag = false;
     // var tree=mini.get("tree1");
@@ -290,7 +292,7 @@ function onNodeClick(data, index) {
         this_price = node.price; //获取单价
         this_price = parseFloat(this_price);
         totalMoney += this_price;
-        $('.totalMoney').html(totalMoney.toFixed(2));
+        $('.totalMoney').html(totalMoney);
 
         this_integral = node.integral; //获取积分  
         this_integral = parseFloat(this_integral);
