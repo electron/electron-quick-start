@@ -181,6 +181,10 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl', 'element'], function()
         $('.box_block2 .block_right input').val(0);
     })
 
+    $(".qx").click(function() {
+        window.location.href = '../../page/home/home.html';
+    });
+    
     $(".card_reading").on("click", function() {
         var val = $(this).siblings(".layui-input-inline").children().val();
         // 判断是否为空
@@ -377,7 +381,11 @@ $.ajax({
             var html = "";
             for (var i = 0; i < data.data.pay_type.length; i++) {
                 html += '<div class="block_left">';
-                html += '<input type="radio" name="payment" id="' + data.data.pay_type[i].id + '" value="' + data.data.pay_type[i].id + '" data-type="' + data.data.pay_type[i].id + '" />';
+                if (i == 0) {
+                    html += '<input checked type="radio" name="payment" id="' + data.data.pay_type[i].id + '" value="' + data.data.pay_type[i].id + '" data-type="' + data.data.pay_type[i].id + '" />';  
+                }else{
+                    html += '<input type="radio" name="payment" id="' + data.data.pay_type[i].id + '" value="' + data.data.pay_type[i].id + '" data-type="' + data.data.pay_type[i].id + '" />';
+                }
                 html += '<label for="' + data.data.pay_type[i].id + '" data-type="' + data.data.pay_type[i].id + '">' + data.data.pay_type[i].value + '</label>';
                 html += '</div>';
             }

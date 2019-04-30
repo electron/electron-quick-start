@@ -223,7 +223,11 @@ $.ajax({
             var html = "";
             for (var i = 0; i < data.data.pay_type.length; i++) {
                 html += '<div class="block_left">';
-                html += '<input type="radio" name="payment" data-type="' + data.data.pay_type[i].id + '" />';
+                if (i == 0) {
+                    html += '<input checked type="radio" name="payment" id="' + data.data.pay_type[i].id + '" value="' + data.data.pay_type[i].id + '" data-type="' + data.data.pay_type[i].id + '" />';  
+                }else{
+                    html += '<input type="radio" name="payment" id="' + data.data.pay_type[i].id + '" value="' + data.data.pay_type[i].id + '" data-type="' + data.data.pay_type[i].id + '" />';
+                }
                 html += '<label for="use_coupon" data-type="' + data.data.pay_type[i].id + '">' + data.data.pay_type[i].value + '</label>';
                 html += '</div>';
             }
