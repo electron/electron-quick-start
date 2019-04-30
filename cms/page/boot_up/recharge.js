@@ -84,110 +84,110 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl'], function() {
             var html_12_1 = '';
             for (var i = 0; i < data.data.machines.length; i++) {
                 if (data.data.machines[i].type == 1) {
-                    html_1 += '<li machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
+                    html_1 += '<li mac="' + data.data.machines[i].mac + '" ip="' + data.data.machines[i].ip + '" machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
                 }
             }
             for (var i = 0; i < data.data.machines.length; i++) {
                 if (data.data.machines[i].type == 2) {
                     if (data.data.machines[i].box_id == '5人包厢1') {
-                        html_2_1 += '<li machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
+                        html_2_1 += '<li mac="' + data.data.machines[i].mac + '" ip="' + data.data.machines[i].ip + '" machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
                     } else if (data.data.machines[i].box_id == '5人包厢2') {
-                        html_2_2 += '<li machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
+                        html_2_2 += '<li mac="' + data.data.machines[i].mac + '" ip="' + data.data.machines[i].ip + '" machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
                     } else if (data.data.machines[i].box_id == '5人包厢3') {
-                        html_2_3 += '<li machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
+                        html_2_3 += '<li mac="' + data.data.machines[i].mac + '" ip="' + data.data.machines[i].ip + '" machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
                     } else if (data.data.machines[i].box_id == '5人包厢4') {
-                        html_2_4 += '<li machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
+                        html_2_4 += '<li mac="' + data.data.machines[i].mac + '" ip="' + data.data.machines[i].ip + '" machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
                     } else if (data.data.machines[i].box_id == '5人包厢5') {
-                        html_2_5 += '<li machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
+                        html_2_5 += '<li mac="' + data.data.machines[i].mac + '" ip="' + data.data.machines[i].ip + '" machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
                     } else if (data.data.machines[i].box_id == '5人包厢6') {
-                        html_2_6 += '<li machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
+                        html_2_6 += '<li mac="' + data.data.machines[i].mac + '" ip="' + data.data.machines[i].ip + '" machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
                     } else if (data.data.machines[i].box_id == '5人包厢7') {
-                        html_2_7 += '<li machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
+                        html_2_7 += '<li mac="' + data.data.machines[i].mac + '" ip="' + data.data.machines[i].ip + '" machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
                     } else if (data.data.machines[i].box_id == '5人包厢8') {
-                        html_2_8 += '<li machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
+                        html_2_8 += '<li mac="' + data.data.machines[i].mac + '" ip="' + data.data.machines[i].ip + '" machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
                     }
                 }
             }
             for (var i = 0; i < data.data.machines.length; i++) {
                 if (data.data.machines[i].type == 3) {
                     if (data.data.machines[i].box_id == '5人包厢9') {
-                        html_3_1 += '<li machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
+                        html_3_1 += '<li mac="' + data.data.machines[i].mac + '" ip="' + data.data.machines[i].ip + '" machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
                     } else if (data.data.machines[i].box_id == '5人包厢10') {
-                        html_3_2 += '<li machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
+                        html_3_2 += '<li mac="' + data.data.machines[i].mac + '" ip="' + data.data.machines[i].ip + '" machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
                     } else if (data.data.machines[i].box_id == '5人包厢11') {
-                        html_3_3 += '<li machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
+                        html_3_3 += '<li mac="' + data.data.machines[i].mac + '" ip="' + data.data.machines[i].ip + '" machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
                     } else if (data.data.machines[i].box_id == '5人包厢12') {
-                        html_3_4 += '<li machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
+                        html_3_4 += '<li mac="' + data.data.machines[i].mac + '" ip="' + data.data.machines[i].ip + '" machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
                     } else if (data.data.machines[i].box_id == '5人包厢13') {
-                        html_3_5 += '<li machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
+                        html_3_5 += '<li mac="' + data.data.machines[i].mac + '" ip="' + data.data.machines[i].ip + '" machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
                     } else if (data.data.machines[i].box_id == '5人包厢14') {
-                        html_3_6 += '<li machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
+                        html_3_6 += '<li mac="' + data.data.machines[i].mac + '" ip="' + data.data.machines[i].ip + '" machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
                     } else if (data.data.machines[i].box_id == '5人包厢15') {
-                        html_3_7 += '<li machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
+                        html_3_7 += '<li mac="' + data.data.machines[i].mac + '" ip="' + data.data.machines[i].ip + '" machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
                     } else if (data.data.machines[i].box_id == '5人包厢16') {
-                        html_3_8 += '<li machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
+                        html_3_8 += '<li mac="' + data.data.machines[i].mac + '" ip="' + data.data.machines[i].ip + '" machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
                     } else if (data.data.machines[i].box_id == '5人包厢17') {
-                        html_3_9 += '<li machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
+                        html_3_9 += '<li mac="' + data.data.machines[i].mac + '" ip="' + data.data.machines[i].ip + '" machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
                     } else if (data.data.machines[i].box_id == '5人包厢18') {
-                        html_3_10 += '<li machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
+                        html_3_10 += '<li mac="' + data.data.machines[i].mac + '" ip="' + data.data.machines[i].ip + '" machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
                     } else if (data.data.machines[i].box_id == '5人包厢19') {
-                        html_3_11 += '<li machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
+                        html_3_11 += '<li mac="' + data.data.machines[i].mac + '" ip="' + data.data.machines[i].ip + '" machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
                     } else if (data.data.machines[i].box_id == '5人包厢20') {
-                        html_3_12 += '<li machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
+                        html_3_12 += '<li mac="' + data.data.machines[i].mac + '" ip="' + data.data.machines[i].ip + '" machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
                     } else if (data.data.machines[i].box_id == '5人包厢21') {
-                        html_3_13 += '<li machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
+                        html_3_13 += '<li mac="' + data.data.machines[i].mac + '" ip="' + data.data.machines[i].ip + '" machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
                     } else if (data.data.machines[i].box_id == '5人包厢22') {
-                        html_3_14 += '<li machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
+                        html_3_14 += '<li mac="' + data.data.machines[i].mac + '" ip="' + data.data.machines[i].ip + '" machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
                     } else if (data.data.machines[i].box_id == '5人包厢23') {
-                        html_3_15 += '<li machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
+                        html_3_15 += '<li mac="' + data.data.machines[i].mac + '" ip="' + data.data.machines[i].ip + '" machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
                     } else if (data.data.machines[i].box_id == '5人包厢24') {
-                        html_3_16 += '<li machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
+                        html_3_16 += '<li mac="' + data.data.machines[i].mac + '" ip="' + data.data.machines[i].ip + '" machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
                     } else if (data.data.machines[i].box_id == '5人包厢25') {
-                        html_3_17 += '<li machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
+                        html_3_17 += '<li mac="' + data.data.machines[i].mac + '" ip="' + data.data.machines[i].ip + '" machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
                     } else if (data.data.machines[i].box_id == '5人包厢26') {
-                        html_3_18 += '<li machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
+                        html_3_18 += '<li mac="' + data.data.machines[i].mac + '" ip="' + data.data.machines[i].ip + '" machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
                     } else if (data.data.machines[i].box_id == '5人包厢27') {
-                        html_3_19 += '<li machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
+                        html_3_19 += '<li mac="' + data.data.machines[i].mac + '" ip="' + data.data.machines[i].ip + '" machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
                     } else if (data.data.machines[i].box_id == '5人包厢28') {
-                        html_3_20 += '<li machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
+                        html_3_20 += '<li mac="' + data.data.machines[i].mac + '" ip="' + data.data.machines[i].ip + '" machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
                     } else if (data.data.machines[i].box_id == '5人包厢29') {
-                        html_3_21 += '<li machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
+                        html_3_21 += '<li mac="' + data.data.machines[i].mac + '" ip="' + data.data.machines[i].ip + '" machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
                     } else if (data.data.machines[i].box_id == '5人包厢30') {
-                        html_3_22 += '<li machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
+                        html_3_22 += '<li mac="' + data.data.machines[i].mac + '" ip="' + data.data.machines[i].ip + '" machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
                     }
                 }
             }
             for (var i = 0; i < data.data.machines.length; i++) {
                 if (data.data.machines[i].type == 4) {
                     if (data.data.machines[i].box_id == '6人包厢1') {
-                        html_4_1 += '<li machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
+                        html_4_1 += '<li mac="' + data.data.machines[i].mac + '" ip="' + data.data.machines[i].ip + '" machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
                     } else if (data.data.machines[i].box_id == '6人包厢2') {
-                        html_4_2 += '<li machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
+                        html_4_2 += '<li mac="' + data.data.machines[i].mac + '" ip="' + data.data.machines[i].ip + '" machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
                     } else if (data.data.machines[i].box_id == '6人包厢3') {
-                        html_4_3 += '<li machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
+                        html_4_3 += '<li mac="' + data.data.machines[i].mac + '" ip="' + data.data.machines[i].ip + '" machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
                     }
                 }
             }
             for (var i = 0; i < data.data.machines.length; i++) {
                 if (data.data.machines[i].type == 5) {
                     if (data.data.machines[i].box_id == '10人包厢1') {
-                        html_5_1 += '<li machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
+                        html_5_1 += '<li mac="' + data.data.machines[i].mac + '" ip="' + data.data.machines[i].ip + '" machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
                     } else if (data.data.machines[i].box_id == '10人包厢2') {
-                        html_5_2 += '<li machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
+                        html_5_2 += '<li mac="' + data.data.machines[i].mac + '" ip="' + data.data.machines[i].ip + '" machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
                     }
                 }
             }
             for (var i = 0; i < data.data.machines.length; i++) {
                 if (data.data.machines[i].type == 6) {
                     if (data.data.machines[i].box_id == '20人包厢') {
-                        html_6_1 += '<li machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
+                        html_6_1 += '<li mac="' + data.data.machines[i].mac + '" ip="' + data.data.machines[i].ip + '" machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
                     }
                 }
             }
             for (var i = 0; i < data.data.box_list.length; i++) {
                 if (data.data.box_list[i].type == 2) {
 
-                    html_7_1 += '<li>' + data.data.box_list[i].box_id + '</li>';
+                    html_7_1 += '<li mac="' + data.data.machines[i].mac + '" ip="' + data.data.machines[i].ip + '">' + data.data.box_list[i].box_id + '</li>';
 
 
                 }
@@ -195,21 +195,21 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl'], function() {
             for (var i = 0; i < data.data.box_list.length; i++) {
                 if (data.data.box_list[i].type == 3) {
 
-                    html_8_1 += '<li>' + data.data.box_list[i].box_id + '</li>';
+                    html_8_1 += '<li mac="' + data.data.machines[i].mac + '" ip="' + data.data.machines[i].ip + '" >' + data.data.box_list[i].box_id + '</li>';
 
 
                 }
             }
             for (var i = 0; i < data.data.box_list.length; i++) {
                 if (data.data.box_list[i].type == 4) {
-                    html_9_1 += '<li>' + data.data.box_list[i].box_id + '</li>';
+                    html_9_1 += '<li mac="' + data.data.machines[i].mac + '" ip="' + data.data.machines[i].ip + '">' + data.data.box_list[i].box_id + '</li>';
 
                 }
             }
             for (var i = 0; i < data.data.box_list.length; i++) {
                 if (data.data.box_list[i].type == 5) {
 
-                    html_10_1 += '<li>' + data.data.box_list[i].box_id + '</li>';
+                    html_10_1 += '<li mac="' + data.data.machines[i].mac + '" ip="' + data.data.machines[i].ip + '">' + data.data.box_list[i].box_id + '</li>';
 
 
                 }
@@ -217,7 +217,7 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl'], function() {
             for (var i = 0; i < data.data.box_list.length; i++) {
                 if (data.data.box_list[i].type == 6) {
 
-                    html_11_1 += '<li>' + data.data.box_list[i].box_id + '</li>';
+                    html_11_1 += '<li mac="' + data.data.machines[i].mac + '" ip="' + data.data.machines[i].ip + '" >' + data.data.box_list[i].box_id + '</li>';
 
                 }
             }
@@ -232,7 +232,6 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl'], function() {
             $('.content2 .cn5 ul li:first(child)').addClass("cur");
             $('.content2 .cn6 ul li:first(child)').addClass("cur");
             $(".content2 .classify ul li").click(function() {
-                console.log("fuck");
                 $(this).addClass('cur').siblings().removeClass('cur').parent().parent().siblings().children().eq($(this).index()).show().siblings().hide();
                 $(this).parent().parent().parent().siblings('.cn').children().children().children().removeClass('cur');
             });
@@ -461,9 +460,8 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl'], function() {
                 dataType: 'json',
                 success: function(data) {
                     if (data.code == 200) {
+                        open_and_send_electron();    
                         layer.msg(data.message, { time: 2000, icon: 6 }, function() {
-                            ipcRenderer.send('checkin',0, 0, 0, 0, 0, 0, 0);
-
                             
                             window.location.href = '../../page/home/home.html';
                         });
@@ -564,9 +562,10 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl'], function() {
                         },
                         dataType: 'json',
                         success: function(data) {
+                            open_and_send_electron();    
                             if (data.code == 200) {
                                 layer.msg(data.message, { time: 2000, icon: 6 }, function() {
-                                    ipcRenderer.send('checkin',0, 0, 0, 0, 0, 0, 0);
+                                    
                                     window.location.href = '../../page/home/home.html';
                                 });
                             } else {
@@ -592,11 +591,10 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl'], function() {
                     },
                     dataType: 'json',
                     success: function(data) {  
-                                            
-                        if (data.code == 200) {     
-                                                       
+                        open_and_send_electron();                    
+                        if (data.code == 200) {         
                             layer.msg(data.message, { time: 2000, icon: 6 }, function() {
-                                ipcRenderer.send('checkin',0, 0, 0, 0, 0, 0, 0);
+                                
                                 window.location.href = '../../page/home/home.html';
                             });
                         } else {
@@ -612,6 +610,10 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl'], function() {
             }
         }
     });
+    // 获取ip mac 地址
+    $(".mpx_4 .layui-btn").click(function() {
+        
+    });
     // 选择外设监听
     form.on('select()', function(data) {
         getAllCheckinInfo(mid);
@@ -622,6 +624,15 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl'], function() {
         window.location.href = '../../page/home/home.html';
     });
 
+    function open_and_send_electron(){
+
+        var mac = $(".cn .classify_cn ul li.cur").attr("mac");
+        var ip = $(".cn .classify_cn ul li.cur").attr("ip");
+        console.log(mac);
+        ipcRenderer.send('open-machine',ip,mac);  
+        ipcRenderer.send('checkin',0, 0, 0, 0, 0, 0, 0);
+    }
+
     getAllCheckinInfo()
 })
 // 验证手机号
@@ -629,3 +640,4 @@ function isPhoneNo(phone) {
     var pattern = /^1[34578]\d{9}$/;
     return pattern.test(phone);
 }
+
