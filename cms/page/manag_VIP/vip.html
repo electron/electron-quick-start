@@ -1,52 +1,147 @@
 <!DOCTYPE html>
-<html class="loginHtml">
+<html lang="en">
 
 <head>
-    <meta charset="utf-8">
-    <title>vip管理--Imba电竞馆管理后台</title>
-    <meta name="renderer" content="webkit">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="format-detection" content="telephone=no">
-    <link rel="icon" href="../../favicon.ico">
+    <meta charset="UTF-8">
+    <title>特殊VIP信息</title>
     <link rel="stylesheet" href="../../layui/css/layui.css" media="all" />
-    <link rel="stylesheet" href="vip.css" media="all" />
+    <link rel="stylesheet" href="../../css/public.css" media="all" />
+    <script type="text/javascript" src="https://pay.imbatv.cn/style/js/jquery-3.3.1.js"></script>
 </head>
-
-<body class="childrenBody">
-    <form class="layui-form">
-        <blockquote class="layui-elem-quote quoteBox">
-            <form class="layui-form">
-                <div class="layui-inline">
-                    <h1>特殊VIP管理</h1>
-                </div>
-                <!-- <div class="layui-inline" style="margin-left: 40px;">
-                    <a class="layui-btn layui-btn-normal commondityAdd_btn">增加VIP</a>
-                </div> -->
-                <button type="reset" class="layui-btn layui-btn-lg layui-btn-primary qx" style="float: right;">返回</button>
-            </form>
-        </blockquote>
-        <table id="newsList" lay-filter="newsList"></table>
-        <div class="ll">
-            <ul>
-                <li></li>
-            </ul>
-        </div>
-        <!--操作-->
-        <script type="text/html" id="newsListBar">
-            <div class="userid">
-            <a class="layui-btn layui-btn-xs  recharge_btn" lay-event="modify">修改</a>
-             <a class="layui-btn layui-btn-xs layui-btn-danger recharge_btn" lay-event="delete">删除</a>
+<style type="text/css">
+    .layui-input{
+        width: 172px;
+    }
+</style>
+<body>
+    <div action='' method="" class="layui-form" style="width: 427px;margin:0 auto;margin-top: 60px;">
+        <div class="layui-form-item item1">
+            <label class="layui-form-label">会员等级</label>
+            <div class="layui-input-block">
+                <input type="text" name="level" lay-verify="number" autocomplete="off" placeholder="会员等级" class="layui-input">
             </div>
         </div>
-    </script>
-    </form>
-    
+        <div class="layui-form">
+            <div class="layui-form-item">
+                <div class="layui-inline">
+                    <label class="layui-form-label">截止时间</label>
+                    <div class="layui-input-inline">
+                        <input type="text" class="layui-input" id="test1" placeholder="yyyy-MM-dd">
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="layui-form-item item6">
+            <div class="layui-input-block">
+                <button class="layui-btn btn1" lay-submit="" lay-filter="demo1">修改</button>
+                <button type="reset" class="layui-btn layui-btn-primary btn2 qx">取消</button>
+            </div>
+        </div>
+    </div>
 </body>
 <script type="text/javascript" src="../../layui/layui.js"></script>
-<script src="https://libs.baidu.com/jquery/2.1.1/jquery.min.js"></script>
-<script type="text/javascript" src="vip.js"></script>
+<script>
+layui.use(['form', 'layedit', 'laydate'], function() {
+    var form = layui.form,
+        layer = layui.layer,
+        layedit = layui.layedit,
+        laydate = layui.laydate;
+    $ = layui.jquery;
+    var enddate;
+    var endT;
+    function getQueryString(name) {
+        var reg = new RegExp('(^|&)' + name + '=([^&]*)(&|$)', 'i');
+        var r = window.location.search.substr(1).match(reg);
+        if (r != null) {
+            return unescape(r[2]);
+        }
+        return null;
+    }
+    var uid = getQueryString("userid");
+    $.ajax({
+        url: 'https://pay.imbatv.cn/api/vip/info/'+uid,
+        type: "GET",
+        dataType: 'json',
+        success: function(data) {
+            console.log(data);
+            if (data.code == 200) {
+                $(".item1 input").val(data.data.level);
+                endT = data.data.endtime;
+                enddate = endT;
+                console.log(endT);
+                //常规用法
+                laydate.render({
+                  elem: '#test1',
+                  value: createTime(endT),
+                  done: function(value, date, endDate){
+                    enddate = Date.parse(value)/1000;
+                  }
+                });
+            } else {
+                layer.msg(data.message);
+            }
 
+        },
+        error: function(err) {
+            console.log(err);
+        }
+    });
+    
+    //创建一个编辑器
+    var editIndex = layedit.build('LAY_demo_editor');
+    form.on('submit(demo1)', function(data) {
+        var data = JSON.stringify(data.field);
+        console.log(data);
+        var index = top.layer.msg('数据提交中，请稍候', { icon: 16, time: false, shade: 0.8 });
+        var level = $(".item1 input").val();
+        console.log(uid);
+        console.log(level);
+        console.log(enddate);
+        $.ajax({
+            type: "POST",
+            catch: true,
+            data: {
+                "endtime": enddate,
+                "level": level,
+            },
+            dataType: "json",
+            url: "https://pay.imbatv.cn/api/vip/insert_or_update/" + uid,
+            success: function(res) {
+                console.log(res);
+               if (res.code == 200) {
+                    layer.msg(res.message, { time: 2000 }, function() {
+                        //回调
+                        window.location.href = '../../page/home/home.html';
+                    })
+                } else {
+                    layer.msg(res.message);
+                }
+            },
+            error: function(request) {
+                console.log(request);
+            },
+        });
+    });
+      // 取消
+    $(".qx").click(function() {
+        window.location.href = '../../page/home/home.html';
+    });
+    // 取消
+});
+
+function createTime(v) {
+    var date = new Date(v * 1000);
+    var y = date.getFullYear();
+    var m = date.getMonth() + 1;
+    m = m < 10 ? '0' + m : m;
+    var d = date.getDate();
+    d = d < 10 ? ("0" + d) : d;
+    var h = date.getHours();
+    h = h < 10 ? ("0" + h) : h;
+    var M = date.getMinutes();
+    M = M < 10 ? ("0" + M) : M;
+    var str = y + "-" + m + "-" + d ;
+    return str;
+}
+</script>
 </html>

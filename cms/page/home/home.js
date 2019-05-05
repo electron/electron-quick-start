@@ -86,7 +86,7 @@ layui.use(['form', 'util', 'layer', 'laydate', 'table', 'laytpl', 'util'], funct
      if (userid == "") {
         layer.msg("请输入正确信息！！！");
     }else{
-        window.location.href = '../../page/manag_VIP/commondityAdd.html?userid='+ userid;
+        window.location.href = '../../page/manag_VIP/vip.html?userid='+ userid;
     }
     
  });
