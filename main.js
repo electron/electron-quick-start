@@ -1,5 +1,4 @@
-//const ansible_task = require('./ansible_request.js')
-//ansible_task.task(7,'172.31.16.89')
+
 
 const electron = require('electron')
 const {app, BrowserWindow, Menu} = require('electron')
@@ -20,7 +19,7 @@ function createWindow () {
 
 function createBarWindow () {
   barWindow = new BrowserWindow({width: 1024, height: 768,fullscreen: true})
-  //barWindow.webContents.openDevTools()
+  barWindow.webContents.openDevTools()
   barWindow.loadFile('cms/page/home/home.html')
   barWindow.on('closed', function () {
     barWindow = null
@@ -132,3 +131,21 @@ ipcMain.on('sale', function(event, st, data,money) {
 
   showWindow.webContents.send('sale',st,data,money)
 });
+
+//控制开关机
+const ansible_task = require('./ansible_request.js')
+
+//开机
+ipcMain.on('open-machine',function(event,ip,mac){
+  ansible_task.taskopen(ip,mac)
+})
+
+//关机
+ipcMain.on('close-machine',function(event,ip){
+  ansible_task.task(10,ip)
+})
+
+//锁屏
+ipcMain.on('clock-machine',function(event,ip){
+  ansible_task.task(7,ip)
+})
