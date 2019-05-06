@@ -12,7 +12,7 @@
     <meta name="format-detection" content="telephone=no">
     <link rel="icon" href="../../favicon.ico">
     <link rel="stylesheet" href="../../layui/css/layui.css" media="all" />
-    <link rel="stylesheet" href="give.css" media="all" />
+    <link rel="stylesheet" href="Down_machine.css" media="all" />
 </head>
 <style type="text/css">
 .layui-input-block {
@@ -109,7 +109,6 @@ layui.use('form', function() {
     }
     var userid = getQueryString("userid");
     var machine_id = getQueryString("machine_id");
-    var machine_ip = '';
     console.log(userid);
     console.log(machine_id);
     if (machine_id != "0") {
@@ -126,35 +125,40 @@ layui.use('form', function() {
             console.log(request);
         },
         success: function(res) {
-            ipcRenderer.send('checkout',1,res);
-            console.log(res);
-            user_id = res.data.user_info.uid;
-            machine_ip = res.data.machine_info.ip;
-            var html = '';
-            var data = res.data;
-            // // 判断优惠劵类型
-            var datatype = $(".item7").attr("type");
-            html = '<option value=""></option>';
-            for (var i = 0; i < data.coupon_info.length; i++) {
-                html += "<option value=" + data.coupon_info[i].user_coupon_id + ">" + data.coupon_info[i].name + "</option>";
-            };
-            var deduct_info = data.deduct_info;
-            if (deduct_info != undefined) {
-                $(".item4 .layui-input-block").html(deduct_info.money+"元");
-                $(".item5 .layui-input-block").html(deduct_info.total_money+"元");
+            if (res.code == '400') {
+                 $('.recharge').hide();
+                 layer.msg(res.message, { time: 2000, icon: 5 }, function() {
+                        window.location.href = '../../page/home/home.html';
+                 });   
             }else{
-                $(".item4").hide();
-                $(".item5").hide();
+                ipcRenderer.send('checkout',1,res);
+                user_id = res.data.user_info.uid;
+                var html = '';
+                var data = res.data;
+                // // 判断优惠劵类型
+                var datatype = $(".item7").attr("type");
+                html = '<option value=""></option>';
+                for (var i = 0; i < data.coupon_info.length; i++) {
+                    html += "<option value=" + data.coupon_info[i].user_coupon_id + ">" + data.coupon_info[i].name + "</option>";
+                };
+                var deduct_info = data.deduct_info;
+                if (deduct_info != undefined) {
+                    $(".item4 .layui-input-block").html(deduct_info.money+"元");
+                    $(".item5 .layui-input-block").html(deduct_info.total_money+"元");
+                }else{
+                    $(".item4").hide();
+                    $(".item5").hide();
+                }
+                $(".item1 .layui-input-block").html(data.user_info.name);
+                $(".item2 .layui-input-block").html(data.user_info.balance);
+                $(".item3 .layui-input-block").html(data.machine_info.machine_name);
+                $(".item6 ul li.n1 i").html(data.peripheral_last_data[1].desc);
+                $(".item6 ul li.n2 i").html(data.peripheral_last_data[2].desc);
+                $(".item6 ul li.n3 i").html(data.peripheral_last_data[3].desc);
+                $(".item6 ul li.n4 i").html(data.peripheral_last_data[4].desc);
+                $(".cc").html(html);
+                form.render();
             }
-            $(".item1 .layui-input-block").html(data.user_info.name);
-            $(".item2 .layui-input-block").html(data.user_info.balance);
-            $(".item3 .layui-input-block").html(data.machine_info.machine_name);
-            $(".item6 ul li.n1 i").html(data.peripheral_last_data[1].desc);
-            $(".item6 ul li.n2 i").html(data.peripheral_last_data[2].desc);
-            $(".item6 ul li.n3 i").html(data.peripheral_last_data[3].desc);
-            $(".item6 ul li.n4 i").html(data.peripheral_last_data[4].desc);
-            $(".cc").html(html);
-            form.render();
         },
     });
     //监听提交
@@ -170,9 +174,9 @@ layui.use('form', function() {
             },
             dataType: 'json',
             success: function(data) {
-                ipcRenderer.send('checkout',0,data);
-                ipcRenderer.send('close-machine',machine_ip);
                if (data.code == 200) {
+                    ipcRenderer.send('checkout',0,data);
+                    ipcRenderer.send('close-machine',machine_ip);
                         layer.msg(data.message, { time: 2000, icon: 6 }, function() {
                             window.location.href = '../../page/home/home.html';
                         });

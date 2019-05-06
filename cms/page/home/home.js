@@ -63,9 +63,9 @@ layui.use(['form', 'util', 'layer', 'laydate', 'table', 'laytpl', 'util'], funct
         layer.msg("请输入正确信息！！！");
     }else{
         if(searchVal2 != ""){
-            window.location.href = '../../page/Shutdown/give.html?machine_id=' + searchVal2 +'&userid=0' ;
+            window.location.href = '../../page/Shutdown/Down_machine.html?machine_id=' + searchVal2 +'&userid=0' ;
         }else{
-            window.location.href = '../../page/Shutdown/give.html?userid=' + userid +'&machine_id=0' ;
+            window.location.href = '../../page/Shutdown/Down_machine.html?userid=' + userid +'&machine_id=0' ;
             }
     }
  });
