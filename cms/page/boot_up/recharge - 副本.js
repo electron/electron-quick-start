@@ -21,16 +21,19 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl'], function() {
     function getAllCheckinInfo(mid) {
         var box, p1, p2, p3, p4, san_or_box;
         san_or_box = $(".top ul li.cur").attr("san_or_box");
-        if (san_or_box == 'san') {
+        if (san == '0' && san_or_box == 'san') {
             box = "散座";
+            p1 = $(".content1 .select1 .layui-this").html();
+            p2 = $(".content1 .select2 .layui-this").html();
+            p3 = $(".content1 .select3 .layui-this").html();
+            p4 = $(".content1 .select4 .layui-this").html();
         } else {
             box = $(".content2 .classify ul li.cur").html(); // 包厢号
+            p1 = $(".content2 .select1 .layui-this").html();
+            p2 = $(".content2 .select2 .layui-this").html();
+            p3 = $(".content2 .select3 .layui-this").html();
+            p4 = $(".content2 .select4 .layui-this").html();
         }
-
-        p1 = $(".select1 .layui-this").html();
-        p2 = $(".select2 .layui-this").html();
-        p3 = $(".select3 .layui-this").html();
-        p4 = $(".select4 .layui-this").html();
         
         ipcRenderer.send('checkin',1,mid,box,p1,p2,p3,p4);
     }
@@ -121,7 +124,7 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl'], function() {
                     } else if (data.data.machines[i].box_id == '5人包厢12') {
                         html_3_4 += '<li mac="' + data.data.machines[i].mac + '" ip="' + data.data.machines[i].ip + '" machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
                     } else if (data.data.machines[i].box_id == '5人包厢13') {
-                        html_3_5 += '<li machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
+                        html_3_5 += '<li mac="' + data.data.machines[i].mac + '" ip="' + data.data.machines[i].ip + '" machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
                     } else if (data.data.machines[i].box_id == '5人包厢14') {
                         html_3_6 += '<li mac="' + data.data.machines[i].mac + '" ip="' + data.data.machines[i].ip + '" machine_id="' + data.data.machines[i].id + '">' + data.data.machines[i].machine_name + '</li>';
                     } else if (data.data.machines[i].box_id == '5人包厢15') {
@@ -188,27 +191,39 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl'], function() {
             }
             for (var i = 0; i < data.data.box_list.length; i++) {
                 if (data.data.box_list[i].type == 2) {
+
                     html_7_1 += '<li mac="' + data.data.machines[i].mac + '" ip="' + data.data.machines[i].ip + '">' + data.data.box_list[i].box_id + '</li>';
+
+
                 }
             }
             for (var i = 0; i < data.data.box_list.length; i++) {
                 if (data.data.box_list[i].type == 3) {
-                    html_8_1 += '<li mac="' + data.data.machines[i].mac + '" ip="' + data.data.machines[i].ip + '">' + data.data.box_list[i].box_id + '</li>';
+
+                    html_8_1 += '<li mac="' + data.data.machines[i].mac + '" ip="' + data.data.machines[i].ip + '" >' + data.data.box_list[i].box_id + '</li>';
+
+
                 }
             }
             for (var i = 0; i < data.data.box_list.length; i++) {
                 if (data.data.box_list[i].type == 4) {
                     html_9_1 += '<li mac="' + data.data.machines[i].mac + '" ip="' + data.data.machines[i].ip + '">' + data.data.box_list[i].box_id + '</li>';
+
                 }
             }
             for (var i = 0; i < data.data.box_list.length; i++) {
                 if (data.data.box_list[i].type == 5) {
+
                     html_10_1 += '<li mac="' + data.data.machines[i].mac + '" ip="' + data.data.machines[i].ip + '">' + data.data.box_list[i].box_id + '</li>';
+
+
                 }
             }
             for (var i = 0; i < data.data.box_list.length; i++) {
                 if (data.data.box_list[i].type == 6) {
-                    html_11_1 += '<li mac="' + data.data.machines[i].mac + '" ip="' + data.data.machines[i].ip + '">' + data.data.box_list[i].box_id + '</li>';
+
+                    html_11_1 += '<li mac="' + data.data.machines[i].mac + '" ip="' + data.data.machines[i].ip + '" >' + data.data.box_list[i].box_id + '</li>';
+
                 }
             }
             $('.content2 .cn2 ul').html(html_7_1);
@@ -278,25 +293,44 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl'], function() {
         type: "get",
         dataType: 'json',
         success: function(data) {
-            console.log(data);
             var html0 = '';
             var html1 = '';
             var html2 = '';
             var html3 = '';
             var html4 = '';
-            for (var i = 0; i < data.data.box_list.length; i++) {
-                if (data.data.box_list[i].type == 2) {
-                    html0 += '<li>' + data.data.box_list[i].box_id + '</li>';
-                } else if (data.data.box_list[i].type == 3) {
-                    html1 += ' <li>' + data.data.box_list[i].box_id + '</li>';
-                } else if (data.data.box_list[i].type == 4) {
-                    html2 += ' <li>' + data.data.box_list[i].box_id + '</li>';
-                } else if (data.data.box_list[i].type == 5) {
-                    html3 += ' <li>' + data.data.box_list[i].box_id + '</li>';
-                } else if (data.data.box_list[i].type == 6) {
-                    html4 += ' <li>' + data.data.box_list[i].box_id + '</li>';
+            var html5 = '';
+            for (var i = 0; i < 8; i++) {
+                if (i == 0) {
+                    html0 += ' <li class="cur q1">' + data.data.box_list[i].box_id + '</li>';
+                } else {
+                    html0 += ' <li>' + data.data.box_list[i].box_id + '</li>';
                 }
             }
+            for (var i = 8; i < 30; i++) {
+                if (i == 8) {
+                    html1 += ' <li class="cur q1">' + data.data.box_list[i].box_id + '</li>';
+                } else {
+                    html1 += ' <li>' + data.data.box_list[i].box_id + '</li>';
+                }
+            }
+            for (var i = 30; i < 33; i++) {
+                if (i == 30) {
+                    html2 += ' <li class="cur q1">' + data.data.box_list[i].box_id + '</li>';
+                } else {
+                    html2 += ' <li>' + data.data.box_list[i].box_id + '</li>';
+                }
+            }
+            for (var i = 33; i < 35; i++) {
+                if (i == 33) {
+                    html3 += ' <li class="cur q1">' + data.data.box_list[i].box_id + '</li>';
+                } else {
+                    html3 += ' <li>' + data.data.box_list[i].box_id + '</li>';
+                }
+            }
+
+            html4 += ' <li class="cur q1">' + data.data.box_list[35].box_id + '</li>';
+
+
             $('.f1').html(html0);
             $('.f2').html(html1);
             $('.f3').html(html2);
@@ -304,108 +338,45 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl'], function() {
             $('.f5').html(html4);
             $(".classify ul li").click(function() {
                 $(this).addClass('cur').siblings().removeClass('cur').parent().parent().siblings().children().eq($(this).index()).show().siblings().hide();
+
             });
         },
-        error: function(err) {
-            console.log(err);
-        }
+        error: function(err) {}
     });
 
 
     $(".top ul li").click(function() {
         $(this).addClass('cur').siblings().removeClass('cur').parent().parent().siblings('.content').children().eq($(this).index()).show().siblings().hide();
     });
-    // 点击散客切换
-    $(".top ul li.san").click(function() {
-        $(this).addClass('cur').siblings().removeClass('cur');
-        $('.content1 .tab ul li.number1').addClass('cur').siblings().removeClass('cur');
-        $('.content1 .cn1').show().siblings().hide();
-        $('.content1').show().siblings().hide();
-        $('.content2 .tab ul li').removeClass('cur');
-        $('.content2 .con ul li').removeClass('cur');
-    });
-    // 点击包厢切换
-    $(".top ul li.box").click(function() {
-        $(this).addClass('cur').siblings().removeClass('cur');
-        $('.content2 .tab ul li.number2').addClass('cur').siblings().removeClass('cur');
-        $('.content2 .cn2').show().siblings().hide();
-        $('.content2').show().siblings().hide();
-        $('.content1 .tab ul li').removeClass('cur');
-        $('.content1 .con ul li').removeClass('cur');
-    });
-    $(".top ul li.box").click(function() {
-        $(".content2 .cn2 .n1").show().siblings().hide();
-        $(".content2 .cn2").show().siblings().hide();
-        $(".content2 .cn2 ul li:first(child)").addClass("cur").siblings().removeClass("cur");
-        $(".content2 .number2").addClass("cur").siblings().removeClass("cur");
-    });
-    $(".content1 .tab ul li").click(function() {
+
+    $(".tab ul li").click(function() {
         $(this).addClass('cur').siblings().removeClass('cur').parent().parent().siblings('.con').children().eq($(this).index()).show().siblings().hide();
     });
-    $(".content1 .tab ul li.number1").click(function() {
+    $(".tab ul li.number1").click(function() {
         san = 0;
-        $(".content1 .cn1").siblings('').children().children().children('li').removeClass("cur");
+        $(".cn1").siblings('').children().children().children('li').removeClass("cur");
     });
-    $(".content1 .tab ul li.number2").click(function() {
+    $(".tab ul li.number2").click(function() {
         san = 1;
-        $(".content1 .cn2 ul li:first(child)").addClass("cur").parent().parent().parent().siblings('').children().children().children('li').removeClass("cur");
-        $(".content1 .cn2 .n1").show().siblings().hide();
+        $(".cn2 ul li.q1").addClass("cur").parent().parent().parent().siblings('').children().children().children('li').removeClass("cur");
     });
-    $(".content1 .tab ul li.number3").click(function() {
+    $(".tab ul li.number3").click(function() {
         san = 1;
-        $(".content1 .cn3 ul li:first(child)").addClass("cur").parent().parent().parent().siblings('').children().children().children('li').removeClass("cur");
-        $(".content1 .cn3 .n1").show().siblings().hide();
+        $(".cn3 ul li.q1").addClass("cur").parent().parent().parent().siblings('').children().children().children('li').removeClass("cur");
     });
-    $(".content1 .tab ul li.number4").click(function() {
+    $(".tab ul li.number4").click(function() {
         san = 1;
-        $(".content1 .cn4 ul li:first(child)").addClass("cur").parent().parent().parent().siblings('').children().children().children('li').removeClass("cur");
-        $(".content1 .cn4 .n1").show().siblings().hide();
+        $(".cn4 ul li.q1").addClass("cur").parent().parent().parent().siblings('').children().children().children('li').removeClass("cur");
     });
-    $(".content1 .tab ul li.number5").click(function() {
+    $(".tab ul li.number5").click(function() {
         san = 1;
-        $(".content1 .cn5 ul li:first(child)").addClass("cur").parent().parent().parent().siblings('').children().children().children('li').removeClass("cur");
-        $(".content1 .cn5 .n1").show().siblings().hide();
+        $(".cn5 ul li.q1").addClass("cur").parent().parent().parent().siblings('').children().children().children('li').removeClass("cur");
     });
-    $(".content1 .tab ul li.number6").click(function() {
+    $(".tab ul li.number6").click(function() {
         san = 1;
-        $(".content1 .cn6 ul li:first(child)").addClass("cur").parent().parent().parent().siblings('').children('.classify').children().children('li').removeClass("cur");
-        $(".content1 .cn6 .n1").show().siblings().hide();
+        $(".cn6 ul li.q1").addClass("cur").parent().parent().parent().siblings('').children('.classify').children().children('li').removeClass("cur");
     });
-    $(".content2 .tab ul li.number2").click(function() {
-        san = 1;
-        $(this).addClass("cur").siblings().removeClass("cur");
-        $(".content2 .cn2 ul li:first(child)").addClass("cur").parent().parent().parent().siblings('').children().children().children('li').removeClass("cur");
-        $(".content2 .cn2 .n1").show().siblings().hide();
-        $(".content2 .cn2").show().siblings().hide();
-    });
-    $(".content2 .tab ul li.number3").click(function() {
-        san = 1;
-        $(this).addClass("cur").siblings().removeClass("cur");
-        $(".content2 .cn3 ul li:first(child)").addClass("cur").parent().parent().parent().siblings('').children().children().children('li').removeClass("cur");
-        $(".content2 .cn3").show().siblings().hide();
-        $(".content2 .cn3 .n1").show().siblings().hide();
-    });
-    $(".content2 .tab ul li.number4").click(function() {
-        san = 1;
-        $(this).addClass("cur").siblings().removeClass("cur");
-        $(".content2 .cn4 ul li:first(child)").addClass("cur").parent().parent().parent().siblings('').children().children().children('li').removeClass("cur");
-        $(".content2 .cn4 .n1").show().siblings().hide();
-        $(".content2 .cn4").show().siblings().hide();
-    });
-    $(".content2 .tab ul li.number5").click(function() {
-        san = 1;
-        $(this).addClass("cur").siblings().removeClass("cur");
-        $(".content2 .cn5 ul li:first(child)").addClass("cur").parent().parent().parent().siblings('').children().children().children('li').removeClass("cur");
-        $(".content2 .cn5 .n1").show().siblings().hide();
-        $(".content2 .cn5").show().siblings().hide();
-    });
-    $(".content2 .tab ul li.number6").click(function() {
-        san = 1;
-        $(this).addClass("cur").siblings().removeClass("cur");
-        $(".content2 .cn6 ul li:first(child)").addClass("cur").parent().parent().parent().siblings('').children('.classify').children().children('li').removeClass("cur");
-        $(".content2 .cn6 .n1").show().siblings().hide();
-        $(".content2 .cn6").show().siblings().hide();
-    });
+
 
     var user_id = getQueryString("userid");
     // 外设
@@ -461,7 +432,7 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl'], function() {
             $(".sec3").html(html3);
             $(".sec4").html(html4);
             form.render('select');
-			getAllCheckinInfo('000')
+            getAllCheckinInfo('000')
         },
         error: function(err) {
             console.log(err);
@@ -495,8 +466,9 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl'], function() {
                 dataType: 'json',
                 success: function(data) {
                     if (data.code == 200) {
-                        open_and_send_electron();
+                        open_and_send_electron();    
                         layer.msg(data.message, { time: 2000, icon: 6 }, function() {
+                            
                             window.location.href = '../../page/home/home.html';
                         });
                     } else {
@@ -596,9 +568,10 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl'], function() {
                         },
                         dataType: 'json',
                         success: function(data) {
+                            open_and_send_electron();    
                             if (data.code == 200) {
-                                open_and_send_electron();
                                 layer.msg(data.message, { time: 2000, icon: 6 }, function() {
+                                    
                                     window.location.href = '../../page/home/home.html';
                                 });
                             } else {
@@ -623,10 +596,11 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl'], function() {
                         machine_id: machine_id
                     },
                     dataType: 'json',
-                    success: function(data) {
-                        if (data.code == 200) {
-                            open_and_send_electron();
+                    success: function(data) {  
+                        open_and_send_electron();                    
+                        if (data.code == 200) {         
                             layer.msg(data.message, { time: 2000, icon: 6 }, function() {
+                                
                                 window.location.href = '../../page/home/home.html';
                             });
                         } else {
@@ -635,11 +609,16 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl'], function() {
 
                     },
                     error: function(err) {
+                        
                         console.log(err);
                     }
                 });
             }
         }
+    });
+    // 获取ip mac 地址
+    $(".mpx_4 .layui-btn").click(function() {
+        
     });
     // 选择外设监听
     form.on('select()', function(data) {
@@ -647,10 +626,10 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl'], function() {
     })
     // 取消
     $(".qx").click(function() {
-		ipcRenderer.send('checkin',0, 0, 0, 0, 0, 0, 0);   
+        ipcRenderer.send('checkin',0, 0, 0, 0, 0, 0, 0);    
         window.location.href = '../../page/home/home.html';
     });
-    // 取消
+
     function open_and_send_electron(){
 
         var mac = $(".cn .classify_cn ul li.cur").attr("mac");
@@ -659,9 +638,12 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl'], function() {
         ipcRenderer.send('open-machine',ip,mac);  
         ipcRenderer.send('checkin',0, 0, 0, 0, 0, 0, 0);
     }
+
+    
 })
 // 验证手机号
 function isPhoneNo(phone) {
     var pattern = /^1[34578]\d{9}$/;
     return pattern.test(phone);
 }
+

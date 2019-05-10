@@ -53,7 +53,7 @@ layui.use(['form', 'util', 'layer', 'laydate', 'table', 'laytpl', 'util'], funct
     if (userid == "") {
         layer.msg("请输入正确信息！！！");
     }else{
-        window.location.href = '../../page/boot_up/recharge.html?userid=' + userid ;
+        window.location.href = '../../page/boot_up/starting_up.html?userid=' + userid ;
     }
  });
  // 下机

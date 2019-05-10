@@ -61,7 +61,8 @@ ipcMain.on('synchronous-message', function(event, arg) {
     showWindow = new BrowserWindow({
       x: externalDisplay.bounds.x,
       y: externalDisplay.bounds.y,
-      fullscreen: true
+      fullscreen: true,
+      minimizable:false
     })
     //showWindow.webContents.openDevTools()
     showWindow.loadFile('show/show.html')
