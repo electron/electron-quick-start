@@ -182,6 +182,7 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl', 'element'], function()
     })
 
     $(".qx").click(function() {
+        ipcRenderer.send('sale',0,0,0);
         window.location.href = '../../page/home/home.html';
     });
     
