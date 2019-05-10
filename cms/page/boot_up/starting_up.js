@@ -9,7 +9,7 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl'], function() {
         san = 0;
         mid = "";
         show = 0;
-        type= 3;
+        type= 2;
     // 获取userid
     function getQueryString(name) {
         var reg = new RegExp('(^|&)' + name + '=([^&]*)(&|$)', 'i');
@@ -134,7 +134,7 @@ layui.use(['form', 'layer', 'laydate', 'table', 'laytpl'], function() {
         con2(2);
         $('.pay').show();
         show = 1;
-        type = 3;
+        type = 2;
     });
     // 外设
     $.ajax({
