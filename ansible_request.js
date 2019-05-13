@@ -14,6 +14,9 @@ module.exports.task = function(task_id,ip){
     }, function(error, response, body) {
         if (!error && response.statusCode >= 200 && response.statusCode <= 300) {
             console.log('ok')
+            var obj = eval('(' + body + ')')
+            console.log(obj)
+            console.log(obj.code)
         }else{
             console.log('error')
         }
@@ -29,6 +32,9 @@ module.exports.taskopen = function(ip,mac){
     }, function(error, response, body) {
         if (!error && response.statusCode >= 200 && response.statusCode <= 300) {
             console.log('ok')
+            var obj = eval('(' + body + ')')
+            console.log(obj)
+            console.log(obj.code)
         }else{
             console.log('error')
         }
