@@ -75,7 +75,7 @@ function createWindow () {
         console.log(new Date().toISOString()+'::mainWindow loaded')
         setTimeout( () => {
           mainWindow.show()
-          if(process.platform=MACOS){
+          if(process.platform==MACOS){
             mainWindow.reload()
           }
           loading.hide()
