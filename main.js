@@ -1,9 +1,5 @@
-const electron = require('electron')
-// Module to control application life.
-const app = electron.app
-// Module to create native browser window.
-const BrowserWindow = electron.BrowserWindow
-
+// Modules to control application life and create native browser window
+const {app, BrowserWindow} = require('electron')
 const path = require('path')
 const url = require('url')
 
@@ -13,7 +9,13 @@ let mainWindow
 
 function createWindow () {
   // Create the browser window.
-  mainWindow = new BrowserWindow({width: 800, height: 600})
+  mainWindow = new BrowserWindow({
+    width: 800,
+    height: 600,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js')
+    }
+  })
 
   // and load the index.html of the app.
   mainWindow.loadURL(url.format({
