@@ -30,6 +30,18 @@ library(magrittr)
 
 parseCommandArgs(evaluate=TRUE)
 
+if(cran_packages=="NULL"){
+  cran_packages <- NULL
+}
+
+if(bioc_packages=="NULL"){
+  bioc_packages <- NULL
+}
+
+if(github_packages=="NULL"){
+  github_packages <- NULL
+}
+
 clean_package_list <- function(...){
   stringr::str_split(..., ",") %>%
     unlist() %>%
