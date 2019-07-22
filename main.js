@@ -2,6 +2,7 @@
 
 // Modules to control application life and create native browser window
 const {app, BrowserWindow} = require('electron')
+const path = require('path')
 
 
 const path = require('path')
@@ -70,7 +71,15 @@ function createWindow () {
     loading.once('show', () => {
       console.log(new Date().toISOString()+'::show loading')
       mainWindow = new BrowserWindow({webPreferences:{nodeIntegration:false}, show:false, width: 800, height: 600, title:""})
-
+      /*
+        mainWindow = new BrowserWindow({
+          width: 800,
+          height: 600,
+          webPreferences: {
+            preload: path.join(__dirname, 'preload.js')
+          }
+        })
+      */
       mainWindow.webContents.once('dom-ready', () => {
         console.log(new Date().toISOString()+'::mainWindow loaded')
         setTimeout( () => {
@@ -143,19 +152,23 @@ app.on('ready', createWindow)
 
 // Quit when all windows are closed.
 app.on('window-all-closed', function () {
+<<<<<<< HEAD
   console.log('EVENT::window-all-closed')
   // On OS X it is common for applications and their menu bar
   // to stay active until the user quits explicitly with Cmd + Q
   cleanUpApplication()
 
+=======
+  // On macOS it is common for applications and their menu bar
+  // to stay active until the user quits explicitly with Cmd + Q
+  if (process.platform !== 'darwin') app.quit()
+>>>>>>> upstream/master
 })
 
 app.on('activate', function () {
-  // On OS X it's common to re-create a window in the app when the
+  // On macOS it's common to re-create a window in the app when the
   // dock icon is clicked and there are no other windows open.
-  if (mainWindow === null) {
-    createWindow()
-  }
+  if (mainWindow === null) createWindow()
 })
 
 // In this file you can include the rest of your app's specific main process
