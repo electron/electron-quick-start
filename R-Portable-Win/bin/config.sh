@@ -5,7 +5,7 @@
 ## Usage:
 ##   R CMD config [options] [VAR]
 
-## Copyright (C) 2002-2017 The R Core Team
+## Copyright (C) 2002-2018 The R Core Team
 ##
 ## This document is free software; you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
@@ -20,11 +20,11 @@
 ## A copy of the GNU General Public License is available at
 ## https://www.R-project.org/Licenses/
 
-revision='$Revision: 72376 $'
+revision='$Revision: 76673 $'
 version=`set - ${revision}; echo ${2}`
 version="R configuration information retrieval script: ${R_VERSION} (r${version})
 
-Copyright (C) 2002-2015 The R Core Team.
+Copyright (C) 2002-2018 The R Core Team.
 This is free software; see the GNU General Public License version 2
 or later for copying conditions.  There is NO warranty."
 
@@ -46,6 +46,7 @@ Options:
       --all             print names and values of all variables below
 
 Variables:
+  AR            command to make static libraries
   BLAS_LIBS     flags needed for linking against external BLAS libraries
   CC            C compiler command
   CFLAGS        C compiler flags
@@ -87,14 +88,12 @@ Variables:
 		object files from a C or Fortran compiler only
   DYLIB_LDFLAGS
 		special flags used by DYLIB_LD
-  F77           Fortran 77 compiler command
-  FFLAGS        Fortran 77 compiler flags
+  FC            Fortran compiler command
+  F77           Fortran compiler command (legacy: use FC)
+  FFLAGS        fixed-form Fortran compiler flags
+  FCFLAGS       free-form Fortran 9x compiler flags
   FLIBS         linker flags needed to link Fortran code
   FPICFLAGS     special flags for compiling Fortran code to be turned
-		into a shared library
-  FC            Fortran 9x compiler command
-  FCFLAGS       Fortran 9x compiler flags
-  FCPICFLAGS    special flags for compiling Fortran 9x code to be turned
 		into a shared library
   JAR           Java archive tool command
   JAVA          Java interpreter command
@@ -107,11 +106,14 @@ Variables:
   LIBnn         location for libraries, e.g. 'lib' or 'lib64' on this platform
   LDFLAGS       linker flags, e.g. -L<dir> if you have libraries in a
 		nonstandard directory <dir>
+  MAKE          Make command
   OBJC          Objective C compiler command
   OBJCFLAGS     Objective C compiler flags
-  MAKE          Make command
-  SAFE_FFLAGS   Safe (as conformant as possible) Fortran 77 compiler flags
+  RANLIB        command to index static libraries
+  SAFE_FFLAGS   Safe (as conformant as possible) Fortran compiler flags
   SHLIB_CFLAGS  additional CFLAGS used when building shared objects
+  SHLIB_CXXFLAGS
+                additional CXXFLAGS used when building shared objects
   SHLIB_CXXLD   command for linking shared objects which contain
 		object files from a C++ compiler (and CXX98 CXX11 CXX14 CXX17)
   SHLIB_CXXLDFLAGS
@@ -122,8 +124,6 @@ Variables:
 		object files from a C or Fortran compiler only
   SHLIB_LDFLAGS
 		special flags used by SHLIB_LD
-  SHLIB_FCLD, SHLIB_FCLDFLAGS
-		ditto when using Fortran 9x
   TCLTK_CPPFLAGS
 		flags needed for finding the tcl.h and tk.h headers
   TCLTK_LIBS    flags needed for linking against the Tcl and Tk libraries
@@ -132,7 +132,9 @@ Variables:
 if test "${R_OSTYPE}" = "windows"; then
   usage="${usage}
 Windows only:
-  COMPILED_BY   name and version of compiler used to build R"
+  COMPILED_BY   name and version of compiler used to build R
+  LOCAL_SOFT    absolute path to '/usr/local' software collection
+  OBJDUMP       command to dump objects"
 fi
 
 usage="${usage}
@@ -275,22 +277,26 @@ fi
 query="${MAKE} -s ${makefiles} print R_HOME=${R_HOME}"
 
 ok_c_vars="CC CFLAGS CPICFLAGS CPP CPPFLAGS"
-ok_cxx_vars="CXX CXXCPP CXXFLAGS CXXPICFLAGS CXX11 CXX11STD CXX11FLAGS CXX11PICFLAGS CXX14 CXX14STD CXX14FLAGS CXX14PICFLAGS CXX98 CXX98STD CXX98FLAGS CXX98PICFLAGS CXX17 CXX17STD CXX17FLAGS CXX17PICFLAGS CXX1X CXX1XSTD CXX1XFLAGS CXX1XPICFLAGS"
+ok_cxx_vars="CXX CXXCPP CXXFLAGS CXXPICFLAGS CXX98 CXX98STD CXX98FLAGS CXX98PICFLAGS CXX11 CXX11STD CXX11FLAGS CXX11PICFLAGS CXX14 CXX14STD CXX14FLAGS CXX14PICFLAGS CXX17 CXX17STD CXX17FLAGS CXX17PICFLAGS"
 ok_dylib_vars="DYLIB_EXT DYLIB_LD DYLIB_LDFLAGS"
 ok_objc_vars="OBJC OBJCFLAGS"
 ok_java_vars="JAVA JAVAC JAVAH JAR JAVA_HOME JAVA_LIBS JAVA_CPPFLAGS"
-ok_f77_vars="F77 FFLAGS FPICFLAGS FLIBS SAFE_FFLAGS FC FCFLAGS FCPICFLAGS"
+## F77 is legacy
+ok_ftn_vars="FC F77 FFLAGS FPICFLAGS FLIBS FCFLAGS FCPICFLAGS SAFE_FFLAGS"
 ok_ld_vars="LDFLAGS"
-ok_shlib_vars="SHLIB_CFLAGS SHLIB_CXXLD SHLIB_CXXLDFLAGS SHLIB_CXX98LD SHLIB_CXX98LDFLAGS SHLIB_CXX11LD SHLIB_CXX11LDFLAGS SHLIB_CXX14LD SHLIB_CXX14LDFLAGS SHLIB_CXX17LD SHLIB_CXX17LDFLAGS SHLIB_EXT SHLIB_FFLAGS SHLIB_LD SHLIB_LDFLAGS SHLIB_FCLD SHLIB_FCLDFLAGS SHLIB_CXX1XLD SHLIB_CXX1XLDFLAGS"
+ok_shlib_vars="SHLIB_CFLAGS SHLIB_CXXFLAGS SHLIB_CXXLD SHLIB_CXXLDFLAGS SHLIB_CXX98LD SHLIB_CXX98LDFLAGS SHLIB_CXX11LD SHLIB_CXX11LDFLAGS SHLIB_CXX14LD SHLIB_CXX14LDFLAGS SHLIB_CXX17LD SHLIB_CXX17LDFLAGS SHLIB_EXT SHLIB_FFLAGS SHLIB_LD SHLIB_LDFLAGS"
 ok_tcltk_vars="TCLTK_CPPFLAGS TCLTK_LIBS"
-ok_other_vars="BLAS_LIBS LAPACK_LIBS MAKE LIBnn LOCAL_SOFT COMPILED_BY"
+ok_other_vars="BLAS_LIBS LAPACK_LIBS MAKE LIBnn AR RANLIB"
+if test "${R_OSTYPE}" = "windows"; then
+  ok_win_vars="LOCAL_SOFT COMPILED_BY OBJDUMP"
+fi
 
 if test "${all}" = "yes"; then
   query="${MAKE} -s ${makefiles} print-name-and-value R_HOME=${R_HOME}"
-  for v in ${ok_c_vars} ${ok_cxx_vars} ${ok_dylib_vars} ${ok_f77_vars} \
+  for v in ${ok_c_vars} ${ok_cxx_vars} ${ok_dylib_vars} ${ok_ftn_vars} \
 	   ${ok_objc_vars} ${ok_java_vars} \
 	   ${ok_ld_vars} ${ok_shlib_vars} ${ok_tcltk_vars} \
-	   ${ok_other_vars}; do
+	   ${ok_other_vars} ${ok_win_vars}; do
     eval "${query} VAR=${v}"
   done
   exit 0
@@ -299,10 +305,10 @@ fi
 ## Can we do this elegantly using case?
 
 var_ok=no
-for v in ${ok_c_vars} ${ok_cxx_vars} ${ok_dylib_vars} ${ok_f77_vars} \
+for v in ${ok_c_vars} ${ok_cxx_vars} ${ok_dylib_vars} ${ok_ftn_vars} \
 	 ${ok_objc_vars} ${ok_java_vars} \
 	 ${ok_ld_vars} ${ok_shlib_vars} ${ok_tcltk_vars} \
-	 ${ok_other_vars}; do
+	 ${ok_other_vars} ${ok_win_vars}; do
   if test "${var}" = "${v}"; then
     var_ok=yes
     break
