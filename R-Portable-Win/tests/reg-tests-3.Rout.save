@@ -1,6 +1,6 @@
 
-R version 3.4.0 RC (2017-04-18 r72543) -- "You Stupid Darkness"
-Copyright (C) 2017 The R Foundation for Statistical Computing
+R version 3.6.0 Patched (2019-06-07 r76684) -- "Planting of a Tree"
+Copyright (C) 2019 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -35,7 +35,7 @@ Type 'q()' to quit R.
 +     detach("package:survival", unload = TRUE)
 + }
 Loading required package: survival
- Surv [1:23, 1:2]   9   13   13+  18   23   28+  31   34   45+  48  ...
+ 'Surv' num [1:23, 1:2]   9   13   13+  18   23   28+  31   34   45+  48  ...
  - attr(*, "dimnames")=List of 2
   ..$ : NULL
   ..$ : chr [1:2] "time" "status"
@@ -889,9 +889,16 @@ Error in nchar(x, "w") : invalid multibyte string, element 10
 > 
 > ## str() on large strings (in multibyte locales; changing locale may not work everywhere
 > oloc <- Sys.getlocale("LC_CTYPE")
-> mbyte.lc <- if(.Platform$OS.type == "windows")
-+  "English_United States.28605" else "en_GB.UTF-8"
-> stopifnot(identical(Sys.setlocale("LC_CTYPE", mbyte.lc), mbyte.lc))
+> mbyte.lc <- {
++     if(.Platform$OS.type == "windows")
++ 	"English_United States.28605"
++     else if(grepl("[.]UTF-8$", oloc, ignore.case=TRUE)) # typically nowadays
++ 	oloc
++     else
++ 	"en_US.UTF-8" # or rather "C.UTF-8" or from  system("locale -a | fgrep .utf8")
++ }
+> identical(Sys.setlocale("LC_CTYPE", mbyte.lc), mbyte.lc) # "ok" if not
+[1] TRUE
 > cc <- "J\xf6reskog" # valid in "latin-1"; invalid multibyte string in UTF-8
 > .tmp <- capture.output(
 + str(cc) # failed in some R-devel versions
@@ -901,7 +908,7 @@ Error in nchar(x, "w") : invalid multibyte string, element 10
 [1] 5100000
 > stopifnot(system.time( str(L) )[[1L]] < 0.10) # Sparc Solaris needed 0.052
  chr "A.B.C.D.E.F.G.H.I.J.K.L.M.N.O.P.Q.R.S.T.U.V.W.X.Y.ZA.B.C.D.E.F.G.H.I.J.K.L.M.N.O.P.Q.R.S.T.U.V.W.X.Y.ZA.B.C.D.E"| __truncated__
-> Sys.setlocale("LC_CTYPE", oloc)
+> if(mbyte.lc != oloc) Sys.setlocale("LC_CTYPE", oloc)
 [1] "C"
 > ## needed 1.6 sec in (some) R <= 3.3.0 in a multibyte locale
 > 

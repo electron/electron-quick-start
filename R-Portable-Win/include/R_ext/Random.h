@@ -1,6 +1,6 @@
 /*
  *  R : A Computer Language for Statistical Data Analysis
- *  Copyright (C) 1998-2016    The R Core Team
+ *  Copyright (C) 1998-2019    The R Core Team
  *
  *  This header file is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -53,6 +53,12 @@ typedef enum {
     KINDERMAN_RAMAGE
 } N01type;
 
+/* Different ways to generate discrete uniform samples */
+typedef enum {
+    ROUNDING,
+    REJECTION
+} Sampletype;
+Sampletype R_sample_kind();
 
 void GetRNGstate(void);
 void PutRNGstate(void);

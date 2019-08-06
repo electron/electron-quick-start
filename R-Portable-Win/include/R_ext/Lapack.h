@@ -1,7 +1,7 @@
 /*
  *  R : A Computer Language for Statistical Data Analysis
- *  Copyright (C) 2003-2016 The R Core Team.
- *  Copyright (C) 2008   The R Foundation
+ *  Copyright (C) 2003-2019 The R Core Team.
+ *  Copyright (C) 2008-2019 The R Foundation
  *
  *  This header file is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -868,7 +868,7 @@ F77_NAME(dppsv)(const char* uplo, const int* n,
 /* L*L**T to compute the solution to a real system of linear */
 /* equations  A * X = B, */
 La_extern void
-F77_NAME(dppsvx)(const int* fact, const char* uplo,
+F77_NAME(dppsvx)(const char* fact, const char* uplo,
 		 const int* n, const int* nrhs, double* ap,
 		 double* afp, char* equed, double* s,
 		 double* b, const int* ldb,

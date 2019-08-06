@@ -40,8 +40,9 @@ httpget <- function (url, port = 80)
     if (length(b[[2]]) > nn)
         data <- paste(b[[2]][-(1:nn)], collapse = "\n")
     while (nchar(data) < len) {
-        data <- paste(data, read.socket(a, maxlen = len - nchar(data)),
-                      sep = "")
+        new_data <- read.socket(a, maxlen = len - nchar(data))
+        if (new_data == "") break
+        data <- paste(data, new_data, sep = "")
     }
     strsplit(data, "\n")[[1]]
 }
@@ -51,5 +52,5 @@ if(nzchar(Sys.getenv("http_proxy")) || nzchar(Sys.getenv("HTTP_PROXY"))) {
 } else {
     f <- httpget("http://www.stats.ox.ac.uk/pub/datasets/csb/ch11b.dat")
     str(f)
-    stopifnot(length(f) == 100L)
+    if (length(f) != 100L) stop("Data not fetched via socket")
 }

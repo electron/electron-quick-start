@@ -1,6 +1,6 @@
 
-R version 3.4.0 RC (2017-04-18 r72543) -- "You Stupid Darkness"
-Copyright (C) 2017 The R Foundation for Statistical Computing
+R version 3.6.0 Patched (2019-06-07 r76684) -- "Planting of a Tree"
+Copyright (C) 2019 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -565,11 +565,361 @@ In options(max.print = Inf) : NAs introduced by coercion to integer range
 [486] "1986-02-22" "1986-02-23" "1986-02-24" "1986-02-25" "1986-02-26"
 [491] "1986-02-27" "1986-02-28" "1986-03-01" "1986-03-02" "1986-03-03"
 [496] "1986-03-04" "1986-03-05" "1986-03-06" "1986-03-07" "1986-03-08"
- [ reached getOption("max.print") -- omitted 9601 entries ]
+ [ reached 'max' / getOption("max.print") -- omitted 9601 entries ]
 > l6 <- length(capture.output(print(dd, max = 600)))
 > options(op)
 > t2 <- tail(capture.output(print(dd, max = 500)))
 > stopifnot(identical(t1, t2), l6 == 121)
 > ## not quite consistent in R <= 2.14.x
 > 
+> 
+> ## Calls with S3 class are not evaluated when (auto)-printed
+> obj <- structure(quote(stop("should not be evaluated")), class = "foo")
+> #--
+> a <- list(obj)
+> b <- pairlist(obj)
+> c <- structure(list(), attr = obj)
+> d <- list(list(obj, pairlist(obj, structure(list(obj), attr = obj)), NULL))
+> # Now auto-print, and explicit print(.) :
+> a
+[[1]]
+stop("should not be evaluated")
+attr(,"class")
+[1] "foo"
+
+> b
+[[1]]
+stop("should not be evaluated")
+attr(,"class")
+[1] "foo"
+
+> c
+list()
+attr(,"attr")
+stop("should not be evaluated")
+attr(,"class")
+[1] "foo"
+> d
+[[1]]
+[[1]][[1]]
+stop("should not be evaluated")
+attr(,"class")
+[1] "foo"
+
+[[1]][[2]]
+[[1]][[2]][[1]]
+stop("should not be evaluated")
+attr(,"class")
+[1] "foo"
+
+[[1]][[2]][[2]]
+[[1]][[2]][[2]][[1]]
+stop("should not be evaluated")
+attr(,"class")
+[1] "foo"
+
+attr(,"attr")
+stop("should not be evaluated")
+attr(,"class")
+[1] "foo"
+
+
+[[1]][[3]]
+NULL
+
+
+> print(a)
+[[1]]
+stop("should not be evaluated")
+attr(,"class")
+[1] "foo"
+
+> print(b)
+[[1]]
+stop("should not be evaluated")
+attr(,"class")
+[1] "foo"
+
+> print(c)
+list()
+attr(,"attr")
+stop("should not be evaluated")
+attr(,"class")
+[1] "foo"
+> print(d)
+[[1]]
+[[1]][[1]]
+stop("should not be evaluated")
+attr(,"class")
+[1] "foo"
+
+[[1]][[2]]
+[[1]][[2]][[1]]
+stop("should not be evaluated")
+attr(,"class")
+[1] "foo"
+
+[[1]][[2]][[2]]
+[[1]][[2]][[2]][[1]]
+stop("should not be evaluated")
+attr(,"class")
+[1] "foo"
+
+attr(,"attr")
+stop("should not be evaluated")
+attr(,"class")
+[1] "foo"
+
+
+[[1]][[3]]
+NULL
+
+
+> # Now with a method defined (again "auto" + explicit print()):
+> print.foo <- function(x, ...) cat("dispatched\n")
+> a ; print(a)
+[[1]]
+dispatched
+
+[[1]]
+dispatched
+
+> b ; print(b)
+[[1]]
+dispatched
+
+[[1]]
+dispatched
+
+> c ; print(c)
+list()
+attr(,"attr")
+dispatched
+list()
+attr(,"attr")
+dispatched
+> d ; print(d)
+[[1]]
+[[1]][[1]]
+dispatched
+
+[[1]][[2]]
+[[1]][[2]][[1]]
+dispatched
+
+[[1]][[2]][[2]]
+[[1]][[2]][[2]][[1]]
+dispatched
+
+attr(,"attr")
+dispatched
+
+
+[[1]][[3]]
+NULL
+
+
+[[1]]
+[[1]][[1]]
+dispatched
+
+[[1]][[2]]
+[[1]][[2]][[1]]
+dispatched
+
+[[1]][[2]][[2]]
+[[1]][[2]][[2]][[1]]
+dispatched
+
+attr(,"attr")
+dispatched
+
+
+[[1]][[3]]
+NULL
+
+
+> 
+> 
+> ## tagbuf is preserved after print dispatch in pairlists
+> obj <- structure(list(), class = "foo")
+> pairlist(a = list(A = obj, B = obj))
+$a
+$a$A
+dispatched
+
+$a$B
+dispatched
+
+
+> list(list(pairlist(obj), NULL)) ## should print [[1]][[2]] \n NULL
+[[1]]
+[[1]][[1]]
+[[1]][[1]][[1]]
+dispatched
+
+
+[[1]][[2]]
+NULL
+
+
+> LLo <- list(list(obj,
++                  pairlist(a=obj, b=structure(list(C=obj), attr=obj)),
++                  NULL))
+> LLo ## tags (names and [[<n>]]) were lost in R <= 3.5.0
+[[1]]
+[[1]][[1]]
+dispatched
+
+[[1]][[2]]
+[[1]][[2]]$a
+dispatched
+
+[[1]][[2]]$b
+[[1]][[2]]$b$C
+dispatched
+
+attr(,"attr")
+dispatched
+
+
+[[1]][[3]]
+NULL
+
+
+> 
+> ## show() is preferred over print() when printing recursively
+> print.callS4Class <- function(x, ...) stop("should not be dispatched")
+> .CallS4Class <- setClass("callS4Class", slots = c(x = "numeric"))
+> setMethod("show", "callS4Class", function(object) cat("S4 show!\n"))
+> x <- .CallS4Class(x = 1)
+> ## these should all say 'S4 show!'
+> list(x) ; pairlist(x) # these 2 failed in R <= 3.5.0
+[[1]]
+S4 show!
+
+[[1]]
+S4 show!
+
+> structure(list(), attr = x)
+list()
+attr(,"attr")
+S4 show!
+> rm(x, .CallS4Class)
+> 
+> 
+> ## Print dispatch does not reset parameters
+> local({
++     num <- 0.123456789
++     print(list(num, obj, num), digits = 2) # should print 2 x '0.12'
++ })
+[[1]]
+[1] 0.12
+
+[[2]]
+dispatched
+
+[[3]]
+[1] 0.12
+
+> 
+> 
+> ## User-supplied arguments are forwarded on print-dispatch
+> print.foo <- function(x, other = FALSE, digits = 0L, ...) {
++     cat("digits: ", digits, "\n")
++     stopifnot(other, digits == 4, !...length())
++ }
+> a <- list(obj)
+> b <- pairlist(obj)
+> c <- LLo[[1]][[2]]$b
+> d <- LLo
+> print(a, digits = 4, other = TRUE)
+[[1]]
+digits:  4 
+
+> print(b, digits = 4, other = TRUE)
+[[1]]
+digits:  4 
+
+> print(c, digits = 4, other = TRUE)
+$C
+digits:  4 
+
+attr(,"attr")
+digits:  4 
+> print(d, digits = 4, other = TRUE)
+[[1]]
+[[1]][[1]]
+digits:  4 
+
+[[1]][[2]]
+[[1]][[2]]$a
+digits:  4 
+
+[[1]][[2]]$b
+[[1]][[2]]$b$C
+digits:  4 
+
+attr(,"attr")
+digits:  4 
+
+
+[[1]][[3]]
+NULL
+
+
+> #
+> ## Deparsing should not reset parameters
+> print(list(a, expression(foo), b, quote(foo), c, base::list, d),
++       digits = 4, other = TRUE)
+[[1]]
+[[1]][[1]]
+digits:  4 
+
+
+[[2]]
+expression(foo)
+
+[[3]]
+[[3]][[1]]
+digits:  4 
+
+
+[[4]]
+foo
+
+[[5]]
+[[5]]$C
+digits:  4 
+
+attr(,"attr")
+digits:  4 
+
+[[6]]
+function (...)  .Primitive("list")
+
+[[7]]
+[[7]][[1]]
+[[7]][[1]][[1]]
+digits:  4 
+
+[[7]][[1]][[2]]
+[[7]][[1]][[2]]$a
+digits:  4 
+
+[[7]][[1]][[2]]$b
+[[7]][[1]][[2]]$b$C
+digits:  4 
+
+attr(,"attr")
+digits:  4 
+
+
+[[7]][[1]][[3]]
+NULL
+
+
+
+> ## Cleanup
+> rm(print.foo, obj, a, b, c, d)
 > 

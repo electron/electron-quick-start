@@ -52,6 +52,10 @@ long double *R_allocLD(R_SIZE_T nelem);
 char*	S_alloc(long, int);
 char*	S_realloc(char *, long, long, int);
 
+void *  R_malloc_gc(size_t);
+void *  R_calloc_gc(size_t, size_t);
+void *  R_realloc_gc(void *, size_t);
+
 #ifdef  __cplusplus
 }
 #endif

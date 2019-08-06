@@ -1,6 +1,6 @@
 
-R version 3.4.0 RC (2017-04-18 r72543) -- "You Stupid Darkness"
-Copyright (C) 2017 The R Foundation for Statistical Computing
+R version 3.6.0 Patched (2019-06-07 r76684) -- "Planting of a Tree"
+Copyright (C) 2019 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -103,22 +103,31 @@ List of 2
 	demo(is.things)
 	---- ~~~~~~~~~
 
-> #  Copyright (C) 1997-2013 The R Core Team
+> #  Copyright (C) 1997-2018 The R Core Team
 > 
-> ## being a 'builtin' function is not the same as being in base
-> ls.base <- ls("package:base", all=TRUE)
+> ### The Base package has a couple of non-functions:
+> ##
+> ## These may be in "base" when they exist;  discount them here
+> ## (see also  'dont.mind' in checkConflicts() inside library()) :
+> xtraBaseNms <- c("last.dump", "last.warning", ".Last.value",
++                  ".Random.seed", ".Traceback")
+
+> ls.base <- Filter(function(nm) is.na(match(nm, xtraBaseNms)),
++                   ls("package:base", all=TRUE))
 
 > base.is.f <- sapply(ls.base, function(x) is.function(get(x)))
 
-> cat("\nNumber of base objects:\t\t", length(ls.base),
-+     "\nNumber of functions in base:\t", sum(base.is.f),
+> cat("\nNumber of all base objects:\t", length(ls.base),
++     "\nNumber of functions from these:\t", sum(base.is.f),
 +     "\n\t starting with 'is.' :\t  ",
 +     sum(grepl("^is\\.", ls.base[base.is.f])), "\n", sep = "")
 
-Number of base objects:		1324
-Number of functions in base:	1282
+Number of all base objects:	1345
+Number of functions from these:	1302
 	 starting with 'is.' :	  50
 
+> ## R ver.| #{is*()}
+> ## ------+---------
 > ## 0.14  : 31
 > ## 0.50  : 33
 > ## 0.60  : 34
@@ -127,7 +136,14 @@ Number of functions in base:	1282
 > ## 1.3.0 : 41
 > ## 1.6.0 : 45
 > ## 2.0.0 : 45
-> 
+> ## 2.7.0 : 48
+> ## 3.0.0 : 49
+> if(interactive()) {
++     nonDots <- function(nm) substr(nm, 1L, 1L) != "."
++     cat("Base non-functions not starting with \".\":\n")
++     Filter(nonDots, ls.base[!base.is.f])
++ }
+
 > ## Do we have a method (probably)?
 > is.method <- function(fname) {
 +     isFun <- function(name) (exists(name, mode="function") &&
@@ -1041,15 +1057,15 @@ Error in ross$withdraw(500) : You don't have that much money!
 > ## Filled Contours are even nicer sometimes :
 > example(filled.contour)
 
-flld.c> require(grDevices) # for colours
+flld.c> require("grDevices") # for colours
 
-flld.c> filled.contour(volcano, color = terrain.colors, asp = 1) # simple
+flld.c> filled.contour(volcano, asp = 1) # simple
 
 flld.c> x <- 10*1:nrow(volcano)
 
 flld.c> y <- 10*1:ncol(volcano)
 
-flld.c> filled.contour(x, y, volcano, color = terrain.colors,
+flld.c> filled.contour(x, y, volcano, color = function(n) hcl.colors(n, "terrain"),
 flld.c+     plot.title = title(main = "The Topography of Maunga Whau",
 flld.c+     xlab = "Meters North", ylab = "Meters West"),
 flld.c+     plot.axes = { axis(1, seq(100, 800, by = 100))
@@ -1510,5 +1526,5 @@ sm     3    3    3    3    4    4    4    4    2     2     2
 > par(op)
 > 
 > cat("Time elapsed: ", proc.time() - .ptime, "\n")
-Time elapsed:  1.087 0.017 1.106 0 0 
+Time elapsed:  1.545 0.055 1.606 0 0 
 > 

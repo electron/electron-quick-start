@@ -1,6 +1,6 @@
 
-R version 3.4.0 RC (2017-04-18 r72543) -- "You Stupid Darkness"
-Copyright (C) 2017 The R Foundation for Statistical Computing
+R version 3.6.0 Patched (2019-06-07 r76684) -- "Planting of a Tree"
+Copyright (C) 2019 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -23,6 +23,7 @@ Type 'q()' to quit R.
 > library('graphics')
 > 
 > base::assign(".oldSearch", base::search(), pos = 'CheckExEnv')
+> base::assign(".old_wd", base::getwd(), pos = 'CheckExEnv')
 > cleanEx()
 > nameEx("abline")
 > ### * abline
@@ -255,6 +256,24 @@ Hair    Brown Blue Hazel Green
 > plot(1:10, xaxt = "n")
 > axis(1, xaxp = c(2, 9, 7))
 > 
+> ## Changing default gap between labels:
+> plot(0:100, type="n", axes=FALSE, ann=FALSE)
+> title(quote("axis(1, .., gap.axis = f)," ~~ f >= 0))
+> axis(2, at = 5*(0:20), las = 1, gap.axis = 1/4)
+> gaps <- c(4, 2, 1, 1/2, 1/4, 0.1, 0)
+> chG <- paste0(ifelse(gaps == 1, "default:  ", ""),
++               "gap.axis=", formatC(gaps))
+> jj <- seq_along(gaps)
+> linG <- -2.5*(jj-1)
+> for(j in jj) {
++     isD <- gaps[j] == 1 # is default
++     axis (1, at=5*(0:20), gap.axis = gaps[j], padj=-1, line = linG[j],
++           col.axis = if(isD) "forest green" else 1, font.axis= 1+isD)
++ }
+> mtext(chG, side=1, padj=-1, line = linG -1/2, cex=3/4,
++       col = ifelse(gaps == 1, "forest green", "blue3"))
+> ## now shrink the window (in x- and y-direction) and observe the axis labels drawn
+> 
 > 
 > 
 > cleanEx()
@@ -265,11 +284,50 @@ Hair    Brown Blue Hazel Green
 > 
 > ### Name: barplot
 > ### Title: Bar Plots
-> ### Aliases: barplot barplot.default
+> ### Aliases: barplot barplot.default barplot.formula
 > ### Keywords: hplot
 > 
 > ### ** Examples
 > 
+> # Formula method
+> barplot(GNP ~ Year, data = longley)
+> barplot(cbind(Employed, Unemployed) ~ Year, data = longley)
+> 
+> ## 3rd form of formula - 2 categories :
+> op <- par(mfrow = 2:1, mgp = c(3,1,0)/2, mar = .1+c(3,3:1))
+> summary(d.Titanic <- as.data.frame(Titanic))
+  Class       Sex        Age     Survived      Freq       
+ 1st :8   Male  :16   Child:16   No :16   Min.   :  0.00  
+ 2nd :8   Female:16   Adult:16   Yes:16   1st Qu.:  0.75  
+ 3rd :8                                   Median : 13.50  
+ Crew:8                                   Mean   : 68.78  
+                                          3rd Qu.: 77.00  
+                                          Max.   :670.00  
+> barplot(Freq ~ Class + Survived, data = d.Titanic,
++         subset = Age == "Adult" & Sex == "Male",
++         main = "barplot(Freq ~ Class + Survived, *)", ylab = "# {passengers}", legend = TRUE)
+> # Corresponding table :
+> (xt <- xtabs(Freq ~ Survived + Class + Sex, d.Titanic, subset = Age=="Adult"))
+, , Sex = Male
+
+        Class
+Survived 1st 2nd 3rd Crew
+     No  118 154 387  670
+     Yes  57  14  75  192
+
+, , Sex = Female
+
+        Class
+Survived 1st 2nd 3rd Crew
+     No    4  13  89    3
+     Yes 140  80  76   20
+
+> # Alternatively, a mosaic plot :
+> mosaicplot(xt[,,"Male"], main = "mosaicplot(Freq ~ Class + Survived, *)", color=TRUE)
+> par(op)
+> 
+> 
+> # Default method
 > require(grDevices) # for colours
 > tN <- table(Ni <- stats::rpois(100, lambda = 5))
 > r <- barplot(tN, col = rainbow(20))
@@ -317,14 +375,14 @@ Hair    Brown Blue Hazel Green
 +         legend = rownames(VADeaths))
 > title(main = list("Death Rates in Virginia", font = 4))
 > 
-> # border :
+> # Border color
 > barplot(VADeaths, border = "dark blue") 
 > 
-> # log scales (not much sense here):
+> # Log scales (not much sense here)
 > barplot(tN, col = heat.colors(12), log = "y")
 > barplot(tN, col = gray.colors(20), log = "xy")
 > 
-> # args.legend
+> # Legend location
 > barplot(height = cbind(x = c(465, 91) / 465 * 100,
 +                        y = c(840, 200) / 840 * 100,
 +                        z = c(37, 17) / 37 * 100),
@@ -336,6 +394,7 @@ Hair    Brown Blue Hazel Green
 > 
 > 
 > 
+> graphics::par(get("par.postscript", pos = 'CheckExEnv'))
 > cleanEx()
 > nameEx("box")
 > ### * box
@@ -370,18 +429,20 @@ Hair    Brown Blue Hazel Green
 > 
 > ## boxplot on a formula:
 > boxplot(count ~ spray, data = InsectSprays, col = "lightgray")
-> # *add* notches (somewhat funny here):
+> # *add* notches (somewhat funny here <--> warning "notches .. outside hinges"):
 > boxplot(count ~ spray, data = InsectSprays,
 +         notch = TRUE, add = TRUE, col = "blue")
 Warning in bxp(list(stats = c(7, 11, 14, 18.5, 23, 7, 12, 16.5, 18, 21,  :
   some notches went outside hinges ('box'): maybe set notch=FALSE
 > 
-> boxplot(decrease ~ treatment, data = OrchardSprays,
-+         log = "y", col = "bisque")
+> boxplot(decrease ~ treatment, data = OrchardSprays, col = "bisque",
++         log = "y")
+> ## horizontal=TRUE, switching  y <--> x :
+> boxplot(decrease ~ treatment, data = OrchardSprays, col = "bisque",
++         log = "x", horizontal=TRUE)
 > 
 > rb <- boxplot(decrease ~ treatment, data = OrchardSprays, col = "bisque")
 > title("Comparing boxplot()s and non-robust mean +/- SD")
-> 
 > mn.t <- tapply(OrchardSprays$decrease, OrchardSprays$treatment, mean)
 > sd.t <- tapply(OrchardSprays$decrease, OrchardSprays$treatment, sd)
 > xi <- 0.3 + seq(rb$n)
@@ -686,7 +747,7 @@ temperature no yes
 > 
 > op <- par(omd=c(0.1, 0.9, 0.1, 0.9), mfrow = c(1, 2))
 > plot(1:4)
-> for(tp in c("in", "dev", "ndc", "nfc", "npc", "nic"))
+> for(tp in c("in", "dev", "ndc", "nfc", "npc", "nic", "lines", "chars"))
 +     print(grconvertX(c(1.0, 4.0), "user", tp))
 [1] 1.577778 3.022222
 [1] 113.6 217.6
@@ -694,6 +755,8 @@ temperature no yes
 [1] 0.3134921 0.8293651
 [1] 0.03703704 0.96296296
 [1] 0.1567460 0.4146825
+[1]  7.888889 15.111111
+[1]  7.888889 15.111111
 > par(op)
 > 
 > 
@@ -819,12 +882,12 @@ temperature no yes
 > 
 > ### ** Examples
 > 
-> require(grDevices) # for colours
-> filled.contour(volcano, color = terrain.colors, asp = 1) # simple
+> require("grDevices") # for colours
+> filled.contour(volcano, asp = 1) # simple
 > 
 > x <- 10*1:nrow(volcano)
 > y <- 10*1:ncol(volcano)
-> filled.contour(x, y, volcano, color = terrain.colors,
+> filled.contour(x, y, volcano, color = function(n) hcl.colors(n, "terrain"),
 +     plot.title = title(main = "The Topography of Maunga Whau",
 +     xlab = "Meters North", ylab = "Meters West"),
 +     plot.axes = { axis(1, seq(100, 800, by = 100))
@@ -1014,7 +1077,6 @@ List of 6
 +      main = "WRONG histogram") # and warning
 Warning in plot.histogram(r, freq = freq1, col = col, border = border, angle = angle,  :
   the AREAS in the plot are wrong -- rather use 'freq = FALSE'
-> 
 > require(stats)
 > set.seed(14)
 > x <- rchisq(100, df = 4)
@@ -1049,20 +1111,26 @@ Warning in plot.histogram(r, freq = freq1, col = col, border = border, angle = a
 > 
 > ## A function to use identify to select points, and overplot the
 > ## points with another symbol as they are selected
-> identifyPch <- function(x, y = NULL, n = length(x), pch = 19, ...)
+> identifyPch <- function(x, y = NULL, n = length(x), plot = FALSE, pch = 19, ...)
 + {
 +     xy <- xy.coords(x, y); x <- xy$x; y <- xy$y
-+     sel <- rep(FALSE, length(x)); res <- integer(0)
++     sel <- rep(FALSE, length(x))
 +     while(sum(sel) < n) {
-+         ans <- identify(x[!sel], y[!sel], n = 1, plot = FALSE, ...)
++         ans <- identify(x[!sel], y[!sel], labels = which(!sel), n = 1, plot = plot, ...)
 +         if(!length(ans)) break
 +         ans <- which(!sel)[ans]
 +         points(x[ans], y[ans], pch = pch)
 +         sel[ans] <- TRUE
-+         res <- c(res, ans)
 +     }
-+     res
++     ## return indices of selected points
++     which(sel)
 + }
+> 
+> if(dev.interactive()) { ## use it
++   x <- rnorm(50); y <- rnorm(50)
++   plot(x,y); identifyPch(x,y) # how fast to get all?
++ }
+> 
 > 
 > 
 > 
@@ -1079,10 +1147,10 @@ Warning in plot.histogram(r, freq = freq1, col = col, border = border, angle = a
 > 
 > ### ** Examples
 > 
-> require(grDevices) # for colours
-> x <- y <- seq(-4*pi, 4*pi, len = 27)
+> require("grDevices") # for colours
+> x <- y <- seq(-4*pi, 4*pi, length.out = 27)
 > r <- sqrt(outer(x^2, y^2, "+"))
-> image(z = z <- cos(r^2)*exp(-r/6), col  = gray((0:32)/32))
+> image(z = z <- cos(r^2)*exp(-r/6), col = gray.colors(33))
 > image(z, axes = FALSE, main = "Math can be beautiful ...",
 +       xlab = expression(cos(r^2) * e^{-r/6}))
 > contour(z, add = TRUE, drawlabels = FALSE)
@@ -1094,9 +1162,9 @@ Warning in plot.histogram(r, freq = freq1, col = col, border = border, angle = a
 > # A prettier display of the volcano
 > x <- 10*(1:nrow(volcano))
 > y <- 10*(1:ncol(volcano))
-> image(x, y, volcano, col = terrain.colors(100), axes = FALSE)
+> image(x, y, volcano, col = hcl.colors(100, "terrain"), axes = FALSE)
 > contour(x, y, volcano, levels = seq(90, 200, by = 5),
-+         add = TRUE, col = "peru")
++         add = TRUE, col = "brown")
 > axis(1, at = seq(100, 800, by = 100))
 > axis(2, at = seq(100, 600, by = 100))
 > box()
@@ -1185,6 +1253,8 @@ Warning in plot.histogram(r, freq = freq1, col = col, border = border, angle = a
 +   text  (1, y.leg[i] - 0.1, paste("cex=", formatC(cexv[i])), cex = 0.8, adj = 0)
 +   legend(3, y.leg[i], leg.txt, pch = "sSvV", col = c(1, 3), cex = cexv[i])
 + }
+> ## cex *vector* [in R <= 3.5.1 has 'if(xc < 0)' w/ length(xc) == 2]
+> legend(6,1, leg.txt, pch = "sSvV", col = c(1, 3), cex = 1+(-1:2)/8)
 > 
 > ## 'merge = TRUE' for merging lines & points:
 > x <- seq(-pi, pi, len = 65)
@@ -1294,17 +1364,15 @@ List of 2
 > 
 > ## legends with titles at different locations
 > plot(x, y, type = "n")
-> legend("bottomright", "(x,y)", pch = 1, title = "bottomright")
-> legend("bottom", "(x,y)", pch = 1, title = "bottom")
-> legend("bottomleft", "(x,y)", pch = 1, title = "bottomleft")
-> legend("left", "(x,y)", pch = 1, title = "left")
-> legend("topleft", "(x,y)", pch = 1, title = "topleft, inset = .05",
-+        inset = .05)
-> legend("top", "(x,y)", pch = 1, title = "top")
-> legend("topright", "(x,y)", pch = 1, title = "topright, inset = .02",
-+        inset = .02)
-> legend("right", "(x,y)", pch = 1, title = "right")
-> legend("center", "(x,y)", pch = 1, title = "center")
+> legend("bottomright", "(x,y)", pch=1, title= "bottomright")
+> legend("bottom",      "(x,y)", pch=1, title= "bottom")
+> legend("bottomleft",  "(x,y)", pch=1, title= "bottomleft")
+> legend("left",        "(x,y)", pch=1, title= "left")
+> legend("topleft",     "(x,y)", pch=1, title= "topleft, inset = .05", inset = .05)
+> legend("top",         "(x,y)", pch=1, title= "top")
+> legend("topright",    "(x,y)", pch=1, title= "topright, inset = .02",inset = .02)
+> legend("right",       "(x,y)", pch=1, title= "right")
+> legend("center",      "(x,y)", pch=1, title= "center")
 > 
 > # using text.font (and text.col):
 > op <- par(mfrow = c(2, 2), mar = rep(2.1, 4))
@@ -1490,11 +1558,11 @@ List of 2
 > pairs(iris[1:4], main = "Anderson's Iris Data -- 3 species",
 +       pch = 21, bg = c("red", "green3", "blue")[unclass(iris$Species)])
 > 
-> ## formula method
-> pairs(~ Fertility + Education + Catholic, data = swiss,
+> ## formula method, "graph" layout (row 1 at bottom):
+> pairs(~ Fertility + Education + Catholic, data = swiss, row1attop=FALSE,
 +       subset = Education < 20, main = "Swiss data, Education < 20")
 > 
-> pairs(USJudgeRatings)
+> pairs(USJudgeRatings, gap=1/10) # (gap: not wasting plotting area)
 > ## show only lower triangle (and suppress labeling for whatever reason):
 > pairs(USJudgeRatings, text.panel = NULL, upper.panel = NULL)
 > 
@@ -1509,7 +1577,7 @@ List of 2
 +     rect(breaks[-nB], 0, breaks[-1], y, col = "cyan", ...)
 + }
 > pairs(USJudgeRatings[1:5], panel = panel.smooth,
-+       cex = 1.5, pch = 24, bg = "light blue",
++       cex = 1.5, pch = 24, bg = "light blue", horOdd=TRUE,
 +       diag.panel = panel.hist, cex.labels = 2, font.labels = 2)
 > 
 > ## put (absolute) correlations on the upper panels,
@@ -1524,7 +1592,8 @@ List of 2
 +     if(missing(cex.cor)) cex.cor <- 0.8/strwidth(txt)
 +     text(0.5, 0.5, txt, cex = cex.cor * r)
 + }
-> pairs(USJudgeRatings, lower.panel = panel.smooth, upper.panel = panel.cor)
+> pairs(USJudgeRatings, lower.panel = panel.smooth, upper.panel = panel.cor,
++       gap=0, row1attop=FALSE)
 > 
 > pairs(iris[-5], log = "xy") # plot all variables on log scale
 > pairs(iris, log = 1:4, # log the first four
@@ -2075,7 +2144,7 @@ N
 > points.default # to see how it calls "plot.xy(xy.coords(x, y), ...)"
 function (x, y = NULL, type = "p", ...) 
 plot.xy(xy.coords(x, y), type = type, ...)
-<bytecode: 0x23fc1e8>
+<bytecode: 0x2c030e0>
 <environment: namespace:graphics>
 > 
 > 
@@ -2356,7 +2425,7 @@ Warning in matrix(0:1, ncol = 5, nrow = 3) :
 > rect(125+j, 360+j,   141+j, 405+j/2, col = c(NA,0),
 +      border = "gold", lwd = 2)
 > rect(125+j, 296+j/2, 141+j, 331+j/5, col = c(NA,"midnightblue"))
-> mtext("+  2 x 6 rect(*, col = c(NA,0)) and  col = c(NA,\"m..blue\"))")
+> mtext("+  2 x 6 rect(*, col = c(NA,0)) and  col = c(NA,\"m..blue\")")
 > 
 > ## an example showing colouring and shading
 > plot(c(100, 200), c(300, 450), type= "n", xlab = "", ylab = "")
@@ -2945,7 +3014,7 @@ function (xy = 1, warn.log = TRUE)
     u <- par("usr")
     xy * c(u[2L] - u[1L], u[4L] - u[3L])/par("pin")
 }
-<bytecode: 0x286c148>
+<bytecode: 0x43c0518>
 <environment: namespace:graphics>
 > 
 > ## plot labels offset 0.12 inches to the right
@@ -3023,9 +3092,10 @@ function (xy = 1, warn.log = TRUE)
 > graphics::par(get("par.postscript", pos = 'CheckExEnv'))
 > ### * <FOOTER>
 > ###
+> cleanEx()
 > options(digits = 7L)
 > base::cat("Time elapsed: ", proc.time() - base::get("ptime", pos = 'CheckExEnv'),"\n")
-Time elapsed:  1.972 0.03 2.007 0 0 
+Time elapsed:  2.911 0.062 2.99 0 0 
 > grDevices::dev.off()
 null device 
           1 

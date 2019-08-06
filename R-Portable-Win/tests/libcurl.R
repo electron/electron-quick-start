@@ -9,10 +9,9 @@ if(!capabilities()["libcurl"]) {
     q()
 }
 
+## check basic Internet access
 if(.Platform$OS.type == "unix" &&
    is.null(nsl("cran.r-project.org"))) q()
-
-example(curlGetHeaders, run.donttest = TRUE)
 
 tf <- tempfile()
 download.file("http://cran.r-project.org/", tf,  method = "libcurl")
@@ -32,53 +31,16 @@ zz
 stopifnot(identical(summary(zz)$class, "url-libcurl"))
 close(zz)
 
-## https URL
-head(readLines(zz <- url("https://httpbin.org", method = "libcurl"),
-               warn = FALSE))
-close(zz)
-
-## redirection (to a https:// URL)
-head(readLines(zz <- url("http://bugs.r-project.org", method = "libcurl"),
-               warn = FALSE))
-close(zz)
-
-
-## check graceful failure: warnings leading to error
-## testUnknownUrlError <- tryCatch(suppressWarnings({
-##     zz <- url("http://foo.bar", "r", method = "libcurl")
-## }), error=function(e) {
-##     conditionMessage(e) == "cannot open connection"
-## })
-## close(zz)
-## stopifnot(testUnknownUrlError)
-
-## tf <- tempfile()
-## testDownloadFileError <- tryCatch(suppressWarnings({
-##     download.file("http://foo.bar", tf, method="libcurl")
-## }), error=function(e) {
-##     conditionMessage(e) == "cannot download all files"
-## })
-## stopifnot(testDownloadFileError, !file.exists(tf))
-
 tf <- tempfile()
 testDownloadFile404 <- tryCatch(suppressWarnings({
-    download.file("http://httpbin.org/status/404", tf, method="libcurl")
+    download.file("http://httpbin.org/status/404", tf, method = "libcurl")
 }), error=function(e) {
     conditionMessage(e) == "cannot open URL 'http://httpbin.org/status/404'"
 })
 stopifnot(testDownloadFile404, !file.exists(tf))
 
-## check specific warnings
-## testUnknownUrl <- tryCatch({
-##     zz <- url("http://foo.bar", "r", method = "libcurl")
-## }, warning=function(e) {
-##     grepl("Couldn't resolve host name", conditionMessage(e))
-## })
-## close(zz)
-## stopifnot(testUnknownUrl)
-
 test404.1 <- tryCatch({
-    open(zz <- url("http://httpbin.org/status/404", method="libcurl"))
+    open(zz <- url("http://httpbin.org/status/404", method = "libcurl"))
 }, warning=function(w) {
     grepl("404 Not Found", conditionMessage(w))
 })
@@ -96,7 +58,6 @@ options(url.method = "libcurl")
 zz <- url("http://www.stats.ox.ac.uk/pub/datasets/csb/ch11b.dat")
 stopifnot(identical(summary(zz)$class, "url-libcurl"))
 close(zz)
-head(readLines("https://httpbin.org", warn = FALSE))
 
 test404.2 <- tryCatch({
     open(zz <- url("http://httpbin.org/status/404"))
@@ -107,3 +68,29 @@ close(zz)
 stopifnot(test404.2)
 
 showConnections(all = TRUE)
+
+## --------------------------------------------------------------
+## Some platforms have problems with certificates,
+## so allow them to skip the https tests
+junk <- tryCatch(curlGetHeaders("http://bugs.r-project.org"),
+                 error = function(e) {
+			 message("Check for working https failed:\n\t",
+				 conditionMessage(e), 
+				 "skipping https tests\n")
+			 q()
+		 })
+
+example(curlGetHeaders, run.donttest = TRUE)
+
+## https URL
+head(readLines(zz <- url("https://httpbin.org", method = "libcurl"),
+               warn = FALSE))
+close(zz)
+
+## redirection (to a https:// URL)
+head(readLines(zz <- url("http://bugs.r-project.org", method = "libcurl"),
+               warn = FALSE))
+close(zz)
+
+options(url.method = "libcurl")
+head(readLines("https://httpbin.org", warn = FALSE))

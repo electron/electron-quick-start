@@ -704,7 +704,7 @@ for(n in 1:20) {
     for(x in list(z, round(z,1))) { ## 2nd one has ties
        qxi <- sort(x,  method = "quick",  index.return = TRUE)
        stopifnot(qxi$x == sort(x, method = "shell"),
-		 any(duplicated(x)) || qxi$ix == order(x),
+		 any(duplicated(x)) || all(qxi$ix == order(x)),
 		 x[qxi$ix] == qxi$x)
    }
 }
@@ -795,10 +795,9 @@ stopifnot(
  log2(.Machine$double.xmax) == .Machine$double.max.exp,
  log2(.Machine$double.xmin) == .Machine$double.min.exp
 )
-# This test fails on HP-UX since pow(2,1024) returns DBL_MAX and sets
+# This test failed on HP-UX since pow(2,1024) returns DBL_MAX and sets
 # errno = ERANGE.  Most other systems return Inf and set errno
-if (Sys.info()["sysname"] != "HP-UX")
-    stopifnot(is.infinite(.Machine$double.base ^ .Machine$double.max.exp))
+stopifnot(is.infinite(.Machine$double.base ^ .Machine$double.max.exp))
 ## end of moved from zMachine.Rd
 
 
@@ -2013,12 +2012,31 @@ stopifnot(identical(as.character(i), dimnames(table(fi))[[1]]))
 
 ## [lm.]influence() for multivariate lm :
 n <- 32
-Y <- matrix(rnorm(3 * n), n, 3)
+Y0 <- matrix(rnorm(3 * n), n, 3) # and a version with named Y's
+Yn <- Y0; colnames(Yn) <- paste0("Y",1:3)
 X <- matrix(rnorm(5 * n), n, 5)
-infm <- lm.influence(mod <- lm(Y ~ X))
-## failed up to 2003-03-29 (pre 1.7.0)
-im1 <- influence.measures(mod)
-stopifnot(all.equal(unname(im1$infmat[,1:6]), unname(dfbetas(mod))))
+for(Y in list(Y0, Yn)) {
+    fmL <- lapply(1:3, function(j) lm(Y[,j] ~ X))
+    infL <- lapply(fmL, lm.influence)
+    infm <- lm.influence(mod <- lm(Y ~ X))
+    if(interactive()) str(infL, give.attr=FALSE) # should match the 'infm' parts
+    ## 1. "hat" are all the 3 the same
+    hatL <- sapply(infL, `[[`, "hat")
+    stopifnot(all.equal(hatL[,1], hatL[,2]), all.equal(hatL[,2], hatL[,3]))
+    ## 2. the other 3 components should be "concatenated" to give same as mlm :
+    for(nm in c("coefficients", "sigma", "wt.res")) {
+        stopifnot(all.equal(unname(infm[[nm]]),
+                            unname(sapply(infL, `[[`, nm, simplify="array",
+                                          USE.NAMES=FALSE))))
+    }
+    ## failed up to 2003-03-29 (pre 1.7.0)
+    im1 <- influence.measures(mod)
+    dfbs <- dfbetas(mod)
+    dimnames(dfbs)[[3]] <- dimnames(im1$infmat)[[3]][1:6]
+    stopifnot(all.equal(im1$infmat[,,1:6], dfbs))
+}# for both Y's
+## lm.influence() did not work correctly for "mlm"s in R <= 3.5.1
+
 
 ## rbind.data.frame with character and ordered columns
 A <- data.frame(a=1)
@@ -2339,7 +2357,7 @@ attach(list(.Random.seed=c(0:4)))
 x <- runif(1)
 detach(2)
 (new <- RNGkind())
-stopifnot(identical(new, c("Mersenne-Twister", "Inversion")))
+stopifnot(identical(new, c("Mersenne-Twister", "Inversion", "Rejection")))
 stopifnot(identical(find(".Random.seed"), ".GlobalEnv"))
 ## took from and assigned to list in 1.7.x.
 
@@ -4209,11 +4227,13 @@ stopifnot(identical(x, xx))
 ## Allowed in R < 2.4.0, but corrupted tsp.
 
 
-## Looking up generic in UseMethod
-mycoef <- function(object, ....) UseMethod("coef")
-x <- list(coefficients=1:3)
-mycoef(x)
-## failed to find default method < 2.4.0
+## This only "works" by having an S3 generic use the registry
+## of another S3 generic, which seems a very bad idea.
+## ## Looking up generic in UseMethod
+## mycoef <- function(object, ....) UseMethod("coef")
+## x <- list(coefficients=1:3)
+## mycoef(x)
+## ## failed to find default method < 2.4.0
 
 
 ## regression tests on changes to model.frame and model.matrix
@@ -4820,6 +4840,7 @@ s1 <- "this is a test string 123"
 r0 <- r1 <- charToRaw(s1)
 save(r1, file="r1-ascii.rda", ascii=TRUE)
 save(r1, file="r1.rda", ascii=FALSE)
+rm(r1)# really prove...
 load("r1.rda")
 unlink("r1.rda")
 stopifnot(identical(r1, r0))

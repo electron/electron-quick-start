@@ -538,6 +538,38 @@ rd <- tools::parse_Rd(f)
 ## Gave syntax errors because the percent sign in Usage
 ## was taken as the start of a comment.
 
+## pass no arguments to 0-parameter macro
+cat("\\newcommand{\\mac0}{MAC0}\\mac0", file=f)
+rd <- tools::parse_Rd(f)
+stopifnot(identical(as.character(rd), "MAC0\n"))
+
+## pass empty argument to a 1-parameter macro (failed in 3.5.0 and earlier)
+cat("\\newcommand{\\mac1}{MAC1:#1}\\mac1{}", file=f)
+rd <- tools::parse_Rd(f)
+stopifnot(identical(as.character(rd), "MAC1:\n"))
+
+## pass empty argument to a 2-parameter macro (failed in 3.5.0 and earlier)
+cat("\\newcommand{\\mac2}{MAC2:#2}\\mac2{}{XX}", file=f)
+rd <- tools::parse_Rd(f)
+stopifnot(identical(as.character(rd), "MAC2:XX\n"))
+
+cat("\\newcommand{\\mac2}{MAC2:#2#1}\\mac2{YY}{}", file=f)
+rd <- tools::parse_Rd(f)
+stopifnot(identical(as.character(rd), "MAC2:YY\n"))
+
+## pass multi-line argument to a user macro (failed in 3.5.0 and earlier)
+cat("\\newcommand{\\mac1}{MAC1:#1}\\mac1{XXX\nYYY}", file=f)
+rd <- tools::parse_Rd(f)
+stopifnot(identical(as.character(rd), c("MAC1:XXX\n","YYY\n")))
+
+## comments are removed from macro arguments (not in 3.5.0 and earlier)
+cat("\\newcommand{\\mac1}{MAC1:#1}\\mac1{XXX%com\n}", file=f)
+rd <- tools::parse_Rd(f)
+stopifnot(identical(as.character(rd), c("MAC1:XXX\n","\n")))
+
+cat("\\newcommand{\\mac1}{MAC1:#1}\\mac1{XXX%com\nYYY}", file=f)
+rd <- tools::parse_Rd(f)
+stopifnot(identical(as.character(rd), c("MAC1:XXX\n","YYY\n")))
 
 ## power.t.test() failure for very large n (etc): PR#15792
 (ptt <- power.t.test(delta = 1e-4, sd = .35, power = .8))
@@ -732,13 +764,12 @@ stopifnot(diff(sort(y)) > 0)
 ## order() and hence sort() failed here badly for a while around 2015-04-16
 
 
-## NAs in data frame names:
-dn <- list(c("r1", NA), c("V", NA))
+## NAs in data frame names (but *not* in row.names; that's really wrong):
+dn <- list(c("r1", "r2"), c("V", NA))
 d11 <- as.data.frame(matrix(c(1, 1, 1, 1), ncol = 2, dimnames = dn))
 stopifnot(identical(names(d11), dn[[2]]),
           identical(row.names(d11), dn[[1]]))
 ## as.data.frame() failed in R-devel for a couple of hours ..
-## note that format(d11) does fail currently, and hence print(), too
 
 
 ## Ensure  R -e ..  works on Unix
@@ -781,7 +812,8 @@ tools::assertError(`&`(FALSE))
 tools::assertError(`|`(TRUE))
 ## Did not give errors in R <= 3.2.0
 E <- tryCatch(`!`(), error = function(e)e)
-stopifnot(grepl("0 arguments .*\\<1", conditionMessage(E)))
+stopifnot(grepl("0 argument.*\\<1", conditionMessage(E)))
+##            PR#17456 :   ^^ a version that also matches in a --disable-nls configuration
 ## Gave wrong error message in R <= 3.2.0
 stopifnot(identical(!matrix(TRUE), matrix(FALSE)),
 	  identical(!matrix(FALSE), matrix(TRUE)))
@@ -1036,7 +1068,7 @@ stopifnot(is.data.frame(d20), dim(d20) == c(2,2),
 stopifnot(identical(names(myD), names(format(head(myD)))),
 	  identical(names(myD), c("Variable.1", "", "stringsAsFactors")),
 	  identical(rbind.data.frame(2:1, 1:2), ## was wrong for some days
-		    data.frame(c.2L..1L. = c(2L, 1L), X1.2 = 1:2)))
+		    data.frame(X2.1 = 2:1, X1.2 = 1:2)))
 ## format.data.frame() did not show "stringsAsFactors" in R <= 3.2.2
 ## Follow up: the new as.data.frame.list() must be careful with 'AsIs' columns:
 desc <- structure( c("a", NA, "z"), .Names = c("A", NA, "Z"))
@@ -1057,8 +1089,8 @@ stopifnot(identical(format(dd),
 
 ## var(x) and hence sd(x)  with factor x, PR#16564
 tools::assertError(cov(1:6, f <- gl(2,3)))# was ok already
-tools::assertWarning(var(f))
-tools::assertWarning( sd(f))
+tools::assertError(var(f))# these two give an error now (R >= 3.6.0)
+tools::assertError( sd(f))
 ## var() "worked" in R <= 3.2.2  using the underlying integer codes
 proc.time() - .pt; .pt <- proc.time()
 
@@ -1297,7 +1329,7 @@ identical(f1, rep(paste(f0, "CET"), 2))# often TRUE (but too platform dependent)
 d2$zone <- d1$zone[1] # length 1 instead of 2
 f2 <- format(d2, usetz=TRUE)## -> segfault
 f1.2 <- format(as.POSIXlt("2016-01-28 01:23:45"), format=c("%d", "%y"))# segfault
-stopifnot(identical(f2, rep(paste(f0,  tz0 ), 2)),
+stopifnot(identical(f2, format(as.POSIXct(d2), usetz=TRUE)),# not yet in R <= 3.5.x
 	  identical(f1.2, c("28", "16")))
 tims <- seq.POSIXt(as.POSIXct("2016-01-01"),
 		   as.POSIXct("2017-11-11"), by = as.difftime(pi, units="weeks"))
@@ -1531,19 +1563,22 @@ stopifnot(all.equal(Fn(t), t/5))
 
 
 ## tar() default (i.e. "no files") behaviour:
-dir.create(td <- tempfile("tar-experi"))
-setwd(td)
-dfil <- "base_Desc"
-file.copy(system.file("DESCRIPTION"), dfil)
-## tar w/o specified files
-tar("ex.tar")# all files, i.e. 'dfil'
-unlink(dfil)
-stopifnot(grepl(dfil, untar("ex.tar", list = TRUE)))
-untar("ex.tar")
-myF2 <- c(dfil, "ex.tar")
-stopifnot(identical(list.files(), myF2))
-unlink(myF2)
-## produced an empty tar file in R < 3.3.0, PR#16716
+doit <- function(...) {
+    dir.create(td <- tempfile("tar-experi"))
+    setwd(td)
+    dfil <- "base_Desc"
+    file.copy(system.file("DESCRIPTION"), dfil)
+    ## tar w/o specified files
+    tar("ex.tar", ... ) # all files, i.e. 'dfil'
+    unlink(dfil)
+    stopifnot(grepl(dfil, untar("ex.tar", list = TRUE)))
+    untar("ex.tar")
+    myF2 <- c(dfil, "ex.tar")
+    stopifnot(identical(list.files(), myF2))
+    unlink(myF2)
+}
+doit() # produced an empty tar file in R < 3.3.0, PR#16716
+if(nzchar(Sys.which("tar"))) doit(tar = "tar")
 
 
 ## format.POSIXlt() of Jan.1 if  1941 or '42 is involved:

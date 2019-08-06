@@ -1,6 +1,6 @@
 /*
  *  R : A Computer Language for Statistical Data Analysis
- *  Copyright (C) 1998-2015   The R Core Team
+ *  Copyright (C) 1998-2018   The R Core Team
  *
  *  This header file is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -113,7 +113,7 @@ void F77_NAME(dqrxb)(double *x, int *n, int *k, double *qraux,
 
 /* appl/pretty.c: for use in engine.c and util.c */
 double R_pretty(double *lo, double *up, int *ndiv, int min_n,
-		double shrink_sml, double high_u_fact[],
+		double shrink_sml, const double high_u_fact[],
 		int eps_correction, int return_bounds);
 
 

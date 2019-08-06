@@ -622,14 +622,6 @@ f
 ## was  [1] C A; Levels:  C A  in 1.4.1
 
 
-## PR#1408 Inconsistencies in sum()
-x <- as.integer(2^30)
-sum(x, x)    # did not warn in 1.4.1
-sum(c(x, x)) # did warn
-(z <- sum(x, x, 0.0)) # was NA in 1.4.1
-typeof(z)
-
-
 ## NA levels in factors
 (x <- factor(c("a", "NA", "b"), exclude=NULL))
 ## 1.4.1 had wrong order for levels
@@ -2352,12 +2344,19 @@ attr(foo, "srcref") <- NULL
 foo
 (f <- structure(function(){}, note = "just a note",
                 yada = function() "not the same"))
+print(f, useSource = TRUE)
 print(f, useSource = FALSE) # must print attributes
-print.function <- function(x, ...) { str(x,...); invisible(x) }
+print.function <- function(x, ...) {
+    cat("my print(<function>): "); str(x, give.attr=FALSE); invisible(x) }
 print.function
-f
+print(print.function)
 rm(print.function)
-## auto-printing and printing differed up to R 2.9.x
+## auto-printing and printing differed up to R 2.9.x -- and then *AGAIN* in R 3.6.0
+
+
+## Make sure deparsing does not reset parameters
+print(list(f, expression(foo), f, quote(foo), f, base::list, f),
+      useSource = FALSE)
 
 printCoefmat(cbind(0,1))
 ## would print NaN up to R 2.9.0
@@ -2423,7 +2422,7 @@ try(complete.cases(list(), list()))
 
 ## error messages from (C-level) evalList
 tst <- function(y) { stopifnot(is.numeric(y)); y+ 1 }
-try(tst())
+try(tst()) # even nicer since R 3.5.0's change to sequential stopifnot()
 try(c(1,,2))
 ## change in 2.8.0 made these less clear
 
@@ -3006,6 +3005,15 @@ a <- alist(one = 1, two = )
 dput(a)
 ## deparsed two to quote()
 
+## Deparsing of repeated unary operators; the first 3 were "always" ok:
+quote(~~x)
+quote(++x)
+quote(--x)
+quote(!!x) # was `!(!x)`
+quote(??x) # Suboptimal
+quote(~+-!?x) # ditto: ....`?`(x)
+## `!` no longer produces parentheses now
+
 
 ## summary.data.frame() with NAs in columns of class "Date" -- PR#16709
 x <- c(18000000, 18810924, 19091227, 19027233, 19310526, 19691228, NA)
@@ -3046,3 +3054,77 @@ summary(1L)
 ## str.default() for "AsIs" arrays
 str(I(m <- matrix(pi*1:4, 2)))
 ## did look ugly (because of toString() for numbers) in R <= 3.3.1
+
+
+## check automatic coercions from double to integer
+##
+## these should work due to coercion
+sprintf("%d", 1)
+sprintf("%d", NA_real_)
+sprintf("%d", c(1,2))
+sprintf("%d", c(1,NA))
+sprintf("%d", c(NA,1))
+##
+## these should fail
+sprintf("%d", 1.1)
+sprintf("%d", c(1.1,1))
+sprintf("%d", c(1,1.1))
+sprintf("%d", NaN)
+sprintf("%d", c(1,NaN))
+
+
+## formatting of named raws:
+setNames(as.raw(1:3), c("a", "bbbb", "c"))
+## was quite ugly for R <= 3.4.2
+
+
+## str(x) when is.vector(x) is false :
+str(structure(c(a = 1, b = 2:7), color = "blue"))
+## did print " atomic [1:7] ..." in R <= 3.4.x
+
+
+## check stopifnot(exprs = ....)
+tryCatch(stopifnot(exprs = {
+  all.equal(pi, 3.1415927)
+  2 < 2
+  cat("Kilroy was here!\n")
+  all(1:10 < 12)
+  "a" < "b"
+}), error = function(e) e$message) -> M ; cat("Error: ", M, "\n")
+
+tryCatch(stopifnot(exprs = {
+  all.equal(pi, 3.1415927)
+  { cat("Kilroy was here!\n"); TRUE }
+  pi < 3
+  cat("whereas I won't be printed ...\n")
+  all(1:10 < 12)
+  "a" < "b"
+}), error = function(e) e$message) -> M2 ; cat("Error: ", M2, "\n")
+
+stopifnot(exprs = {
+  all.equal(pi, 3.1415927)
+  { cat("\nKilroy was here! ... "); TRUE }
+  pi > 3
+  all(1:10 < 12)
+  "a" < "b"
+  { cat("and I'm printed as well ...\n"); TRUE}
+})
+## without "{ .. }" :
+stopifnot(exprs = 2 == 2)
+try(stopifnot(exprs = 1 > 2))
+## passing an expression object:
+stopifnot(exprs = expression(2 == 2, pi < 4))
+tryCatch(stopifnot(exprs = expression(
+                       2 == 2,
+                       { cat("\n Kilroy again .."); TRUE },
+                       pi < 4,
+                       0 == 1,
+                       { cat("\n no way..\n"); TRUE })),
+         error = function(e) e$message) -> M3
+cat("Error: ", M3, "\n")
+## was partly not ok for many weeks in R-devel, early 2018
+
+
+## print.htest() with small 'digits'
+print(t.test(1:28), digits = 3)
+## showed 'df = 30' from signif(*, digits=1) and too many digits for CI, in R <= 3.5.1

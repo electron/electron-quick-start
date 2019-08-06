@@ -1,6 +1,6 @@
 
-R version 3.4.0 RC (2017-04-18 r72543) -- "You Stupid Darkness"
-Copyright (C) 2017 The R Foundation for Statistical Computing
+R version 3.6.0 Patched (2019-06-07 r76692) -- "Planting of a Tree"
+Copyright (C) 2019 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -23,6 +23,7 @@ Type 'q()' to quit R.
 > library('stats')
 > 
 > base::assign(".oldSearch", base::search(), pos = 'CheckExEnv')
+> base::assign(".old_wd", base::getwd(), pos = 'CheckExEnv')
 > cleanEx()
 > nameEx("AIC")
 > ### * AIC
@@ -341,7 +342,7 @@ lm2  6 336.3417
 > all.equal(df(x^2, 1, 5), dt(x, 5)/x)
 [1] TRUE
 > 
-> ## Identity:  qf(2*p - 1, 1, df)) == qt(p, df)^2)  for  p >= 1/2
+> ## Identity:  qf(2*p - 1, 1, df) == qt(p, df)^2  for  p >= 1/2
 > p <- seq(1/2, .99, length = 50); df <- 10
 > rel.err <- function(x, y) ifelse(x == y, 0, abs(x-y)/mean(abs(c(x,y))))
 > 
@@ -970,12 +971,12 @@ cond     deg0NA deg4NA deg8NA deg0NP deg4NP deg8NP
 > options(show.nls.convergence=FALSE)
 > ## End(Don't show)
 > Lob.329 <- Loblolly[ Loblolly$Seed == "329", ]
-> SSasymp( Lob.329$age, 100, -8.5, -3.2 )  # response only
+> SSasymp( Lob.329$age, 100, -8.5, -3.2 )   # response only
 [1]  3.988924 11.505611 27.822517 41.130854 51.985354 60.838463
-> Asym <- 100
-> resp0 <- -8.5
-> lrc <- -3.2
-> SSasymp( Lob.329$age, Asym, resp0, lrc ) # response and gradient
+> local({
++   Asym <- 100 ; resp0 <- -8.5 ; lrc <- -3.2
++   SSasymp( Lob.329$age, Asym, resp0, lrc) # response _and_ gradient
++ })
 [1]  3.988924 11.505611 27.822517 41.130854 51.985354 60.838463
 attr(,"gradient")
           Asym     resp0      lrc
@@ -986,15 +987,8 @@ attr(,"gradient")
 [5,] 0.5574687 0.4425313 39.14366
 [6,] 0.6390642 0.3609358 39.90776
 > getInitial(height ~ SSasymp( age, Asym, resp0, lrc), data = Lob.329)
-$Asym
-[1] 94.1282
-
-$resp0
-[1] -8.250753
-
-$lrc
-[1] -3.217578
-
+     Asym     resp0       lrc 
+94.128204 -8.250753 -3.217578 
 > ## Initial values are in fact the converged values
 > fm1 <- nls(height ~ SSasymp( age, Asym, resp0, lrc), data = Lob.329)
 > summary(fm1)
@@ -1011,33 +1005,41 @@ Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’
 
 Residual standard error: 0.7493 on 3 degrees of freedom
 
-> ## Don't show: 
-> require(graphics)
 > 
->   xx <- seq(0, 5, len = 101)
->   yy <- 5 - 4 * exp(-xx/(2*log(2)))
->   par(mar = c(0, 0, 4.1, 0))
->   plot(xx, yy, type = "l", axes = FALSE, ylim = c(0,6), xlim = c(-1, 5),
+> ## Visualize the SSasymp()  model  parametrization :
+> 
+>   xx <- seq(-.3, 5, len = 101)
+>   ##  Asym + (R0-Asym) * exp(-exp(lrc)* x) :
+>   yy <- 5 - 4 * exp(-xx / exp(3/4))
+>   stopifnot( all.equal(yy, SSasymp(xx, Asym = 5, R0 = 1, lrc = -3/4)) )
+>   require(graphics)
+>   op <- par(mar = c(0, .2, 4.1, 0))
+>   plot(xx, yy, type = "l", axes = FALSE, ylim = c(0,5.2), xlim = c(-.3, 5),
 +        xlab = "", ylab = "", lwd = 2,
-+        main = "Parameters in the SSasymp model")
++        main = quote("Parameters in the SSasymp model " ~
++                     {f[phi](x) == phi[1] + (phi[2]-phi[1])*~e^{-e^{phi[3]}*~x}}))
+>   mtext(quote(list(phi[1] == "Asym", phi[2] == "R0", phi[3] == "lrc")))
 >   usr <- par("usr")
 >   arrows(usr[1], 0, usr[2], 0, length = 0.1, angle = 25)
 >   arrows(0, usr[3], 0, usr[4], length = 0.1, angle = 25)
 >   text(usr[2] - 0.2, 0.1, "x", adj = c(1, 0))
->   text(-0.1, usr[4], "y", adj = c(1, 1))
->   abline(h = 5, lty = 2, lwd = 0)
->   arrows(-0.8, 2.1, -0.8, 0, length = 0.1, angle = 25)
->   arrows(-0.8, 2.9, -0.8, 5, length = 0.1, angle = 25)
->   text(-0.8, 2.5, expression(phi[1]), adj = c(0.5, 0.5))
->   segments(-0.4, 1, 0, 1, lty = 2, lwd = 0.75)
->   arrows(-0.3, 0.25, -0.3, 0, length = 0.07, angle = 25)
->   arrows(-0.3, 0.75, -0.3, 1, length = 0.07, angle = 25)
->   text(-0.3, 0.5, expression(phi[2]), adj = c(0.5, 0.5))
->   segments(1, 3.025, 1, 4, lty = 2, lwd = 0.75)
->   arrows(0.2, 3.5, 0, 3.5, length = 0.08, angle = 25)
->   arrows(0.8, 3.5, 1, 3.5, length = 0.08, angle = 25)
->   text(0.5, 3.5, expression(t[0.5]), adj = c(0.5, 0.5))
-> ## End(Don't show)
+>   text(     -0.1, usr[4], "y", adj = c(1, 1))
+>   abline(h = 5, lty = 3)
+>   arrows(c(0.35, 0.65), 1,
++          c(0  ,  1   ), 1, length = 0.08, angle = 25); text(0.5, 1, quote(1))
+>   y0 <- 1 + 4*exp(-3/4) ; t.5 <- log(2) / exp(-3/4) ; AR2 <- 3 # (Asym + R0)/2
+>   segments(c(1, 1), c( 1, y0),
++            c(1, 0), c(y0,  1),  lty = 2, lwd = 0.75)
+>   text(1.1, 1/2+y0/2, quote((phi[1]-phi[2])*e^phi[3]), adj = c(0,.5))
+>   axis(2, at = c(1,AR2,5), labels= expression(phi[2], frac(phi[1]+phi[2],2), phi[1]),
++        pos=0, las=1)
+>   arrows(c(.6,t.5-.6), AR2,
++          c(0, t.5   ), AR2, length = 0.08, angle = 25)
+>   text(   t.5/2,   AR2, quote(t[0.5]))
+>   text(   t.5 +.4, AR2,
++        quote({f(t[0.5]) == frac(phi[1]+phi[2],2)}~{} %=>% {}~~
++                 {t[0.5] == frac(log(2), e^{phi[3]})}), adj = c(0, 0.5))
+>   par(op)
 > 
 > 
 > 
@@ -1058,8 +1060,9 @@ Residual standard error: 0.7493 on 3 degrees of freedom
 > CO2.Qn1 <- CO2[CO2$Plant == "Qn1", ]
 > SSasympOff(CO2.Qn1$conc, 32, -4, 43)  # response only
 [1] 19.65412 29.14785 31.27791 31.88435 31.99259 31.99970 32.00000
-> Asym <- 32; lrc <- -4; c0 <- 43
-> SSasympOff(CO2.Qn1$conc, Asym, lrc, c0) # response and gradient
+> local({  Asym <- 32; lrc <- -4; c0 <- 43
++   SSasympOff(CO2.Qn1$conc, Asym, lrc, c0) # response and gradient
++ })
 [1] 19.65412 29.14785 31.27791 31.88435 31.99259 31.99970 32.00000
 attr(,"gradient")
           Asym          lrc            c0
@@ -1071,15 +1074,8 @@ attr(,"gradient")
 [6,] 0.9999906 3.479529e-03 -5.505583e-06
 [7,] 1.0000000 1.369435e-05 -1.430967e-08
 > getInitial(uptake ~ SSasympOff(conc, Asym, lrc, c0), data = CO2.Qn1)
-$Asym
-[1] 38.13978
-
-$lrc
-[1] -4.380647
-
-$c0
-[1] 51.22324
-
+     Asym       lrc        c0 
+38.139782 -4.380647 51.223238 
 > ## Initial values are in fact the converged values
 > fm1 <- nls(uptake ~ SSasympOff(conc, Asym, lrc, c0), data = CO2.Qn1)
 > summary(fm1)
@@ -1096,31 +1092,36 @@ Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’
 
 Residual standard error: 1.663 on 4 degrees of freedom
 
-> ## Don't show: 
-> require(graphics)
 > 
->   xx <- seq(0.5, 5, len = 101)
->   yy <- 5 * (1 -  exp(-(xx - 0.5)/(2*log(2))))
->   par(mar = c(0, 0, 4.0, 0))
->   plot(xx, yy, type = "l", axes = FALSE, ylim = c(0,6), xlim = c(-1, 5),
+> ## Visualize the SSasympOff()  model  parametrization :
+> 
+>   xx <- seq(0.25, 8,  by=1/16)
+>   yy <- 5 * (1 -  exp(-(xx - 3/4)*0.4))
+>   stopifnot( all.equal(yy, SSasympOff(xx, Asym = 5, lrc = log(0.4), c0 = 3/4)) )
+>   require(graphics)
+>   op <- par(mar = c(0, 0, 4.0, 0))
+>   plot(xx, yy, type = "l", axes = FALSE, ylim = c(-.5,6), xlim = c(-1, 8),
 +        xlab = "", ylab = "", lwd = 2,
 +        main = "Parameters in the SSasympOff model")
+>   mtext(quote(list(phi[1] == "Asym", phi[2] == "lrc", phi[3] == "c0")))
 >   usr <- par("usr")
 >   arrows(usr[1], 0, usr[2], 0, length = 0.1, angle = 25)
 >   arrows(0, usr[3], 0, usr[4], length = 0.1, angle = 25)
 >   text(usr[2] - 0.2, 0.1, "x", adj = c(1, 0))
->   text(-0.1, usr[4], "y", adj = c(1, 1))
->   abline(h = 5, lty = 2, lwd = 0)
->   arrows(-0.8, 2.1, -0.8, 0, length = 0.1, angle = 25)
->   arrows(-0.8, 2.9, -0.8, 5, length = 0.1, angle = 25)
->   text(-0.8, 2.5, expression(phi[1]), adj = c(0.5, 0.5))
->   segments(0.5, 0, 0.5, 3, lty = 2, lwd = 0.75)
->   text(0.5, 3.1, expression(phi[3]), adj = c(0.5, 0))
->   segments(1.5, 2.525, 1.5, 3, lty = 2, lwd = 0.75)
->   arrows(0.7, 2.65, 0.5, 2.65, length = 0.08, angle = 25)
->   arrows(1.3, 2.65, 1.5, 2.65, length = 0.08, angle = 25)
->   text(1.0, 2.65, expression(t[0.5]), adj = c(0.5, 0.5))
-> ## End(Don't show)
+>   text(     -0.1, usr[4], "y", adj = c(1, 1))
+>   abline(h = 5, lty = 3)
+>   arrows(-0.8, c(2.1, 2.9),
++          -0.8, c(0  , 5  ), length = 0.1, angle = 25)
+>   text  (-0.8, 2.5, quote(phi[1]))
+>   segments(3/4, -.2, 3/4, 1.6, lty = 2)
+>   text    (3/4,    c(-.3, 1.7), quote(phi[3]))
+>   arrows(c(1.1, 1.4), -.15,
++          c(3/4, 7/4), -.15, length = 0.07, angle = 25)
+>   text    (3/4 + 1/2, -.15, quote(1))
+>   segments(c(3/4, 7/4, 7/4), c(0, 0, 2),   # 5 * exp(log(0.4)) = 2
++            c(7/4, 7/4, 3/4), c(0, 2, 0),  lty = 2, lwd = 2)
+>   text(      7/4 +.1, 2./2, quote(phi[1]*e^phi[2]), adj = c(0, .5))
+>   par(op)
 > 
 > 
 > 
@@ -1137,29 +1138,33 @@ Residual standard error: 1.663 on 4 degrees of freedom
 > ### Keywords: models
 > 
 > ### ** Examples
-> ## Don't show: 
-> require(graphics)
+> 
+> ## Visualize the SSasympOrig()  model  parametrization :
 > 
 >   xx <- seq(0, 5, len = 101)
->   yy <- 5 * (1- exp(-xx/(2*log(2))))
->   par(mar = c(0, 0, 3.5, 0))
->   plot(xx, yy, type = "l", axes = FALSE, ylim = c(0,6), xlim = c(-1, 5),
+>   yy <- 5 * (1- exp(-xx * log(2)))
+>   stopifnot( all.equal(yy, SSasympOrig(xx, Asym = 5, lrc = log(log(2)))) )
+> 
+>   require(graphics)
+>   op <- par(mar = c(0, 0, 3.5, 0))
+>   plot(xx, yy, type = "l", axes = FALSE, ylim = c(0,5), xlim = c(-1/4, 5),
 +        xlab = "", ylab = "", lwd = 2,
-+        main = "Parameters in the SSasympOrig model")
++        main = quote("Parameters in the SSasympOrig model"~~ f[phi](x)))
+>   mtext(quote(list(phi[1] == "Asym", phi[2] == "lrc")))
 >   usr <- par("usr")
 >   arrows(usr[1], 0, usr[2], 0, length = 0.1, angle = 25)
 >   arrows(0, usr[3], 0, usr[4], length = 0.1, angle = 25)
 >   text(usr[2] - 0.2, 0.1, "x", adj = c(1, 0))
->   text(-0.1, usr[4], "y", adj = c(1, 1))
->   abline(h = 5, lty = 2, lwd = 0)
->   arrows(-0.8, 2.1, -0.8, 0, length = 0.1, angle = 25)
->   arrows(-0.8, 2.9, -0.8, 5, length = 0.1, angle = 25)
->   text(-0.8, 2.5, expression(phi[1]), adj = c(0.5, 0.5))
->   segments(1, 2.525, 1, 3.5, lty = 2, lwd = 0.75)
->   arrows(0.2, 3.0, 0, 3.0, length = 0.08, angle = 25)
->   arrows(0.8, 3.0, 1, 3.0, length = 0.08, angle = 25)
->   text(0.5, 3.0, expression(t[0.5]), adj = c(0.5, 0.5))
-> ## End(Don't show)
+>   text(   -0.1,   usr[4], "y", adj = c(1, 1))
+>   abline(h = 5, lty = 3)
+>   axis(2, at = 5*c(1/2,1), labels= expression(frac(phi[1],2), phi[1]), pos=0, las=1)
+>   arrows(c(.3,.7), 5/2,
++          c(0, 1 ), 5/2, length = 0.08, angle = 25)
+>   text(   0.5,     5/2, quote(t[0.5]))
+>   text(   1 +.4,   5/2,
++        quote({f(t[0.5]) == frac(phi[1],2)}~{} %=>% {}~~{t[0.5] == frac(log(2), e^{phi[2]})}),
++        adj = c(0, 0.5))
+>   par(op)
 > 
 > 
 > 
@@ -1255,11 +1260,12 @@ Residual standard error: 0.04103 on 7 degrees of freedom
 > ### ** Examples
 > 
 > Theoph.1 <- Theoph[ Theoph$Subject == 1, ]
-> SSfol(Theoph.1$Dose, Theoph.1$Time, -2.5, 0.5, -3) # response only
+> with(Theoph.1, SSfol(Dose, Time, -2.5, 0.5, -3)) # response only
  [1] 0.000000 2.214486 3.930988 5.261945 5.659813 5.084852 4.587699 3.916808
  [9] 3.318395 2.579204 0.943593
-> lKe <- -2.5; lKa <- 0.5; lCl <- -3
-> SSfol(Theoph.1$Dose, Theoph.1$Time, lKe, lKa, lCl) # response and gradient
+> with(Theoph.1, local({  lKe <- -2.5; lKa <- 0.5; lCl <- -3
++   SSfol(Dose, Time, lKe, lKa, lCl) # response _and_ gradient
++ }))
  [1] 0.000000 2.214486 3.930988 5.261945 5.659813 5.084852 4.587699 3.916808
  [9] 3.318395 2.579204 0.943593
 attr(,"gradient")
@@ -1276,15 +1282,8 @@ attr(,"gradient")
 [10,]  0.148370 -0.13513891 -2.579204
 [11,] -0.894541 -0.04944021 -0.943593
 > getInitial(conc ~ SSfol(Dose, Time, lKe, lKa, lCl), data = Theoph.1)
-$lKe
-[1] -2.994845
-
-$lKa
-[1] 0.609169
-
-$lCl
-[1] -3.971003
-
+      lKe       lKa       lCl 
+-2.994845  0.609169 -3.971003 
 > ## Initial values are in fact the converged values
 > fm1 <- nls(conc ~ SSfol(Dose, Time, lKe, lKa, lCl), data = Theoph.1)
 > summary(fm1)
@@ -1321,8 +1320,10 @@ Residual standard error: 0.732 on 8 degrees of freedom
 > SSfpl(Chick.1$Time, 13, 368, 14, 6)  # response only
  [1]  44.38189  55.31704  69.39853  87.05603 108.47420 133.43149 161.18758
  [8] 190.50000 219.81242 247.56851 272.52580 283.70240
-> A <- 13; B <- 368; xmid <- 14; scal <- 6
-> SSfpl(Chick.1$Time, A, B, xmid, scal) # response and gradient
+> local({
++   A <- 13; B <- 368; xmid <- 14; scal <- 6
++   SSfpl(Chick.1$Time, A, B, xmid, scal) # response _and_ gradient
++ })
  [1]  44.38189  55.31704  69.39853  87.05603 108.47420 133.43149 161.18758
  [8] 190.50000 219.81242 247.56851 272.52580 283.70240
 attr(,"gradient")
@@ -1360,35 +1361,36 @@ Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’
 
 Residual standard error: 2.351 on 8 degrees of freedom
 
-> ## Don't show: 
-> require(graphics)
 > 
+> ## Visualizing the  SSfpl()  parametrization
 >   xx <- seq(-0.5, 5, len = 101)
->   yy <- 1 + 4 / ( 1 + exp((2-xx)))
->   par(mar = c(0, 0, 3.5, 0))
+>   yy <- 1 + 4 / (1 + exp((2-xx))) # == SSfpl(xx, *) :
+>   stopifnot( all.equal(yy, SSfpl(xx, A = 1, B = 5, xmid = 2, scal = 1)) )
+>   require(graphics)
+>   op <- par(mar = c(0, 0, 3.5, 0))
 >   plot(xx, yy, type = "l", axes = FALSE, ylim = c(0,6), xlim = c(-1, 5),
 +        xlab = "", ylab = "", lwd = 2,
 +        main = "Parameters in the SSfpl model")
+>   mtext(quote(list(phi[1] == "A", phi[2] == "B", phi[3] == "xmid", phi[4] == "scal")))
 >   usr <- par("usr")
 >   arrows(usr[1], 0, usr[2], 0, length = 0.1, angle = 25)
 >   arrows(0, usr[3], 0, usr[4], length = 0.1, angle = 25)
 >   text(usr[2] - 0.2, 0.1, "x", adj = c(1, 0))
->   text(-0.1, usr[4], "y", adj = c(1, 1))
->   abline(h = 5, lty = 2, lwd = 0)
->   arrows(-0.8, 2.1, -0.8, 0, length = 0.1, angle = 25)
->   arrows(-0.8, 2.9, -0.8, 5, length = 0.1, angle = 25)
->   text(-0.8, 2.5, expression(phi[1]), adj = c(0.5, 0.5))
->   abline(h = 1, lty = 2, lwd = 0)
->   arrows(-0.3, 0.25, -0.3, 0, length = 0.07, angle = 25)
->   arrows(-0.3, 0.75, -0.3, 1, length = 0.07, angle = 25)
->   text(-0.3, 0.5, expression(phi[2]), adj = c(0.5, 0.5))
->   segments(2, 0, 2, 3.3, lty = 2, lwd = 0.75)
->   text(2, 3.3, expression(phi[3]), adj = c(0.5, 0))
->   segments(3, 1+4/(1+exp(-1)) - 0.025, 3, 2.5, lty = 2, lwd = 0.75)
->   arrows(2.3, 2.7, 2.0, 2.7, length = 0.08, angle = 25)
->   arrows(2.7, 2.7, 3.0, 2.7, length = 0.08, angle = 25)
->   text(2.5, 2.7, expression(phi[4]), adj = c(0.5, 0.5))
-> ## End(Don't show)
+>   text(     -0.1, usr[4], "y", adj = c(1, 1))
+>   abline(h = c(1, 5), lty = 3)
+>   arrows(-0.8, c(2.1, 2.9),
++          -0.8, c(0,   5  ), length = 0.1, angle = 25)
+>   text  (-0.8, 2.5, quote(phi[1]))
+>   arrows(-0.3, c(1/4, 3/4),
++          -0.3, c(0,   1  ), length = 0.07, angle = 25)
+>   text  (-0.3, 0.5, quote(phi[2]))
+>   text(2, -.1, quote(phi[3]))
+>   segments(c(2,3,3), c(0,3,4), # SSfpl(x = xmid = 2) = 3
++            c(2,3,2), c(3,4,3),    lty = 2, lwd = 0.75)
+>   arrows(c(2.3, 2.7), 3,
++          c(2.0, 3  ), 3, length = 0.08, angle = 25)
+>   text(      2.5,     3, quote(phi[4])); text(3.1, 3.5, "1")
+>   par(op)
 > 
 > 
 > 
@@ -1407,12 +1409,13 @@ Residual standard error: 2.351 on 8 degrees of freedom
 > ### ** Examples
 > 
 > DNase.1 <- subset(DNase, Run == 1)
-> SSgompertz(log(DNase.1$conc), 4.5, 2.3, 0.7)   # response only
+> SSgompertz(log(DNase.1$conc), 4.5, 2.3, 0.7)  # response only
  [1] 0.00525729 0.00525729 0.07323255 0.07323255 0.18049064 0.18049064
  [7] 0.36508763 0.36508763 0.63288772 0.63288772 0.97257180 0.97257180
 [13] 1.36033340 1.36033340 1.76786902 1.76786902
-> Asym <- 4.5; b2 <- 2.3; b3 <- 0.7
-> SSgompertz(log(DNase.1$conc), Asym, b2, b3) # response and gradient
+> local({  Asym <- 4.5; b2 <- 2.3; b3 <- 0.7
++   SSgompertz(log(DNase.1$conc), Asym, b2, b3) # response _and_ gradient
++ })
  [1] 0.00525729 0.00525729 0.07323255 0.07323255 0.18049064 0.18049064
  [7] 0.36508763 0.36508763 0.63288772 0.63288772 0.97257180 0.97257180
 [13] 1.36033340 1.36033340 1.76786902 1.76786902
@@ -1455,9 +1458,16 @@ Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’
 
 Residual standard error: 0.02684 on 13 degrees of freedom
 
+> plot(density ~ log(conc), DNase.1, # xlim = c(0, 21),
++      main = "SSgompertz() fit to DNase.1")
+> ux <- par("usr")[1:2]; x <- seq(ux[1], ux[2], length.out=250)
+> lines(x, do.call(SSgompertz, c(list(x=x), coef(fm1))), col = "red", lwd=2)
+> As <- coef(fm1)[["Asym"]]; abline(v = 0, h = 0, lty = 3)
+> axis(2, at= exp(-coef(fm1)[["b2"]]), quote(e^{-b[2]}), las=1, pos=0)
 > 
 > 
 > 
+> graphics::par(get("par.postscript", pos = 'CheckExEnv'))
 > cleanEx()
 > nameEx("SSlogis")
 > ### * SSlogis
@@ -1470,31 +1480,40 @@ Residual standard error: 0.02684 on 13 degrees of freedom
 > ### Keywords: models
 > 
 > ### ** Examples
-> ## Don't show: 
-> require(graphics)
 > 
->   xx <- seq(-0.5, 5, len = 101)
->   yy <- 5 / ( 1 + exp((2-xx)))
->   par(mar = c(0, 0, 3.5, 0))
+> dwlg1 <- data.frame(Prop = c(rep(0,5), 2, 5, rep(9, 9)), end = 1:16)
+> iPar <- getInitial(Prop ~ SSlogis(end, Asym, xmid, scal), data = dwlg1)
+> ## failed in R <= 3.4.2 (because of the '0's in 'Prop')
+> stopifnot(all.equal(tol = 1e-6,
++    iPar, c(Asym = 9.0678, xmid = 6.79331, scal = 0.499934)))
+> 
+> ## Visualize the SSlogis()  model  parametrization :
+>   xx <- seq(-0.75, 5, by=1/32)
+>   yy <- 5 / (1 + exp((2-xx)/0.6)) # == SSlogis(xx, *):
+>   stopifnot( all.equal(yy, SSlogis(xx, Asym = 5, xmid = 2, scal = 0.6)) )
+>   require(graphics)
+>   op <- par(mar = c(0.5, 0, 3.5, 0))
 >   plot(xx, yy, type = "l", axes = FALSE, ylim = c(0,6), xlim = c(-1, 5),
 +        xlab = "", ylab = "", lwd = 2,
 +        main = "Parameters in the SSlogis model")
+>   mtext(quote(list(phi[1] == "Asym", phi[2] == "xmid", phi[3] == "scal")))
 >   usr <- par("usr")
 >   arrows(usr[1], 0, usr[2], 0, length = 0.1, angle = 25)
 >   arrows(0, usr[3], 0, usr[4], length = 0.1, angle = 25)
 >   text(usr[2] - 0.2, 0.1, "x", adj = c(1, 0))
->   text(-0.1, usr[4], "y", adj = c(1, 1))
->   abline(h = 5, lty = 2, lwd = 0)
->   arrows(-0.8, 2.1, -0.8, 0, length = 0.1, angle = 25)
->   arrows(-0.8, 2.9, -0.8, 5, length = 0.1, angle = 25)
->   text(-0.8, 2.5, expression(phi[1]), adj = c(0.5, 0.5))
->   segments(2, 0, 2, 4.0, lty = 2, lwd = 0.75)
->   text(2, 4.0, expression(phi[2]), adj = c(0.5, 0))
->   segments(3, 5/(1+exp(-1)) + 0.025, 3, 4.0, lty = 2, lwd = 0.75)
->   arrows(2.3, 3.8, 2.0, 3.8, length = 0.08, angle = 25)
->   arrows(2.7, 3.8, 3.0, 3.8, length = 0.08, angle = 25)
->   text(2.5, 3.8, expression(phi[3]), adj = c(0.5, 0.5))
-> ## End(Don't show)
+>   text(     -0.1, usr[4], "y", adj = c(1, 1))
+>   abline(h = 5, lty = 3)
+>   arrows(-0.8, c(2.1, 2.9),
++          -0.8, c(0,   5  ), length = 0.1, angle = 25)
+>   text  (-0.8, 2.5, quote(phi[1]))
+>   segments(c(2,2.6,2.6), c(0,  2.5,3.5),   # NB.  SSlogis(x = xmid = 2) = 2.5
++            c(2,2.6,2  ), c(2.5,3.5,2.5), lty = 2, lwd = 0.75)
+>   text(2, -.1, quote(phi[2]))
+>   arrows(c(2.2, 2.4), 2.5,
++          c(2.0, 2.6), 2.5, length = 0.08, angle = 25)
+>   text(      2.3,     2.5, quote(phi[3])); text(2.7, 3, "1")
+>   par(op)
+> 
 > 
 > 
 > graphics::par(get("par.postscript", pos = 'CheckExEnv'))
@@ -1515,8 +1534,9 @@ Residual standard error: 0.02684 on 13 degrees of freedom
 > SSmicmen(PurTrt$conc, 200, 0.05)  # response only
  [1]  57.14286  57.14286 109.09091 109.09091 137.50000 137.50000 162.96296
  [8] 162.96296 183.60656 183.60656 191.30435 191.30435
-> Vm <- 200; K <- 0.05
-> SSmicmen(PurTrt$conc, Vm, K)      # response and gradient
+> local({  Vm <- 200; K <- 0.05
++   SSmicmen(PurTrt$conc, Vm, K)    # response _and_ gradient
++ })
  [1]  57.14286  57.14286 109.09091 109.09091 137.50000 137.50000 162.96296
  [8] 162.96296 183.60656 183.60656 191.30435 191.30435
 attr(,"gradient")
@@ -1554,7 +1574,7 @@ Residual standard error: 10.93 on 10 degrees of freedom
 > ## Alternative call using the subset argument
 > fm2 <- nls(rate ~ SSmicmen(conc, Vm, K), data = Puromycin,
 +            subset = state == "treated")
-> summary(fm2)
+> summary(fm2) # The same indeed:
 
 Formula: rate ~ SSmicmen(conc, Vm, K)
 
@@ -1567,27 +1587,30 @@ Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’
 
 Residual standard error: 10.93 on 10 degrees of freedom
 
-> ## Don't show: 
-> require(graphics)
+> stopifnot(all.equal(coef(summary(fm1)), coef(summary(fm2))))
+> 
+> ## Visualize the SSmicmen()  Michaelis-Menton model parametrization :
 > 
 >   xx <- seq(0, 5, len = 101)
 >   yy <- 5 * xx/(1+xx)
->   par(mar = c(0, 0, 3.5, 0))
->   plot(xx, yy, type = "l", axes = FALSE, ylim = c(0,6), xlim = c(-1, 5),
-+        xlab = "", ylab = "", lwd = 2,
-+        main = "Parameters in the SSmicmen model")
+>   stopifnot(all.equal(yy, SSmicmen(xx, Vm = 5, K = 1)))
+>   require(graphics)
+>   op <- par(mar = c(0, 0, 3.5, 0))
+>   plot(xx, yy, type = "l", lwd = 2, ylim = c(-1/4,6), xlim = c(-1, 5),
++        ann = FALSE, axes = FALSE, main = "Parameters in the SSmicmen model")
+>   mtext(quote(list(phi[1] == "Vm", phi[2] == "K")))
 >   usr <- par("usr")
 >   arrows(usr[1], 0, usr[2], 0, length = 0.1, angle = 25)
 >   arrows(0, usr[3], 0, usr[4], length = 0.1, angle = 25)
 >   text(usr[2] - 0.2, 0.1, "x", adj = c(1, 0))
->   text(-0.1, usr[4], "y", adj = c(1, 1))
->   abline(h = 5, lty = 2, lwd = 0)
->   arrows(-0.8, 2.1, -0.8, 0, length = 0.1, angle = 25)
->   arrows(-0.8, 2.9, -0.8, 5, length = 0.1, angle = 25)
->   text(-0.8, 2.5, expression(phi[1]), adj = c(0.5, 0.5))
+>   text(     -0.1, usr[4], "y", adj = c(1, 1))
+>   abline(h = 5, lty = 3)
+>   arrows(-0.8, c(2.1, 2.9),
++          -0.8, c(0,   5  ),  length = 0.1, angle = 25)
+>   text(  -0.8,     2.5, quote(phi[1]))
 >   segments(1, 0, 1, 2.7, lty = 2, lwd = 0.75)
->   text(1, 2.7, expression(phi[2]), adj = c(0.5, 0))
-> ## End(Don't show)
+>   text(1, 2.7, quote(phi[2]))
+>   par(op)
 > 
 > 
 > 
@@ -1609,8 +1632,9 @@ Residual standard error: 10.93 on 10 degrees of freedom
 > SSweibull(Chick.6$Time, 160, 115, -5.5, 2.5)   # response only
  [1]  47.62811  59.09743  79.79756 105.12008 128.41818 145.02585 154.25783
  [8] 158.24919 159.58222 159.92314 159.97023
-> Asym <- 160; Drop <- 115; lrc <- -5.5; pwr <- 2.5
-> SSweibull(Chick.6$Time, Asym, Drop, lrc, pwr)  # response and gradient
+> local({ Asym <- 160; Drop <- 115; lrc <- -5.5; pwr <- 2.5
++   SSweibull(Chick.6$Time, Asym, Drop, lrc, pwr) # response _and_ gradient
++ })
  [1]  47.62811  59.09743  79.79756 105.12008 128.41818 145.02585 154.25783
  [8] 158.24919 159.58222 159.92314 159.97023
 attr(,"gradient")
@@ -1646,9 +1670,15 @@ Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’
 
 Residual standard error: 2.061 on 7 degrees of freedom
 
+> ## Data and Fit:
+> plot(weight ~ Time, Chick.6, xlim = c(0, 21), main = "SSweibull() fit to Chick.6")
+> ux <- par("usr")[1:2]; x <- seq(ux[1], ux[2], length.out=250)
+> lines(x, do.call(SSweibull, c(list(x=x), coef(fm1))), col = "red", lwd=2)
+> As <- coef(fm1)[["Asym"]]; abline(v = 0, h = c(As, As - coef(fm1)[["Drop"]]), lty = 3)
 > 
 > 
 > 
+> graphics::par(get("par.postscript", pos = 'CheckExEnv'))
 > cleanEx()
 > nameEx("SignRank")
 > ### * SignRank
@@ -1933,7 +1963,7 @@ L-M 10.000000  0.6465793 19.35342 0.0336262
 > n <- as.numeric(names(print(tU <- table(U))))
 U
  0  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 
- 1  1  4  6  7 10  8 12 14 22 13 16 13 23 16 11  7  4  4  3  3  1  1 
+ 1  2  4  5  5  5  7 12 13 14 12 23 16  9 13 16 13 11 14  1  1  2  1 
 > text(n+.2, n+.5, labels = tU, col = "red")
 > 
 > 
@@ -2151,79 +2181,79 @@ outcome:treatment  4     0.00 59.6      5.17     0.27
 
      Bee
 Aye   Buzz Hum
-  Oui    2  11
-  Si     8  13
-  Yes    7   6
+  Oui    7   4
+  Si     5   7
+  Yes    7   7
 
 , , Sea = Dead
 
      Bee
 Aye   Buzz Hum
-  Oui    5  10
-  Si    10  10
-  Yes    7   6
+  Oui    8   7
+  Si    10   7
+  Yes   10   3
 
 , , Sea = Red
 
      Bee
 Aye   Buzz Hum
-  Oui    5   6
-  Si    11   5
-  Yes    7   7
+  Oui    2  12
+  Si     4   7
+  Yes    8   7
 
 , , Sea = White
 
      Bee
 Aye   Buzz Hum
-  Oui    7   9
-  Si     4  12
-  Yes    3   6
+  Oui    7  12
+  Si    13  10
+  Yes    6   7
 
 > addmargins(A)
 , , Sea = Black
 
      Bee
 Aye   Buzz Hum Sum
-  Oui    2  11  13
-  Si     8  13  21
-  Yes    7   6  13
-  Sum   17  30  47
+  Oui    7   4  11
+  Si     5   7  12
+  Yes    7   7  14
+  Sum   19  18  37
 
 , , Sea = Dead
 
      Bee
 Aye   Buzz Hum Sum
-  Oui    5  10  15
-  Si    10  10  20
-  Yes    7   6  13
-  Sum   22  26  48
+  Oui    8   7  15
+  Si    10   7  17
+  Yes   10   3  13
+  Sum   28  17  45
 
 , , Sea = Red
 
      Bee
 Aye   Buzz Hum Sum
-  Oui    5   6  11
-  Si    11   5  16
-  Yes    7   7  14
-  Sum   23  18  41
+  Oui    2  12  14
+  Si     4   7  11
+  Yes    8   7  15
+  Sum   14  26  40
 
 , , Sea = White
 
      Bee
 Aye   Buzz Hum Sum
-  Oui    7   9  16
-  Si     4  12  16
-  Yes    3   6   9
-  Sum   14  27  41
+  Oui    7  12  19
+  Si    13  10  23
+  Yes    6   7  13
+  Sum   26  29  55
 
 , , Sea = Sum
 
      Bee
 Aye   Buzz Hum Sum
-  Oui   19  36  55
-  Si    33  40  73
-  Yes   24  25  49
-  Sum   76 101 177
+  Oui   24  35  59
+  Si    32  31  63
+  Yes   31  24  55
+  Sum   87  90 177
 
 > ## Don't show: 
 > stopifnot(is.table(addmargins(A)))
@@ -2231,27 +2261,27 @@ Aye   Buzz Hum Sum
 > ftable(A)
          Sea Black Dead Red White
 Aye Bee                          
-Oui Buzz         2    5   5     7
-    Hum         11   10   6     9
-Si  Buzz         8   10  11     4
-    Hum         13   10   5    12
-Yes Buzz         7    7   7     3
-    Hum          6    6   7     6
+Oui Buzz         7    8   2     7
+    Hum          4    7  12    12
+Si  Buzz         5   10   4    13
+    Hum          7    7   7    10
+Yes Buzz         7   10   8     6
+    Hum          7    3   7     7
 > ftable(addmargins(A))
          Sea Black Dead Red White Sum
 Aye Bee                              
-Oui Buzz         2    5   5     7  19
-    Hum         11   10   6     9  36
-    Sum         13   15  11    16  55
-Si  Buzz         8   10  11     4  33
-    Hum         13   10   5    12  40
-    Sum         21   20  16    16  73
-Yes Buzz         7    7   7     3  24
-    Hum          6    6   7     6  25
-    Sum         13   13  14     9  49
-Sum Buzz        17   22  23    14  76
-    Hum         30   26  18    27 101
-    Sum         47   48  41    41 177
+Oui Buzz         7    8   2     7  24
+    Hum          4    7  12    12  35
+    Sum         11   15  14    19  59
+Si  Buzz         5   10   4    13  32
+    Hum          7    7   7    10  31
+    Sum         12   17  11    23  63
+Yes Buzz         7   10   8     6  31
+    Hum          7    3   7     7  24
+    Sum         14   13  15    13  55
+Sum Buzz        19   28  14    26  87
+    Hum         18   17  26    29  90
+    Sum         37   45  40    55 177
 > 
 > # Non-commutative functions - note differences between resulting tables:
 > ftable(addmargins(A, c(1, 3),
@@ -2262,14 +2292,14 @@ in the following order:
 2: Sea
          Sea Black Dead Red White Min Max
 Aye Bee                                  
-Oui Buzz         2    5   5     7   2   7
-    Hum         11   10   6     9   6  11
-Si  Buzz         8   10  11     4   4  11
-    Hum         13   10   5    12   5  13
-Yes Buzz         7    7   7     3   3   7
-    Hum          6    6   7     6   6   7
-Sum Buzz        17   22  23    14  14  23
-    Hum         30   26  18    27  18  30
+Oui Buzz         7    8   2     7   2   8
+    Hum          4    7  12    12   4  12
+Si  Buzz         5   10   4    13   4  13
+    Hum          7    7   7    10   7  10
+Yes Buzz         7   10   8     6   6  10
+    Hum          7    3   7     7   3   7
+Sum Buzz        19   28  14    26  14  28
+    Hum         18   17  26    29  17  29
 > ftable(addmargins(A, c(3, 1),
 +        FUN = list(list(Min = min, Max = max), Sum = sum)))
 Margins computed over dimensions
@@ -2278,14 +2308,14 @@ in the following order:
 2: Aye
          Sea Black Dead Red White Min Max
 Aye Bee                                  
-Oui Buzz         2    5   5     7   2   7
-    Hum         11   10   6     9   6  11
-Si  Buzz         8   10  11     4   4  11
-    Hum         13   10   5    12   5  13
-Yes Buzz         7    7   7     3   3   7
-    Hum          6    6   7     6   6   7
-Sum Buzz        17   22  23    14   9  25
-    Hum         30   26  18    27  17  31
+Oui Buzz         7    8   2     7   2   8
+    Hum          4    7  12    12   4  12
+Si  Buzz         5   10   4    13   4  13
+    Hum          7    7   7    10   7  10
+Yes Buzz         7   10   8     6   6  10
+    Hum          7    3   7     7   3   7
+Sum Buzz        19   28  14    26  12  31
+    Hum         18   17  26    29  14  29
 > 
 > # Weird function needed to return the N when computing percentages
 > sqsm <- function(x) sum(x)^2/100
@@ -2294,20 +2324,20 @@ Sum Buzz        17   22  23    14   9  25
 +             apply(B, 2, sum)/100, "/"), 1)
        Bee
 Sea      Buzz   Hum
-  Black  22.4  29.7
-  Dead   28.9  25.7
-  Red    30.3  17.8
-  White  18.4  26.7
+  Black  21.8  20.0
+  Dead   32.2  18.9
+  Red    16.1  28.9
+  White  29.9  32.2
   All   100.0 100.0
-  N      76.0 101.0
+  N      87.0  90.0
 > round(sweep(addmargins(B, 2, list(list(All = sum, N = sqsm))), 1,
 +             apply(B, 1, sum)/100, "/"), 1)
        Bee
 Sea      Buzz   Hum   All     N
-  Black  36.2  63.8 100.0  47.0
-  Dead   45.8  54.2 100.0  48.0
-  Red    56.1  43.9 100.0  41.0
-  White  34.1  65.9 100.0  41.0
+  Black  51.4  48.6 100.0  37.0
+  Dead   62.2  37.8 100.0  45.0
+  Red    35.0  65.0 100.0  40.0
+  White  47.3  52.7 100.0  55.0
 > 
 > # A total over Bee requires formation of the Bee-margin first:
 > mB <-  addmargins(B, 2, FUN = list(list(Total = sum)))
@@ -2315,12 +2345,12 @@ Sea      Buzz   Hum   All     N
 +                    apply(mB, 2, sum)/100, "/")), 1)
       Bee  Buzz   Hum Total
 Sea                        
-Black      22.4  29.7  26.6
-Dead       28.9  25.7  27.1
-Red        30.3  17.8  23.2
-White      18.4  26.7  23.2
+Black      21.8  20.0  20.9
+Dead       32.2  18.9  25.4
+Red        16.1  28.9  22.6
+White      29.9  32.2  31.1
 All       100.0 100.0 100.0
-N          76.0 101.0 177.0
+N          87.0  90.0 177.0
 > 
 > ## Zero.Printing table+margins:
 > set.seed(1)
@@ -2330,14 +2360,14 @@ N          76.0 101.0 177.0
 > print(tx, zero.print = ".")
      y
 x      1  2  3  4  5  6  7 Sum
-  1    .  .  1  .  .  .  .   1
-  2    .  1  .  1  1  .  1   4
-  3    .  2  .  .  .  1  .   3
-  4    .  .  .  .  1  .  .   1
-  5    .  .  1  1  1  .  1   4
-  6    .  .  1  .  .  2  .   3
-  7    3  .  1  .  .  .  .   4
-  Sum  3  3  4  2  3  3  2  20
+  1    2  .  .  .  1  .  .   3
+  2    2  1  .  .  .  1  .   4
+  3    .  1  .  .  1  1  .   3
+  4    .  .  .  .  .  .  1   1
+  5    1  .  .  1  .  .  1   3
+  6    .  .  1  1  1  .  .   3
+  7    .  1  .  .  1  1  .   3
+  Sum  5  3  1  2  4  3  2  20
 > 
 > 
 > 
@@ -3044,6 +3074,7 @@ Deg. of Freedom        12
 
 Residual standard error: 3.929447
 Estimated effects are balanced
+> ## IGNORE_RDIFF_BEGIN
 > summary(npk.aovE)
 
 Error: block
@@ -3062,6 +3093,7 @@ P:K        1   0.48    0.48   0.031 0.86275
 Residuals 12 185.29   15.44                   
 ---
 Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+> ## IGNORE_RDIFF_END
 > options(op)  # reset to previous
 > 
 > 
@@ -3103,11 +3135,17 @@ Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’
 > 
 > x <- c(2,2:4,4,4,5,5,7,7,7)
 > y <- c(1:6, 5:4, 3:1)
-> approx(x, y, xout = x)$y # warning
+> (amy <- approx(x, y, xout = x)$y) # warning, can be avoided by specifying 'ties=':
+Warning in regularize.values(x, y, ties, missing(ties)) :
+  collapsing to unique 'x' values
  [1] 1.5 1.5 3.0 5.0 5.0 5.0 4.5 4.5 2.0 2.0 2.0
-> (ay <- approx(x, y, xout = x, ties = "ordered")$y)
+> op <- options(warn=2) # warnings would be error
+> stopifnot(identical(amy, approx(x, y, xout = x, ties=mean)$y))
+> options(op) # revert
+> (ay  <- approx(x, y, xout = x, ties = "ordered")$y)
  [1] 2 2 3 6 6 6 4 4 1 1 1
-> stopifnot(ay == c(2,2,3,6,6,6,4,4,1,1,1))
+> stopifnot(amy == c(1.5,1.5, 3, 5,5,5, 4.5,4.5, 2,2,2),
++           ay  == c(2, 2,    3, 6,6,6, 4, 4,    1,1,1))
 > approx(x, y, xout = x, ties = min)$y
  [1] 1 1 3 4 4 4 4 4 1 1 1
 > approx(x, y, xout = x, ties = max)$y
@@ -3797,7 +3835,7 @@ sigma^2 estimated as 0.4566:  log likelihood = -101.2,  aic = 212.4
 > 
 > asOneSidedFormula("age")
 ~age
-<environment: 0x2bac7c8>
+<environment: 0x47c4218>
 > asOneSidedFormula(~ age)
 ~age
 > 
@@ -4142,6 +4180,45 @@ I(x^3) -0.73        0.93 -0.99
 > 
 > 
 > cleanEx()
+> nameEx("checkMFClasses")
+> ### * checkMFClasses
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: .checkMFClasses
+> ### Title: Functions to Check the Type of Variables passed to Model Frames
+> ### Aliases: .checkMFClasses .MFclass .getXlevels
+> ### Keywords: utilities
+> 
+> ### ** Examples
+> 
+> sapply(warpbreaks, .MFclass) # "numeric" plus 2 x "factor"
+   breaks      wool   tension 
+"numeric"  "factor"  "factor" 
+> sapply(iris,       .MFclass) # 4 x "numeric" plus "factor"
+Sepal.Length  Sepal.Width Petal.Length  Petal.Width      Species 
+   "numeric"    "numeric"    "numeric"    "numeric"     "factor" 
+> 
+> mf <- model.frame(Sepal.Width ~ Species,      iris)
+> mc <- model.frame(Sepal.Width ~ Sepal.Length, iris)
+> 
+> .checkMFClasses("numeric", mc) # nothing else
+> .checkMFClasses(c("numeric", "factor"), mf)
+> 
+> ## simple .getXlevels() cases :
+> (xl <- .getXlevels(terms(mf), mf)) # a list with one entry " $ Species" with 3 levels:
+$Species
+[1] "setosa"     "versicolor" "virginica" 
+
+> stopifnot(exprs = {
++   identical(xl$Species, levels(iris$Species))
++   identical(.getXlevels(terms(mc), mc), xl[0]) # a empty named list, as no factors
++   is.null(.getXlevels(terms(x~x), list(x=1)))
++ })
+> 
+> 
+> 
+> cleanEx()
 > nameEx("chisq.test")
 > ### * chisq.test
 > 
@@ -4293,7 +4370,7 @@ X-squared = 4.3, df = 4, p-value = 0.3669
 > 
 > ### Name: coef
 > ### Title: Extract Model Coefficients
-> ### Aliases: coef coefficients
+> ### Aliases: coef coefficients coef.default coef.aov
 > ### Keywords: regression models
 > 
 > ### ** Examples
@@ -4526,6 +4603,19 @@ factor> factor(z, exclude = "B") # ditto
 [1] C    <NA> A   
 Levels: A < C
 
+factor> ## Now, labels maybe duplicated:
+factor> ## factor() with duplicated labels allowing to "merge levels"
+factor> x <- c("Man", "Male", "Man", "Lady", "Female")
+
+factor> ## Map from 4 different values to only two levels:
+factor> (xf <- factor(x, levels = c("Male", "Man" , "Lady",   "Female"),
+factor+                  labels = c("Male", "Male", "Female", "Female")))
+[1] Male   Male   Male   Female Female
+Levels: Male Female
+
+factor> #> [1] Male   Male   Male   Female Female
+factor> #> Levels: Male Female
+factor> 
 factor> ## Using addNA()
 factor> Month <- airquality$Month
 
@@ -4782,7 +4872,7 @@ function (V)
     r[cbind(1L:p, 1L:p)] <- 1
     r
 }
-<bytecode: 0x51eee20>
+<bytecode: 0x54cf390>
 <environment: namespace:stats>
 > stopifnot(all.equal(Cl, cov2cor(cov(longley))),
 +           all.equal(cor(longley, method = "kendall"),
@@ -5309,6 +5399,16 @@ surv(ft, case) ~ a + b * f
 > reformulate(c("`P/E`", "`% Growth`"), response = as.name("+-"))
 `+-` ~ `P/E` + `% Growth`
 > 
+> x <- c("a name", "another name")
+> try( reformulate(x) ) # -> Error ..... unexpected symbol
+Error in parse(text = s, keep.source = FALSE) : 
+  <text>:1:3: unexpected symbol
+1: a name
+      ^
+> ## rather backquote the strings in x :
+> reformulate(sprintf("`%s`", x))
+~`a name` + `another name`
+> 
 > stopifnot(identical(      ~ var, reformulate("var")),
 +           identical(~ a + b + c, reformulate(letters[1:3])),
 +           identical(  y ~ a + b, reformulate(letters[1:2], "y"))
@@ -5761,12 +5861,12 @@ NULL
 > str(d3[2][[1]]) ## or the full
 List of 2
  $ :List of 2
-  ..$ : atomic [1:1] 13
+  ..$ : int 13
   .. ..- attr(*, "label")= chr "Illinois"
   .. ..- attr(*, "members")= int 1
   .. ..- attr(*, "height")= num 0
   .. ..- attr(*, "leaf")= logi TRUE
-  ..$ : atomic [1:1] 32
+  ..$ : int 32
   .. ..- attr(*, "label")= chr "New York"
   .. ..- attr(*, "members")= int 1
   .. ..- attr(*, "height")= num 0
@@ -5775,12 +5875,12 @@ List of 2
   ..- attr(*, "midpoint")= num 0.5
   ..- attr(*, "height")= num 6.24
  $ :List of 2
-  ..$ : atomic [1:1] 22
+  ..$ : int 22
   .. ..- attr(*, "label")= chr "Michigan"
   .. ..- attr(*, "members")= int 1
   .. ..- attr(*, "height")= num 0
   .. ..- attr(*, "leaf")= logi TRUE
-  ..$ : atomic [1:1] 28
+  ..$ : int 28
   .. ..- attr(*, "label")= chr "Nevada"
   .. ..- attr(*, "members")= int 1
   .. ..- attr(*, "height")= num 0
@@ -5794,18 +5894,18 @@ List of 2
 > str(d3[])
 List of 2
  $ :List of 2
-  ..$ : atomic [1:1] 8
+  ..$ : int 8
   .. ..- attr(*, "members")= int 1
   .. ..- attr(*, "height")= num 0
   .. ..- attr(*, "label")= chr "Delaware"
   .. ..- attr(*, "leaf")= logi TRUE
   ..$ :List of 2
-  .. ..$ : atomic [1:1] 1
+  .. ..$ : int 1
   .. .. ..- attr(*, "label")= chr "Alabama"
   .. .. ..- attr(*, "members")= int 1
   .. .. ..- attr(*, "height")= num 0
   .. .. ..- attr(*, "leaf")= logi TRUE
-  .. ..$ : atomic [1:1] 18
+  .. ..$ : int 18
   .. .. ..- attr(*, "label")= chr "Louisiana"
   .. .. ..- attr(*, "members")= int 1
   .. .. ..- attr(*, "height")= num 0
@@ -5818,12 +5918,12 @@ List of 2
   ..- attr(*, "height")= num 16.9
  $ :List of 2
   ..$ :List of 2
-  .. ..$ : atomic [1:1] 13
+  .. ..$ : int 13
   .. .. ..- attr(*, "label")= chr "Illinois"
   .. .. ..- attr(*, "members")= int 1
   .. .. ..- attr(*, "height")= num 0
   .. .. ..- attr(*, "leaf")= logi TRUE
-  .. ..$ : atomic [1:1] 32
+  .. ..$ : int 32
   .. .. ..- attr(*, "label")= chr "New York"
   .. .. ..- attr(*, "members")= int 1
   .. .. ..- attr(*, "height")= num 0
@@ -5832,12 +5932,12 @@ List of 2
   .. ..- attr(*, "midpoint")= num 0.5
   .. ..- attr(*, "height")= num 6.24
   ..$ :List of 2
-  .. ..$ : atomic [1:1] 22
+  .. ..$ : int 22
   .. .. ..- attr(*, "label")= chr "Michigan"
   .. .. ..- attr(*, "members")= int 1
   .. .. ..- attr(*, "height")= num 0
   .. .. ..- attr(*, "leaf")= logi TRUE
-  .. ..$ : atomic [1:1] 28
+  .. ..$ : int 28
   .. .. ..- attr(*, "label")= chr "Nevada"
   .. .. ..- attr(*, "members")= int 1
   .. .. ..- attr(*, "height")= num 0
@@ -6587,6 +6687,7 @@ Empirical CDF:	  10 unique values with summary
 > 
 > old <- getOption("contrasts")
 > options(contrasts = c("contr.helmert", "contr.poly"))
+> ## IGNORE_RDIFF_BEGIN
 > (fit <- aov(Yield ~ A*B*C + Error(Block), data = aovdat))
 
 Call:
@@ -6616,6 +6717,7 @@ Deg. of Freedom         1        17
 
 Residual standard error: 17.86103
 Estimated effects are balanced
+> ## IGNORE_RDIFF_END
 > eff.aovlist(fit)
        A B C  A:B  A:C  B:C A:B:C
 Block  0 0 0 0.25 0.25 0.25  0.25
@@ -6929,13 +7031,29 @@ function (eta)
 > gf$variance(-3:4) #- == (.)^2
 [1]  9  4  1  0  1  4  9 16
 > 
+> ## Binomial with default 'logit' link:  Check some properties visually:
+> bi <- binomial()
+> et <- seq(-10,10, by=1/8)
+> plot(et, bi$mu.eta(et), type="l")
+> ## show that mu.eta() is derivative of linkinv() :
+> lines((et[-1]+et[-length(et)])/2, col=adjustcolor("red", 1/4),
++       diff(bi$linkinv(et))/diff(et), type="l", lwd=4)
+> ## which here is the logistic density:
+> lines(et, dlogis(et), lwd=3, col=adjustcolor("blue", 1/4))
+> stopifnot(exprs = {
++   all.equal(bi$ mu.eta(et), dlogis(et))
++   all.equal(bi$linkinv(et), plogis(et) -> m)
++   all.equal(bi$linkfun(m ), qlogis(m))    #  logit(.) == qlogis(.) !
++ })
 > 
-> ## quasipoisson. compare with example(glm)
-> counts <- c(18,17,15,20,10,20,25,13,12)
-> outcome <- gl(3,1,9)
-> treatment <- gl(3,3)
-> d.AD <- data.frame(treatment, outcome, counts)
-> glm.qD93 <- glm(counts ~ outcome + treatment, family = quasipoisson())
+> ## Data from example(glm) :
+> d.AD <- data.frame(treatment = gl(3,3),
++                    outcome   = gl(3,1,9),
++                    counts    = c(18,17,15, 20,10,20, 25,13,12))
+> glm.D93 <- glm(counts ~ outcome + treatment, d.AD, family = poisson())
+> ## Quasipoisson: compare with above / example(glm) :
+> glm.qD93 <- glm(counts ~ outcome + treatment, d.AD, family = quasipoisson())
+> 
 > 
 > ## Example of user-specified link, a logit model for p^days
 > ## See Shaffer, T.  2004. Auk 121(2): 526-540.
@@ -6943,24 +7061,40 @@ function (eta)
 + {
 +     linkfun <- function(mu) qlogis(mu^(1/days))
 +     linkinv <- function(eta) plogis(eta)^days
-+     mu.eta <- function(eta) days * plogis(eta)^(days-1) * binomial()$mu_eta
++     mu.eta  <- function(eta) days * plogis(eta)^(days-1) *
++                   binomial()$mu.eta(eta)
 +     valideta <- function(eta) TRUE
 +     link <- paste0("logexp(", days, ")")
 +     structure(list(linkfun = linkfun, linkinv = linkinv,
 +                    mu.eta = mu.eta, valideta = valideta, name = link),
 +               class = "link-glm")
 + }
-> binomial(logexp(3))
+> (bil3 <- binomial(logexp(3)))
 
 Family: binomial 
 Link function: logexp(3) 
 
+> ## Don't show: 
+> stopifnot(length(bil3$mu.eta(as.double(0:5))) == 6)
+> ## End(Don't show)
 > ## in practice this would be used with a vector of 'days', in
 > ## which case use an offset of 0 in the corresponding formula
 > ## to get the null deviance right.
 > 
-> ## Binomial with identity link: often not a good idea.
-> ## Not run: binomial(link = make.link("identity"))
+> ## Binomial with identity link: often not a good idea, as both
+> ## computationally and conceptually difficult:
+> binomial(link = "identity")  ## is exactly the same as
+
+Family: binomial 
+Link function: identity 
+
+> binomial(link = make.link("identity"))
+
+Family: binomial 
+Link function: identity 
+
+> 
+> 
 > 
 > ## tests of quasi
 > x <- rnorm(100)
@@ -7001,7 +7135,7 @@ Null Deviance:	    83.85
 Residual Deviance: 32.45 	AIC: NA
 > ## Not run: glm(y ~ x, family = quasi(variance = "mu^3", link = "log")) # fails
 > y <- rbinom(100, 1, plogis(x))
-> # needs to set a starting value for the next fit
+> # need to set a starting value for the next fit
 > glm(y ~ x, family = quasi(variance = "mu(1-mu)", link = "logit"), start = c(0,1))
 
 Call:  glm(formula = y ~ x, family = quasi(variance = "mu(1-mu)", link = "logit"), 
@@ -7174,12 +7308,10 @@ odds ratio
 > ## => p = 0.2429, association could not be established
 > 
 > ## Fisher (1962, 1970), Criminal convictions of like-sex twins
-> Convictions <-
-+ matrix(c(2, 10, 15, 3),
-+        nrow = 2,
-+        dimnames =
-+        list(c("Dizygotic", "Monozygotic"),
-+             c("Convicted", "Not convicted")))
+> Convictions <- matrix(c(2, 10, 15, 3), nrow = 2,
++ 	              dimnames =
++ 	       list(c("Dizygotic", "Monozygotic"),
++ 		    c("Convicted", "Not convicted")))
 > Convictions
             Convicted Not convicted
 Dizygotic           2            15
@@ -7219,9 +7351,9 @@ attr(,"conf.level")
 > 
 > ## A r x c table  Agresti (2002, p. 57) Job Satisfaction
 > Job <- matrix(c(1,2,1,0, 3,3,6,1, 10,10,14,9, 6,7,12,11), 4, 4,
-+ dimnames = list(income = c("< 15k", "15-25k", "25-40k", "> 40k"),
-+                 satisfaction = c("VeryD", "LittleD", "ModerateS", "VeryS")))
-> fisher.test(Job)
++            dimnames = list(income = c("< 15k", "15-25k", "25-40k", "> 40k"),
++                      satisfaction = c("VeryD", "LittleD", "ModerateS", "VeryS")))
+> fisher.test(Job) # 0.7827
 
 	Fisher's Exact Test for Count Data
 
@@ -7229,13 +7361,39 @@ data:  Job
 p-value = 0.7827
 alternative hypothesis: two.sided
 
-> fisher.test(Job, simulate.p.value = TRUE, B = 1e5)
+> fisher.test(Job, simulate.p.value = TRUE, B = 1e5) # also close to 0.78
 
 	Fisher's Exact Test for Count Data with simulated p-value (based on
 	1e+05 replicates)
 
 data:  Job
 p-value = 0.7842
+alternative hypothesis: two.sided
+
+> 
+> ## 6th example in Mehta & Patel's JASA paper
+> MP6 <- rbind(
++         c(1,2,2,1,1,0,1),
++         c(2,0,0,2,3,0,0),
++         c(0,1,1,1,2,7,3),
++         c(1,1,2,0,0,0,1),
++         c(0,1,1,1,1,0,0))
+> fisher.test(MP6)
+
+	Fisher's Exact Test for Count Data
+
+data:  MP6
+p-value = 0.03929
+alternative hypothesis: two.sided
+
+> # Exactly the same p-value, as Cochran's conditions are never met:
+> fisher.test(MP6, hybrid=TRUE)
+
+	Fisher's Exact Test for Count Data hybrid using asym.chisq. iff
+	(exp=5, perc=80, Emin=1)
+
+data:  MP6
+p-value = 0.03929
 alternative hypothesis: two.sided
 
 > 
@@ -7302,7 +7460,7 @@ Fligner-Killeen:med chi-squared = 14.483, df = 5, p-value = 0.01282
 > ### Name: formula
 > ### Title: Model Formulae
 > ### Aliases: formula formula.default formula.formula formula.terms
-> ###   formula.data.frame as.formula print.formula [.formula
+> ###   formula.data.frame DF2formula as.formula print.formula [.formula
 > ### Keywords: models
 > 
 > ### ** Examples
@@ -7338,7 +7496,7 @@ attr(,".Environment")
 > environment(as.formula("y ~ x"))
 <environment: R_GlobalEnv>
 > environment(as.formula("y ~ x", env = new.env()))
-<environment: 0x4ddebe8>
+<environment: 0x5327750>
 > 
 > 
 > ## Create a formula for a model with a large number of variables:
@@ -7756,6 +7914,20 @@ Terms added sequentially (first to last)
 NULL                          8    10.5814
 outcome    2   5.4523         6     5.1291
 treatment  2   0.0000         4     5.1291
+> ## Computing AIC [in many ways]:
+> (A0 <- AIC(glm.D93))
+[1] 56.76132
+> (ll <- logLik(glm.D93))
+'log Lik.' -23.38066 (df=5)
+> A1 <- -2*c(ll) + 2*attr(ll, "df")
+> A2 <- glm.D93$family$aic(counts, mu=fitted(glm.D93), wt=1) +
++         2 * length(coef(glm.D93))
+> stopifnot(exprs = {
++   all.equal(A0, A1)
++   all.equal(A1, A2)
++   all.equal(A1, glm.D93$aic)
++ })
+> 
 > 
 > 
 > # A Gamma example, from McCullagh & Nelder (1989, pp. 300-2)
@@ -7811,6 +7983,20 @@ AIC: 27.032
 
 Number of Fisher Scoring iterations: 3
 
+> ## Aliased ("S"ingular) -> 1 NA coefficient
+> (fS <- glm(lot2 ~ log(u) + log(u^2), data = clotting, family = Gamma))
+
+Call:  glm(formula = lot2 ~ log(u) + log(u^2), family = Gamma, data = clotting)
+
+Coefficients:
+(Intercept)       log(u)     log(u^2)  
+   -0.02391      0.02360           NA  
+
+Degrees of Freedom: 8 Total (i.e. Null);  7 Residual
+Null Deviance:	    3.119 
+Residual Deviance: 0.01267 	AIC: 27.03
+> tools::assertError(update(fS, singular.ok=FALSE), verbose=interactive())
+> ## -> .. "singular fit encountered"
 > 
 > ## Not run: 
 > ##D ## for an example of the use of a terms object as a formula
@@ -7870,8 +8056,6 @@ Number of Fisher Scoring iterations: 3
 > 
 > ### Example 2: Straight-line distances among 10 US cities
 > ##  Compare the results of algorithms "ward.D" and "ward.D2"
-> 
-> data(UScitiesD)
 > 
 > mds2 <- -cmdscale(UScitiesD)
 > plot(mds2, type="n", axes=FALSE, ann=FALSE)
@@ -8256,7 +8440,7 @@ Error in integrate(f, 0, 1) :
 + ## "silently" gave  integrate(dnorm, 0, 20)  in earlier versions of R
 + ## Don't show: 
 +  , verbose=TRUE)
-Asserted error: 'lower' must be of length one
+Asserted error: length(lower) == 1 is not TRUE
 > ## End(Don't show)
 > 
 > 
@@ -8503,20 +8687,20 @@ coef[ 6] = 0.02041
 +            matrix(rnorm(100, mean = 1, sd = 0.3), ncol = 2))
 > colnames(x) <- c("x", "y")
 > (cl <- kmeans(x, 2))
-K-means clustering with 2 clusters of sizes 51, 49
+K-means clustering with 2 clusters of sizes 49, 51
 
 Cluster means:
            x          y
-1 0.94443633 1.01712793
-2 0.02149367 0.02121248
+1 0.02149367 0.02121248
+2 0.94443633 1.01712793
 
 Clustering vector:
-  [1] 2 2 2 2 2 2 2 2 2 2 1 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2
- [38] 2 2 2 2 2 2 2 2 2 2 2 2 2 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
- [75] 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
+  [1] 1 1 1 1 1 1 1 1 1 1 2 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
+ [38] 1 1 1 1 1 1 1 1 1 1 1 1 1 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2
+ [75] 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2
 
 Within cluster sum of squares by cluster:
-[1] 8.392416 6.525480
+[1] 6.525480 8.392416
  (between_SS / total_SS =  75.5 %)
 
 Available components:
@@ -8532,12 +8716,12 @@ Available components:
 > ## cluster centers "fitted" to each obs.:
 > fitted.x <- fitted(cl);  head(fitted.x)
            x          y
-2 0.02149367 0.02121248
-2 0.02149367 0.02121248
-2 0.02149367 0.02121248
-2 0.02149367 0.02121248
-2 0.02149367 0.02121248
-2 0.02149367 0.02121248
+1 0.02149367 0.02121248
+1 0.02149367 0.02121248
+1 0.02149367 0.02121248
+1 0.02149367 0.02121248
+1 0.02149367 0.02121248
+1 0.02149367 0.02121248
 > resid.x <- x - fitted(cl)
 > 
 > ## Equalities : ----------------------------------
@@ -8562,23 +8746,23 @@ totss        60.99123 60.99123
 > ## random starts do help here with too many clusters
 > ## (and are often recommended anyway!):
 > (cl <- kmeans(x, 5, nstart = 25))
-K-means clustering with 5 clusters of sizes 24, 15, 24, 25, 12
+K-means clustering with 5 clusters of sizes 12, 24, 24, 15, 25
 
 Cluster means:
            x          y
-1  0.1581362 -0.1761590
-2  0.8609139  1.3145869
+1  1.3290081  1.1185534
+2  0.1581362 -0.1761590
 3  0.8043520  0.7805033
-4 -0.1096832  0.2106891
-5  1.3290081  1.1185534
+4  0.8609139  1.3145869
+5 -0.1096832  0.2106891
 
 Clustering vector:
-  [1] 4 1 4 1 4 4 1 1 4 4 3 1 4 4 1 4 1 4 1 4 1 1 4 4 1 4 1 4 4 1 1 1 4 1 4 4 4
- [38] 1 1 1 1 4 4 4 4 4 1 1 1 1 2 3 3 3 3 5 5 5 3 5 2 3 5 2 3 2 3 3 5 2 2 5 2 3
- [75] 3 5 2 2 2 2 3 2 5 3 5 3 2 3 3 3 3 5 3 2 3 3 5 3 2 3
+  [1] 5 2 5 2 5 5 2 2 5 5 3 2 5 5 2 5 2 5 2 5 2 2 5 5 2 5 2 5 5 2 2 2 5 2 5 5 5
+ [38] 2 2 2 2 5 5 5 5 5 2 2 2 2 4 3 3 3 3 1 1 1 3 1 4 3 1 4 3 4 3 3 1 4 4 1 4 3
+ [75] 3 1 4 4 4 4 3 4 1 3 1 3 4 3 3 3 3 1 3 4 3 3 1 3 4 3
 
 Within cluster sum of squares by cluster:
-[1] 1.2816507 0.7104553 1.5056575 2.5330710 1.0314888
+[1] 1.0314888 1.2816507 1.5056575 0.7104553 2.5330710
  (between_SS / total_SS =  88.4 %)
 
 Available components:
@@ -8830,11 +9014,30 @@ Call:
 line(cars)
 
 Coefficients:
-[1]  -26.053    4.421
+[1]  -29.333    4.667
 
 > abline(coef(z))
 > ## Tukey-Anscombe Plot :
 > plot(residuals(z) ~ fitted(z), main = deparse(z$call))
+> 
+> ## Andrew Siegel's pathological 9-point data, y-values multiplied by 3:
+> d.AS <- data.frame(x = c(-4:3, 12), y = 3*c(rep(0,6), -5, 5, 1))
+> cAS <- with(d.AS, t(sapply(1:10,
++                    function(it) line(x,y, iter=it)$coefficients)))
+> dimnames(cAS) <- list(paste("it =", format(1:10)), c("intercept", "slope"))
+> cAS
+        intercept     slope
+it =  1  0.500000  0.500000
+it =  2 -0.250000 -0.250000
+it =  3  0.875000  0.875000
+it =  4 -0.812500 -0.812500
+it =  5  1.718750  1.718750
+it =  6 -2.078125 -2.078125
+it =  7  2.500000  2.500000
+it =  8 -2.083333 -2.083333
+it =  9  2.500000  2.500000
+it = 10 -2.083333 -2.083333
+> ## iterations started to oscillate, repeating iteration 7,8 indefinitely
 > 
 > 
 > 
@@ -9229,6 +9432,18 @@ $margin[[3]]
 > 
 > ### ** Examples
 > 
+> ## Don't show: 
+> utils::example("lm", echo = FALSE)
+> ## End(Don't show)
+> ##-- Using the same data as the lm(.) example:
+> lsD9 <- lsfit(x = as.numeric(gl(2, 10, 20)), y = weight)
+> dlsD9 <- ls.diag(lsD9)
+> abs(1 - sum(dlsD9$hat) / 2) < 10*.Machine$double.eps # sum(h.ii) = p
+[1] TRUE
+> plot(dlsD9$hat, dlsD9$stud.res, xlim = c(0, 0.11))
+> abline(h = 0, lty = 2, col = "lightgray")
+> 
+> 
 > 
 > cleanEx()
 > nameEx("lsfit")
@@ -9372,7 +9587,11 @@ List of 5
 > fm <- lm(weight ~ poly(height, 2), data = women)
 > plot(women, xlab = "Height (in)", ylab = "Weight (lb)")
 > ht <- seq(57, 73, len = 200)
-> lines(ht, predict(fm, data.frame(height = ht)))
+> nD <- data.frame(height = ht)
+> pfm <- predict(fm, nD)
+> lines(ht, pfm)
+> pf2 <- predict(update(fm, ~ stats::poly(height, 2)), nD)
+> stopifnot(all.equal(pfm, pf2)) ## was off (rel.diff. 0.0766) in R <= 3.5.0
 > 
 > ## see also example(cars)
 > 
@@ -9404,12 +9623,12 @@ Call:
 
 Terms:
                    block        N        P        K      N:P      N:K      P:K
-resp 1          343.2950 189.2817   8.4017  95.2017  21.2817  33.1350   0.4817
-resp 2            2.9548   0.0223   1.3807   0.0097   2.7585   0.9724   5.5258
+yield           343.2950 189.2817   8.4017  95.2017  21.2817  33.1350   0.4817
+foo               2.9548   0.0223   1.3807   0.0097   2.7585   0.9724   5.5258
 Deg. of Freedom        5        1        1        1        1        1        1
                 Residuals
-resp 1           185.2867
-resp 2             7.8286
+yield            185.2867
+foo                7.8286
 Deg. of Freedom        12
 
 Residual standard errors: 3.929447 0.8077039
@@ -9441,8 +9660,8 @@ Stratum 1: block
 
 Terms:
                     N:P:K Residuals
-resp 1           37.00167 306.29333
-resp 2            0.06988   2.88496
+yield            37.00167 306.29333
+foo               0.06988   2.88496
 Deg. of Freedom         1         4
 
 Residual standard errors: 8.750619 0.8492579
@@ -9452,12 +9671,12 @@ Stratum 2: Within
 
 Terms:
                         N         P         K       N:P       N:K       P:K
-resp 1          189.28167   8.40167  95.20167  21.28167  33.13500   0.48167
-resp 2            0.02235   1.38066   0.00966   2.75852   0.97240   5.52584
+yield           189.28167   8.40167  95.20167  21.28167  33.13500   0.48167
+foo               0.02235   1.38066   0.00966   2.75852   0.97240   5.52584
 Deg. of Freedom         1         1         1         1         1         1
                 Residuals
-resp 1          185.28667
-resp 2            7.82863
+yield           185.28667
+foo               7.82863
 Deg. of Freedom        12
 
 Residual standard errors: 3.929447 0.8077039
@@ -10068,6 +10287,12 @@ NA        0    3    0
 > data.class(model.frame(dist ~ speed, data = cars))
 [1] "data.frame"
 > 
+> ## get_all_vars(): new var.s are recycled (iff length matches: 50 = 2*25)
+> ncars <- get_all_vars(sqrt(dist) ~ I(speed/2), data = cars, newVar = 2:3)
+> stopifnot(is.data.frame(ncars),
++           identical(cars, ncars[,names(cars)]),
++           ncol(ncars) == ncol(cars) + 1)
+> 
 > 
 > 
 > cleanEx()
@@ -10106,7 +10331,7 @@ NA        0    3    0
 > mat <- model.matrix(ff, m)
 > 
 > dd <- data.frame(a = gl(3,4), b = gl(4,1,12)) # balanced 2-way
-> options("contrasts")
+> options("contrasts") # typically 'treatment' (for unordered factors)
 $contrasts
         unordered           ordered 
 "contr.treatment"      "contr.poly" 
@@ -10157,7 +10382,7 @@ attr(,"contrasts")$a
 attr(,"contrasts")$b
 [1] "contr.treatment"
 
-> model.matrix(~ a + b, dd, contrasts = list(a = "contr.sum", b = "contr.poly"))
+> model.matrix(~ a + b, dd, contrasts = list(a = "contr.sum", b = contr.poly))
    (Intercept) a1 a2        b.L  b.Q        b.C
 1            1  1  0 -0.6708204  0.5 -0.2236068
 2            1  1  0 -0.2236068 -0.5  0.6708204
@@ -10178,7 +10403,11 @@ attr(,"contrasts")$a
 [1] "contr.sum"
 
 attr(,"contrasts")$b
-[1] "contr.poly"
+          .L   .Q         .C
+1 -0.6708204  0.5 -0.2236068
+2 -0.2236068 -0.5  0.6708204
+3  0.2236068 -0.5 -0.6708204
+4  0.6708204  0.5  0.2236068
 
 > m.orth <- model.matrix(~a+b, dd, contrasts = list(a = "contr.helmert"))
 > crossprod(m.orth) # m.orth is  ALMOST  orthogonal
@@ -10189,6 +10418,12 @@ a2                    0  0 24  0  0  0
 b2                    3  0  0  3  0  0
 b3                    3  0  0  0  3  0
 b4                    3  0  0  0  0  3
+> # invalid contrasts.. ignored with a warning:
+> stopifnot(identical(
++    model.matrix(~ a + b, dd),
++    model.matrix(~ a + b, dd, contrasts.arg = "contr.FOO")))
+Warning in model.matrix.default(~a + b, dd, contrasts.arg = "contr.FOO") :
+  non-list contrasts argument ignored
 > 
 > 
 > 
@@ -10378,7 +10613,7 @@ $na.action
 > flush(stderr()); flush(stdout())
 > 
 > ### Name: nextn
-> ### Title: Highly Composite Numbers
+> ### Title: Find Highly Composite Numbers
 > ### Aliases: nextn
 > ### Keywords: math
 > 
@@ -10386,10 +10621,11 @@ $na.action
 > 
 > nextn(1001) # 1024
 [1] 1024
-> table(sapply(599:630, nextn))
+> table(nextn(599:630))
 
 600 625 640 
   2  25   5 
+> n <- 1:100 ; plot(n, nextn(n) - n, type = "o", lwd=2, cex=1/2)
 > 
 > 
 > 
@@ -11635,7 +11871,7 @@ Warning in xy.coords(x, y, xlabel, ylabel, log) :
 > require(graphics)
 > 
 > rock1 <- within(rock, { area1 <- area/10000; peri1 <- peri/10000 })
-> par(mfrow = c(3,2)) # maybe: , pty = "s")
+> par(mfrow = c(3,2)) # maybe: , pty = "s"
 > rock.ppr <- ppr(log(perm) ~ area1 + peri1 + shape,
 +                 data = rock1, nterms = 2, max.terms = 5)
 > plot(rock.ppr, main = "ppr(log(perm)~ ., nterms=2, max.terms=5)")
@@ -11901,6 +12137,12 @@ attr(,"class")
 [1] "poly"   "matrix"
 > ## they are the same :
 > stopifnot(all.equal(zm, z1, tol = 1e-15))
+> 
+> ## poly(<matrix>, df) --- used to fail till July 14 (vive la France!), 2017:
+> m2 <- cbind(1:4, c(1, 4:6))
+> pm2 <- zapsmall(poly(m2, 3)) # "unnamed degree = 3"
+> stopifnot(all.equal(pm2, zm, tol = 1e-15))
+> 
 > options(od)
 > 
 > 
@@ -11948,14 +12190,14 @@ attr(,"class")
 $linkfun
 function (mu) 
 mu^lambda
-<bytecode: 0x4152cb8>
-<environment: 0x414b208>
+<bytecode: 0x35fbc68>
+<environment: 0x3606218>
 
 $linkinv
 function (eta) 
 pmax(eta^(1/lambda), .Machine$double.eps)
-<bytecode: 0x4152e08>
-<environment: 0x414b208>
+<bytecode: 0x35fbb18>
+<environment: 0x3606218>
 
 > 
 > 
@@ -12105,6 +12347,37 @@ NOTE: n is number in *each* group
 NOTE: n is number in *each* group
 
 >                                                  ## => n = 10451937
+> try(
++  power.prop.test(n=30, p1=0.90, p2=NULL, power=0.8)
++ ) # a warning  (which may become an error)
+Warning in power.prop.test(n = 30, p1 = 0.9, p2 = NULL, power = 0.8) :
+  No p2 in [p1, 1] can be found to achieve the desired power
+
+     Two-sample comparison of proportions power calculation 
+
+              n = 30
+             p1 = 0.9
+             p2 = 1.030182
+      sig.level = 0.05
+          power = 0.8
+    alternative = two.sided
+
+NOTE: n is number in *each* group
+
+> ## Reason:
+> power.prop.test(      p1=0.90, p2= 1.0, power=0.8) ##-> n = 73.37
+
+     Two-sample comparison of proportions power calculation 
+
+              n = 73.37427
+             p1 = 0.9
+             p2 = 1
+      sig.level = 0.05
+          power = 0.8
+    alternative = two.sided
+
+NOTE: n is number in *each* group
+
 > 
 > 
 > 
@@ -13293,16 +13566,16 @@ Cumulative Proportion  0.6200604 0.8675017 0.9566425 1.00000000
 
 Loadings:
          Comp.1 Comp.2 Comp.3 Comp.4
-Murder   -0.536  0.418 -0.341  0.649
-Assault  -0.583  0.188 -0.268 -0.743
-UrbanPop -0.278 -0.873 -0.378  0.134
-Rape     -0.543 -0.167  0.818       
+Murder    0.536  0.418  0.341  0.649
+Assault   0.583  0.188  0.268 -0.743
+UrbanPop  0.278 -0.873  0.378  0.134
+Rape      0.543 -0.167 -0.818       
 
                Comp.1 Comp.2 Comp.3 Comp.4
 SS loadings      1.00   1.00   1.00   1.00
 Proportion Var   0.25   0.25   0.25   0.25
 Cumulative Var   0.25   0.50   0.75   1.00
-> ## The signs of the columns are arbitrary
+> ## The signs of the columns of the loadings are arbitrary
 > plot(pc.cr) # shows a screeplot.
 > biplot(pc.cr)
 > 
@@ -13489,6 +13762,7 @@ Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’
 > # get the profile for the fitted model: default level is too extreme
 > pr1 <- profile(fm1, alpha = 0.05)
 > # profiled values for the two parameters
+> ## IGNORE_RDIFF_BEGIN
 > pr1$A
        tau par.vals.A par.vals.lrc
 1  -3.0873   13.59751      0.14033
@@ -13519,6 +13793,7 @@ Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’
 11  2.1335  16.086803     0.234850
 12  2.6052  15.638807     0.485009
 13  3.0276  15.265409     0.779458
+> ## IGNORE_RDIFF_END
 > # see also example(plot.profile.nls)
 > ## Don't show: 
 > options(od)
@@ -13934,8 +14209,11 @@ X-squared = 12.173, df = 1, p-value = 0.0004848
 > qqplot(qchisq(ppoints(500), df = 3), y,
 +        main = expression("Q-Q plot for" ~~ {chi^2}[nu == 3]))
 > qqline(y, distribution = function(p) qchisq(p, df = 3),
-+        prob = c(0.1, 0.6), col = 2)
++        probs = c(0.1, 0.6), col = 2)
 > mtext("qqline(*, dist = qchisq(., df=3), prob = c(0.1, 0.6))")
+> ## (Note that the above uses ppoints() with a = 1/2, giving the
+> ## probability points for quantile type 5: so theoretically, using
+> ## qqline(qtype = 5) might be preferable.) 
 > 
 > 
 > 
@@ -13976,13 +14254,27 @@ Store  A  B  C  D  E
     5 10  9  7 13 10
     6 19 18 28 37 58
     7 10  7  6  8  7
-> quade.test(y)
+> (qTst <- quade.test(y))
 
 	Quade test
 
 data:  y
 Quade F = 3.8293, num df = 4, denom df = 24, p-value = 0.01519
 
+> 
+> ## Show equivalence of different versions of test :
+> utils::str(dy <- as.data.frame(as.table(y)))
+'data.frame':	35 obs. of  3 variables:
+ $ Store: Factor w/ 7 levels "1","2","3","4",..: 1 2 3 4 5 6 7 1 2 3 ...
+ $ Brand: Factor w/ 5 levels "A","B","C","D",..: 1 1 1 1 1 1 1 2 2 2 ...
+ $ Freq : num  5 1 16 5 10 19 10 4 3 12 ...
+> qT. <- quade.test(Freq ~ Brand|Store, data = dy)
+> qT.$data.name <- qTst$data.name
+> stopifnot(all.equal(qTst, qT., tolerance = 1e-15))
+> dys <- dy[order(dy[,"Freq"]),]
+> qTs <- quade.test(Freq ~ Brand|Store, data = dys)
+> qTs$data.name <- qTst$data.name
+> stopifnot(all.equal(qTst, qTs, tolerance = 1e-15))
 > 
 > 
 > 
@@ -15086,68 +15378,20 @@ Contrast 1 Contrast 2 Contrast 3
 > 
 > 
 > ## multi-stratum example where efficiencies play a role
-> utils::example(eff.aovlist)
-
-eff.vl> ## An example from Yates (1932),
-eff.vl> ## a 2^3 design in 2 blocks replicated 4 times
-eff.vl> 
-eff.vl> Block <- gl(8, 4)
-
-eff.vl> A <- factor(c(0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,
-eff.vl+               0,1,0,1,0,1,0,1,0,1,0,1))
-
-eff.vl> B <- factor(c(0,0,1,1,0,0,1,1,0,1,0,1,1,0,1,0,0,0,1,1,
-eff.vl+               0,0,1,1,0,0,1,1,0,0,1,1))
-
-eff.vl> C <- factor(c(0,1,1,0,1,0,0,1,0,0,1,1,0,0,1,1,0,1,0,1,
-eff.vl+               1,0,1,0,0,0,1,1,1,1,0,0))
-
-eff.vl> Yield <- c(101, 373, 398, 291, 312, 106, 265, 450, 106, 306, 324, 449,
-eff.vl+            272, 89, 407, 338, 87, 324, 279, 471, 323, 128, 423, 334,
-eff.vl+            131, 103, 445, 437, 324, 361, 302, 272)
-
-eff.vl> aovdat <- data.frame(Block, A, B, C, Yield)
-
-eff.vl> old <- getOption("contrasts")
-
-eff.vl> options(contrasts = c("contr.helmert", "contr.poly"))
-
-eff.vl> (fit <- aov(Yield ~ A*B*C + Error(Block), data = aovdat))
-
-Call:
-aov(formula = Yield ~ A * B * C + Error(Block), data = aovdat)
-
-Grand Mean: 291.5938
-
-Stratum 1: Block
-
-Terms:
-                      A:B       A:C       B:C     A:B:C Residuals
-Sum of Squares   780.1250  276.1250 2556.1250  112.5000  774.0938
-Deg. of Freedom         1         1         1         1         3
-
-Residual standard error: 16.06335
-Estimated effects are balanced
-
-Stratum 2: Within
-
-Terms:
-                        A         B         C       A:B       A:C       B:C
-Sum of Squares    3465.28 161170.03 278817.78     28.17   1802.67  11528.17
-Deg. of Freedom         1         1         1         1         1         1
-                    A:B:C Residuals
-Sum of Squares      45.37   5423.28
-Deg. of Freedom         1        17
-
-Residual standard error: 17.86103
-Estimated effects are balanced
-
-eff.vl> eff.aovlist(fit)
-       A B C  A:B  A:C  B:C A:B:C
-Block  0 0 0 0.25 0.25 0.25  0.25
-Within 1 1 1 0.75 0.75 0.75  0.75
-
-eff.vl> options(contrasts = old)
+> ## An example from Yates (1932),
+> ## a 2^3 design in 2 blocks replicated 4 times
+> 
+> Block <- gl(8, 4)
+> A <- factor(c(0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,
++               0,1,0,1,0,1,0,1,0,1,0,1))
+> B <- factor(c(0,0,1,1,0,0,1,1,0,1,0,1,1,0,1,0,0,0,1,1,
++               0,0,1,1,0,0,1,1,0,0,1,1))
+> C <- factor(c(0,1,1,0,1,0,0,1,0,0,1,1,0,0,1,1,0,1,0,1,
++               1,0,1,0,0,0,1,1,1,1,0,0))
+> Yield <- c(101, 373, 398, 291, 312, 106, 265, 450, 106, 306, 324, 449,
++            272, 89, 407, 338, 87, 324, 279, 471, 323, 128, 423, 334,
++            131, 103, 445, 437, 324, 361, 302, 272)
+> aovdat <- data.frame(Block, A, B, C, Yield)
 > fit <- aov(Yield ~ A + B * C + Error(Block), data = aovdat)
 > cont1 <- c(-1, 1)[A]/32  # Helmert contrasts
 > cont2 <- c(-1, 1)[B] * c(-1, 1)[C]/32
@@ -15176,30 +15420,34 @@ eff.vl> options(contrasts = old)
 > 
 > ## self-starting logistic model
 > 
-> SSlogis <- selfStart(~ Asym/(1 + exp((xmid - x)/scal)),
-+   function(mCall, data, LHS)
-+   {
-+     xy <- sortedXyData(mCall[["x"]], LHS, data)
-+     if(nrow(xy) < 4) {
-+       stop("Too few distinct x values to fit a logistic")
-+     }
+> ## The "initializer" (finds initial values for parameters from data):
+> initLogis <- function(mCall, data, LHS) {
++     xy <- data.frame(sortedXyData(mCall[["input"]], LHS, data))
++     if(nrow(xy) < 4)
++         stop("too few distinct input values to fit a logistic model")
 +     z <- xy[["y"]]
-+     if (min(z) <= 0) { z <- z + 0.05 * max(z) } # avoid zeroes
-+     z <- z/(1.05 * max(z))              # scale to within unit height
-+     xy[["z"]] <- log(z/(1 - z))         # logit transformation
++     ## transform to proportion, i.e. in (0,1) :
++     rng <- range(z); dz <- diff(rng)
++     z <- (z - rng[1L] + 0.05 * dz)/(1.1 * dz)
++     xy[["z"]] <- log(z/(1 - z))		# logit transformation
 +     aux <- coef(lm(x ~ z, xy))
-+     parameters(xy) <- list(xmid = aux[1], scal = aux[2])
-+     pars <- as.vector(coef(nls(y ~ 1/(1 + exp((xmid - x)/scal)),
-+                              data = xy, algorithm = "plinear")))
-+     setNames(c(pars[3], pars[1], pars[2]),
-+              mCall[c("Asym", "xmid", "scal")])
-+   }, c("Asym", "xmid", "scal"))
++     pars <- coef(nls(y ~ 1/(1 + exp((xmid - x)/scal)),
++                      data = xy,
++                      start = list(xmid = aux[[1L]], scal = aux[[2L]]),
++                      algorithm = "plinear"))
++     setNames(pars[c(".lin", "xmid", "scal")], nm = mCall[c("Asym", "xmid", "scal")])
++ }
+> 
+> SSlogis <- selfStart(~ Asym/(1 + exp((xmid - x)/scal)),
++                      initial = initLogis,
++                      parameters = c("Asym", "xmid", "scal"))
+> 
 > 
 > # 'first.order.log.model' is a function object defining a first order
 > # compartment model
 > # 'first.order.log.initial' is a function object which calculates initial
 > # values for the parameters in 'first.order.log.model'
-> 
+> #
 > # self-starting first order compartment model
 > ## Not run: 
 > ##D SSfol <- selfStart(first.order.log.model, first.order.log.initial)
@@ -15397,10 +15645,15 @@ attr(,"kind")[[1]]
 attr(,"kind")[[2]]
 [1] "Inversion"
 
+attr(,"kind")[[3]]
+[1] "Rejection"
+
 > stopifnot(identical(S2, simulate(mod1, nsim = 200, seed = sseed)))
 > 
 > ## To be sure about the proper RNGkind, e.g., after
 > RNGversion("2.7.0")
+Warning in RNGkind("Mersenne-Twister", "Inversion", "Rounding") :
+  non-uniform 'Rounding' sampler used
 > ## first set the RNG kind, then simulate
 > do.call(RNGkind, attr(sseed, "kind"))
 > identical(S2, simulate(mod1, nsim = 200, seed = sseed))
@@ -15590,6 +15843,9 @@ attr(,"class")
 > ## consistency check:
 > stopifnot(all.equal(cars$dist,
 +                     fitted(cars.spl) + residuals(cars.spl)))
+> ## The chosen inner knots in original x-scale :
+> with(cars.spl$fit, min + range * knot[-c(1:3, nk+1 +1:3)]) # == unique(cars$speed)
+ [1]  4  7  8  9 10 11 12 13 14 15 16 17 18 19 20 22 23 24 25
 > 
 > ## Visualize the behavior of  .nknots.smspl()
 > nKnots <- Vectorize(.nknots.smspl) ; c.. <- adjustcolor("gray20",.5)
@@ -15646,6 +15902,11 @@ Penalized Criterion (RSS): 3.59204
 GCV: 0.7155391
 > 
 > ## Don't show: 
+> stopifnot(identical(
++     with(s2$fit, min + range * knot[-c(1:3, nk+1+1:3)]),
++     as.numeric(1:18)),
++     with(cars.spl$fit, min + range * knot[-c(1:3, nk+1+1:3)]) == unique(cars$speed))
+> 
 > nD <- c("spar", "ratio", "iparms", "call"); nn <- setdiff(names(s2), nD)
 > stopifnot(all.equal(s2[nn], s2.[nn], tol = 7e-7), # seen 6.86e-8
 +           all.equal(predict(s02 , xx),
@@ -15674,13 +15935,43 @@ GCV: 0.7155391
 > s7. <- runmed(y, 7, endrule = "const")
 > s7m <- runmed(y, 7)
 > col3 <- c("midnightblue","blue","steelblue")
-> plot(y, main = "Running Medians -- runmed(*, k=7, end.rule = X)")
+> plot(y, main = "Running Medians -- runmed(*, k=7, endrule = X)")
 > lines(ys, col = "light gray")
 > matlines(cbind(s7k, s7.,s7m), lwd = 1.5, lty = 1, col = col3)
-> legend(1, 470, paste("endrule", c("keep","constant","median"), sep = " = "),
-+        col = col3, lwd = 1.5, lty = 1)
+> eRules <- c("keep","constant","median")
+> legend("topleft", paste("endrule", eRules, sep = " = "),
++        col = col3, lwd = 1.5, lty = 1, bty = "n")
 > 
 > stopifnot(identical(s7m, smoothEnds(s7k, 7)))
+> 
+> ## With missing values (for R >= 3.6.1):
+> yN <- y; yN[c(2,40)] <- NA
+> rN <- sapply(eRules, function(R) runmed(yN, 7, endrule=R))
+> matlines(rN, type = "b", pch = 4, lwd = 3, lty=2,
++          col = adjustcolor(c("red", "orange4", "orange1"), 0.5))
+> yN[c(1, 20:21)] <- NA # additionally
+> rN. <- sapply(eRules, function(R) runmed(yN, 7, endrule=R))
+> head(rN., 4); tail(rN.) # more NA's too, still not *so* many:
+     keep constant median
+[1,]   NA      225    423
+[2,]   NA      225    324
+[3,]  324      225    225
+[4,]  225      225    225
+      keep constant median
+[36,]  196      196    196
+[37,]   NA       NA     NA
+[38,]   NA       NA     NA
+[39,]  324       NA    324
+[40,]   NA       NA    397
+[41,]  470       NA    470
+> stopifnot(exprs = {
++    !anyNA(rN[,2:3])
++    identical(which(is.na(rN[,"keep"])), c(2L, 40L))
++    identical(which(is.na(rN.), arr.ind=TRUE, useNames=FALSE),
++              rbind(cbind(c(1:2,37:38,40L), 1L),
++                    cbind(37:41, 2L), cbind(37:38, 3L)))
++    identical(rN.[39:41, "median"], c(324, 397, 470))
++ })
 > 
 > 
 > 
@@ -15882,11 +16173,35 @@ Warning in spline(x, y, n = 201, method = "periodic") :
 > set.seed(1); x <- round(rnorm(30), 1); y <- sin(pi * x) + rnorm(30)/10
 > plot(x, y, main = "spline(x,y)  when x has ties")
 > lines(spline(x, y, n = 201), col = 2)
+Warning in regularize.values(x, y, ties, missing(ties)) :
+  collapsing to unique 'x' values
 > ## visualizes the non-unique ones:
 > tx <- table(x); mx <- as.numeric(names(tx[tx > 1]))
 > ry <- matrix(unlist(tapply(y, match(x, mx), range, simplify = FALSE)),
 +              ncol = 2, byrow = TRUE)
 > segments(mx, ry[, 1], mx, ry[, 2], col = "blue", lwd = 2)
+> 
+> ## Another example with sorted x, but ties:
+> set.seed(8); x <- sort(round(rnorm(30), 1)); y <- round(sin(pi * x) + rnorm(30)/10, 3)
+> summary(diff(x) == 0) # -> 7 duplicated x-values
+   Mode   FALSE    TRUE 
+logical      22       7 
+> str(spline(x, y, n = 201, ties="ordered")) # all '$y' entries are NaN
+List of 2
+ $ x: num [1:201] -3 -2.98 -2.95 -2.92 -2.9 ...
+ $ y: num [1:201] NaN NaN NaN NaN NaN NaN NaN NaN NaN NaN ...
+> ## The default (ties=mean) is ok, but most efficient to use instead is
+> sxyo <- spline(x, y, n = 201, ties= list("ordered", mean))
+> sapply(sxyo, summary)# all fine now
+            x           y
+Min.    -3.00 -1.07800000
+1st Qu. -1.75 -0.57050000
+Median  -0.50 -0.13613265
+Mean    -0.50 -0.08208311
+3rd Qu.  0.75  0.50611122
+Max.     2.00  1.03072752
+> plot(x, y, main = "spline(x,y, ties=list(\"ordered\", mean)  for when x has ties")
+> lines(sxyo, col="blue")
 > 
 > ## An example of monotone interpolation
 > n <- 20
@@ -16035,8 +16350,8 @@ Step function with continuity 'f'= 0.2 ,  3 knots at
 > unclass(sfun0)
 function (v) 
 .approxfun(x, y, v, method, yleft, yright, f)
-<bytecode: 0x434c8a8>
-<environment: 0x56d3f98>
+<bytecode: 0x3c51598>
+<environment: 0x55adf20>
 attr(,"call")
 stepfun(1:3, y0, f = 0)
 > ls(envir = environment(sfun0))
@@ -16357,10 +16672,10 @@ Cumulative Proportion  0.6200604 0.8675017 0.9566425 1.00000000
 
 Loadings:
          Comp.1 Comp.2 Comp.3 Comp.4
-Murder   -0.54   0.42  -0.34   0.65 
-Assault  -0.58         -0.27  -0.74 
-UrbanPop -0.28  -0.87  -0.38        
-Rape     -0.54          0.82        
+Murder    0.54   0.42   0.34   0.65 
+Assault   0.58          0.27  -0.74 
+UrbanPop  0.28  -0.87   0.38        
+Rape      0.54         -0.82        
 > 
 > 
 > 
@@ -18358,9 +18673,10 @@ Number of Fisher Scoring iterations: 6
 > base::options(contrasts = c(unordered = "contr.treatment",ordered = "contr.poly"))
 > ### * <FOOTER>
 > ###
+> cleanEx()
 > options(digits = 7L)
 > base::cat("Time elapsed: ", proc.time() - base::get("ptime", pos = 'CheckExEnv'),"\n")
-Time elapsed:  5.008 0.098 5.123 0 0 
+Time elapsed:  3.411 0.146 3.708 0 0 
 > grDevices::dev.off()
 null device 
           1 

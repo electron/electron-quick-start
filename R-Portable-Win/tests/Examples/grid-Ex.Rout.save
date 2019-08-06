@@ -1,6 +1,6 @@
 
-R version 3.4.0 RC (2017-04-18 r72543) -- "You Stupid Darkness"
-Copyright (C) 2017 The R Foundation for Statistical Computing
+R version 3.6.0 Patched (2019-06-07 r76684) -- "Planting of a Tree"
+Copyright (C) 2019 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -23,6 +23,7 @@ Type 'q()' to quit R.
 > library('grid')
 > 
 > base::assign(".oldSearch", base::search(), pos = 'CheckExEnv')
+> base::assign(".old_wd", base::getwd(), pos = 'CheckExEnv')
 > cleanEx()
 > nameEx("Grid")
 > ### * Grid
@@ -223,6 +224,68 @@ viewport[C]->(viewport[D])
 > 
 > 
 > cleanEx()
+> nameEx("deviceLoc")
+> ### * deviceLoc
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: deviceLoc
+> ### Title: Convert Viewport Location to Device Location
+> ### Aliases: deviceLoc deviceDim
+> ### Keywords: dplot
+> 
+> ### ** Examples
+> 
+> ## A tautology
+> grid.newpage()
+> pushViewport(viewport())
+> deviceLoc(unit(1, "inches"), unit(1, "inches"))
+$x
+[1] 1in
+
+$y
+[1] 1in
+
+> 
+> ## Something less obvious
+> grid.newpage()
+> pushViewport(viewport(width=.5, height=.5))
+> grid.rect()
+> x <- unit(1, "in")
+> y <- unit(1, "in")
+> grid.circle(x, y, r=unit(2, "mm"))
+> loc <- deviceLoc(x, y)
+> loc
+$x
+[1] 2.7in
+
+$y
+[1] 2.75in
+
+> upViewport()
+> grid.circle(loc$x, loc$y, r=unit(1, "mm"), gp=gpar(fill="black"))
+> 
+> ## Something even less obvious
+> grid.newpage()
+> pushViewport(viewport(width=.5, height=.5, angle=30))
+> grid.rect()
+> x <- unit(.2, "npc")
+> y <- unit(2, "in")
+> grid.circle(x, y, r=unit(2, "mm"))
+> loc <- deviceLoc(x, y)
+> loc
+$x
+[1] 2.39165408813987in
+
+$y
+[1] 3.20650635094611in
+
+> upViewport()
+> grid.circle(loc$x, loc$y, r=unit(1, "mm"), gp=gpar(fill="black"))
+> 
+> 
+> 
+> cleanEx()
 > nameEx("explode")
 > ### * explode
 > 
@@ -294,8 +357,9 @@ g1::g2
 > 
 > grid.grill()
 > getNames()
-[1] "GRID.text.165"     "GRID.rect.166"     "GRID.rect.167"    
-[4] "GRID.segments.168" "GRID.segments.169"
+[1] "GRID.text.171"     "GRID.rect.172"     "GRID.circle.173"  
+[4] "GRID.circle.174"   "GRID.rect.175"     "GRID.rect.176"    
+[7] "GRID.segments.177" "GRID.segments.178"
 > 
 > 
 > 
@@ -683,12 +747,12 @@ Error in editDLfromGPath(gPath, specs, strict, grep, global, redraw) :
 > # Draw xaxis
 > grid.xaxis(name="xax")
 > grid.ls()
-GRID.text.244
+GRID.text.253
 xax
 > # Force xaxis
 > grid.force()
 > grid.ls()
-GRID.text.244
+GRID.text.253
 xax
   major
   ticks
@@ -696,51 +760,51 @@ xax
 > # Revert xaxis
 > grid.revert()
 > grid.ls()
-GRID.text.244
+GRID.text.253
 xax
 > # Draw and force yaxis
 > grid.force(yaxisGrob(), draw=TRUE)
-forcedgrob[GRID.yaxis.245] 
+forcedgrob[GRID.yaxis.254] 
 > grid.ls()
-GRID.text.244
+GRID.text.253
 xax
-GRID.yaxis.245
+GRID.yaxis.254
   major
   ticks
   labels
 > # Revert yaxis
 > grid.revert()
 > grid.ls()
-GRID.text.244
+GRID.text.253
 xax
-GRID.yaxis.245
+GRID.yaxis.254
 > # Force JUST xaxis
 > grid.force("xax")
 > grid.ls()
-GRID.text.244
+GRID.text.253
 xax
   major
   ticks
   labels
-GRID.yaxis.245
+GRID.yaxis.254
 > # Force ALL
 > grid.force()
 > grid.ls()
-GRID.text.244
+GRID.text.253
 xax
   major
   ticks
   labels
-GRID.yaxis.245
+GRID.yaxis.254
   major
   ticks
   labels
 > # Revert JUST xaxis
 > grid.revert("xax")
 > grid.ls()
-GRID.text.244
+GRID.text.253
 xax
-GRID.yaxis.245
+GRID.yaxis.254
   major
   ticks
   labels
@@ -1021,7 +1085,7 @@ grandparent::parent::child
 > 
 > ### ** Examples
 > 
-> if (interactive()) {
+> if (dev.interactive()) {
 +   ## Need to write a more sophisticated unit as.character method
 +   unittrim <- function(unit) {
 +     sub("^([0-9]+|[0-9]+[.][0-9])[0-9]*", "\\1", as.character(unit))
@@ -1039,9 +1103,14 @@ grandparent::parent::child
 +               click.locn$x + unit(2, "mm"), click.locn$y,
 +               just="left")
 +   }
++ 
++   grid.newpage() # (empty slate)
++   ## device
 +   do.click("inches")
++   Sys.sleep(1)
++ 
 +   pushViewport(viewport(width=0.5, height=0.5,
-+                          xscale=c(0, 100), yscale=c(0, 10)))
++                         xscale=c(0, 100), yscale=c(0, 10)))
 +   grid.rect()
 +   grid.xaxis()
 +   grid.yaxis()
@@ -1270,6 +1339,28 @@ List of 6
 + }
 > 
 > pathTest()
+> 
+> # Drawing multiple paths at once
+> holed_rect <- cbind(c(.15, .15, -.15, -.15, .1, .1, -.1, -.1), 
++                     c(.15, -.15, -.15, .15, .1, -.1, -.1, .1))
+> holed_rects <- rbind(
++     holed_rect + matrix(c(.7, .2), nrow = 8, ncol = 2, byrow = TRUE),
++     holed_rect + matrix(c(.7, .8), nrow = 8, ncol = 2, byrow = TRUE),
++     holed_rect + matrix(c(.2, .5), nrow = 8, ncol = 2, byrow = TRUE)
++ )
+> grid.newpage()
+> grid.path(x = holed_rects[, 1], y = holed_rects[, 2], 
++           id = rep(1:6, each = 4), pathId = rep(1:3, each = 8),
++           gp = gpar(fill = c('red', 'blue', 'green')),
++           rule = 'evenodd')
+> 
+> # Not specifying pathId will treat all points as part of the same path, thus 
+> # having same fill
+> grid.newpage()
+> grid.path(x = holed_rects[, 1], y = holed_rects[, 2], 
++           id = rep(1:6, each = 4),
++           gp = gpar(fill = c('red', 'blue', 'green')),
++           rule = 'evenodd')
 > 
 > 
 > 
@@ -2067,9 +2158,10 @@ vp1::vp2
 > 
 > ### * <FOOTER>
 > ###
+> cleanEx()
 > options(digits = 7L)
 > base::cat("Time elapsed: ", proc.time() - base::get("ptime", pos = 'CheckExEnv'),"\n")
-Time elapsed:  1.189 0.008 1.2 0 0 
+Time elapsed:  1.682 0.021 1.712 0 0 
 > grDevices::dev.off()
 null device 
           1 

@@ -1,6 +1,6 @@
 /* -*- C -*-
  *  Mathlib : A C Library of Special Functions
- *  Copyright (C) 1998-2016  The R Core Team
+ *  Copyright (C) 1998-2018  The R Core Team
  *  Copyright (C) 2004       The R Foundation
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -52,16 +52,15 @@ using namespace std;
 /*-- Mathlib as part of R --  define this for standalone : */
 /* #undef MATHLIB_STANDALONE */
 
-#define R_VERSION_STRING "3.4.0"
+#define R_VERSION_STRING "3.6.1"
 
+// Legacy defines -- C99 functions which R >= 3.5.0 reauires
 #ifndef HAVE_EXPM1
 # define HAVE_EXPM1 1
 #endif
-
 #ifndef HAVE_HYPOT
 # define HAVE_HYPOT 1
 #endif
-
 #ifndef HAVE_LOG1P
 # define HAVE_LOG1P 1
 #endif
@@ -70,25 +69,10 @@ using namespace std;
 # define HAVE_WORKING_LOG1P 1
 #endif
 
-#if defined(HAVE_LOG1P) && !defined(HAVE_WORKING_LOG1P)
+#if !defined(HAVE_WORKING_LOG1P)
 /* remap to avoid problems with getting the right entry point */
 double  Rlog1p(double);
 #define log1p Rlog1p
-#endif
-
-
-	/* Undo SGI Madness */
-
-#ifdef __sgi
-# ifdef ftrunc
-#  undef ftrunc
-# endif
-# ifdef qexp
-#  undef qexp
-# endif
-# ifdef qgamma
-#  undef qgamma
-# endif
 #endif
 
 
@@ -302,7 +286,6 @@ double  Rlog1p(double);
 #define pt		Rf_pt
 #define ptukey		Rf_ptukey
 #define punif		Rf_punif
-#define pythag		Rf_pythag
 #define pweibull	Rf_pweibull
 #define pwilcox		Rf_pwilcox
 #define qbeta		Rf_qbeta
@@ -378,6 +361,7 @@ double R_pow_di(double, int);
 
 double	norm_rand(void);
 double	unif_rand(void);
+double  R_unif_index(double);
 double	exp_rand(void);
 #ifdef MATHLIB_STANDALONE
 void	set_seed(unsigned int, unsigned int);
@@ -598,16 +582,6 @@ double	bessel_y_ex(double, double, double *);
 
 	/* General Support Functions */
 
-#ifndef HAVE_HYPOT
-double 	hypot(double, double);
-#endif
-double 	pythag(double, double);
-#ifndef HAVE_EXPM1
-double  expm1(double); /* = exp(x)-1 {care for small x} */
-#endif
-#ifndef HAVE_LOG1P
-double  log1p(double); /* = log(1+x) {care for small x} */
-#endif
 int	imax2(int, int);
 int	imin2(int, int);
 double	fmax2(double, double);
@@ -626,12 +600,13 @@ double  lgamma1p(double);/* accurate log(gamma(x+1)), small x (0 < x < 0.5) */
    These declarations might clash with system headers if someone had
    already included math.h with __STDC_WANT_IEC_60559_FUNCS_EXT__
    defined (and we try, above).
-   We can add a check for that via the value of
-   __STDC_IEC_60559_FUNCS__ (>= 201506L).
+   We check for that via the value of __STDC_IEC_60559_FUNCS__
 */
+#if !(defined(__STDC_IEC_60559_FUNCS__) && __STDC_IEC_60559_FUNCS__ >= 201506L)
 double cospi(double);
 double sinpi(double);
 double tanpi(double);
+#endif
 
 /* Compute the log of a sum or difference from logs of terms, i.e.,
  *
@@ -645,14 +620,6 @@ double  logspace_sub(double logx, double logy);
 
 
 /* ----------------- Private part of the header file ------------------- */
-
-	/* old-R Compatibility */
-
-#ifdef OLD_RMATH_COMPAT
-# define snorm	norm_rand
-# define sunif	unif_rand
-# define sexp	exp_rand
-#endif
 
 #if defined(MATHLIB_STANDALONE) && !defined(MATHLIB_PRIVATE_H)
 /* second is defined by nmath.h */

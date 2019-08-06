@@ -69,7 +69,7 @@ extern "C" {
  *             - added R version number to snapshots (as attribute)
  *             - added pkgName to graphics system state info (as attribute)
  * Version 12: For R 3.4.0
- *             Added canGenIndle, doIdle() and doesIdle() to devices.
+ *             Added canGenIdle, doIdle() and doesIdle() to devices.
  */
 
 #define R_GE_version 12

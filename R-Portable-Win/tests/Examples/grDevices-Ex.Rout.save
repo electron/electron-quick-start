@@ -1,6 +1,6 @@
 
-R version 3.4.0 RC (2017-04-18 r72543) -- "You Stupid Darkness"
-Copyright (C) 2017 The R Foundation for Statistical Computing
+R version 3.6.0 Patched (2019-06-07 r76684) -- "Planting of a Tree"
+Copyright (C) 2019 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -23,6 +23,7 @@ Type 'q()' to quit R.
 > library('grDevices')
 > 
 > base::assign(".oldSearch", base::search(), pos = 'CheckExEnv')
+> base::assign(".old_wd", base::getwd(), pos = 'CheckExEnv')
 > cleanEx()
 > nameEx("Devices")
 > ### * Devices
@@ -1690,7 +1691,7 @@ Loading required package: grid
 +                      "Lab" = function(RGB) convRGB2(RGB, "Lab"))
 +     d <- sqrt(colSums((TransF(Rcol) - as.vector(TransF(rgb)))^2))
 +     iS <- sort.list(d[near <- d <= dist])# sorted: closest first
-+     setNames(.cc[near][iS], format(d[near][iS], digits=3))
++     setNames(.cc[near][iS], format(zapsmall(d[near][iS]), digits=3))
 + }
 
 > nearRcolor(col2rgb("tan2"), "rgb")
@@ -1817,7 +1818,7 @@ magenta 255     0  255
 yellow  255   255    0
 gray    190   190  190
 > zapsmall(lab <- convertColor(cols, from = "sRGB", to = "Lab", scale.in = 255))
-               L       a.x          b
+               L         a          b
 black    0.00000   0.00000    0.00000
 red     53.48418  80.01027   67.38407
 green3  71.91841 -73.33548   70.41134
@@ -1995,6 +1996,11 @@ character(0)
 [1] 0.8 5.2
 > extendrange(x, f= 0.01) # 0.96 5.04
 [1] 0.96 5.04
+> 
+> ## extend more to the right:
+> extendrange(x, f=c(.01,.03)) # 0.96 5.12
+[1] 0.96 5.12
+> 
 > ## Use 'r' if you have it already:
 > stopifnot(identical(extendrange(r = r),
 +                     extendrange(x)))
@@ -2323,7 +2329,7 @@ display gamma = 2.2
 +                             rgb <- t(col2rgb(hex))/255
 +                             colorspaces$sRGB$toXYZ(rgb, ...) },
 +                            fromXYZ = function(xyz, ...) {
-+                               rgb <- colorspaces$sRGB$fromXYZ(xyz, ..)
++                               rgb <- colorspaces$sRGB$fromXYZ(xyz, ...)
 +                               rgb <- round(rgb, 5)
 +                               if (min(rgb) < 0 || max(rgb) > 1)
 +                                    as.character(NA)
@@ -2351,8 +2357,15 @@ display gamma = 2.2
 [7,] 97.14950   7.89815  106.44098
 [8,] 76.97594   0.00000    0.00000
 > (hex <- convertColor(luv, from = "Luv",  to = hexcolor, scale.out = NULL))
-[1] "#000000" "#FF0000" "#00CD00" "#0000FF" "#00FFFF" "#FF00FF" "#FFFF00"
-[8] "#BEBEBE"
+     [,1]     
+[1,] "#000000"
+[2,] "#FF0000"
+[3,] "#00CD00"
+[4,] "#0000FF"
+[5,] "#00FFFF"
+[6,] "#FF00FF"
+[7,] "#FFFF00"
+[8,] "#BEBEBE"
 > 
 > ## must make hex a matrix before using it
 > (cc <- round(convertColor(as.matrix(hex), from = hexcolor, to = "sRGB",
@@ -2367,6 +2380,35 @@ display gamma = 2.2
 [7,]  255  255    0
 [8,]  190  190  190
 > stopifnot(cc == cols)
+> 
+> ## Internally vectorized version of hexcolor, notice the use
+> ## of `vectorized = TRUE`:
+> 
+> hexcolorv <- colorConverter(toXYZ = function(hex, ...) {
++                             rgb <- t(col2rgb(hex))/255
++                             colorspaces$sRGB$toXYZ(rgb, ...) },
++                            fromXYZ = function(xyz, ...) {
++                               rgb <- colorspaces$sRGB$fromXYZ(xyz, ...)
++                               rgb <- round(rgb, 5)
++                               oob <- pmin(rgb[,1],rgb[,2],rgb[,3]) < 0 |
++                                      pmax(rgb[,1],rgb[,2],rgb[,3]) > 0
++                               res <- rep(NA_character_, nrow(rgb))
++                               res[!oob] <- rgb(rgb[!oob,,drop=FALSE])},
++                            white = "D65", name = "#rrggbb",
++                            vectorized=TRUE)
+> (ccv <- round(convertColor(as.matrix(hex), from = hexcolor, to = "sRGB",
++                            scale.in = NULL, scale.out = 255)))
+     [,1] [,2] [,3]
+[1,]    0    0    0
+[2,]  255    0    0
+[3,]    0  205    0
+[4,]    0    0  255
+[5,]    0  255  255
+[6,]  255    0  255
+[7,]  255  255    0
+[8,]  190  190  190
+> stopifnot(ccv == cols)
+> 
 > 
 > 
 > 
@@ -2483,15 +2525,20 @@ Sturges   Scott      FD
 > ### Name: Palettes
 > ### Title: Color Palettes
 > ### Aliases: rainbow heat.colors terrain.colors topo.colors cm.colors
+> ###   hcl.colors hcl.pals
 > ### Keywords: color dplot
 > 
 > ### ** Examples
 > 
-> require(graphics)
-> # A Color Wheel
-> pie(rep(1, 12), col = rainbow(12))
+> require("graphics")
 > 
-> ##------ Some palettes ------------
+> # color wheels in RGB/HSV and HCL space
+> par(mfrow = c(2, 2))
+> pie(rep(1, 12), col = rainbow(12), main = "RGB/HSV")
+> pie(rep(1, 12), col = hcl.colors(12, "Set 2"), main = "HCL")
+> par(mfrow = c(1, 1))
+> 
+> ## color swatches for RGB/HSV palettes
 > demo.pal <-
 +   function(n, border = if (n < 32) "light gray" else NA,
 +            main = paste("color palettes;  n=", n),
@@ -2508,12 +2555,83 @@ Sturges   Scott      FD
 +         text(2*j,  k * j + dy/4, ch.col[k])
 +     }
 + }
-> n <- if(.Device == "postscript") 64 else 16
->      # Since for screen, larger n may give color allocation problem
-> demo.pal(n)
+> demo.pal(16)
+> 
+> ## color swatches for HCL palettes
+> hcl.swatch <- function(type = NULL, n = 5, nrow = 11,
++   border = if (n < 15) "black" else NA) {
++     palette <- hcl.pals(type)
++     cols <- sapply(palette, hcl.colors, n = n)
++     ncol <- ncol(cols)
++     nswatch <- min(ncol, nrow)
++ 
++     par(mar = rep(0.1, 4),
++         mfrow = c(1, min(5, ncol %/% nrow + 1)),
++         pin = c(1, 0.5 * nswatch),
++         cex = 0.7)
++ 
++     while (length(palette)) {
++         subset <- 1:min(nrow, ncol(cols))
++         plot.new()
++         plot.window(c(0, n), c(0, nrow + 1))
++         text(0, rev(subset) + 0.1, palette[subset], adj = c(0, 0))
++         y <- rep(subset, each = n)
++         rect(rep(0:(n-1), n), rev(y), rep(1:n, n), rev(y) - 0.5,
++              col = cols[, subset], border = border)
++         palette <- palette[-subset]
++         cols <- cols[, -subset]
++     }
++ 
++     par(mfrow = c(1, 1), mar = c(5.1, 4.1, 4.1, 2.1), cex = 1)
++ }
+> hcl.swatch()
+> hcl.swatch("qualitative")
+> hcl.swatch("sequential")
+> hcl.swatch("diverging")
+> hcl.swatch("divergingx")
+> 
+> ## heat maps with sequential HCL palette (purple)
+> image(volcano, col = hcl.colors(11, "purples", rev = TRUE))
+> filled.contour(volcano, nlevels = 10,
++                color.palette = function(n, ...)
++                    hcl.colors(n, "purples", rev = TRUE, ...))
+> 
+> ## list available HCL color palettes
+> hcl.pals("qualitative")
+[1] "Pastel 1" "Dark 2"   "Dark 3"   "Set 2"    "Set 3"    "Warm"     "Cold"    
+[8] "Harmonic" "Dynamic" 
+> hcl.pals("sequential")
+ [1] "Grays"         "Light Grays"   "Blues 2"       "Blues 3"      
+ [5] "Purples 2"     "Purples 3"     "Reds 2"        "Reds 3"       
+ [9] "Greens 2"      "Greens 3"      "Oslo"          "Purple-Blue"  
+[13] "Red-Purple"    "Red-Blue"      "Purple-Orange" "Purple-Yellow"
+[17] "Blue-Yellow"   "Green-Yellow"  "Red-Yellow"    "Heat"         
+[21] "Heat 2"        "Terrain"       "Terrain 2"     "Viridis"      
+[25] "Plasma"        "Inferno"       "Dark Mint"     "Mint"         
+[29] "BluGrn"        "Teal"          "TealGrn"       "Emrld"        
+[33] "BluYl"         "ag_GrnYl"      "Peach"         "PinkYl"       
+[37] "Burg"          "BurgYl"        "RedOr"         "OrYel"        
+[41] "Purp"          "PurpOr"        "Sunset"        "Magenta"      
+[45] "SunsetDark"    "ag_Sunset"     "BrwnYl"        "YlOrRd"       
+[49] "YlOrBr"        "OrRd"          "Oranges"       "YlGn"         
+[53] "YlGnBu"        "Reds"          "RdPu"          "PuRd"         
+[57] "Purples"       "PuBuGn"        "PuBu"          "Greens"       
+[61] "BuGn"          "GnBu"          "BuPu"          "Blues"        
+[65] "Lajolla"       "Turku"        
+> hcl.pals("diverging")
+ [1] "Blue-Red"      "Blue-Red 2"    "Blue-Red 3"    "Red-Green"    
+ [5] "Purple-Green"  "Purple-Brown"  "Green-Brown"   "Blue-Yellow 2"
+ [9] "Blue-Yellow 3" "Green-Orange"  "Cyan-Magenta"  "Tropic"       
+[13] "Broc"          "Cork"          "Vik"           "Berlin"       
+[17] "Lisbon"        "Tofino"       
+> hcl.pals("divergingx")
+ [1] "ArmyRose" "Earth"    "Fall"     "Geyser"   "TealRose" "Temps"   
+ [7] "PuOr"     "RdBu"     "RdGy"     "PiYG"     "PRGn"     "BrBG"    
+[13] "RdYlBu"   "RdYlGn"   "Spectral" "Zissou 1" "Cividis" 
 > 
 > 
 > 
+> graphics::par(get("par.postscript", pos = 'CheckExEnv'))
 > cleanEx()
 > nameEx("pdf")
 > ### * pdf
@@ -2581,6 +2699,9 @@ List of 18
 > ### ** Examples
 > 
 > require(graphics)
+> ## Don't show: 
+> oldwd <- setwd(tempdir())
+> ## End(Don't show)
 > 
 > pictex()
 > plot(1:11, (-5:5)^2, type = "b", main = "Simple Example Plot")
@@ -2604,6 +2725,9 @@ pdf
 > ## End(Not run)
 > ##--------------------
 > unlink("Rplots.tex")
+> ## Don't show: 
+> setwd(oldwd)
+> ## End(Don't show)
 > 
 > 
 > 
@@ -3360,6 +3484,62 @@ List of 18
 > 
 > 
 > cleanEx()
+> nameEx("quartz")
+> ### * quartz
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: quartz
+> ### Title: macOS Quartz Device
+> ### Aliases: quartz quartz.options quartz.save
+> ### Keywords: device
+> 
+> ### ** Examples
+> ## Not run: 
+> ##D ## Only on a Mac,
+> ##D ## put something like this is your .Rprofile to customize the defaults
+> ##D setHook(packageEvent("grDevices", "onLoad"),
+> ##D         function(...) grDevices::quartz.options(width = 8, height = 6,
+> ##D                                                 pointsize = 10))
+> ## End(Not run)
+> 
+> 
+> cleanEx()
+> nameEx("quartzFonts")
+> ### * quartzFonts
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: quartzFonts
+> ### Title: Quartz Fonts Setup
+> ### Aliases: quartzFont quartzFonts
+> ### Keywords: device
+> 
+> ### ** Examples
+> 
+> if(.Platform$OS.type == "unix") { # includes Mac
++ 
++  utils::str( quartzFonts() ) # a list(serif = .., sans = .., mono = ..)
++  quartzFonts("mono") # the list(mono = ..) sublist of quartzFonts()
++ ## Not run: 
++ ##D   ## for East Asian locales you can use something like
++ ##D   quartzFonts(sans = quartzFont(rep("AppleGothic", 4)),
++ ##D 	      serif = quartzFont(rep("AppleMyungjp", 4)))
++ ##D   ## since the default fonts may well not have the glyphs needed
++ ## End(Not run)
++ }
+List of 3
+ $ serif: chr [1:4] "Times-Roman" "Times-Bold" "Times-Italic" "Times-BoldItalic"
+ $ sans : chr [1:4] "Helvetica" "Helvetica-Bold" "Helvetica-Oblique" "Helvetica-BoldOblique"
+ $ mono : chr [1:4] "Courier" "Courier-Bold" "Courier-Oblique" "Courier-BoldOblique"
+$mono
+[1] "Courier"             "Courier-Bold"        "Courier-Oblique"    
+[4] "Courier-BoldOblique"
+
+> 
+> 
+> 
+> cleanEx()
 > nameEx("recordGraphics")
 > ### * recordGraphics
 > 
@@ -3534,6 +3714,127 @@ v 0.98039216 0.7647059 0.4588235 0.8549020 0.9960784
 > 
 > ## See  help(persp) {after attaching the 'graphics' package}
 > ##      -----------
+> 
+> 
+> 
+> cleanEx()
+> nameEx("windows")
+> ### * windows
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: windows
+> ### Title: Windows Graphics Devices
+> ### Aliases: windows win.graph win.metafile win.print print.SavedPlots
+> ###   [.SavedPlots
+> ### Keywords: device
+> 
+> ### ** Examples
+> ## Not run: 
+> ##D ## A series of plots written to a sequence of metafiles
+> ##D if(.Platform$OS.type == "windows")
+> ##D    win.metafile("Rplot%02d.wmf", pointsize = 10)
+> ## End(Not run)
+> 
+> 
+> cleanEx()
+> nameEx("windows.options")
+> ### * windows.options
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: windows.options
+> ### Title: Auxiliary Function to Set/View Defaults for Arguments of
+> ###   windows()
+> ### Aliases: windows.options
+> ### Keywords: device
+> 
+> ### ** Examples
+> ## Not run: 
+> ##D ## put something like this is your .Rprofile to customize the defaults
+> ##D setHook(packageEvent("grDevices", "onLoad"),
+> ##D         function(...)
+> ##D             grDevices::windows.options(width = 8, height = 6,
+> ##D                                        xpos = 0, pointsize = 10,
+> ##D                                        bitmap.aa.win = "cleartype"))
+> ## End(Not run)
+> 
+> 
+> cleanEx()
+> nameEx("windowsFonts")
+> ### * windowsFonts
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: windowsFonts
+> ### Title: Windows Fonts
+> ### Aliases: windowsFont windowsFonts
+> ### Keywords: device
+> 
+> ### ** Examples
+> 
+> if(.Platform$OS.type == "windows") withAutoprint({
++   windowsFonts()
++   windowsFonts("mono")
++ })
+> ## Not run: 
+> ##D ## set up for Japanese: needs the fonts installed
+> ##D windows()  # make sure we have the right device type (available on Windows only)
+> ##D Sys.setlocale("LC_ALL", "ja")
+> ##D windowsFonts(JP1 = windowsFont("MS Mincho"),
+> ##D              JP2 = windowsFont("MS Gothic"),
+> ##D              JP3 = windowsFont("Arial Unicode MS"))
+> ##D plot(1:10)
+> ##D text(5, 2, "\u{4E10}\u{4E00}\u{4E01}", family = "JP1")
+> ##D text(7, 2, "\u{4E10}\u{4E00}\u{4E01}", family = "JP1", font = 2)
+> ##D text(5, 1.5, "\u{4E10}\u{4E00}\u{4E01}", family = "JP2")
+> ##D text(9, 2, "\u{5100}", family = "JP3")
+> ## End(Not run)
+> 
+> 
+> cleanEx()
+> nameEx("x11")
+> ### * x11
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: x11
+> ### Title: X Window System Graphics (X11)
+> ### Aliases: x11 X11 X11.options
+> ### Keywords: device
+> 
+> ### ** Examples
+> ## Not run: 
+> ##D if(.Platform$OS.type == "unix") { # Only on unix-alikes, possibly Mac,
+> ##D ## put something like this is your .Rprofile to customize the defaults
+> ##D setHook(packageEvent("grDevices", "onLoad"),
+> ##D         function(...) grDevices::X11.options(width = 8, height = 6, xpos = 0,
+> ##D                                              pointsize = 10))
+> ##D }
+> ## End(Not run)
+> 
+> 
+> cleanEx()
+> nameEx("x11Fonts")
+> ### * x11Fonts
+> 
+> flush(stderr()); flush(stdout())
+> 
+> ### Name: X11Fonts
+> ### Title: X11 Fonts
+> ### Aliases: X11Font X11Fonts
+> ### Keywords: device
+> 
+> ### ** Examples
+> 
+> ## IGNORE_RDIFF_BEGIN
+> if(capabilities()[["X11"]]) withAutoprint({
++ X11Fonts()
++ X11Fonts("mono")
++ utopia <- X11Font("-*-utopia-*-*-*-*-*-*-*-*-*-*-*-*")
++ X11Fonts(utopia = utopia)
++ })
+> ## IGNORE_RDIFF_END
 > 
 > 
 > 
@@ -3789,9 +4090,10 @@ $zlab
 > 
 > ### * <FOOTER>
 > ###
+> cleanEx()
 > options(digits = 7L)
 > base::cat("Time elapsed: ", proc.time() - base::get("ptime", pos = 'CheckExEnv'),"\n")
-Time elapsed:  7.762 0.119 7.9 0 0 
+Time elapsed:  11.057 0.285 11.406 0 0 
 > grDevices::dev.off()
 null device 
           1 

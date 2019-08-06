@@ -1,6 +1,6 @@
 /*
  *  R : A Computer Language for Statistical Data Analysis
- *  Copyright (C) 2003-2016 The R Core Team.
+ *  Copyright (C) 2003-2019 The R Core Team.
  *
  *  This header file is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -51,8 +51,8 @@ extern "C" {
 
 BLAS_extern double /* DASUM - sum of absolute values of a one-dimensional array */
 F77_NAME(dasum)(const int *n, const double *dx, const int *incx);
-BLAS_extern void   /* DAXPY - replace y by alpha*x + y */
-F77_NAME(daxpy)(const int *n, const double *alpha,
+BLAS_extern void   /* DAXPY - replace y by da*x + y */
+F77_NAME(daxpy)(const int *n, const double *da,
 		const double *dx, const int *incx,
 		double *dy, const int *incy);
 BLAS_extern void   /* DCOPY - copy x to y */
@@ -245,7 +245,7 @@ F77_NAME(dsyr2k)(const char *uplo, const char *trans,
 /* Double complex BLAS routines added for 2.3.0 */
 /* #ifdef HAVE_FORTRAN_DOUBLE_COMPLEX */
     BLAS_extern double
-    F77_NAME(dcabs1)(const double *z);
+    F77_NAME(dcabs1)(const Rcomplex *z);
     BLAS_extern double
     F77_NAME(dzasum)(const int *n, const Rcomplex *zx, const int *incx);
     BLAS_extern double

@@ -158,3 +158,77 @@ toD <- as.Date("2016-08-19"); dates <- c(toD - 10, toD)
 plot(dates, 1:2, xlim = rev(dates),
      ann=FALSE, yaxt="n", frame.plot=FALSE)
 ## failed to label the dates in R <= 3.3.1
+
+
+## axis() -- labels only written when there's room
+plot2 <- function(at, wait=FALSE) {
+    plot1 <- function(x,y) plot(x,y, type="n", xlab="", ylab="", tck=0, frame.plot=FALSE)
+    plot1( at, at); axis(3, at= at, tck=0)
+    plot1(-at,-at); axis(3, at=-at, tck=0)
+    if(wait) { mtext("Click here to advance!", line=-2, cex=1.5, col=2); locator(1) }
+}
+at <- c(7:15, 2*(8:15), 5*(7:15), 10*(8:15))
+op <- par(mfrow=2:1, mgp = c(1.5, 0.6, 0), mar = .1+c(2,2,2,1),
+          lab = c(20,20,7), las = 1) # las=1: all horizontal => y-axis perpendicular
+interAct <- dev.interactive()
+
+if(interAct) { xMar <- c(1,3)/2  ; nP <- 10
+} else {       xMar <- c(1,3)*3/2; nP <-  3 }
+## Now increasing margins ==> decreasing plot area ==> shrinking plot
+## (*is* device dependent [here have "a4r"-pdf]) :
+for(n in 1:nP) {
+    par(mar = par("mar") + xMar)
+    plot2(at, n < nP && interAct)
+}
+par(op)
+
+
+##----- pairs() using verInd & horInd ----------
+mpairs <- function(..., p=3, npp=2, main) { # p=4, npp=7 was Chris Andrews' example
+    x <- matrix((1:(p*npp))/npp, ncol=p, dimnames=list(NULL, paste0("x", 1:p)))
+    ## -> x \in [1/npp,.., p]  <==> ceiling(x) \in {1,2,...,p}
+    ## the panel function
+    mP <- function(x,y, ...) { ## really made for the 'x = ...' above
+        j <- ceiling(mean(y)) # in 1:p
+        points(x,y, col=ceiling(mean(x)), pch= 3*j, cex=((p-1.5)*j+1)/p, ...)
+        g <- 1:(p-1); abline(h=g, v=g, lty=3, col="gray33")
+    }
+    if(missing(main))
+        main <- if(...length()) sub("mpairs", '', deparse(sys.call()))
+    lim <- range(x)
+    k <- max(2, npp-2) ## bug in R(?): par(lab = c(1,1,7)) giving nonsense!
+    op <- par(lab = c(k,k,7), oma=c(1,0,0,0)); on.exit(par(op))
+    pairs(x, panel=mP, xlim=lim, ylim=lim, main=main, cex.main=1, ...)
+}
+
+mpairs() # 4x4 matrix of scatterplots
+if(interAct) dev.set(if(length(dev.list()) < 2) dev.new() else dev.prev())
+mpairs(horInd=1:2,verInd=  1:3 ) # 3x2 matrix: upper left [WRONG in R <= 3.5.0]
+mpairs(horInd=3:2)               # 2x4: middle rows swapped
+mpairs(           verInd=c(3,1)) # 4x2: cols 3,1
+##
+## now all with  'row1attop=FALSE'=======
+if(interAct) dev.set(dev.prev())
+mpairs(row1attop=FALSE) # 4x4 matrix of scatterplots -- perfect in R <= 3.5.0
+if(interAct) dev.set(dev.next())
+## a version of those above, with 'row1attop = FALSE'
+mpairs(horInd=2:1,verInd=3:1   , row1attop=FALSE) # 3x2: *swapped* upper left
+mpairs(horInd=c(3,1)           , row1attop=FALSE) # 2x3: swapped outer rows
+mpairs(           verInd=c(3,2), row1attop=FALSE) # 3x2: cols 3,2
+
+
+## axis() when in subnormal range (x is subnormal if 0 < x < .Machine$double.xmin):
+(.min.exp.subnormal <- with(.Machine, double.min.exp + double.ulp.digits)) # -1074
+(ry <- range(y74 <- 2^(.min.exp.subnormal + 0:50))) # all subnormal
+plotNchk <- function(y) {
+    plot(y, log = "y", xlab="", ylab="", xaxt="n") # (as small pdf as possible)
+    ry <- range(y)
+    xp <- par("yaxp")
+    ## and indeed yaxp do cover the range(y) :
+    stopifnot(xp[1] <= ry[1], ry[2] <= xp[2], xp[3] == 1)
+    invisible(xp)
+}
+if(interactive()) # not regularly, where pdf is stored
+plotNchk(y74) # gives 3 warnings; 1. from pretty(): "very small range"
+plotNchk(y74[1:8]) # 3 warnings *and* no error anymore
+plotNchk(y74[1:2]) #    (ditto)

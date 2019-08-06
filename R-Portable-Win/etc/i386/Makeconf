@@ -28,7 +28,7 @@ DT_ARCH =
 RC_ARCH = 
 # Used by packages tcltk and tkrplot
 TCL_HOME = $(R_HOME)/Tcl
-LOCAL_SOFT = d:/Compiler/gcc-4.9.3/local330
+#LOCAL_SOFT
 NM_FILTER = 
 
 ifneq ($(strip $(LOCAL_SOFT)),)
@@ -66,19 +66,19 @@ AR = $(BINPREF)ar
 BLAS_LIBS = -L"$(R_HOME)/$(IMPDIR)" -lRblas
 C_VISIBILITY = 
 CC = $(BINPREF)gcc $(M_ARCH)
-CFLAGS = -O3 -Wall $(DEBUGFLAG) -std=gnu99 -mtune=core2
+CFLAGS = -O3 -Wall $(DEBUGFLAG) -std=gnu99 -mtune=generic
 CPICFLAGS = 
 CPPFLAGS =
 CXX = $(BINPREF)g++ $(M_ARCH)
 CXXCPP = $(CXX) -E
-CXXFLAGS = -O2 -Wall $(DEBUGFLAG) -mtune=core2
+CXXFLAGS = -O2 -Wall $(DEBUGFLAG) -mtune=generic
 CXXPICFLAGS =
 CXX98 = $(BINPREF)g++ $(M_ARCH)
-CXX98FLAGS = -O2 -Wall $(DEBUGFLAG) -mtune=core2
+CXX98FLAGS = -O2 -Wall $(DEBUGFLAG) -mtune=generic
 CXX98PICFLAGS = 
 CXX98STD = -std=gnu++98
 CXX11 = $(BINPREF)g++ $(M_ARCH)
-CXX11FLAGS = -O2 -Wall $(DEBUGFLAG) -mtune=core2
+CXX11FLAGS = -O2 -Wall $(DEBUGFLAG) -mtune=generic
 CXX11PICFLAGS =
 CXX11STD = -std=gnu++11
 CXX14 = 
@@ -97,13 +97,16 @@ ECHO = echo
 ECHO_C = 
 ECHO_N = -n
 ECHO_T = 
+## unsupported on Windows
+F_VISIBILITY = 
+## FC is the compiler used for all Fortran as from R 3.6.0
 FC = $(BINPREF)gfortran $(M_ARCH)
-FCFLAGS = -O3 $(DEBUGFLAG) -mtune=core2
-# additional libs needed when linking with $(FC), e.g. on Solaris
-FCLIBS =
+FCFLAGS = -O3 $(DEBUGFLAG) -mtune=generic
+## additional libs needed when linking with $(FC), e.g. on some Oracle compilers
+FCLIBS_XTRA =
 F77 = $(BINPREF)gfortran $(M_ARCH)
 F77_VISIBILITY = 
-FFLAGS = -O3 $(DEBUGFLAG) -mtune=core2
+FFLAGS = -O3 $(DEBUGFLAG) -mtune=generic
 FLIBS = -lgfortran -lm -lquadmath
 FCPICFLAGS =
 FPICFLAGS = 
@@ -113,6 +116,8 @@ JAR =
 JAVA =
 JAVAC = 
 JAVAH =
+## JAVA_HOME might be used in the next three.  
+## They are for packages 'JavaGD' and 'rJava'
 # JAVA_HOME = 
 # JAVA_LD_LIBRARY_PATH = 
 JAVA_LIBS = -L"$(JAVA_HOME)/bin/client" -ljvm -ljvm-w32
@@ -139,9 +144,10 @@ OBJC = $(CC)
 OBJCFLAGS = -O2
 OBJC_LIBS = -lobjc
 OBJCXX =
+OBJDUMP = $(BINPREF)objdump
 R_ARCH = /i386
 RANLIB = $(BINPREF)ranlib
-SAFE_FFLAGS = -O3 -ffloat-store
+SAFE_FFLAGS = -O2 -msse2 -mfpmath=sse
 SED = sed
 ## it seems some makes (but not ours) get upset if SHELL is set.
 # SHELL = /bin/sh
@@ -172,19 +178,10 @@ SHLIB_OPENMP_CXXFLAGS = -fopenmp
 SHLIB_OPENMP_FCFLAGS = -fopenmp
 SHLIB_OPENMP_FFLAGS = -fopenmp
 SHLIB_PTHREAD_FLAGS = -pthread
-STRIP_LIBS = $(BINPREF)strip --strip-unneeded
-STRIP_STATIC_LIBS = $(BINPREF)strip --strip-debug
+STRIP_SHARED_LIB = $(BINPREF)strip --strip-unneeded
+STRIP_STATIC_LIB = $(BINPREF)strip --strip-debug
 TCLTK_CPPFLAGS = -I "$(TCL_HOME)/include" -DWin32
 TCLTK_LIBS = -L"$(TCL_HOME)/bin" -ltcl$(TCL_VERSION) -ltk$(TCL_VERSION)
-
-## legacy
-CXX1X = $(BINPREF)g++ $(M_ARCH)
-CXX1XFLAGS = -O2 -Wall $(DEBUGFLAG) -mtune=core2
-CXX1XPICFLAGS =
-CXX1XSTD = -std=gnu++11
-SHLIB_CXX1XLD = $(CXX11)
-SHLIB_CXX1XLDFLAGS = -shared
-
 
 STATIC_LIBR =
 
@@ -200,6 +197,9 @@ ALL_OBJCFLAGS = $(PKG_OBJCFLAGS) $(CPICFLAGS) $(SHLIB_CFLAGS) $(OBJCFLAGS)
 ALL_OBJCXXFLAGS = $(PKG_OBJCXXFLAGS) $(CXXPICFLAGS) $(SHLIB_CXXFLAGS) $(OBJCXXFLAGS)
 ALL_FFLAGS = $(R_XTRA_FFLAGS) $(PKG_FFLAGS) $(FPICFLAGS) $(SHLIB_FFLAGS) $(FFLAGS)
 ALL_LIBS = $(PKG_LIBS) $(LOCAL_LIBS) $(SHLIB_LIBADD) $(LIBR) $(LIBINTL)
+## can be overridden by SHLIB
+P_FCFLAGS = $(PKG_FFLAGS)
+ALL_FCFLAGS = $(R_XTRA_FFLAGS) $(P_FCFLAGS) $(FPICFLAGS) $(SHLIB_FFLAGS) $(FCFLAGS)
 
 .SUFFIXES:
 .SUFFIXES: .c .cc .cpp .d .f .f90 .f95 .m .mm .M .o .a .def .dll .exe .rc
@@ -229,11 +229,11 @@ ALL_LIBS = $(PKG_LIBS) $(LOCAL_LIBS) $(SHLIB_LIBADD) $(LIBR) $(LIBINTL)
 .M.o:
 	$(OBJCXX) $(ALL_CPPFLAGS) $(ALL_OBJCXXFLAGS) -c $< -o $@
 .f.o:
-	$(F77) $(ALL_FFLAGS) -c $< -o $@
+	$(FC) $(ALL_FFLAGS) -c $< -o $@
 .f95.o:
-	$(FC) $(PKG_FCFLAGS) $(FCPICFLAGS) $(FCFLAGS) -c  $< -o $@
+	$(FC) $(ALL_FCFLAGS) -c  $< -o $@
 .f90.o:
-	$(FC) $(PKG_FCFLAGS) $(FCPICFLAGS) $(FCFLAGS) -c  $< -o $@
+	$(FC) $(ALL_FCFLAGS) -c  $< -o $@
 
 %.exe:
 	$(LINKER) $(LINKFLAGS) $($*-LINKFLAGS) -o $@ $^ $($*-LIBS) $(LOCAL_LIBS) $(LIBS)
