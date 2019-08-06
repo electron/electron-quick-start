@@ -33,46 +33,72 @@ public:
     typedef typename MATRIX::const_Proxy const_reference ;
     typedef typename MATRIX::value_type value_type ;
 
-    class iterator {
+    // We now have the structure to correct const-correctness, but without
+    // major changes to the proxy mechanism, we cannot do it correctly.  As
+    // a result, it turns out that both MatrixRow iterators are effectively
+    // const, but this has always been the way it is so we won't break any
+    // compatibility.  TODO: Fix proxies and make this const correct.
+    struct iter_traits
+    {
+        typedef typename traits::r_vector_iterator<RTYPE>::type vector_iterator;
+        
+        typedef int difference_type;
+        typedef typename traits::r_vector_proxy<RTYPE>::type value_type;
+        typedef value_type reference;
+        typedef typename std::iterator_traits<vector_iterator>::pointer pointer;
+    };
+    
+    struct const_iter_traits
+    {
+        typedef typename traits::r_vector_const_iterator<RTYPE>::type vector_iterator;
+        
+        typedef int difference_type;
+        typedef typename traits::r_vector_proxy<RTYPE>::type value_type;
+        typedef value_type reference;
+        typedef typename std::iterator_traits<vector_iterator>::pointer pointer;
+    };
+    
+    template< typename TRAITS >
+    class iter_base {
     public:
-        typedef typename traits::r_vector_iterator<RTYPE>::type vector_iterator ;
+        typedef typename TRAITS::vector_iterator vector_iterator;
 
-        typedef int difference_type ;
-        typedef typename traits::r_vector_proxy<RTYPE>::type value_type ;
-        typedef typename traits::r_vector_proxy<RTYPE>::type reference ;
-        typedef typename std::iterator_traits<vector_iterator>::pointer pointer ;
+        typedef typename TRAITS::difference_type difference_type ;
+        typedef typename TRAITS::value_type value_type ;
+        typedef typename TRAITS::reference reference ;
+        typedef typename TRAITS::pointer pointer ;
 
         typedef std::random_access_iterator_tag iterator_category ;
 
-        iterator( const iterator& other) : row(other.row), index(other.index){}
-        iterator( MatrixRow& row_, int index_ ) : row(row_), index(index_){}
+        iter_base( const iter_base& other) : row(other.row), index(other.index){}
+        iter_base( MatrixRow& row_, int index_ ) : row(row_), index(index_){}
 
-        iterator& operator++(){
+        iter_base& operator++(){
             index++;
             return *this ;
         }
-        iterator operator++(int) {
+        iter_base operator++(int) {
             iterator orig(*this);
             index++ ;
             return orig ;
         }
 
-        iterator& operator--(){
+        iter_base& operator--(){
             index-- ;
             return *this ;
         }
-        iterator operator--(int){
-            iterator orig(*this);
+        iter_base operator--(int){
+            iter_base orig(*this);
             index-- ;
             return orig ;
         }
 
-        iterator operator+(difference_type n) const { return iterator( row, index + n ) ; }
-        iterator operator-(difference_type n) const { return iterator( row, index - n ) ; }
-        difference_type operator-(const iterator& other) const { return index - other.index ; }
+        iter_base operator+(difference_type n) const { return iter_base( row, index + n ) ; }
+        iter_base operator-(difference_type n) const { return iter_base( row, index - n ) ; }
+        difference_type operator-(const iter_base& other) const { return index - other.index ; }
 
-        iterator& operator+=(difference_type n) { index += n ; return *this ;}
-        iterator& operator-=(difference_type n) { index -= n ; return *this ;}
+        iter_base& operator+=(difference_type n) { index += n ; return *this ;}
+        iter_base& operator-=(difference_type n) { index -= n ; return *this ;}
 
         reference operator*() {
             return row[index] ;
@@ -81,25 +107,28 @@ public:
             return &row[index] ;
         }
 
-        bool operator==( const iterator& other) { return index == other.index ; }
-        bool operator!=( const iterator& other) { return index != other.index ; }
-        bool operator<( const iterator& other ) { return index < other.index ;}
-        bool operator>( const iterator& other ) { return index > other.index ;}
-        bool operator<=( const iterator& other ) { return index <= other.index ; }
-        bool operator>=( const iterator& other ) { return index >= other.index ; }
+        bool operator==( const iter_base& other) { return index == other.index ; }
+        bool operator!=( const iter_base& other) { return index != other.index ; }
+        bool operator<( const iter_base& other ) { return index < other.index ;}
+        bool operator>( const iter_base& other ) { return index > other.index ;}
+        bool operator<=( const iter_base& other ) { return index <= other.index ; }
+        bool operator>=( const iter_base& other ) { return index >= other.index ; }
 
         inline reference operator[]( int i) const {
             return row[ index + i ] ;
         }
 
-        difference_type operator-(const iterator& other) {
+        difference_type operator-(const iter_base& other) {
             return index - other.index ;
         }
 
     private:
         MatrixRow& row ;
         int index ;
-    } ;
+    };
+    
+    typedef iter_base< iter_traits > iterator;
+    typedef iter_base< const_iter_traits > const_iterator;
 
     MatrixRow( MATRIX& object, int i ) :
         parent(object),
@@ -151,12 +180,20 @@ public:
         return iterator( *this, size() ) ;
     }
 
-    inline iterator begin() const {
-        return iterator( const_cast<MatrixRow&>(*this), 0 ) ;
+    inline const_iterator begin() const {
+        return const_iterator( const_cast<MatrixRow&>(*this), 0 ) ;
     }
 
-    inline iterator end() const {
-        return iterator( const_cast<MatrixRow&>(*this), size() ) ;
+    inline const_iterator end() const {
+        return const_iterator( const_cast<MatrixRow&>(*this), size() ) ;
+    }
+    
+    inline const_iterator cbegin() const {
+        return const_iterator( const_cast<MatrixRow&>(*this), 0 ) ;
+    }
+
+    inline const_iterator cend() const {
+        return const_iterator( const_cast<MatrixRow&>(*this), size() ) ;
     }
 
     inline int size() const {

@@ -1,0 +1,120 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: End Points Smoothing (for Running Medians)</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for smoothEnds {stats}"><tr><td>smoothEnds {stats}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>End Points Smoothing (for Running Medians)</h2>
+
+<h3>Description</h3>
+
+<p>Smooth end points of a vector <code>y</code> using subsequently smaller
+medians and Tukey's end point rule at the very end. (of odd span),
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+smoothEnds(y, k = 3)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>y</code></td>
+<td>
+<p>dependent variable to be smoothed (vector).</p>
+</td></tr>
+<tr valign="top"><td><code>k</code></td>
+<td>
+<p>width of largest median window; must be odd.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p><code>smoothEnds</code> is used to only do the &lsquo;end point smoothing&rsquo;,
+i.e., change at most the observations closer to the beginning/end
+than half the window <code>k</code>.  The first and last value are computed using
+<em>Tukey's end point rule</em>, i.e.,
+<code>sm[1] = median(y[1], sm[2], 3*sm[2] - 2*sm[3], na.rm=TRUE)</code>.
+</p>
+<p>In <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> versions 3.6.0 and earlier, missing values (<code><a href="../../base/html/NA.html">NA</a></code>)
+in <code>y</code> typically lead to an error, whereas now the equivalent of
+<code><a href="median.html">median</a>(*, na.rm=TRUE)</code> is used.
+</p>
+
+
+<h3>Value</h3>
+
+<p>vector of smoothed values, the same length as <code>y</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Martin Maechler</p>
+
+
+<h3>References</h3>
+
+<p>John W. Tukey (1977)
+<em>Exploratory Data Analysis</em>, Addison.
+</p>
+<p>Velleman, P.F., and Hoaglin, D.C. (1981)
+<em>ABC of EDA (Applications, Basics, and Computing of Exploratory
+Data Analysis)</em>; Duxbury.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="runmed.html">runmed</a>(*, endrule = "median")</code> which calls
+<code>smoothEnds()</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+require(graphics)
+
+y &lt;- ys &lt;- (-20:20)^2
+y [c(1,10,21,41)] &lt;-  c(100, 30, 400, 470)
+s7k &lt;- runmed(y, 7, endrule = "keep")
+s7. &lt;- runmed(y, 7, endrule = "const")
+s7m &lt;- runmed(y, 7)
+col3 &lt;- c("midnightblue","blue","steelblue")
+plot(y, main = "Running Medians -- runmed(*, k=7, endrule = X)")
+lines(ys, col = "light gray")
+matlines(cbind(s7k, s7.,s7m), lwd = 1.5, lty = 1, col = col3)
+eRules &lt;- c("keep","constant","median")
+legend("topleft", paste("endrule", eRules, sep = " = "),
+       col = col3, lwd = 1.5, lty = 1, bty = "n")
+
+stopifnot(identical(s7m, smoothEnds(s7k, 7)))
+
+## With missing values (for R &gt;= 3.6.1):
+yN &lt;- y; yN[c(2,40)] &lt;- NA
+rN &lt;- sapply(eRules, function(R) runmed(yN, 7, endrule=R))
+matlines(rN, type = "b", pch = 4, lwd = 3, lty=2,
+         col = adjustcolor(c("red", "orange4", "orange1"), 0.5))
+yN[c(1, 20:21)] &lt;- NA # additionally
+rN. &lt;- sapply(eRules, function(R) runmed(yN, 7, endrule=R))
+head(rN., 4); tail(rN.) # more NA's too, still not *so* many:
+stopifnot(exprs = {
+   !anyNA(rN[,2:3])
+   identical(which(is.na(rN[,"keep"])), c(2L, 40L))
+   identical(which(is.na(rN.), arr.ind=TRUE, useNames=FALSE),
+             rbind(cbind(c(1:2,37:38,40L), 1L),
+                   cbind(37:41, 2L), cbind(37:38, 3L)))
+   identical(rN.[39:41, "median"], c(324, 397, 470))
+})
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>stats</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

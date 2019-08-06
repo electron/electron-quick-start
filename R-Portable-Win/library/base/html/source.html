@@ -1,0 +1,289 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Read R Code from a File, a Connection or Expressions</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for source {base}"><tr><td>source {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Read R Code from a File, a Connection or Expressions</h2>
+
+<h3>Description</h3>
+
+<p><code>source</code> causes <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> to accept its input from the named file or URL
+or connection or expressions directly.  Input is read and
+<code><a href="parse.html">parse</a></code>d from that file
+until the end of the file is reached, then the parsed expressions are
+evaluated sequentially in the chosen environment.
+</p>
+<p><code>withAutoprint(exprs)</code> is a wrapper for <code>source(exprs =
+  exprs, ..)</code> with different defaults.  Its main purpose is to evaluate
+and auto-print expressions as if in a toplevel context, e.g, as in the
+<span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> console.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+source(file, local = FALSE, echo = verbose, print.eval = echo,
+       exprs, spaced = use_file,
+       verbose = getOption("verbose"),
+       prompt.echo = getOption("prompt"),
+       max.deparse.length = 150, width.cutoff = 60L,
+       deparseCtrl = "showAttributes",
+       chdir = FALSE,
+       encoding = getOption("encoding"),
+       continue.echo = getOption("continue"),
+       skip.echo = 0, keep.source = getOption("keep.source"))
+
+withAutoprint(exprs, evaluated = FALSE, local = parent.frame(),
+              print. = TRUE, echo = TRUE, max.deparse.length = Inf,
+              width.cutoff = max(20, getOption("width")),
+              deparseCtrl = c("keepInteger", "showAttributes", "keepNA"),
+              ...)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>file</code></td>
+<td>
+<p>a <a href="connections.html">connection</a> or a character string giving the
+pathname of the file or URL to read from.  <code>""</code> indicates the
+connection <code><a href="showConnections.html">stdin</a>()</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>local</code></td>
+<td>
+<p><code>TRUE</code>, <code>FALSE</code> or an environment, determining
+where the parsed expressions are evaluated.  <code>FALSE</code> (the
+default) corresponds to the user's workspace (the global
+environment) and <code>TRUE</code> to the environment from which
+<code>source</code> is called.</p>
+</td></tr>
+<tr valign="top"><td><code>echo</code></td>
+<td>
+<p>logical; if <code>TRUE</code>, each expression is printed
+after parsing, before evaluation.</p>
+</td></tr>
+<tr valign="top"><td><code>print.eval, print.</code></td>
+<td>
+<p>logical; if <code>TRUE</code>, the result of
+<code>eval(i)</code> is printed for each expression <code>i</code>; defaults
+to the value of <code>echo</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>exprs</code></td>
+<td>
+<p>for <code>source()</code> and <code>withAutoprint(*, evaluated=TRUE)</code>:
+<em>instead</em> of specifying <code>file</code>, an
+<code><a href="expression.html">expression</a></code>, <code><a href="call.html">call</a></code>, or <code><a href="list.html">list</a></code>
+of <code><a href="call.html">call</a></code>'s, but <em>not</em> an unevaluated &ldquo;expression&rdquo;.
+</p>
+<p>for <code>withAutoprint()</code> (with default <code>evaluated=FALSE</code>):
+one or more unevaluated &ldquo;expressions&rdquo;.
+</p>
+</td></tr>
+<tr valign="top"><td><code>evaluated</code></td>
+<td>
+<p>logical indicating that <code>exprs</code> is passed to
+<code>source(exprs= *)</code> and hence must be evaluated, i.e., a formal
+<code>expression</code>, <code>call</code> or <code>list</code> of calls.</p>
+</td></tr>
+<tr valign="top"><td><code>spaced</code></td>
+<td>
+<p>logical indicating if newline (hence empty line) should
+be printed before each expression (when <code>echo = TRUE</code>).</p>
+</td></tr>
+<tr valign="top"><td><code>verbose</code></td>
+<td>
+<p>if <code>TRUE</code>, more diagnostics (than just
+<code>echo = TRUE</code>) are printed during parsing and evaluation of
+input, including extra info for <b>each</b> expression.</p>
+</td></tr>
+<tr valign="top"><td><code>prompt.echo</code></td>
+<td>
+<p>character; gives the prompt to be used if
+<code>echo = TRUE</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>max.deparse.length</code></td>
+<td>
+<p>integer; is used only if <code>echo</code> is
+<code>TRUE</code> and gives the maximal number of characters output for
+the deparse of a single expression.</p>
+</td></tr>
+<tr valign="top"><td><code>width.cutoff</code></td>
+<td>
+<p>integer, passed to <code><a href="deparse.html">deparse</a>()</code> which
+is used (only) when there are no source references.</p>
+</td></tr>
+<tr valign="top"><td><code>deparseCtrl</code></td>
+<td>
+<p><code><a href="character.html">character</a></code> vector, passed as
+<code>control</code> to <code><a href="deparse.html">deparse</a>()</code>, see also
+<code><a href="deparseOpts.html">.deparseOpts</a></code>.  In <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> version &lt;= 3.3.x, this was
+hardcoded to <code>"showAttributes"</code>, which is the default
+currently; <code>deparseCtrl = "all"</code> may be preferable, when strict
+back compatibility is not of importance.</p>
+</td></tr>
+<tr valign="top"><td><code>chdir</code></td>
+<td>
+<p>logical; if <code>TRUE</code> and <code>file</code> is a pathname,
+the <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> working directory is temporarily changed to the directory
+containing <code>file</code> for evaluating.</p>
+</td></tr>
+<tr valign="top"><td><code>encoding</code></td>
+<td>
+<p>character vector.  The encoding(s) to be assumed when
+<code>file</code> is a character string: see <code><a href="connections.html">file</a></code>.  A
+possible value is <code>"unknown"</code> when the encoding is guessed: see
+the &lsquo;Encodings&rsquo; section.</p>
+</td></tr>
+<tr valign="top"><td><code>continue.echo</code></td>
+<td>
+<p>character; gives the prompt to use on
+continuation lines if <code>echo = TRUE</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>skip.echo</code></td>
+<td>
+<p>integer; how many comment lines at the start of the
+file to skip if <code>echo = TRUE</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>keep.source</code></td>
+<td>
+<p>logical: should the source formatting be retained
+when echoing expressions, if possible?</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>(for <code>withAutoprint()</code>:) further (non-file related)
+arguments to be passed to <code>source(.)</code>.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>Note that running code via <code>source</code> differs in a few respects
+from entering it at the <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> command line.  Since expressions are not
+executed at the top level, auto-printing is not done.  So you will
+need to include explicit <code>print</code> calls for things you want to be
+printed (and remember that this includes plotting by <a href="https://CRAN.R-project.org/package=lattice"><span class="pkg">lattice</span></a>,
+FAQ Q7.22).  Since the complete file is parsed before any of it is
+run, syntax errors result in none of the code being run.  If an error
+occurs in running a syntactically correct script, anything assigned
+into the workspace by code that has been run will be kept (just as
+from the command line), but diagnostic information such as
+<code><a href="traceback.html">traceback</a>()</code> will contain additional calls to
+<code><a href="withVisible.html">withVisible</a></code>.
+</p>
+<p>All versions of <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> accept input from a connection with end of line
+marked by LF (as used on Unix), CRLF (as used on DOS/Windows) or CR
+(as used on classic Mac OS) and map this to newline.  The final line
+can be incomplete, that is missing the final end-of-line marker.
+</p>
+<p>If <code>keep.source</code> is true (the default in interactive use), the
+source of functions is kept so they can be listed exactly as input.
+</p>
+
+
+
+
+
+
+<p>Unlike input from a console, lines in the file or on a connection can
+contain an unlimited number of characters.
+</p>
+<p>When <code>skip.echo &gt; 0</code>, that many comment lines at the start of
+the file will not be echoed.  This does not affect the execution of
+the code at all.  If there are executable lines within the first
+<code>skip.echo</code> lines, echoing will start with the first of them.
+</p>
+<p>If <code>echo</code> is true and a deparsed expression exceeds
+<code>max.deparse.length</code>, that many characters are output followed by
+<code> .... [TRUNCATED] </code>.
+</p>
+
+
+<h3>Encodings</h3>
+
+<p>By default the input is read and parsed in  the current encoding of
+the <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> session.  This is usually what it required, but occasionally
+re-encoding is needed, e.g. if a file from a UTF-8-using system is to
+be read on Windows (or <em>vice versa</em>).
+</p>
+<p>The rest of this paragraph applies if <code>file</code> is an actual
+filename or URL (and not <code>""</code> nor a connection).  If
+<code>encoding = "unknown"</code>, an attempt is made to guess the encoding:
+the result of <code><a href="../../utils/html/localeToCharset.html">localeToCharset</a>()</code> is used as a guide.  If
+<code>encoding</code> has two or more elements, they are tried in turn until
+the file/URL can be read without error in the trial encoding.  If an
+actual <code>encoding</code> is specified (rather than the default or
+<code>"unknown"</code>) in a Latin-1 or UTF-8 locale then character strings
+in the result will be translated to the current encoding and marked as
+such (see <code><a href="Encoding.html">Encoding</a></code>).
+</p>
+<p>If <code>file</code> is a connection (including one specified by <code>""</code>),
+it is not possible to re-encode the input inside <code>source</code>, and so
+the <code>encoding</code> argument is just used to mark character strings in the
+parsed input in Latin-1 and UTF-8 locales: see <code><a href="parse.html">parse</a></code>.
+</p>
+
+
+<h3>References</h3>
+
+<p>Becker, R. A., Chambers, J. M. and Wilks, A. R. (1988)
+<em>The New S Language</em>.
+Wadsworth &amp; Brooks/Cole.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="../../utils/html/demo.html">demo</a></code> which uses <code>source</code>;
+<code><a href="eval.html">eval</a></code>, <code><a href="parse.html">parse</a></code> and <code><a href="scan.html">scan</a></code>;
+<code><a href="options.html">options</a>("keep.source")</code>.
+</p>
+<p><code><a href="sys.source.html">sys.source</a></code> which is a streamlined version to source a
+file into an environment.
+</p>
+<p>&lsquo;The R Language Definition&rsquo; for a discussion of source
+directives.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+someCond &lt;- 7 &gt; 6
+## want an if-clause to behave "as top level" wrt auto-printing :
+## (all should look "as if on top level", e.g. non-assignments should print:)
+if(someCond) withAutoprint({
+   x &lt;- 1:12
+   x-1
+   (y &lt;- (x-5)^2)
+   z &lt;- y
+   z - 10
+})
+
+## If you want to source() a bunch of files, something like
+## the following may be useful:
+ sourceDir &lt;- function(path, trace = TRUE, ...) {
+    for (nm in list.files(path, pattern = "[.][RrSsQq]$")) {
+       if(trace) cat(nm,":")
+       source(file.path(path, nm), ...)
+       if(trace) cat("\n")
+    }
+ }
+
+suppressWarnings( rm(x,y) ) # remove 'x' or 'y' from global env
+withAutoprint({ x &lt;- 1:2; cat("x=",x,"\n"); y &lt;- x^2 })
+## x and y now exist:
+stopifnot(identical(x, 1:2), identical(y, x^2))
+
+withAutoprint({ formals(sourceDir); body(sourceDir) },
+              max.dep = 20, verbose = TRUE)
+
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

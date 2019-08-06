@@ -279,8 +279,23 @@ NumericMatrix runit_no_init_matrix() {
     return x;
 }
 
+// [[Rcpp::export]]
+NumericMatrix runit_no_init_matrix_ctor() {
+    NumericMatrix x(no_init(2, 2));
+    for (int i = 0; i < 4; i++) {
+        x[i] = i;
+    }
+    return x;
+}
+
+// [[Rcpp::export]]
+int runit_no_init_matrix_ctor_nrow() {
+    NumericMatrix x(no_init(2, 2));
+    return x.nrow();
+}
+
 void runit_const_Matrix_column_set( NumericMatrix::Column& col1, const NumericMatrix::Column& col2 ){
-    col1 = col2 ;    
+    col1 = col2 ;
 }
 
 // [[Rcpp::export]]
@@ -332,7 +347,7 @@ NumericMatrix matrix_scalar_divide2(const NumericMatrix & x, double y) {
     return y / x;
 }
 
-// 24 October 2016 
+// 24 October 2016
 // eye, ones, and zeros static member functions
 
 // [[Rcpp::export]]

@@ -1,0 +1,216 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Count the Number of Characters (or Bytes or Width)</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for nchar {base}"><tr><td>nchar {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Count the Number of Characters (or Bytes or Width)</h2>
+
+<h3>Description</h3>
+
+<p><code>nchar</code> takes a character vector as an argument and
+returns a vector whose elements contain the sizes of
+the corresponding elements of <code>x</code>. Internally, it is a generic,
+for which methods can be defined.
+</p>
+<p><code>nzchar</code> is a fast way to find out if elements of a character
+vector are non-empty strings.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+nchar(x, type = "chars", allowNA = FALSE, keepNA = NA)
+
+nzchar(x, keepNA = FALSE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>character vector, or a vector to be coerced to a character
+vector.  Giving a factor is an error.</p>
+</td></tr>
+<tr valign="top"><td><code>type</code></td>
+<td>
+<p>character string: partial matching to one of
+<code>c("bytes", "chars", "width")</code>.  See &lsquo;Details&rsquo;.</p>
+</td></tr>
+<tr valign="top"><td><code>allowNA</code></td>
+<td>
+<p>logical: should <code>NA</code> be returned for invalid
+multibyte strings or <code>"bytes"</code>-encoded strings (rather than
+throwing an error)?</p>
+</td></tr>
+<tr valign="top"><td><code>keepNA</code></td>
+<td>
+<p>logical: should <code>NA</code> be returned where ever
+<code>x</code> is <code><a href="NA.html">NA</a></code>?  If false, <code>nchar()</code> returns
+<code>2</code>, as that is the number of printing characters used when
+strings are written to output, and <code>nzchar()</code> is <code>TRUE</code>.  The
+default for <code>nchar()</code>, <code>NA</code>, means to use <code>keepNA = TRUE</code>
+unless <code>type</code> is <code>"width"</code>.  Used to be (implicitly) hard
+coded to <code>FALSE</code> in <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> versions <i>&lt;=</i> 3.2.0.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>The &lsquo;size&rsquo; of a character string can be measured in one of
+three ways (corresponding to the <code>type</code> argument):
+</p>
+
+<dl>
+<dt><code>bytes</code></dt><dd><p>The number of bytes needed to store the string
+(plus in C a final terminator which is not counted).</p>
+</dd>
+<dt><code>chars</code></dt><dd><p>The number of human-readable characters.</p>
+</dd>
+<dt><code>width</code></dt><dd><p>The number of columns <code><a href="cat.html">cat</a></code> will use to
+print the string in a monospaced font.  The same as <code>chars</code>
+if this cannot be calculated.</p>
+</dd>
+</dl>
+
+<p>These will often be the same, and almost always will be in single-byte
+locales (but note how <code>type</code> determines the default for
+<code>keepNA</code>).  There will be differences between the first two with
+multibyte character sequences, e.g. in UTF-8 locales.
+</p>
+<p>The internal equivalent of the default method of
+<code><a href="character.html">as.character</a></code> is performed on <code>x</code> (so there is no
+method dispatch).  If you want to operate on non-vector objects
+passing them through <code><a href="deparse.html">deparse</a></code> first will be required.
+</p>
+
+
+<h3>Value</h3>
+
+<p>For <code>nchar</code>, an integer vector giving the sizes of each element.
+For missing values (i.e., <code>NA</code>, i.e., <code><a href="NA.html">NA_character_</a></code>),
+<code>nchar()</code> returns <code><a href="NA.html">NA_integer_</a></code> if <code>keepNA</code> is
+true, and <code>2</code>, the number of printing characters, if false.
+</p>
+<p><code>type = "width"</code> gives (an approximation to) the number of
+columns used in printing each element in a terminal font, taking into
+account double-width, zero-width and &lsquo;composing&rsquo; characters.
+</p>
+<p>If <code>allowNA = TRUE</code> and an element is detected as invalid in a
+multi-byte character set such as UTF-8, its number of characters and
+the width will be <code>NA</code>.  Otherwise the number of characters will
+be non-negative, so <code>!is.na(nchar(x, "chars", TRUE))</code> is a test
+of validity.
+</p>
+<p>A character string marked with <code>"bytes"</code> encoding (see
+<code><a href="Encoding.html">Encoding</a></code>) has a number of bytes, but neither a known
+number of characters nor a width, so the latter two types are
+<code>NA</code> if <code>allowNA = TRUE</code>, otherwise an error.
+</p>
+<p>Names, dims and dimnames are copied from the input.
+</p>
+<p>For <code>nzchar</code>, a logical vector of the same length as <code>x</code>,
+true if and only if the element has non-zero length; if the element is
+<code>NA</code>, <code>nzchar()</code> is true when <code>keepNA</code> is false, as by
+default, and <code>NA</code> otherwise.
+</p>
+
+
+<h3>Note</h3>
+
+<p>This does <strong>not</strong> by default give the number of characters that
+will be used to <code>print()</code> the string.  Use
+<code><a href="encodeString.html">encodeString</a></code> to find that.
+This is particularly important on Windows when <span class="samp">\uxxxx</span>
+sequences have been used to enter Unicode characters not representable
+in the current encoding.  Thus <code>nchar("\u2642")</code> is <code>1</code>,
+and it is printed in <code>Rgui</code> as one character, but it will be
+printed in <code>Rterm</code> as <code>&lt;U+2642&gt;</code>, which is what
+<code>encodeString</code> gives.
+</p>
+<p>The concept of &lsquo;width&rsquo; is a slippery one even in a monospaced
+font. Some human languages have the concept of <em>combining</em>
+characters, in which two or more characters are rendered together: an
+example would be <code>"y\u306"</code>, which is two characters of width
+one: combining characters are given width zero, and there are other
+zero-width characters such as the zero-width space <code>"\u200b"</code>.
+</p>
+<p>Some East Asian languages have &lsquo;wide&rsquo; characters, ideographs
+which are conventionally printed across two columns when mixed with
+ASCII and other &lsquo;narrow&rsquo; characters in those languages.  The
+problem is that whether a computer prints wide characters over two or
+one columns depends on the font, with it not being uncommon to use two
+columns in a font intended for East Asian users and a single column in
+a &lsquo;Western&rsquo; font.  Unicode has encodings for &lsquo;fullwidth&rsquo;
+versions of ASCII characters and &lsquo;halfwidth&rsquo; versions of
+Katakana (Japanese) and Hangul (Korean) characters.  Then there is the
+&lsquo;East Asian Ambiguous class&rsquo; (Greek, Cyrillic, signs, some
+accented Latin chars, etc), for which the historical practice was to
+use two columns in East Asia and one elsewhere.  The width quoted by
+<code>nchar</code> for characters in that class (and some others) depends on
+the locale, being one except in some East Asian locales on some OSes
+(notably Windows).
+</p>
+<p>Control characters are given width zero.
+</p>
+
+
+<h3>References</h3>
+
+<p>Becker, R. A., Chambers, J. M. and Wilks, A. R. (1988)
+<em>The New S Language</em>.
+Wadsworth &amp; Brooks/Cole.
+</p>
+<p>Unicode Standard Annex #11: <em>East Asian Width.</em>
+<a href="http://www.unicode.org/reports/tr11/">http://www.unicode.org/reports/tr11/</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="../../graphics/html/strwidth.html">strwidth</a></code> giving width of strings for plotting;
+<code><a href="paste.html">paste</a></code>, <code><a href="substr.html">substr</a></code>, <code><a href="strsplit.html">strsplit</a></code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+x &lt;- c("asfef", "qwerty", "yuiop[", "b", "stuff.blah.yech")
+nchar(x)
+# 5  6  6  1 15
+
+nchar(deparse(mean))
+# 18 17  &lt;-- unless mean differs from base::mean
+
+x[3] &lt;- NA; x
+nchar(x, keepNA= TRUE) #  5  6 NA  1 15
+nchar(x, keepNA=FALSE) #  5  6  2  1 15
+stopifnot(identical(nchar(x     ), nchar(x, keepNA= TRUE)),
+          identical(nchar(x, "w"), nchar(x, keepNA=FALSE)),
+          identical(is.na(x), is.na(nchar(x))))
+
+##' nchar() for all three types :
+nchars &lt;- function(x, ...)
+   vapply(c("chars", "bytes", "width"),
+          function(tp) nchar(x, tp, ...), integer(length(x)))
+
+nchars("\u200b") # in R versions (&gt;= 2015-09-xx):
+## chars bytes width
+##     1     3     0
+
+data.frame(x, nchars(x)) ## all three types : same unless for NA
+## force the same by forcing 'keepNA':
+(ncT &lt;- nchars(x, keepNA = TRUE)) ## .... NA NA NA ....
+(ncF &lt;- nchars(x, keepNA = FALSE))## ....  2  2  2 ....
+stopifnot(apply(ncT, 1, function(.) length(unique(.))) == 1,
+          apply(ncF, 1, function(.) length(unique(.))) == 1)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

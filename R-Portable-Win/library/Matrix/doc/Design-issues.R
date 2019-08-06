@@ -28,7 +28,7 @@ D4
 ###################################################
 str(I3 <- Diagonal(3)) ## empty 'x' slot
 
-getClass("diagonalMatrix") ## extending "denseMatrix"
+getClass("diagonalMatrix") ## extending "sparseMatrix"
 
 
 ###################################################

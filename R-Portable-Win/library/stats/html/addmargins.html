@@ -1,0 +1,135 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Puts Arbitrary Margins on Multidimensional Tables or Arrays</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for addmargins {stats}"><tr><td>addmargins {stats}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>
+Puts Arbitrary Margins on Multidimensional Tables or Arrays
+</h2>
+
+<h3>Description</h3>
+
+<p>For a given table one can specify which of the classifying factors to
+expand by one or more levels to hold margins to be calculated.  One may for
+example form sums and means over the first dimension and medians over the
+second.  The resulting table will then have two extra levels for the first
+dimension and one extra level for the second.  The default is to sum over
+all margins in the table.  Other possibilities may give results that
+depend on the order in which the margins are computed.  This is flagged
+in the printed output from the function.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+addmargins(A, margin = seq_along(dim(A)), FUN = sum, quiet = FALSE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>A</code></td>
+<td>
+<p>table or array.  The function uses the presence of the
+<code>"dim"</code> and <code>"dimnames"</code> attributes of <code>A</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>margin</code></td>
+<td>
+<p>vector of dimensions over which to form margins.  Margins
+are formed in the order in which dimensions are specified in
+<code>margin</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>FUN</code></td>
+<td>
+<p>list of the same length as <code>margin</code>, each element of
+the list being either a function or a list of functions.  Names of
+the list elements will appear as levels in dimnames of the result.
+Unnamed list elements will have names constructed:  the name
+of a function or a constructed name based on the position in the table.</p>
+</td></tr>
+<tr valign="top"><td><code>quiet</code></td>
+<td>
+<p>logical which suppresses the message telling the order in
+which the margins were computed.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>If the functions used to form margins are not commutative the result
+depends on the order in which margins are computed.  Annotation
+of margins is done via naming the <code>FUN</code> list.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A table or array with the same number of dimensions as <code>A</code>, but
+with extra levels of the dimensions mentioned in <code>margin</code>.  The
+number of levels added to each dimension is the length of the entries
+in <code>FUN</code>.  A message with the order of computation of margins is
+printed.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Bendix Carstensen, Steno Diabetes Center &amp; Department of
+Biostatistics, University of Copenhagen,
+<a href="http://www.biostat.ku.dk/~bxc">http://www.biostat.ku.dk/~bxc</a>, autumn 2003.
+Margin naming enhanced by Duncan Murdoch.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="../../base/html/table.html">table</a></code>, <code><a href="ftable.html">ftable</a></code>, <code><a href="../../base/html/margin.table.html">margin.table</a></code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+Aye &lt;- sample(c("Yes", "Si", "Oui"), 177, replace = TRUE)
+Bee &lt;- sample(c("Hum", "Buzz"), 177, replace = TRUE)
+Sea &lt;- sample(c("White", "Black", "Red", "Dead"), 177, replace = TRUE)
+(A &lt;- table(Aye, Bee, Sea))
+addmargins(A)
+
+ftable(A)
+ftable(addmargins(A))
+
+# Non-commutative functions - note differences between resulting tables:
+ftable(addmargins(A, c(1, 3),
+       FUN = list(Sum = sum, list(Min = min, Max = max))))
+ftable(addmargins(A, c(3, 1),
+       FUN = list(list(Min = min, Max = max), Sum = sum)))
+
+# Weird function needed to return the N when computing percentages
+sqsm &lt;- function(x) sum(x)^2/100
+B &lt;- table(Sea, Bee)
+round(sweep(addmargins(B, 1, list(list(All = sum, N = sqsm))), 2,
+            apply(B, 2, sum)/100, "/"), 1)
+round(sweep(addmargins(B, 2, list(list(All = sum, N = sqsm))), 1,
+            apply(B, 1, sum)/100, "/"), 1)
+
+# A total over Bee requires formation of the Bee-margin first:
+mB &lt;-  addmargins(B, 2, FUN = list(list(Total = sum)))
+round(ftable(sweep(addmargins(mB, 1, list(list(All = sum, N = sqsm))), 2,
+                   apply(mB, 2, sum)/100, "/")), 1)
+
+## Zero.Printing table+margins:
+set.seed(1)
+x &lt;- sample( 1:7, 20, replace = TRUE)
+y &lt;- sample( 1:7, 20, replace = TRUE)
+tx &lt;- addmargins( table(x, y) )
+print(tx, zero.print = ".")
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>stats</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

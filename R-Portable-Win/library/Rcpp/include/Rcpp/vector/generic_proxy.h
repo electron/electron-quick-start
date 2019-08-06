@@ -1,6 +1,6 @@
 // generic_proxy.h: Rcpp R/C++ interface class library --
 //
-// Copyright (C) 2010 - 2013 Dirk Eddelbuettel and Romain Francois
+// Copyright (C) 2010 - 2018 Dirk Eddelbuettel and Romain Francois
 //
 // This file is part of Rcpp.
 //
@@ -23,31 +23,40 @@
 namespace Rcpp{
 namespace internal{
 
-	template <int RTYPE>
-	class generic_proxy : public GenericProxy< generic_proxy<RTYPE> > {
+	template <int RTYPE, template <class> class StoragePolicy>
+	class generic_proxy : public GenericProxy< generic_proxy<RTYPE, StoragePolicy> > {
 		public:
-			typedef typename ::Rcpp::Vector<RTYPE> VECTOR ;
+			typedef typename ::Rcpp::Vector<RTYPE, StoragePolicy> VECTOR ;
 
 			generic_proxy(): parent(0), index(-1){}
 
 			generic_proxy( const generic_proxy& other ) :
-				parent(other.parent), index(other.index){} ;
+				parent(other.parent), index(other.index)
+			{}
 
-			generic_proxy( VECTOR& v, R_xlen_t i ) : parent(&v), index(i){} ;
+			generic_proxy( VECTOR& v, R_xlen_t i ) :
+			    parent(&v), index(i)
+			{}
 
 			generic_proxy& operator=(SEXP rhs) {
 				set(rhs) ;
 				return *this ;
 			}
 
-			generic_proxy& operator=(const generic_proxy& rhs) {
-				set(rhs.get());
+			generic_proxy& operator=(const generic_proxy& rhs){
+			    set(rhs.get());
+    		    return *this ;
+			}
+
+			template <template <class> class StoragePolicy2>
+			generic_proxy& operator=(const generic_proxy<RTYPE,StoragePolicy2>& rhs) {
+			    set(rhs.get());
 				return *this ;
 			}
 
 			template <typename T>
 			generic_proxy& operator=( const T& rhs){
-				set(wrap(rhs)) ;
+				set(Shield<SEXP>(wrap(rhs))) ;
 				return *this;
 			}
 
@@ -78,13 +87,15 @@ namespace internal{
 				index  = other.index ;
 			}
 
+			inline SEXP get() const {
+			    return VECTOR_ELT(*parent, index );
+			}
+
 		private:
 			inline void set(SEXP x) {
 			    SET_VECTOR_ELT( *parent, index, x ) ;
 			}
-			inline SEXP get() const {
-			    return VECTOR_ELT(*parent, index );
-			}
+
 
 	}  ;
 

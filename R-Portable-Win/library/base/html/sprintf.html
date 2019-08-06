@@ -1,0 +1,324 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Use C-style String Formatting Commands</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for sprintf {base}"><tr><td>sprintf {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Use C-style String Formatting Commands</h2>
+
+<h3>Description</h3>
+
+<p>A wrapper for the C function <code>sprintf</code>, that returns a character
+vector containing a formatted combination of text and variable values.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+sprintf(fmt, ...)
+gettextf(fmt, ..., domain = NULL)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>fmt</code></td>
+<td>
+<p>a character vector of format strings, each of up to 8192 bytes.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>values to be passed into <code>fmt</code>.  Only logical,
+integer, real and character vectors are supported, but some coercion
+will be done: see the &lsquo;Details&rsquo; section. Up to 100.</p>
+</td></tr>
+<tr valign="top"><td><code>domain</code></td>
+<td>
+<p>see <code><a href="gettext.html">gettext</a></code>.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p><code>sprintf</code> is a wrapper for the system <code>sprintf</code> C-library
+function.  Attempts are made to check that the mode of the values
+passed match the format supplied, and <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>'s special values (<code>NA</code>,
+<code>Inf</code>, <code>-Inf</code> and <code>NaN</code>) are handled correctly.
+</p>
+<p><code>gettextf</code> is a convenience function which provides C-style
+string formatting with possible translation of the format string.
+</p>
+<p>The arguments (including <code>fmt</code>) are recycled if possible a whole
+number of times to the length of the longest, and then the formatting
+is done in parallel.  Zero-length arguments are allowed and will give
+a zero-length result.  All arguments are evaluated even if unused, and
+hence some types (e.g., <code>"symbol"</code> or <code>"language"</code>, see
+<code><a href="typeof.html">typeof</a></code>) are not allowed.
+</p>
+<p>The following is abstracted from Kernighan and Ritchie (see
+References): however the actual implementation will follow the C99
+standard and fine details (especially the behaviour under user error)
+may depend on the platform.
+</p>
+<p>The string <code>fmt</code> contains normal characters,
+which are passed through to the output string, and also conversion
+specifications which operate on the arguments provided through
+<code>...</code>.  The allowed conversion specifications start with a
+<code>%</code> and end with one of the letters in the set
+<code>aAdifeEgGosxX%</code>.  These letters denote the following types:
+</p>
+
+<dl>
+<dt><code>d</code>, <code>i</code>, <code>o</code>, <code>x</code>, <code>X</code></dt><dd><p>Integer
+value, <code>o</code> being octal, 
+<code>x</code> and <code>X</code> being hexadecimal (using the same case for
+<code>a-f</code> as the code).  Numeric variables with exactly integer
+values will be coerced to integer.  Formats <code>d</code> and <code>i</code>
+can also be used for logical variables, which will be converted to
+<code>0</code>, <code>1</code> or <code>NA</code>.
+</p>
+</dd>
+<dt><code>f</code></dt><dd><p>Double precision value, in &ldquo;<b>f</b>ixed
+point&rdquo; decimal notation of the form &quot;[-]mmm.ddd&quot;.  The number of
+decimal places (&quot;d&quot;) is specified by the precision: the default is 6;
+a precision of 0 suppresses the decimal point.  Non-finite values
+are converted to <code>NA</code>, <code>NaN</code> or (perhaps a sign followed
+by) <code>Inf</code>.
+</p>
+</dd>
+<dt><code>e</code>, <code>E</code></dt><dd><p>Double precision value, in
+&ldquo;<b>e</b>xponential&rdquo; decimal notation of the
+form <code>[-]m.ddde[+-]xx</code> or <code>[-]m.dddE[+-]xx</code>.
+</p>
+</dd>
+<dt><code>g</code>, <code>G</code></dt><dd><p>Double precision value, in <code>%e</code> or
+<code>%E</code> format if the exponent is less than -4 or greater than or
+equal to the precision, and <code>%f</code> format otherwise.
+(The precision (default 6) specifies the number of
+<em>significant</em> digits here, whereas in <code>%f, %e</code>, it is
+the number of digits after the decimal point.)
+</p>
+</dd>
+<dt><code>a</code>, <code>A</code></dt><dd><p>Double precision value, in binary notation
+of the form <code>[-]0xh.hhhp[+-]d</code>.  This is a binary fraction
+expressed in hex multiplied by a (decimal) power of 2.  The number
+of hex digits after the decimal point is specified by the precision:
+the default is enough digits to represent exactly the internal
+binary representation.  Non-finite values are converted to <code>NA</code>,
+<code>NaN</code> or (perhaps a sign followed by) <code>Inf</code>.  Format
+<code>%a</code> uses lower-case for <code>x</code>, <code>p</code> and the hex
+values: format <code>%A</code> uses upper-case.
+</p>
+<p>This should be supported on all platforms as it is a feature of C99.
+The format is not uniquely defined: although it would be possible
+to make the leading <code>h</code> always zero or one, this is not
+always done.  Most systems will suppress trailing zeros, but a few
+do not.  On a well-written platform, for normal numbers there will
+be a leading one before the decimal point plus (by default) 13
+hexadecimal digits, hence 53 bits.  The treatment of denormalized
+(aka &lsquo;subnormal&rsquo;) numbers is very platform-dependent.
+</p>
+</dd>
+<dt><code>s</code></dt><dd><p>Character string.  Character <code>NA</code>s are
+converted to <code>"NA"</code>.
+</p>
+</dd>
+<dt><code>%</code></dt><dd><p>Literal <code>%</code> (none of the extra formatting
+characters given below are permitted in this case).
+</p>
+</dd>
+</dl>
+
+<p>Conversion by <code><a href="character.html">as.character</a></code> is used for non-character
+arguments with <code>s</code> and by <code><a href="double.html">as.double</a></code> for
+non-double arguments with <code>f, e, E, g, G</code>.  NB: the length is
+determined before conversion, so do not rely on the internal
+coercion if this would change the length.  The coercion is done only
+once, so if <code>length(fmt) &gt; 1</code> then all elements must expect the
+same types of arguments.
+</p>
+<p>In addition, between the initial <code>%</code> and the terminating
+conversion character there may be, in any order:
+</p>
+
+<dl>
+<dt><code>m.n</code></dt><dd><p>Two numbers separated by a period, denoting the
+field width (<code>m</code>) and the precision (<code>n</code>).</p>
+</dd>
+<dt><code>-</code></dt><dd><p>Left adjustment of converted argument in its field.</p>
+</dd>
+<dt><code>+</code></dt><dd><p>Always print number with sign: by default only
+negative numbers are printed with a sign.</p>
+</dd>
+<dt>a space</dt><dd><p>Prefix a space if the first character is not a sign.</p>
+</dd>
+<dt><code>0</code></dt><dd><p>For numbers, pad to the field width with leading
+zeros. For characters, this zero-pads on some platforms and is
+ignored on others.</p>
+</dd>
+<dt><code>#</code></dt><dd><p>specifies &ldquo;alternate output&rdquo; for numbers, its
+action depending on the type:
+For <code>x</code> or <code>X</code>, <code>0x</code> or <code>0X</code> will be prefixed
+to a non-zero result.  For <code>e</code>, <code>e</code>, <code>f</code>, <code>g</code>
+and <code>G</code>, the output will always have a decimal point; for
+<code>g</code> and <code>G</code>, trailing zeros will not be removed.
+</p>
+</dd>
+</dl>
+
+<p>Further, immediately after <code>%</code> may come <code>1$</code> to <code>99$</code>
+to refer to a numbered argument: this allows arguments to be
+referenced out of order and is mainly intended for translators of
+error messages.  If this is done it is best if all formats are
+numbered: if not the unnumbered ones process the arguments in order.
+See the examples.  This notation allows arguments to be used more than
+once, in which case they must be used as the same type (integer,
+double or character).
+</p>
+<p>A field width or precision (but not both) may be indicated by an
+asterisk <code>*</code>: in this case an argument specifies the desired
+number.  A negative field width is taken as a '-' flag followed by a
+positive field width.  A negative precision is treated as if the
+precision were omitted.  The argument should be integer, but a double
+argument will be coerced to integer.
+</p>
+<p>There is a limit of 8192 bytes on elements of <code>fmt</code>, and on
+strings included from a single <code>%</code><em>letter</em> conversion
+specification.
+</p>
+<p>Field widths and precisions of <code>%s</code> conversions are interpreted
+as bytes, not characters, as described in the C standard.
+</p>
+<p>The C doubles used for <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> numerical vectors have signed zeros, which
+<code>sprintf</code> may output as <code>-0</code>, <code>-0.000</code> ....
+</p>
+
+
+<h3>Value</h3>
+
+<p>A character vector of length that of the longest input.  If any
+element of <code>fmt</code> or any character argument is declared as UTF-8,
+the element of the result will be in UTF-8 and have the encoding
+declared as UTF-8.  Otherwise it will be in the current locale's
+encoding.
+</p>
+
+
+<h3>Warning</h3>
+
+<p>The format string is passed down the OS's <code>sprintf</code> function, and
+incorrect formats can cause the latter to crash the <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> process .  <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>
+does perform sanity checks on the format, but not all possible user
+errors on all platforms have been tested, and some might be terminal.
+</p>
+<p>The behaviour on inputs not documented here is &lsquo;undefined&rsquo;,
+which means it is allowed to differ by platform.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Original code by Jonathan Rougier.
+</p>
+
+
+<h3>References</h3>
+
+<p>Kernighan, B. W. and Ritchie, D. M. (1988)
+<em>The C Programming Language.</em> Second edition, Prentice Hall.
+Describes the format options in table B-1 in the Appendix.
+</p>
+<p>The C Standards, especially ISO/IEC 9899:1999 for &lsquo;C99&rsquo;.  Links
+can be found at <a href="https://developer.r-project.org/Portability.html">https://developer.r-project.org/Portability.html</a>.
+</p>
+<p><code>man sprintf</code> on a Unix-alike system.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="formatc.html">formatC</a></code> for a way of formatting vectors of numbers in a
+similar fashion.
+</p>
+<p><code><a href="paste.html">paste</a></code> for another way of creating a vector combining
+text and values.
+</p>
+<p><code><a href="gettext.html">gettext</a></code> for the mechanisms for the automated translation
+of text.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## be careful with the format: most things in R are floats
+## only integer-valued reals get coerced to integer.
+
+sprintf("%s is %f feet tall\n", "Sven", 7.1)      # OK
+try(sprintf("%s is %i feet tall\n", "Sven", 7.1)) # not OK
+    sprintf("%s is %i feet tall\n", "Sven", 7  )  # OK
+
+## use a literal % :
+
+sprintf("%.0f%% said yes (out of a sample of size %.0f)", 66.666, 3)
+
+## various formats of pi :
+
+sprintf("%f", pi)
+sprintf("%.3f", pi)
+sprintf("%1.0f", pi)
+sprintf("%5.1f", pi)
+sprintf("%05.1f", pi)
+sprintf("%+f", pi)
+sprintf("% f", pi)
+sprintf("%-10f", pi) # left justified
+sprintf("%e", pi)
+sprintf("%E", pi)
+sprintf("%g", pi)
+sprintf("%g",   1e6 * pi) # -&gt; exponential
+sprintf("%.9g", 1e6 * pi) # -&gt; "fixed"
+sprintf("%G", 1e-6 * pi)
+
+## no truncation:
+sprintf("%1.f", 101)
+
+## re-use one argument three times, show difference between %x and %X
+xx &lt;- sprintf("%1$d %1$x %1$X", 0:15)
+xx &lt;- matrix(xx, dimnames = list(rep("", 16), "%d%x%X"))
+noquote(format(xx, justify = "right"))
+
+## More sophisticated:
+
+sprintf("min 10-char string '%10s'",
+        c("a", "ABC", "and an even longer one"))
+
+## Platform-dependent bad example from qdapTools 1.0.0:
+## may pad with spaces or zeroes.
+sprintf("%09s", month.name)
+
+n &lt;- 1:18
+sprintf(paste0("e with %2d digits = %.", n, "g"), n, exp(1))
+
+## Using arguments out of order
+sprintf("second %2$1.0f, first %1$5.2f, third %3$1.0f", pi, 2, 3)
+
+## Using asterisk for width or precision
+sprintf("precision %.*f, width '%*.3f'", 3, pi, 8, pi)
+
+## Asterisk and argument re-use, 'e' example reiterated:
+sprintf("e with %1$2d digits = %2$.*1$g", n, exp(1))
+
+## re-cycle arguments
+sprintf("%s %d", "test", 1:3)
+
+## binary output showing rounding/representation errors
+x &lt;- seq(0, 1.0, 0.1); y &lt;- c(0,.1,.2,.3,.4,.5,.6,.7,.8,.9,1)
+cbind(x, sprintf("%a", x), sprintf("%a", y))
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

@@ -85,7 +85,7 @@ flights[c("BOS", "DAY"), on = "dest", mult = "first"]
 flights[.(c("LGA", "JFK", "EWR"), "XNA"), on = c("origin", "dest"), mult = "last"]
 
 ## -------------------------------------------------------------------------------------------------
-flights[.(c("LGA", "JFK", "EWR"), "XNA"), mult = "last", on = c("origin", "dest"), nomatch = 0L]
+flights[.(c("LGA", "JFK", "EWR"), "XNA"), mult = "last", on = c("origin", "dest"), nomatch = NULL]
 
 ## -------------------------------------------------------------------------------------------------
 set.seed(1L)

@@ -1,0 +1,223 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Write Skeleton for Adding Native Routine Registration to a...</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for package_native_routine_registration_skeleton {tools}"><tr><td>package_native_routine_registration_skeleton {tools}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>
+Write Skeleton for Adding Native Routine Registration to a Package
+</h2>
+
+<h3>Description</h3>
+
+<p>Write a skeleton for adding native routine registration to a package.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+package_native_routine_registration_skeleton(dir, con = stdout(),
+    align = TRUE, character_only = TRUE, include_declarations = TRUE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>dir</code></td>
+<td>
+
+<p>Top-level directory of a package.
+</p>
+</td></tr>
+<tr valign="top"><td><code>con</code></td>
+<td>
+
+<p>Connection on which to write the skeleton: can be specified as a
+file path.
+</p>
+</td></tr>
+<tr valign="top"><td><code>align</code></td>
+<td>
+
+<p>Logical: should the registration tables be lined up in three
+columns each?
+</p>
+</td></tr>
+<tr valign="top"><td><code>character_only</code></td>
+<td>
+
+<p>Logical: should only <code>.NAME</code> arguments specified by character
+strings (and not as names of <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> objects nor expressions) be extracted?
+</p>
+</td></tr>
+<tr valign="top"><td><code>include_declarations</code></td>
+<td>
+
+<p>Logical: should the output include declarations (also known as
+&lsquo;prototypes&rsquo;) for the registered routines?
+</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>Registration is described in section 5.4.1 of &lsquo;Writing R
+Extensions&rsquo;. This function produces a skeleton of the C code which
+needs to be added to enable registration, conventionally as file
+&lsquo;<span class="file">src/init.c</span>&rsquo; or appended to the sole C file of the package.
+</p>
+<p>This function examines the code in the &lsquo;<span class="file">R</span>&rsquo; directory of the
+package for calls to <code>.C</code>, <code>.Fortran</code>, <code>.Call</code> and
+<code>.External</code> and creates registration information for those it can
+make sense of.  If the number of arguments used cannot be determined
+it will be recorded as <code>-1</code>: such values should be corrected.
+</p>
+<p>Optionally the skeleton will include declarations for the registered
+routines: they should be checked against the C/Fortran source code,
+not least as the number of arguments is taken from the <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> code.  For
+<code>.Call</code> and <code>.External</code> calls they will often suffice, but
+for <code>.C</code> and <code>.Fortran</code> calls the <code>void *</code> arguments
+would ideally be replaced by the actual types.  Otherwise declarations
+need to be included (they may exist earlier in that file if appending
+to a file, or in a header file which can be included in
+&lsquo;<span class="file">init.c</span>&rsquo;).
+</p>
+<p>The default value of <code>character_only</code> is appropriate when working
+on a package without any existing registration:
+<code>character_only = FALSE</code>
+can be used to suggest updates for a package which has been
+extended since registration.  For the default value, if <code>.NAME</code>
+values are found which are not character strings (e.g. names
+or expressions) this is noted via a comment in the output.
+</p>
+<p>Packages which used the earlier form of creating <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> objects for native
+symbols <em>via</em> additional arguments in a <code>useDynLib</code>
+directive will probably most easily be updated to use registration
+with <code>character_only = FALSE</code>.
+</p>
+<p>If an entry point is used with different numbers of arguments in the
+package's <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> code, an entry in the table (and optionally, a
+declaration) is made for each number, and a comment placed in the
+output.  This needs to be resolved: only <code>.External</code> calls can
+have a variable number of arguments, which should be declared as
+<code>-1</code>.
+</p>
+<p>A surprising number of <acronym><span class="acronym">CRAN</span></acronym> packages had calls in <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> code to
+native routines not included in the package, which will lead to a
+&lsquo;loading failed&rsquo; error during package installation when the
+registration C code is added.
+</p>
+<p>Calls which do not name a routine such as <code>.Call(...)</code> will be
+silently ignored.
+</p>
+
+
+<h3>Value</h3>
+
+<p>None: the output is written to the connection <code>con</code>.
+</p>
+
+
+<h3>Extracting C/C++ prototypes</h3>
+
+<p>There are several tools available to extract function declarations
+from C or C++ code.  For example,
+</p>
+<p>For C code one can use <code>cproto</code>
+(<a href="http://invisible-island.net/cproto/cproto.html">http://invisible-island.net/cproto/cproto.html</a>; Windows
+executables are available), for
+example</p>
+<pre>
+    cproto -I/path/to/R/include -e *.c
+  </pre>
+<p><code>ctags</code> (commonly distributed with the OS)
+covers C and C++., listing all function usages by something
+like</p>
+<pre>
+    ctags -x *.c
+  </pre><p>.  (The &lsquo;Exuberant&rsquo; version allows a lot more control.)
+</p>
+
+
+<h3>Extracting Fortran prototypes</h3>
+
+<p><code>gfortran</code> 9.2 and later can extract C prototypes for Fortran
+subroutines with a special flag:</p>
+<pre>
+    gfortran -c -fc-prototypes-external file.f
+</pre>
+<p>although ironically not for functions declared <code>bind(C)</code>.
+</p>
+
+
+<h3>Note</h3>
+
+<p>This only examines the &lsquo;<span class="file">R</span>&rsquo; directory: it will not find
+e.g. <code>.Call</code> calls used directly in examples, tests <em>etc</em>.
+</p>
+<p>Static code analysis is used to find the <code>.C</code> etc calls: it
+<em>will</em> find those in parts of the <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> code &lsquo;commented out&rsquo;
+by inclusion in <code>if(FALSE) { ... }</code>.
+On the other hand, it will fail to find the entry points in
+constructs like </p>
+<pre>
+    .Call(if(int) "rle_i" else "rle_d", i, force)
+  </pre>
+<p>and does not know the value of variables in calls like </p>
+<pre>
+    .Call (cfunction, ...)
+    .Call(..., PACKAGE="sparseLTSEigen")
+  </pre><p> (but if <code>character_only</code> is false, will extract the first as
+<code>"cfunction"</code>).  Calls which have not been fully resolved will be
+noted <em>via</em> comments in the output file.
+</p>
+<p>Call to entry points in other packages will be ignored if they have an
+explicit (character string) <code>PACKAGE</code> argument.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="../../utils/html/package.skeleton.html">package.skeleton</a></code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>## Not run: 
+## with a completed splines/DESCRIPTION file,
+tools::package_native_routine_registration_skeleton('splines',,,FALSE)
+## produces
+#include &lt;R.h&gt;
+#include &lt;Rinternals.h&gt;
+#include &lt;stdlib.h&gt; // for NULL
+#include &lt;R_ext/Rdynload.h&gt;
+
+/* FIXME: 
+   Check these declarations against the C/Fortran source code.
+*/
+
+/* .Call calls */
+extern SEXP spline_basis(SEXP, SEXP, SEXP, SEXP);
+extern SEXP spline_value(SEXP, SEXP, SEXP, SEXP, SEXP);
+
+static const R_CallMethodDef CallEntries[] = {
+    {"spline_basis", (DL_FUNC) &amp;spline_basis, 4},
+    {"spline_value", (DL_FUNC) &amp;spline_value, 5},
+    {NULL, NULL, 0}
+};
+
+void R_init_splines(DllInfo *dll)
+{
+    R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
+    R_useDynamicSymbols(dll, FALSE);
+}
+
+## End(Not run)</pre>
+
+<hr /><div style="text-align: center;">[Package <em>tools</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

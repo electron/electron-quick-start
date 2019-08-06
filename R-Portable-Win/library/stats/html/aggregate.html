@@ -1,0 +1,247 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Compute Summary Statistics of Data Subsets</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for aggregate {stats}"><tr><td>aggregate {stats}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Compute Summary Statistics of Data Subsets</h2>
+
+<h3>Description</h3>
+
+<p>Splits the data into subsets, computes summary statistics for each,
+and returns the result in a convenient form.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+aggregate(x, ...)
+
+## Default S3 method:
+aggregate(x, ...)
+
+## S3 method for class 'data.frame'
+aggregate(x, by, FUN, ..., simplify = TRUE, drop = TRUE)
+
+## S3 method for class 'formula'
+aggregate(formula, data, FUN, ...,
+          subset, na.action = na.omit)
+
+## S3 method for class 'ts'
+aggregate(x, nfrequency = 1, FUN = sum, ndeltat = 1,
+          ts.eps = getOption("ts.eps"), ...)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>an R object.</p>
+</td></tr>
+<tr valign="top"><td><code>by</code></td>
+<td>
+<p>a list of grouping elements, each as long as the variables
+in the data frame <code>x</code>.  The elements are coerced to factors
+before use.</p>
+</td></tr>
+<tr valign="top"><td><code>FUN</code></td>
+<td>
+<p>a function to compute the summary statistics which can be
+applied to all data subsets.</p>
+</td></tr>
+<tr valign="top"><td><code>simplify</code></td>
+<td>
+<p>a logical indicating whether results should be
+simplified to a vector or matrix if possible.</p>
+</td></tr>
+<tr valign="top"><td><code>drop</code></td>
+<td>
+<p>a logical indicating whether to drop unused combinations
+of grouping values.  The non-default case <code>drop=FALSE</code> has been
+amended for <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> 3.5.0 to drop unused combinations.</p>
+</td></tr>
+<tr valign="top"><td><code>formula</code></td>
+<td>
+<p>a <a href="formula.html">formula</a>, such as <code>y ~ x</code> or
+<code>cbind(y1, y2) ~ x1 + x2</code>, where the <code>y</code> variables are
+numeric data to be split into groups according to the grouping
+<code>x</code> variables (usually factors).</p>
+</td></tr>
+<tr valign="top"><td><code>data</code></td>
+<td>
+<p>a data frame (or list) from which the variables in formula
+should be taken.</p>
+</td></tr>
+<tr valign="top"><td><code>subset</code></td>
+<td>
+<p>an optional vector specifying a subset of observations
+to be used.</p>
+</td></tr>
+<tr valign="top"><td><code>na.action</code></td>
+<td>
+<p>a function which indicates what should happen when
+the data contain <code>NA</code> values. The default is to ignore missing
+values in the given variables.</p>
+</td></tr>
+<tr valign="top"><td><code>nfrequency</code></td>
+<td>
+<p>new number of observations per unit of time; must
+be a divisor of the frequency of <code>x</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>ndeltat</code></td>
+<td>
+<p>new fraction of the sampling period between
+successive observations; must be a divisor of the sampling
+interval of <code>x</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>ts.eps</code></td>
+<td>
+<p>tolerance used to decide if <code>nfrequency</code> is a
+sub-multiple of the original frequency.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>further arguments passed to or used by methods.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p><code>aggregate</code> is a generic function with methods for data frames
+and time series.
+</p>
+<p>The default method, <code>aggregate.default</code>, uses the time series
+method if <code>x</code> is a time series, and otherwise coerces <code>x</code>
+to a data frame and calls the data frame method.
+</p>
+<p><code>aggregate.data.frame</code> is the data frame method.  If <code>x</code> is
+not a data frame, it is coerced to one, which must have a non-zero
+number of rows.  Then, each of the variables (columns) in <code>x</code> is
+split into subsets of cases (rows) of identical combinations of the
+components of <code>by</code>, and <code>FUN</code> is applied to each such subset
+with further arguments in <code>...</code> passed to it.  The result is
+reformatted into a data frame containing the variables in <code>by</code>
+and <code>x</code>.  The ones arising from <code>by</code> contain the unique
+combinations of grouping values used for determining the subsets, and
+the ones arising from <code>x</code> the corresponding summaries for the
+subset of the respective variables in <code>x</code>.  If <code>simplify</code> is
+true, summaries are simplified to vectors or matrices if they have a
+common length of one or greater than one, respectively; otherwise,
+lists of summary results according to subsets are obtained.  Rows with
+missing values in any of the <code>by</code> variables will be omitted from
+the result.  (Note that versions of <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> prior to 2.11.0 required
+<code>FUN</code> to be a scalar function.)
+</p>
+<p><code>aggregate.formula</code> is a standard formula interface to
+<code>aggregate.data.frame</code>.
+</p>
+<p><code>aggregate.ts</code> is the time series method, and requires <code>FUN</code>
+to be a scalar function.  If <code>x</code> is not a time series, it is
+coerced to one.  Then, the variables in <code>x</code> are split into
+appropriate blocks of length <code>frequency(x) / nfrequency</code>, and
+<code>FUN</code> is applied to each such block, with further (named)
+arguments in <code>...</code> passed to it.  The result returned is a time
+series with frequency <code>nfrequency</code> holding the aggregated values.
+Note that this make most sense for a quarterly or yearly result when
+the original series covers a whole number of quarters or years: in
+particular aggregating a monthly series to quarters starting in
+February does not give a conventional quarterly series.
+</p>
+<p><code>FUN</code> is passed to <code><a href="../../base/html/match.fun.html">match.fun</a></code>, and hence it can be a
+function or a symbol or character string naming a function.
+</p>
+
+
+<h3>Value</h3>
+
+<p>For the time series method, a time series of class <code>"ts"</code> or
+class <code>c("mts", "ts")</code>.
+</p>
+<p>For the data frame method, a data frame with columns
+corresponding to the grouping variables in <code>by</code> followed by
+aggregated columns from <code>x</code>.  If the <code>by</code> has names, the
+non-empty times are used to label the columns in the results, with
+unnamed grouping variables being named <code>Group.<var>i</var></code> for
+<code>by[[<var>i</var>]]</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Kurt Hornik, with contributions by Arni Magnusson.
+</p>
+
+
+<h3>References</h3>
+
+<p>Becker, R. A., Chambers, J. M. and Wilks, A. R. (1988)
+<em>The New S Language</em>.
+Wadsworth &amp; Brooks/Cole.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="../../base/html/apply.html">apply</a></code>, <code><a href="../../base/html/lapply.html">lapply</a></code>, <code><a href="../../base/html/tapply.html">tapply</a></code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Compute the averages for the variables in 'state.x77', grouped
+## according to the region (Northeast, South, North Central, West) that
+## each state belongs to.
+aggregate(state.x77, list(Region = state.region), mean)
+
+## Compute the averages according to region and the occurrence of more
+## than 130 days of frost.
+aggregate(state.x77,
+          list(Region = state.region,
+               Cold = state.x77[,"Frost"] &gt; 130),
+          mean)
+## (Note that no state in 'South' is THAT cold.)
+
+
+## example with character variables and NAs
+testDF &lt;- data.frame(v1 = c(1,3,5,7,8,3,5,NA,4,5,7,9),
+                     v2 = c(11,33,55,77,88,33,55,NA,44,55,77,99) )
+by1 &lt;- c("red", "blue", 1, 2, NA, "big", 1, 2, "red", 1, NA, 12)
+by2 &lt;- c("wet", "dry", 99, 95, NA, "damp", 95, 99, "red", 99, NA, NA)
+aggregate(x = testDF, by = list(by1, by2), FUN = "mean")
+
+# and if you want to treat NAs as a group
+fby1 &lt;- factor(by1, exclude = "")
+fby2 &lt;- factor(by2, exclude = "")
+aggregate(x = testDF, by = list(fby1, fby2), FUN = "mean")
+
+
+## Formulas, one ~ one, one ~ many, many ~ one, and many ~ many:
+aggregate(weight ~ feed, data = chickwts, mean)
+aggregate(breaks ~ wool + tension, data = warpbreaks, mean)
+aggregate(cbind(Ozone, Temp) ~ Month, data = airquality, mean)
+aggregate(cbind(ncases, ncontrols) ~ alcgp + tobgp, data = esoph, sum)
+
+## Dot notation:
+aggregate(. ~ Species, data = iris, mean)
+aggregate(len ~ ., data = ToothGrowth, mean)
+
+## Often followed by xtabs():
+ag &lt;- aggregate(len ~ ., data = ToothGrowth, mean)
+xtabs(len ~ ., data = ag)
+
+
+## Compute the average annual approval ratings for American presidents.
+aggregate(presidents, nfrequency = 1, FUN = mean)
+## Give the summer less weight.
+aggregate(presidents, nfrequency = 1,
+          FUN = weighted.mean, w = c(1, 1, 0.5, 1))
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>stats</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

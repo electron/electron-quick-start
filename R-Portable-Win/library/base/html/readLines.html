@@ -1,0 +1,148 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Read Text Lines from a Connection</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for readLines {base}"><tr><td>readLines {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Read Text Lines from a Connection</h2>
+
+<h3>Description</h3>
+
+<p>Read some or all text lines from a connection.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+readLines(con = stdin(), n = -1L, ok = TRUE, warn = TRUE,
+          encoding = "unknown", skipNul = FALSE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>con</code></td>
+<td>
+<p>a <a href="connections.html">connection</a> object or a character string.</p>
+</td></tr>
+<tr valign="top"><td><code>n</code></td>
+<td>
+<p>integer.  The (maximal) number of lines to
+read.  Negative values indicate that one should read up to the end of
+input on the connection.</p>
+</td></tr>
+<tr valign="top"><td><code>ok</code></td>
+<td>
+<p>logical.  Is it OK to reach the end of the connection before
+<code>n &gt; 0</code> lines are read?  If not, an error will be generated.</p>
+</td></tr>
+<tr valign="top"><td><code>warn</code></td>
+<td>
+<p>logical.  Warn if a text file is missing a final EOL or if
+there are embedded nuls in the file.</p>
+</td></tr>
+<tr valign="top"><td><code>encoding</code></td>
+<td>
+<p>encoding to be assumed for input strings.  It is
+used to mark character strings as known to be in
+Latin-1 or UTF-8: it is not used to re-encode the input.  To do the
+latter, specify the encoding as part of the connection <code>con</code> or
+via <code><a href="options.html">options</a>(encoding=)</code>: see the examples.
+See also &lsquo;Details&rsquo;.
+</p>
+</td></tr>
+<tr valign="top"><td><code>skipNul</code></td>
+<td>
+<p>logical: should nuls be skipped?</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>If the <code>con</code> is a character string, the function calls
+<code><a href="connections.html">file</a></code> to obtain a file connection which is opened for
+the duration of the function call.  This can be a compressed file.
+</p>
+<p>If the connection is open it is read from its current position.  If it
+is not open, it is opened in <code>"rt"</code> mode for the duration of
+the call and then closed (but not destroyed; one must call
+<code><a href="connections.html">close</a></code> to do that).
+</p>
+<p>If the final line is incomplete (no final EOL marker) the behaviour
+depends on whether the connection is blocking or not.  For a
+non-blocking text-mode connection the incomplete line is pushed back,
+silently.  For all other connections the line will be accepted, with a
+warning.
+</p>
+<p>Whatever mode the connection is opened in, any of LF, CRLF or CR will
+be accepted as the EOL marker for a line.
+</p>
+<p>Embedded nuls in the input stream will terminate the line currently
+being read, with a warning (unless <code>skipNul = TRUE</code> or <code>warn
+    = FALSE</code>).
+</p>
+<p>If <code>con</code> is a not-already-open <a href="connections.html">connection</a> with a non-default
+<code>encoding</code> argument, the text is converted to UTF-8 and declared
+as such (and the <code>encoding</code> argument to <code>readLines</code> is ignored).
+See the examples.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A character vector of length the number of lines read.
+</p>
+<p>The elements of the result have a declared encoding if <code>encoding</code> is
+<code>"latin1"</code> or <code>"UTF-8"</code>,
+</p>
+
+
+<h3>Note</h3>
+
+<p>The default connection, <code><a href="showConnections.html">stdin</a></code>, may be different from
+<code>con = "stdin"</code>: see <code><a href="connections.html">file</a></code>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="connections.html">connections</a></code>, <code><a href="writeLines.html">writeLines</a></code>, <code><a href="readBin.html">readBin</a></code>,
+<code><a href="scan.html">scan</a></code></p>
+
+
+<h3>Examples</h3>
+
+<pre>
+fil &lt;- tempfile(fileext = ".data")
+cat("TITLE extra line", "2 3 5 7", "", "11 13 17", file = fil,
+    sep = "\n")
+readLines(fil, n = -1)
+unlink(fil) # tidy up
+
+## difference in blocking
+fil &lt;- tempfile("test")
+cat("123\nabc", file = fil)
+readLines(fil) # line with a warning
+
+con &lt;- file(fil, "r", blocking = FALSE)
+readLines(con) # empty
+cat(" def\n", file = fil, append = TRUE)
+readLines(con) # gets both
+close(con)
+
+unlink(fil) # tidy up
+
+## Not run: 
+# read a 'Windows Unicode' file
+A &lt;- readLines(con &lt;- file("Unicode.txt", encoding = "UCS-2LE"))
+close(con)
+unique(Encoding(A)) # will most likely be UTF-8
+
+## End(Not run)</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

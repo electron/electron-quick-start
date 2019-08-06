@@ -1,0 +1,119 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Delay Evaluation</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for delayedAssign {base}"><tr><td>delayedAssign {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Delay Evaluation</h2>
+
+<h3>Description</h3>
+
+<p><code>delayedAssign</code> creates a <em>promise</em> to evaluate the given
+expression if its value is requested.  This provides direct access
+to the <em>lazy evaluation</em> mechanism used by <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> for the evaluation
+of (interpreted) functions.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+delayedAssign(x, value, eval.env = parent.frame(1),
+              assign.env = parent.frame(1))
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>a variable name (given as a quoted string in the function call)</p>
+</td></tr>
+<tr valign="top"><td><code>value</code></td>
+<td>
+<p>an expression to be assigned to <code>x</code></p>
+</td></tr>
+<tr valign="top"><td><code>eval.env</code></td>
+<td>
+<p>an environment in which to evaluate <code>value</code></p>
+</td></tr>
+<tr valign="top"><td><code>assign.env</code></td>
+<td>
+<p>an environment in which to assign <code>x</code></p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>Both <code>eval.env</code> and <code>assign.env</code> default to the currently active
+environment.
+</p>
+<p>The expression assigned to a promise by <code>delayedAssign</code> will
+not be evaluated until it is eventually &lsquo;forced&rsquo;.  This happens when
+the variable is first accessed.
+</p>
+<p>When the promise is eventually forced, it is evaluated within the
+environment specified by <code>eval.env</code> (whose contents may have changed in
+the meantime).  After that, the value is fixed and the expression will
+not be evaluated again.
+</p>
+
+
+<h3>Value</h3>
+
+<p>This function is invoked for its side effect, which is assigning
+a promise to evaluate <code>value</code> to the variable <code>x</code>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="substitute.html">substitute</a></code>, to see the expression associated with a
+promise, if <code>assign.env</code> is not the <code><a href="environment.html">.GlobalEnv</a></code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+msg &lt;- "old"
+delayedAssign("x", msg)
+substitute(x) # shows only 'x', as it is in the global env.
+msg &lt;- "new!"
+x # new!
+
+delayedAssign("x", {
+    for(i in 1:3)
+        cat("yippee!\n")
+    10
+})
+
+x^2 #- yippee
+x^2 #- simple number
+
+ne &lt;- new.env()
+delayedAssign("x", pi + 2, assign.env = ne)
+## See the promise {without "forcing" (i.e. evaluating) it}:
+substitute(x, ne) #  'pi + 2'
+
+
+### Promises in an environment [for advanced users]:  ---------------------
+
+e &lt;- (function(x, y = 1, z) environment())(cos, "y", {cat(" HO!\n"); pi+2})
+## How can we look at all promises in an env (w/o forcing them)?
+gete &lt;- function(e_)
+   lapply(lapply(ls(e_), as.name),
+          function(n) eval(substitute(substitute(X, e_), list(X=n))))
+
+(exps &lt;- gete(e))
+sapply(exps, typeof)
+
+(le &lt;- as.list(e)) # evaluates ("force"s) the promises
+stopifnot(identical(unname(le), lapply(exps, eval))) # and another "Ho!"
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

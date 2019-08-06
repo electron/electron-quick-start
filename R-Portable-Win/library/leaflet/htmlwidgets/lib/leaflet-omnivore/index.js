@@ -26,8 +26,11 @@ module.exports.wkt = wktLoad;
 module.exports.wkt.parse = wktParse;
 
 function addData(l, d) {
-    if ('addData' in l) l.addData(d);
-    if ('setGeoJSON' in l) l.setGeoJSON(d);
+    if ('setGeoJSON' in l) {
+        l.setGeoJSON(d);
+    } else if ('addData' in l) {
+        l.addData(d);
+    }
 }
 
 /**

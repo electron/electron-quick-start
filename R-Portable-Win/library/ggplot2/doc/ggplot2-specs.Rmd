@@ -9,20 +9,18 @@ vignette: >
 
 ```{r, include = FALSE}
 library(ggplot2)
-knitr::opts_chunk$set(fig.dpi = 96)
+knitr::opts_chunk$set(fig.dpi = 96, collapse = TRUE, comment = "#>")
 ```
 
 This vignette summarises the various formats that grid drawing functions take.  Most of this information is available scattered throughout the R documentation.  This appendix brings it all together in one place. 
 
-## Colour
+## Colour and fill
 
-Colours can be specified with: 
+Almost every geom has either colour, fill, or both. Colours and fills can be specified in the following ways:
 
 *   A __name__, e.g., `"red"`. R has `r length(colours())` built-in named
-    colours, which can be listed with `colours()`. The Stowers Institute 
-    provides a nice printable pdf that lists all colours: 
-    <http://research.stowers-institute.org/efg/R/Color/Chart/>.
-
+    colours, which can be listed with `colours()`.
+    
 *   An __rgb specification__, with a string of the form `"#RRGGBB"` where each of 
     the pairs `RR`, `GG`, `BB` consists of two hexadecimal digits giving a value 
     in the range `00` to `FF`
@@ -33,10 +31,19 @@ Colours can be specified with:
 *   An __NA__, for a completely transparent colour.
 
 *   The [munsell](https://github.com/cwickham/munsell) package, by Charlotte 
-    Wickham, provides a wrapper around the colour system designed by Alfred 
-    Munsell.
+    Wickham, makes it easy to specific colours using a system designed by 
+    Alfred Munsell. If you invest a little in learning the system, it provides
+    a convenient way of specifying aesthetically pleasing colours.
+    
+    ```{r}
+    munsell::mnsl("5PB 5/10")
+    ```
 
-## Line type {#sec:line-type-spec}
+## Lines
+
+As well as `colour`, the appearance of a line is affected by `size`, `linetype`, `linejoin` and `lineend`.
+
+### Line type {#sec:line-type-spec}
 
 Line types can be specified with:
 
@@ -44,8 +51,7 @@ Line types can be specified with:
     4 = dotdash, 5 = longdash, 6 = twodash, as shown below:
 
     ```{r}
-    lty <- c("blank", "solid", "dashed", "dotted", "dotdash", 
-         "longdash","twodash")
+    lty <- c("solid", "dashed", "dotted", "dotdash", "longdash", "twodash")
     linetypes <- data.frame(
       y = seq_along(lty),
       lty = lty
@@ -55,7 +61,7 @@ Line types can be specified with:
       scale_linetype_identity() + 
       geom_text(aes(label = lty), hjust = 0, nudge_y = 0.2) +
       scale_x_continuous(NULL, breaks = NULL) + 
-      scale_y_continuous(NULL, breaks = NULL)
+      scale_y_reverse(NULL, breaks = NULL)
     ```
 
 *   The lengths of on/off stretches of line. This is done with a string 
@@ -64,14 +70,78 @@ Line types can be specified with:
     on followed by three off and `"3313"` specifies three units on followed by 
     three off followed by one on and finally three off. 
     
+    ```{r}
+    lty <- c("11", "18", "1f", "81", "88", "8f", "f1", "f8", "ff")
+    linetypes <- data.frame(
+      y = seq_along(lty),
+      lty = lty
+    ) 
+    ggplot(linetypes, aes(0, y)) + 
+      geom_segment(aes(xend = 5, yend = y, linetype = lty)) + 
+      scale_linetype_identity() + 
+      geom_text(aes(label = lty), hjust = 0, nudge_y = 0.2) +
+      scale_x_continuous(NULL, breaks = NULL) + 
+      scale_y_reverse(NULL, breaks = NULL)
+    ```
+    
     The five standard dash-dot line types described above correspond to 44, 13, 
     1343, 73, and 2262.
 
+### Size
+
 The `size` of a line is its width in mm.
 
-## Shape {#sec:shape-spec}
+### Line end/join paramters
 
-Shapes take four types of values:
+*   The appearance of the line end is controlled by the `lineend` paramter,
+    and can be one of "round", "butt" (the default), or "square".
+
+    ```{r, out.width = "30%", fig.show = "hold"}
+    df <- data.frame(x = 1:3, y = c(4, 1, 9))
+    base <- ggplot(df, aes(x, y)) + xlim(0.5, 3.5) + ylim(0, 10)
+    base + 
+      geom_path(size = 10) + 
+      geom_path(size = 1, colour = "red")
+    
+    base + 
+      geom_path(size = 10, lineend = "round") + 
+      geom_path(size = 1, colour = "red")
+    
+    base + 
+      geom_path(size = 10, lineend = "square") + 
+      geom_path(size = 1, colour = "red")
+    ```
+
+*   The appearance of line joins is controlled by `linejoin` and can be one of 
+    "round" (the default), "mitre", or "bevel".
+
+    ```{r, out.width = "30%", fig.show = "hold"}
+    df <- data.frame(x = 1:3, y = c(9, 1, 9))
+    base <- ggplot(df, aes(x, y)) + ylim(0, 10)
+    base + 
+      geom_path(size = 10) + 
+      geom_path(size = 1, colour = "red")
+    
+    base + 
+      geom_path(size = 10, linejoin = "mitre") + 
+      geom_path(size = 1, colour = "red")
+    
+    base + 
+      geom_path(size = 10, linejoin = "bevel") + 
+      geom_path(size = 1, colour = "red")
+    ```
+
+Mitre joins are automatically converted to bevel joins whenever the angle is too small (which would create a very long bevel). This is controlled by the `linemitre` parameter which specifies the maximum ratio between the line width and the length of the mitre.
+
+## Polygons
+
+The border of the polygon is controlled by the `colour`, `linetype`, and `size` aesthetics as described above. The inside is controlled by `fill`.
+
+## Point
+
+### Shape {#sec:shape-spec}
+
+Shapes take five types of values:
 
 *   An __integer__ in $[0, 25]$:
 
@@ -86,8 +156,32 @@ Shapes take four types of values:
       geom_text(aes(label = shape), hjust = 0, nudge_x = 0.15) +
       scale_shape_identity() +
       expand_limits(x = 4.1) +
-      scale_x_continuous(NULL, breaks = NULL) + 
-      scale_y_continuous(NULL, breaks = NULL)
+      theme_void()
+    ```
+   
+*   The __name__ of the shape:
+     
+    ```{r out.width = "90%", fig.asp = 0.4, fig.width = 8}
+    shape_names <- c(
+      "circle", paste("circle", c("open", "filled", "cross", "plus", "small")), "bullet",
+      "square", paste("square", c("open", "filled", "cross", "plus", "triangle")),
+      "diamond", paste("diamond", c("open", "filled", "plus")),
+      "triangle", paste("triangle", c("open", "filled", "square")),
+      paste("triangle down", c("open", "filled")),
+      "plus", "cross", "asterisk"
+    )
+    
+    shapes <- data.frame(
+      shape_names = shape_names,
+      x = c(1:7, 1:6, 1:3, 5, 1:3, 6, 2:3, 1:3),
+      y = -rep(1:6, c(7, 6, 4, 4, 2, 3))
+    )
+    
+    ggplot(shapes, aes(x, y)) +
+      geom_point(aes(shape = shape_names), fill = "red", size = 5) +
+      geom_text(aes(label = shape_names), nudge_y = -0.3, size = 3.5) +
+      scale_shape_identity() +
+      theme_void()
     ```
 
 *   A __single character__, to use that character as a plotting symbol.
@@ -95,6 +189,8 @@ Shapes take four types of values:
 *   A `.` to draw the smallest rectangle that is visible, usualy 1 pixel.
    
 *   An `NA`, to draw nothing.
+
+### Colour and fill
 
 Note that shapes 21-24 have both stroke `colour` and a `fill`. The size of the filled part is controlled by `size`, the size of the stroke is controlled by `stroke`. Each is measured in mm, and the total size of the point is the sum of the two. Note that the size is constant along the diagonal in the following figure.
 
@@ -106,11 +202,7 @@ ggplot(sizes, aes(size, stroke, size = size, stroke = stroke)) +
   scale_size_identity()
 ```
 
-
 ## Text
-
-### Font size
-
 
 ### Font face
 
@@ -130,21 +222,17 @@ It's trickier to include a system font on a plot because text drawing is done di
 
 Both approaches have pros and cons, so you will to need to try both of them and see which works best for your needs.
 
-### Family
+### Font face
 
-<!--
-postscriptFonts, pdfFonts, quartzFonts
+```{r}
+df <- data.frame(x = 1:4, fontface = c("plain", "bold", "italic", "bold.italic"))
+ggplot(df, aes(1, x)) + 
+  geom_text(aes(label = fontface, fontface = fontface))
+```
 
-Find R news article
+### Font size
 
-\begin{itemize}
-  \item \code{face}
-  \item \code{family}
-  \item \code{lineheight}
-  \item \code{fontsize}
-\end{itemize}
--->
-
+The `size` of text is measured in mm. This is unusual, but makes the size of text consistent with the size of lines and points. Typically you specify font size using points (or pt for short), where 1 pt = 0.35mm. ggplot2 provides this conversion factor in the variable `.pt`, so if you want to draw 12pt text, set `size = 12 / .pt`.
 
 ### Justification
 
@@ -152,7 +240,6 @@ Horizontal and vertical justification have the same parameterisation, either a s
 
 * top = 1, middle = 0.5, bottom = 0
 * left = 0, center = 0.5, right = 1
-
 
 ```{r}
 just <- expand.grid(hjust = c(0, 0.5, 1), vjust = c(0, 0.5, 1))

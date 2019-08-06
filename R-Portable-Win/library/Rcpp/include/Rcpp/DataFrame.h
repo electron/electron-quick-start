@@ -132,7 +132,7 @@ namespace Rcpp{
             obj.attr( "names") = names ;
             Shield<SEXP> call( Rf_lang3(as_df_symb, obj, wrap( strings_as_factors ) ) ) ;
             SET_TAG( CDDR(call),  strings_as_factors_symb ) ;
-            Shield<SEXP> res( Rcpp_eval( call ) ) ;
+            Shield<SEXP> res(Rcpp_fast_eval(call, R_GlobalEnv));
             DataFrame_Impl out( res ) ;
             return out ;
 

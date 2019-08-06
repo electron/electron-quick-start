@@ -1,0 +1,162 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Function Calls</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for call {base}"><tr><td>call {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Function Calls</h2>
+
+<h3>Description</h3>
+
+<p>Create or test for objects of <code><a href="mode.html">mode</a></code> <code>"call"</code> (or
+<code>"("</code>, see Details).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+call(name, ...)
+is.call(x)
+as.call(x)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>name</code></td>
+<td>
+<p>a non-empty character string naming the function to be called.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>arguments to be part of the call.</p>
+</td></tr>
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>an arbitrary <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> object.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+
+<dl>
+<dt><code>call</code> </dt><dd><p>returns an unevaluated function call, that is, an
+unevaluated expression which consists of the named function applied to
+the given arguments (<code>name</code> must be a quoted string which gives
+the name of a function to be called).  Note that although the call is
+unevaluated, the arguments <code>...</code> are evaluated.
+</p>
+<p><code>call</code> is a primitive, so the first argument is
+taken as <code>name</code> and the remaining arguments as arguments for the
+constructed call: if the first argument is named the name must
+partially match <code>name</code>.
+</p>
+</dd>
+<dt><code>is.call</code> </dt><dd><p>is used to determine whether <code>x</code> is a call (i.e.,
+of mode <code>"call"</code> or <code>"("</code>).  Note that
+</p>
+
+<ul>
+<li><p><code>is.call(x)</code> is strictly equivalent to
+<code>typeof(x) == "language"</code>.
+</p>
+</li>
+<li><p><code><a href="is.language.html">is.language</a>()</code> is also true for calls (but also
+for <code><a href="../../grDevices/html/plotmath.html">symbol</a></code>s and <code><a href="expression.html">expression</a></code>s where
+<code>is.call()</code> is false).
+</p>
+</li></ul>
+
+</dd>
+<dt><code>as.call(x)</code>: </dt><dd><p>Objects of mode <code>"list"</code> can be coerced to mode <code>"call"</code>.
+The first element of the list becomes the function part of the call,
+so should be a function or the name of one (as a symbol; a quoted
+string will not do).
+</p>
+<p>If you think of using <code>as.call(&lt;string&gt;)</code>, consider using
+<code><a href="parse.html">str2lang</a>(*)</code> which is an efficient version of
+<code><a href="parse.html">parse</a>(text=*)</code>.
+Note that <code><a href="call.html">call</a>()</code> and <code><a href="call.html">as.call</a>()</code>, when
+applicable, are much preferable to these <code><a href="parse.html">parse</a>()</code> based
+approaches.
+</p>
+</dd>
+</dl>
+
+<p>All three are <a href="Primitive.html">primitive</a> functions.
+</p>
+
+
+<h3>Warning</h3>
+
+<p><code>call</code> should not be used to attempt to evade restrictions on the
+use of <code>.Internal</code> and other non-API calls.
+</p>
+
+
+<h3>References</h3>
+
+<p>Becker, R. A., Chambers, J. M. and Wilks, A. R. (1988)
+<em>The New S Language</em>.
+Wadsworth &amp; Brooks/Cole.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="do.call.html">do.call</a></code> for calling a function by name and argument
+list;
+<code><a href="Recall.html">Recall</a></code> for recursive calling of functions;
+further
+<code><a href="is.language.html">is.language</a></code>,
+<code><a href="expression.html">expression</a></code>,
+<code><a href="function.html">function</a></code>.
+</p>
+<p>Producing <code><a href="call.html">call</a></code>s etc from character: <code><a href="parse.html">str2lang</a></code> and
+<code><a href="parse.html">parse</a></code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+is.call(call) #-&gt; FALSE: Functions are NOT calls
+
+## set up a function call to round with argument 10.5
+cl &lt;- call("round", 10.5)
+is.call(cl) # TRUE
+cl
+identical(quote(round(10.5)), # &lt;- less functional, but the same
+          cl) # TRUE
+## such a call can also be evaluated.
+eval(cl) # [1] 10
+
+class(cl) # "call"
+typeof(cl)# "language"
+is.call(cl) &amp;&amp; is.language(cl) # always TRUE for "call"s
+
+A &lt;- 10.5
+call("round", A)        # round(10.5)
+call("round", quote(A)) # round(A)
+f &lt;- "round"
+call(f, quote(A))       # round(A)
+## if we want to supply a function we need to use as.call or similar
+f &lt;- round
+## Not run: call(f, quote(A))  # error: first arg must be character
+(g &lt;- as.call(list(f, quote(A))))
+eval(g)
+## alternatively but less transparently
+g &lt;- list(f, quote(A))
+mode(g) &lt;- "call"
+g
+eval(g)
+## see also the examples in the help for do.call
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

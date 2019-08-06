@@ -1,0 +1,165 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Post-Mortem Debugging</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for debugger {utils}"><tr><td>debugger {utils}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Post-Mortem Debugging</h2>
+
+<h3>Description</h3>
+
+<p>Functions to dump the evaluation environments (frames) and to examine
+dumped frames.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+dump.frames(dumpto = "last.dump", to.file = FALSE,
+            include.GlobalEnv = FALSE)
+debugger(dump = last.dump)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>dumpto</code></td>
+<td>
+<p>a character string. The name of the object or file to
+dump to.</p>
+</td></tr>
+<tr valign="top"><td><code>to.file</code></td>
+<td>
+<p>logical.  Should the dump be to an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> object or to a
+file?</p>
+</td></tr>
+<tr valign="top"><td><code>include.GlobalEnv</code></td>
+<td>
+<p>logical indicating if a <em>copy</em> of the
+<code><a href="../../base/html/environment.html">.GlobalEnv</a></code> environment should be included in addition
+to the <code><a href="../../base/html/sys.parent.html">sys.frames</a>()</code>.  Will be particularly useful when
+used in a batch job.</p>
+</td></tr>
+<tr valign="top"><td><code>dump</code></td>
+<td>
+<p>an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> dump object created by <code>dump.frames</code>.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>To use post-mortem debugging, set the option <code>error</code> to be a call
+to <code>dump.frames</code>.  By default this dumps to an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> object
+<code>last.dump</code> in the workspace, but it can be set to dump to a
+file (a dump of the object produced by a call to <code><a href="../../base/html/save.html">save</a></code>).
+The dumped object contain the call stack, the active environments and
+the last error message as returned by <code><a href="../../base/html/stop.html">geterrmessage</a></code>.
+</p>
+<p>When dumping to file, <code>dumpto</code> gives the name of the dumped
+object and the file name has &lsquo;<span class="file">.rda</span>&rsquo; appended.
+</p>
+<p>A dump object of class <code>"dump.frames"</code> can be examined by calling
+<code>debugger</code>.  This will give the error message and a list of
+environments from which to select repeatedly.  When an environment is
+selected, it is copied and the <code><a href="../../base/html/browser.html">browser</a></code> called from
+within the copy.  Note that not all the information in the original
+frame will be available, e.g. promises which have not yet been
+evaluated and the contents of any <code>...</code> argument.
+</p>
+<p>If <code>dump.frames</code> is installed as the error handler, execution
+will continue even in non-interactive sessions.  See the examples for
+how to dump and then quit.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Invisible <code>NULL</code>.
+</p>
+
+
+<h3>Note</h3>
+
+<p>Functions such as <code><a href="../../base/html/sys.parent.html">sys.parent</a></code> and
+<code><a href="../../base/html/environment.html">environment</a></code> applied to closures will not work correctly
+inside <code>debugger</code>.
+</p>
+<p>If the error occurred when computing the default value of a formal
+argument the debugger will report &ldquo;recursive default argument
+reference&rdquo; when trying to examine that environment.
+</p>
+<p>Of course post-mortem debugging will not work if <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> is too damaged to
+produce and save the dump, for example if it has run out of workspace.
+</p>
+
+
+<h3>References</h3>
+
+<p>Becker, R. A., Chambers, J. M. and Wilks, A. R. (1988)
+<em>The New S Language</em>.
+Wadsworth &amp; Brooks/Cole.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="../../base/html/browser.html">browser</a></code> for the actions available at the <code>Browse</code>
+prompt.
+</p>
+<p><code><a href="../../base/html/options.html">options</a></code> for setting <code>error</code> options;
+<code><a href="recover.html">recover</a></code> is an interactive debugger working similarly to
+<code>debugger</code> but directly after the error occurs.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Not run: 
+options(error = quote(dump.frames("testdump", TRUE)))
+
+f &lt;- function() {
+    g &lt;- function() stop("test dump.frames")
+    g()
+}
+f()   # will generate a dump on file "testdump.rda"
+options(error = NULL)
+
+## possibly in another R session
+load("testdump.rda")
+debugger(testdump)
+Available environments had calls:
+1: f()
+2: g()
+3: stop("test dump.frames")
+
+Enter an environment number, or 0 to exit
+Selection: 1
+Browsing in the environment with call:
+f()
+Called from: debugger.look(ind)
+Browse[1]&gt; ls()
+[1] "g"
+Browse[1]&gt; g
+function() stop("test dump.frames")
+&lt;environment: 759818&gt;
+Browse[1]&gt;
+Available environments had calls:
+1: f()
+2: g()
+3: stop("test dump.frames")
+
+Enter an environment number, or 0 to exit
+Selection: 0
+
+## A possible setting for non-interactive sessions
+options(error = quote({dump.frames(to.file = TRUE); q(status = 1)}))
+
+## End(Not run)</pre>
+
+<hr /><div style="text-align: center;">[Package <em>utils</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

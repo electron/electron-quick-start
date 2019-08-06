@@ -1,0 +1,334 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Factor Analysis</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for factanal {stats}"><tr><td>factanal {stats}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Factor Analysis</h2>
+
+<h3>Description</h3>
+
+<p>Perform maximum-likelihood factor analysis on a covariance matrix or
+data matrix.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+factanal(x, factors, data = NULL, covmat = NULL, n.obs = NA,
+         subset, na.action, start = NULL,
+         scores = c("none", "regression", "Bartlett"),
+         rotation = "varimax", control = NULL, ...)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>A formula or a numeric matrix or an object that can be
+coerced to a numeric matrix.</p>
+</td></tr>
+<tr valign="top"><td><code>factors</code></td>
+<td>
+<p>The number of factors to be fitted.</p>
+</td></tr>
+<tr valign="top"><td><code>data</code></td>
+<td>
+<p>An optional data frame (or similar: see
+<code><a href="model.frame.html">model.frame</a></code>), used only if <code>x</code> is a formula.  By
+default the variables are taken from <code>environment(formula)</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>covmat</code></td>
+<td>
+<p>A covariance matrix, or a covariance list as returned by
+<code><a href="cov.wt.html">cov.wt</a></code>.  Of course, correlation matrices are covariance
+matrices.</p>
+</td></tr>
+<tr valign="top"><td><code>n.obs</code></td>
+<td>
+<p>The number of observations, used if <code>covmat</code> is a
+covariance matrix.</p>
+</td></tr>
+<tr valign="top"><td><code>subset</code></td>
+<td>
+<p>A specification of the cases to be used, if <code>x</code> is
+used as a matrix or formula.</p>
+</td></tr>
+<tr valign="top"><td><code>na.action</code></td>
+<td>
+<p>The <code>na.action</code> to be used if <code>x</code> is
+used as a formula.</p>
+</td></tr>
+<tr valign="top"><td><code>start</code></td>
+<td>
+<p><code>NULL</code> or a matrix of starting values, each column
+giving an initial set of uniquenesses.</p>
+</td></tr>
+<tr valign="top"><td><code>scores</code></td>
+<td>
+<p>Type of scores to produce, if any.  The default is none,
+<code>"regression"</code> gives Thompson's scores, <code>"Bartlett"</code> given
+Bartlett's weighted least-squares scores. Partial matching allows
+these names to be abbreviated.</p>
+</td></tr>
+<tr valign="top"><td><code>rotation</code></td>
+<td>
+<p>character. <code>"none"</code> or the name of a function
+to be used to rotate the factors: it will be called with first
+argument the loadings matrix, and should return a list with component
+<code>loadings</code> giving the rotated loadings, or just the rotated loadings.</p>
+</td></tr>
+<tr valign="top"><td><code>control</code></td>
+<td>
+<p>A list of control values,
+</p>
+
+<dl>
+<dt>nstart</dt><dd><p>The number of starting values to be tried if
+<code>start = NULL</code>. Default 1.</p>
+</dd>
+<dt>trace</dt><dd><p>logical. Output tracing information? Default <code>FALSE</code>.</p>
+</dd>
+<dt>lower</dt><dd><p>The lower bound for uniquenesses during
+optimization. Should be &gt; 0. Default 0.005.</p>
+</dd>
+<dt>opt</dt><dd><p>A list of control values to be passed to
+<code><a href="optim.html">optim</a></code>'s <code>control</code> argument.</p>
+</dd>
+<dt>rotate</dt><dd><p>a list of additional arguments for the rotation function.</p>
+</dd>
+</dl>
+
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>Components of <code>control</code> can also be supplied as
+named arguments to <code>factanal</code>.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>The factor analysis model is
+</p>
+<p style="text-align: center;"><i>x = &Lambda; f + e</i></p>
+
+<p>for a <i>p</i>&ndash;element vector <i>x</i>, a <i>p x k</i>
+matrix <i>&Lambda;</i> of <em>loadings</em>, a <i>k</i>&ndash;element vector
+<i>f</i> of <em>scores</em> and a <i>p</i>&ndash;element vector <i>e</i> of
+errors.  None of the components other than <i>x</i> is observed, but
+the major restriction is that the scores be uncorrelated and of unit
+variance, and that the errors be independent with variances
+<i>Psi</i>, the <em>uniquenesses</em>.  It is also common to
+scale the observed variables to unit variance, and done in this function.
+</p>
+<p>Thus factor analysis is in essence a model for the correlation matrix
+of <i>x</i>,
+</p>
+<p style="text-align: center;"><i>&Sigma; = &Lambda; &Lambda;' + &Psi;</i></p>
+
+<p>There is still some indeterminacy in the model for it is unchanged
+if <i>&Lambda;</i> is replaced by <i>G &Lambda;</i> for
+any orthogonal matrix <i>G</i>.  Such matrices <i>G</i> are known as
+<em>rotations</em> (although the term is applied also to non-orthogonal
+invertible matrices).
+</p>
+<p>If <code>covmat</code> is supplied it is used.  Otherwise <code>x</code> is used
+if it is a matrix, or a formula <code>x</code> is used with <code>data</code> to
+construct a model matrix, and that is used to construct a covariance
+matrix.  (It makes no sense for the formula to have a response, and
+all the variables must be numeric.)  Once a covariance matrix is found
+or calculated from <code>x</code>, it is converted to a correlation matrix
+for analysis.  The correlation matrix is returned as component
+<code>correlation</code> of the result.
+</p>
+<p>The fit is done by optimizing the log likelihood assuming multivariate
+normality over the uniquenesses.  (The maximizing loadings for given
+uniquenesses can be found analytically: Lawley &amp; Maxwell (1971,
+p. 27).)  All the starting values supplied in <code>start</code> are tried
+in turn and the best fit obtained is used.  If <code>start = NULL</code>
+then the first fit is started at the value suggested by
+Jöreskog (1963) and given by Lawley &amp; Maxwell
+(1971, p. 31), and then <code>control$nstart - 1</code> other values are
+tried, randomly selected as equal values of the uniquenesses.
+</p>
+<p>The uniquenesses are technically constrained to lie in <i>[0, 1]</i>,
+but near-zero values are problematical, and the optimization is
+done with a lower bound of <code>control$lower</code>, default 0.005
+(Lawley &amp; Maxwell, 1971, p. 32).
+</p>
+<p>Scores can only be produced if a data matrix is supplied and used.
+The first method is the regression method of Thomson (1951), the
+second the weighted least squares method of Bartlett (1937, 8).
+Both are estimates of the unobserved scores <i>f</i>.  Thomson's method
+regresses (in the population) the unknown <i>f</i> on <i>x</i> to yield
+</p>
+<p style="text-align: center;"><i>hat f = &Lambda;' &Sigma;^-1 x</i></p>
+
+<p>and then substitutes the sample estimates of the quantities on the
+right-hand side.  Bartlett's method minimizes the sum of squares of
+standardized errors over the choice of <i>f</i>, given (the fitted)
+<i>&Lambda;</i>.
+</p>
+<p>If <code>x</code> is a formula then the standard <code>NA</code>-handling is
+applied to the scores (if requested): see <code><a href="nafns.html">napredict</a></code>.
+</p>
+<p>The <code>print</code> method (documented under <code><a href="loadings.html">loadings</a></code>)
+follows the factor analysis convention of drawing attention to the
+patterns of the results, so the default precision is three decimal
+places, and small loadings are suppressed.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class <code>"factanal"</code> with components
+</p>
+<table summary="R valueblock">
+<tr valign="top"><td><code>loadings</code></td>
+<td>
+<p>A matrix of loadings, one column for each factor.  The
+factors are ordered in decreasing order of sums of squares of
+loadings, and given the sign that will make the sum of the loadings
+positive.  This is of class <code>"loadings"</code>: see
+<code><a href="loadings.html">loadings</a></code> for its <code>print</code> method.</p>
+</td></tr>
+<tr valign="top"><td><code>uniquenesses</code></td>
+<td>
+<p>The uniquenesses computed.</p>
+</td></tr>
+<tr valign="top"><td><code>correlation</code></td>
+<td>
+<p>The correlation matrix used.</p>
+</td></tr>
+<tr valign="top"><td><code>criteria</code></td>
+<td>
+<p>The results of the optimization: the value of the
+criterion (a linear function of the negative log-likelihood) and information on the iterations used.</p>
+</td></tr>
+<tr valign="top"><td><code>factors</code></td>
+<td>
+<p>The argument <code>factors</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>dof</code></td>
+<td>
+<p>The number of degrees of freedom of the factor analysis model.</p>
+</td></tr>
+<tr valign="top"><td><code>method</code></td>
+<td>
+<p>The method: always <code>"mle"</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>rotmat</code></td>
+<td>
+<p>The rotation matrix if relevant.</p>
+</td></tr>
+<tr valign="top"><td><code>scores</code></td>
+<td>
+<p>If requested, a matrix of scores.  <code>napredict</code> is
+applied to handle the treatment of values omitted by the <code>na.action</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>n.obs</code></td>
+<td>
+<p>The number of observations if available, or <code>NA</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>call</code></td>
+<td>
+<p>The matched call.</p>
+</td></tr>
+<tr valign="top"><td><code>na.action</code></td>
+<td>
+<p>If relevant.</p>
+</td></tr>
+<tr valign="top"><td><code>STATISTIC, PVAL</code></td>
+<td>
+<p>The significance-test statistic and P value, if
+it can be computed.</p>
+</td></tr>
+</table>
+
+
+<h3>Note</h3>
+
+<p>There are so many variations on factor analysis that it is hard to
+compare output from different programs.  Further, the optimization in
+maximum likelihood factor analysis is hard, and many other examples we
+compared had less good fits than produced by this function.  In
+particular, solutions which are &lsquo;Heywood cases&rsquo; (with one or more
+uniquenesses essentially zero) are much more common than most texts
+and some other programs would lead one to believe.
+</p>
+
+
+<h3>References</h3>
+
+<p>Bartlett, M. S. (1937).
+The statistical conception of mental factors.
+<em>British Journal of Psychology</em>, <b>28</b>, 97&ndash;104.
+doi: <a href="https://doi.org/10.1111/j.2044-8295.1937.tb00863.x">10.1111/j.2044-8295.1937.tb00863.x</a>.
+</p>
+<p>Bartlett, M. S. (1938).
+Methods of estimating mental factors.
+<em>Nature</em>, <b>141</b>, 609&ndash;610.
+doi: <a href="https://doi.org/10.1038/141246a0">10.1038/141246a0</a>.
+</p>
+<p>Jöreskog, K. G. (1963).
+<em>Statistical Estimation in Factor Analysis</em>.
+Almqvist and Wicksell.
+</p>
+<p>Lawley, D. N. and Maxwell, A. E. (1971).
+<em>Factor Analysis as a Statistical Method</em>. Second edition.
+Butterworths.
+</p>
+<p>Thomson, G. H. (1951).
+<em>The Factorial Analysis of Human Ability</em>.
+London University Press.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="loadings.html">loadings</a></code> (which explains some details of the
+<code>print</code> method), <code><a href="varimax.html">varimax</a></code>, <code><a href="princomp.html">princomp</a></code>,
+<code><a href="../../datasets/html/ability.cov.html">ability.cov</a></code>, <code><a href="../../datasets/html/Harman23.cor.html">Harman23.cor</a></code>,
+<code><a href="../../datasets/html/Harman74.cor.html">Harman74.cor</a></code>.
+</p>
+<p>Other rotation methods are available in various contributed packages,
+including <a href="https://CRAN.R-project.org/package=GPArotation"><span class="pkg">GPArotation</span></a> and <a href="https://CRAN.R-project.org/package=psych"><span class="pkg">psych</span></a>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+# A little demonstration, v2 is just v1 with noise,
+# and same for v4 vs. v3 and v6 vs. v5
+# Last four cases are there to add noise
+# and introduce a positive manifold (g factor)
+v1 &lt;- c(1,1,1,1,1,1,1,1,1,1,3,3,3,3,3,4,5,6)
+v2 &lt;- c(1,2,1,1,1,1,2,1,2,1,3,4,3,3,3,4,6,5)
+v3 &lt;- c(3,3,3,3,3,1,1,1,1,1,1,1,1,1,1,5,4,6)
+v4 &lt;- c(3,3,4,3,3,1,1,2,1,1,1,1,2,1,1,5,6,4)
+v5 &lt;- c(1,1,1,1,1,3,3,3,3,3,1,1,1,1,1,6,4,5)
+v6 &lt;- c(1,1,1,2,1,3,3,3,4,3,1,1,1,2,1,6,5,4)
+m1 &lt;- cbind(v1,v2,v3,v4,v5,v6)
+cor(m1)
+factanal(m1, factors = 3) # varimax is the default
+factanal(m1, factors = 3, rotation = "promax")
+# The following shows the g factor as PC1
+prcomp(m1) # signs may depend on platform
+
+## formula interface
+factanal(~v1+v2+v3+v4+v5+v6, factors = 3,
+         scores = "Bartlett")$scores
+
+## a realistic example from Bartholomew (1987, pp. 61-65)
+utils::example(ability.cov)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>stats</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

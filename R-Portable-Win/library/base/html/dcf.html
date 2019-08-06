@@ -1,0 +1,202 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Read and Write Data in DCF Format</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for dcf {base}"><tr><td>dcf {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Read and Write Data in DCF Format</h2>
+
+<h3>Description</h3>
+
+<p>Reads or writes an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> object from/to a file in Debian Control File
+format.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+read.dcf(file, fields = NULL, all = FALSE, keep.white = NULL)
+
+write.dcf(x, file = "", append = FALSE, useBytes = FALSE,
+          indent = 0.1 * getOption("width"),
+          width = 0.9 * getOption("width"),
+          keep.white = NULL)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>file</code></td>
+<td>
+<p>either a character string naming a file or a <a href="connections.html">connection</a>.
+<code>""</code> indicates output to the console.  For <code>read.dcf</code> this
+can name a compressed file (see <code><a href="connections.html">gzfile</a></code>).</p>
+</td></tr>
+<tr valign="top"><td><code>fields</code></td>
+<td>
+<p>Fields to read from the DCF file.  Default is to read all
+fields.</p>
+</td></tr>
+<tr valign="top"><td><code>all</code></td>
+<td>
+<p>a logical indicating whether in case of multiple
+occurrences of a field in a record, all these should be gathered.
+If <code>all</code> is false (default), only the last such occurrence is
+used.</p>
+</td></tr>
+<tr valign="top"><td><code>keep.white</code></td>
+<td>
+<p>a character string with the names of the fields for
+which whitespace should be kept as is, or <code>NULL</code> (default)
+indicating that there are no such fields.  Coerced to character if
+possible.  For fields where whitespace is not to be kept as is,
+<code>read.dcf</code> removes leading and trailing whitespace, and
+<code>write.dcf</code> folds using <code><a href="strwrap.html">strwrap</a></code>.
+</p>
+</td></tr>
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>the object to be written, typically a data frame.  If not, it
+is attempted to coerce <code>x</code> to a data frame.</p>
+</td></tr>
+<tr valign="top"><td><code>append</code></td>
+<td>
+<p>logical.  If <code>TRUE</code>, the output is appended to the
+file.  If <code>FALSE</code>, any existing file of the name is destroyed.</p>
+</td></tr>
+<tr valign="top"><td><code>useBytes</code></td>
+<td>
+<p>logical to be passed to <code><a href="writeLines.html">writeLines</a>()</code>,
+see there: &ldquo;for expert use&rdquo;.</p>
+</td></tr>
+<tr valign="top"><td><code>indent</code></td>
+<td>
+<p>a positive integer specifying the indentation for
+continuation lines in output entries.</p>
+</td></tr>
+<tr valign="top"><td><code>width</code></td>
+<td>
+<p>a positive integer giving the target column for wrapping
+lines in the output.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>DCF is a simple format for storing databases in plain text files that
+can easily be directly read and written by humans.  DCF is used in
+various places to store <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> system information, like descriptions and
+contents of packages.
+</p>
+<p>The DCF rules as implemented in <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> are:
+</p>
+
+<ol>
+<li><p> A database consists of one or more records, each with one or
+more named fields.  Not every record must contain each field.
+Fields may appear more than once in a record.
+</p>
+</li>
+<li><p> Regular lines start with a non-whitespace character.
+</p>
+</li>
+<li><p> Regular lines are of form <code>tag:value</code>, i.e., have a name
+tag and a value for the field, separated by <code>:</code> (only the first
+<code>:</code> counts).  The value can be empty (i.e., whitespace only).
+</p>
+</li>
+<li><p> Lines starting with whitespace are continuation lines (to the
+preceding field) if at least one character in the line is
+non-whitespace.  Continuation lines where the only non-whitespace
+character is a <span class="samp">.</span> are taken as blank lines (allowing for
+multi-paragraph field values).
+</p>
+</li>
+<li><p> Records are separated by one or more empty (i.e., whitespace
+only) lines.
+</p>
+</li>
+<li><p> Individual lines may not be arbitrarily long; prior to <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> 3.0.2 the
+length limit was approximately 8191 bytes per line.
+</p>
+</li></ol>
+
+<p>Note that <code>read.dcf(all = FALSE)</code> reads the file byte-by-byte.
+This allows a &lsquo;<span class="file">DESCRIPTION</span>&rsquo; file to be read and only its ASCII
+fields used, or its <span class="samp">Encoding</span> field used to re-encode the
+remaining fields.
+</p>
+<p><code>write.dcf</code> does not write <code>NA</code> fields.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The default <code>read.dcf(all = FALSE)</code> returns a character matrix
+with one row per record and one column per field.  Leading and
+trailing whitespace of field values is ignored unless a field is
+listed in <code>keep.white</code>.  If a tag name is specified in the file,
+but the corresponding value is empty, then an empty string is
+returned.  If the tag name of a field is specified in <code>fields</code>
+but never used in a record, then the corresponding value is <code>NA</code>.
+If fields are repeated within a record, the last one encountered is
+returned.  Malformed lines lead to an error.
+</p>
+<p>For <code>read.dcf(all = TRUE)</code> a data frame is returned, again with
+one row per record and one column per field.  The columns are lists of
+character vectors for fields with multiple occurrences, and character
+vectors otherwise.
+</p>
+<p>Note that an empty <code>file</code> is a valid DCF file, and
+<code>read.dcf</code> will return a zero-row matrix or data frame.
+</p>
+<p>For <code>write.dcf</code>, invisible <code>NULL</code>.
+</p>
+
+
+<h3>Note</h3>
+
+<p>As from <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> 3.4.0, &lsquo;whitespace&rsquo; in all cases includes newlines.
+</p>
+
+
+<h3>References</h3>
+
+<p><a href="https://www.debian.org/doc/debian-policy/index.html#document-ch-controlfields">https://www.debian.org/doc/debian-policy/index.html#document-ch-controlfields</a>.
+</p>
+<p>Note that <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> does not require encoding in UTF-8, which is a recent
+Debian requirement.  Nor does it use the Debian-specific sub-format
+which allows comment lines starting with <span class="samp">#</span>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="../../utils/html/write.table.html">write.table</a></code>.
+</p>
+<p><code><a href="../../utils/html/available.packages.html">available.packages</a></code>, which uses <code>read.dcf</code> to read
+the indices of package repositories.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Create a reduced version of the DESCRIPTION file in package 'splines'
+x &lt;- read.dcf(file = system.file("DESCRIPTION", package = "splines"),
+              fields = c("Package", "Version", "Title"))
+write.dcf(x)
+
+## An online DCF file with multiple records
+con &lt;- url("http://cran.r-project.org/src/contrib/PACKAGES")
+y &lt;- read.dcf(con, all = TRUE)
+close(con)
+utils::str(y)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

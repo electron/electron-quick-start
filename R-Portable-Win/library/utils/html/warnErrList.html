@@ -1,0 +1,99 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Collect and Summarize Errors From List</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for warnErrList {utils}"><tr><td>warnErrList {utils}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Collect and Summarize Errors From List</h2>
+
+<h3>Description</h3>
+
+<p>Collect errors (class <code>"error"</code>, typically from <code><a href="../../base/html/conditions.html">tryCatch</a></code>)
+from a list <code>x</code> into a &ldquo;summary warning&rdquo;, by default
+produce a <code><a href="../../base/html/warning.html">warning</a></code> and keep that message as
+<code>"warningMsg"</code> attribute.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+warnErrList(x, warn = TRUE, errValue = NULL)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>a <code><a href="../../base/html/list.html">list</a></code>, typically from applying models to a
+list of data (sub)sets, e.g., using <code><a href="../../base/html/conditions.html">tryCatch</a>(*, error = identity)</code>.
+</p>
+</td></tr>
+<tr valign="top"><td><code>warn</code></td>
+<td>
+<p>logical indicating if <code><a href="../../base/html/warning.html">warning</a>()</code> should be
+called.</p>
+</td></tr>
+<tr valign="top"><td><code>errValue</code></td>
+<td>
+<p>the value with which errors should be replaced.</p>
+</td></tr>
+</table>
+
+
+<h3>Value</h3>
+
+<p>a <code><a href="../../base/html/list.html">list</a></code> of the same length and names as the <code>x</code>
+argument, with the error components replaced by <code>errValue</code>,
+<code><a href="../../base/html/NULL.html">NULL</a></code> by default, and summarized in the
+<code>"warningMsg"</code> attribute.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>The <code>warnErrList()</code> utility has been used in
+<code><a href="../../nlme/html/lmList.html">lmList</a>()</code> and <code><a href="../../nlme/html/nlsList.html">nlsList</a>()</code> in
+recommended package <a href="https://CRAN.R-project.org/package=nlme"><span class="pkg">nlme</span></a> forever.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Regression for each Chick:
+ChWtgrps &lt;- split(ChickWeight, ChickWeight[,"Chick"])
+sapply(ChWtgrps, nrow)# typically 12 obs.
+nlis1 &lt;- lapply(ChWtgrps, function(DAT) tryCatch(error = identity,
+                      lm(weight ~ (Time + I(Time^2)) * Diet, data = DAT)))
+nl1 &lt;- warnErrList(nlis1) #-&gt; warning :
+## 50 times the same error (as Diet has only one level in each group)
+stopifnot(sapply(nl1, is.null)) ## all errors --&gt; all replaced by NULL
+nlis2 &lt;- lapply(ChWtgrps, function(DAT) tryCatch(error = identity,
+                      lm(weight ~ Time + I(Time^2), data = DAT)))
+nl2 &lt;- warnErrList(nlis2)
+stopifnot(identical(nl2, nlis2)) # because there was *no* error at all
+nlis3 &lt;- lapply(ChWtgrps, function(DAT) tryCatch(error = identity,
+                      lm(weight ~ poly(Time, 3), data = DAT)))
+nl3 &lt;- warnErrList(nlis3) # 1 error caught:
+stopifnot(inherits(nlis3[[1]], "error")
+        , identical(nl3[-1], nlis3[-1])
+        , is.null(nl3[[1]])
+)
+
+## With different error messages
+if(requireNamespace("nlme")) { # almost always, as it is recommended
+ data(Soybean, package="nlme")
+ attr(Soybean, "formula") #-&gt; weight ~ Time | Plot  =&gt; split by "Plot":
+ L &lt;- lapply(split(Soybean, Soybean[,"Plot"]),
+             function(DD) tryCatch(error = identity,
+                 nls(weight ~ SSlogis(Time, Asym, xmid, scal), data = DD)))
+ Lw &lt;- warnErrList(L)
+} # if &lt;nlme&gt;
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>utils</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

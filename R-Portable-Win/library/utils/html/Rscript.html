@@ -1,0 +1,129 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Scripting Front-End for R</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for Rscript {utils}"><tr><td>Rscript {utils}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Scripting Front-End for R</h2>
+
+<h3>Description</h3>
+
+<p>This is an alternative front end for use in <span class="samp">#!</span> scripts and
+other scripting applications.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+Rscript [options] [-e expr [-e expr2 ...] | file] [args]
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>options</code></td>
+<td>
+<p>a list of options, all beginning with <span class="samp">--</span>.  These
+can be any of the options of the standard <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> front-end, and also those
+described in the details.</p>
+</td></tr>
+<tr valign="top"><td><code>expr, expr2</code></td>
+<td>
+<p><span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> expression(s), properly quoted.</p>
+</td></tr>
+<tr valign="top"><td><code>file</code></td>
+<td>
+<p>the name of a file containing <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> commands.  <span class="samp">-</span>
+indicates &lsquo;<span class="file">stdin</span>&rsquo;.</p>
+</td></tr>
+<tr valign="top"><td><code>args</code></td>
+<td>
+<p>arguments to be passed to the script in <code>file</code>.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p><code>Rscript --help</code> gives details of usage, and
+<code>Rscript --version</code> gives the version of <code>Rscript</code>.
+</p>
+<p>Other invocations invoke the <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> front-end with selected options.  This
+front-end is convenient for writing <span class="samp">#!</span> scripts since it is an
+executable and takes <code>file</code> directly as an argument.  Options
+<span class="option">--slave --no-restore</span> are always supplied: these imply
+<span class="option">--no-save</span>. Arguments that contain spaces cannot be specified
+directly on the <span class="samp">#!</span> line, because spaces and tabs are interpreted as
+delimiters and there is no way to protect them from this interpretation on
+the <span class="samp">#!</span> line. (The standard Windows command line has no concept
+of <span class="samp">#!</span> scripts, but Cygwin shells do.)
+</p>
+<p><em>Either</em> one or more <span class="option">-e</span> options or <code>file</code> should
+be supplied.  When using <span class="option">-e</span> options be aware of the quoting
+rules in the shell used: see the examples.
+</p>
+<p>Additional options accepted (before <code>file</code> or <code>args</code>) are
+</p>
+
+<dl>
+<dt><span class="option">--verbose</span></dt><dd><p>gives details of what <code>Rscript</code> is
+doing.  Also passed on to <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>.</p>
+</dd>
+<dt><span class="option">--default-packages=list</span></dt><dd><p>where <code>list</code> is a
+comma-separated list of package names or <code>NULL</code>.  Sets the
+environment variable <span class="env">R_DEFAULT_PACKAGES</span> which determines the
+packages loaded on startup.
+</p>
+</dd>
+</dl>
+
+<p>Spaces are allowed in <code>expression</code> and <code>file</code> (but will need
+to be protected from the shell in use, if any, for example by
+enclosing the argument in quotes).
+</p>
+<p>If <span class="option">--default-packages</span> is not used, then <code>Rscript</code>
+checks the environment variable <span class="env">R_SCRIPT_DEFAULT_PACKAGES</span>. If
+this is set, then it takes precedence over <span class="env">R_DEFAULT_PACKAGES</span>.
+</p>
+<p>The <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> files are found from the location of the &lsquo;<span class="file">Rscript.exe</span>&rsquo;
+executable.   If this is copied elsewhere, the environment variable
+<span class="env">RHOME</span> should be set to the top directory of the <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> installation.
+</p>
+<p>Unlike Unix-alikes, this links directly to &lsquo;<span class="file">R.dll</span>&rsquo; rather than
+running a separate process.
+</p>
+<p><code><a href="../../base/html/showConnections.html">stdin</a>()</code> refers to the input file, and
+<code><a href="../../base/html/connections.html">file</a>("stdin")</code> to the <code>stdin</code> file stream of the
+process.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>## Not run: 
+# Note that Rscript is not by default in the PATH on Windows, so
+# either put it there or use an explicit path to Rscript.
+
+# at the standard Windows command line
+Rscript -e "date()" -e "format(Sys.time(), \"%a %b %d %X %Y\")"
+# in other shells, e.g. bash or tcsh, prefer
+Rscript -e 'date()' -e 'format(Sys.time(), "%a %b %d %X %Y")'
+
+# Get the same initial packages in the same order as default R:
+Rscript --default-packages=methods,datasets,utils,grDevices,graphics,stats -e 'sessionInfo()'
+
+## example #! script for a Unix-alike
+
+#! /path/to/Rscript --vanilla --default-packages=utils
+args &lt;- commandArgs(TRUE)
+res &lt;- try(install.packages(args))
+if(inherits(res, "try-error")) q(status=1) else q()
+
+
+## End(Not run)</pre>
+
+<hr /><div style="text-align: center;">[Package <em>utils</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

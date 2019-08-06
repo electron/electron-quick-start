@@ -2,7 +2,8 @@
 //
 // is_na.h: Rcpp R/C++ interface class library -- vector operators
 //
-// Copyright (C) 2010 - 2013 Dirk Eddelbuettel and Romain Francois
+// Copyright (C) 2010 - 2018 Dirk Eddelbuettel and Romain Francois
+// Copyright (C) 2018        Dirk Eddelbuettel and Kirill Mueller
 //
 // This file is part of Rcpp.
 //
@@ -39,13 +40,12 @@ namespace Rcpp{
 
         template <>
         inline bool is_na<REALSXP>(double x) {
-            return internal::Rcpp_IsNA(x) || internal::Rcpp_IsNaN(x);
+            return R_isnancpp(x);
         }
 
         template <>
         inline bool is_na<CPLXSXP>(Rcomplex x) {
-            return internal::Rcpp_IsNA(x.r) || internal::Rcpp_IsNA(x.i) ||
-              internal::Rcpp_IsNaN(x.r) || internal::Rcpp_IsNaN(x.i);
+            return R_isnancpp(x.r) || R_isnancpp(x.i);
         }
 
         template <>

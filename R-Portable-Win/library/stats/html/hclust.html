@@ -1,0 +1,332 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Hierarchical Clustering</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for hclust {stats}"><tr><td>hclust {stats}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Hierarchical Clustering</h2>
+
+<h3>Description</h3>
+
+<p>Hierarchical cluster analysis on a set of dissimilarities and
+methods for analyzing it.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+hclust(d, method = "complete", members = NULL)
+
+## S3 method for class 'hclust'
+plot(x, labels = NULL, hang = 0.1, check = TRUE,
+     axes = TRUE, frame.plot = FALSE, ann = TRUE,
+     main = "Cluster Dendrogram",
+     sub = NULL, xlab = NULL, ylab = "Height", ...)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>d</code></td>
+<td>
+<p>a dissimilarity structure as produced by <code>dist</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>method</code></td>
+<td>
+<p>the agglomeration method to be used.  This should
+be (an unambiguous abbreviation of) one of
+<code>"ward.D"</code>, <code>"ward.D2"</code>, <code>"single"</code>, <code>"complete"</code>,
+<code>"average"</code> (= UPGMA), <code>"mcquitty"</code> (= WPGMA),
+<code>"median"</code> (= WPGMC) or <code>"centroid"</code> (= UPGMC).</p>
+</td></tr>
+<tr valign="top"><td><code>members</code></td>
+<td>
+<p><code>NULL</code> or a vector with length size of
+<code>d</code>. See the &lsquo;Details&rsquo; section.</p>
+</td></tr>
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>an object of the type produced by <code>hclust</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>hang</code></td>
+<td>
+<p>The fraction of the plot height by which labels should hang
+below the rest of the plot.
+A negative value will cause the labels to hang down from 0.</p>
+</td></tr>
+<tr valign="top"><td><code>check</code></td>
+<td>
+<p>logical indicating if the <code>x</code> object should be
+checked for validity.  This check is not necessary when <code>x</code>
+is known to be valid such as when it is the direct result of
+<code>hclust()</code>.  The default is <code>check=TRUE</code>, as invalid
+inputs may crash <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> due to memory violation in the internal C
+plotting code.</p>
+</td></tr>
+<tr valign="top"><td><code>labels</code></td>
+<td>
+<p>A character vector of labels for the leaves of the
+tree.  By default the row names or row numbers of the original data are
+used.  If <code>labels = FALSE</code> no labels at all are plotted.</p>
+</td></tr>
+<tr valign="top"><td><code>axes, frame.plot, ann</code></td>
+<td>
+<p>logical flags as in <code><a href="../../graphics/html/plot.default.html">plot.default</a></code>.</p>
+</td></tr>
+<tr valign="top"><td><code>main, sub, xlab, ylab</code></td>
+<td>
+<p>character strings for
+<code><a href="../../graphics/html/title.html">title</a></code>.  <code>sub</code> and <code>xlab</code> have a non-NULL
+default when there's a <code>tree$call</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>Further graphical arguments.  E.g., <code>cex</code> controls
+the size of the labels (if plotted) in the same way as <code><a href="../../graphics/html/text.html">text</a></code>.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>This function performs a hierarchical cluster analysis
+using a set of dissimilarities for the <i>n</i> objects being
+clustered.  Initially, each object is assigned to its own
+cluster and then the algorithm proceeds iteratively,
+at each stage joining the two most similar clusters,
+continuing until there is just a single cluster.
+At each stage distances between clusters are recomputed
+by the Lance&ndash;Williams dissimilarity update formula
+according to the particular clustering method being used.
+</p>
+<p>A number of different clustering methods are provided.  <em>Ward's</em>
+minimum variance method aims at finding compact, spherical clusters.
+The <em>complete linkage</em> method finds similar clusters. The
+<em>single linkage</em> method (which is closely related to the minimal
+spanning tree) adopts a &lsquo;friends of friends&rsquo; clustering
+strategy.  The other methods can be regarded as aiming for clusters
+with characteristics somewhere between the single and complete link
+methods.  Note however, that methods <code>"median"</code> and
+<code>"centroid"</code> are <em>not</em> leading to a <em>monotone distance</em>
+measure, or equivalently the resulting dendrograms can have so called
+<em>inversions</em> or <em>reversals</em> which are hard to interpret,
+but note the trichotomies in Legendre and Legendre (2012).
+</p>
+<p>Two different algorithms are found in the literature for Ward clustering.
+The one used by option <code>"ward.D"</code> (equivalent to the only Ward
+option <code>"ward"</code> in <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> versions <i>&lt;=</i> 3.0.3) <em>does not</em> implement
+Ward's (1963) clustering criterion, whereas option <code>"ward.D2"</code> implements
+that criterion (Murtagh and Legendre 2014).  With the latter, the
+dissimilarities are <em>squared</em> before cluster updating.
+Note that <code><a href="../../cluster/html/agnes.html">agnes</a>(*, method="ward")</code> corresponds
+to <code>hclust(*, "ward.D2")</code>.
+</p>
+<p>If <code>members != NULL</code>, then <code>d</code> is taken to be a
+dissimilarity matrix between clusters instead of dissimilarities
+between singletons and <code>members</code> gives the number of observations
+per cluster.  This way the hierarchical cluster algorithm can be
+&lsquo;started in the middle of the dendrogram&rsquo;, e.g., in order to
+reconstruct the part of the tree above a cut (see examples).
+Dissimilarities between clusters can be efficiently computed (i.e.,
+without <code>hclust</code> itself) only for a limited number of
+distance/linkage combinations, the simplest one being <em>squared</em>
+Euclidean distance and centroid linkage.  In this case the
+dissimilarities between the clusters are the squared Euclidean
+distances between cluster means.
+</p>
+<p>In hierarchical cluster displays, a decision is needed at each merge to
+specify which subtree should go on the left and which on the right.
+Since, for <i>n</i> observations there are <i>n-1</i> merges,
+there are <i>2^{(n-1)}</i> possible orderings for the leaves
+in a cluster tree, or dendrogram.
+The algorithm used in <code>hclust</code> is to order the subtree so that
+the tighter cluster is on the left (the last, i.e., most recent,
+merge of the left subtree is at a lower value than the last
+merge of the right subtree).
+Single observations are the tightest clusters possible,
+and merges involving two observations place them in order by their
+observation sequence number.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class <b>hclust</b> which describes the
+tree produced by the clustering process.
+The object is a list with components:
+</p>
+<table summary="R valueblock">
+<tr valign="top"><td><code>merge</code></td>
+<td>
+<p>an <i>n-1</i> by 2 matrix.
+Row <i>i</i> of <code>merge</code> describes the merging of clusters
+at step <i>i</i> of the clustering.
+If an element <i>j</i> in the row is negative,
+then observation <i>-j</i> was merged at this stage.
+If <i>j</i> is positive then the merge
+was with the cluster formed at the (earlier) stage <i>j</i>
+of the algorithm.
+Thus negative entries in <code>merge</code> indicate agglomerations
+of singletons, and positive entries indicate agglomerations
+of non-singletons.</p>
+</td></tr>
+<tr valign="top"><td><code>height</code></td>
+<td>
+<p>a set of <i>n-1</i> real values (non-decreasing for
+ultrametric trees).
+The clustering <em>height</em>: that is, the value of
+the criterion associated with the clustering
+<code>method</code> for the particular agglomeration.</p>
+</td></tr>
+<tr valign="top"><td><code>order</code></td>
+<td>
+<p>a vector giving the permutation of the original
+observations suitable for plotting, in the sense that a cluster
+plot using this ordering and matrix <code>merge</code> will not have
+crossings of the branches.</p>
+</td></tr>
+<tr valign="top"><td><code>labels</code></td>
+<td>
+<p>labels for each of the objects being clustered.</p>
+</td></tr>
+<tr valign="top"><td><code>call</code></td>
+<td>
+<p>the call which produced the result.</p>
+</td></tr>
+<tr valign="top"><td><code>method</code></td>
+<td>
+<p>the cluster method that has been used.</p>
+</td></tr>
+<tr valign="top"><td><code>dist.method</code></td>
+<td>
+<p>the distance that has been used to create <code>d</code>
+(only returned if the distance object has a <code>"method"</code>
+attribute).</p>
+</td></tr>
+</table>
+<p>There are <code><a href="../../base/html/print.html">print</a></code>, <code><a href="../../graphics/html/plot.html">plot</a></code> and <code>identify</code>
+(see <code><a href="identify.hclust.html">identify.hclust</a></code>) methods and the
+<code><a href="rect.hclust.html">rect.hclust</a>()</code> function for <code>hclust</code> objects.
+</p>
+
+
+<h3>Note</h3>
+
+<p>Method <code>"centroid"</code> is typically meant to be used with
+<em>squared</em> Euclidean distances.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>The <code>hclust</code> function is based on Fortran code
+contributed to STATLIB by F. Murtagh.
+</p>
+
+
+<h3>References</h3>
+
+<p>Becker, R. A., Chambers, J. M. and Wilks, A. R. (1988).
+<em>The New S Language</em>.
+Wadsworth &amp; Brooks/Cole. (S version.)
+</p>
+<p>Everitt, B. (1974).
+<em>Cluster Analysis</em>.
+London: Heinemann Educ. Books.
+</p>
+<p>Hartigan, J.A. (1975).
+<em>Clustering  Algorithms</em>.
+New York: Wiley.
+</p>
+<p>Sneath, P. H. A. and R. R. Sokal (1973).
+<em>Numerical Taxonomy</em>.
+San Francisco: Freeman.
+</p>
+<p>Anderberg, M. R. (1973).
+<em>Cluster Analysis for Applications</em>.
+Academic Press: New York.
+</p>
+<p>Gordon, A. D. (1999).
+<em>Classification</em>. Second Edition.
+London: Chapman and Hall / CRC
+</p>
+<p>Murtagh, F. (1985).
+&ldquo;Multidimensional Clustering Algorithms&rdquo;, in
+<em>COMPSTAT Lectures 4</em>.
+Wuerzburg: Physica-Verlag
+(for algorithmic details of algorithms used).
+</p>
+<p>McQuitty, L.L. (1966).
+Similarity Analysis by Reciprocal Pairs for Discrete and Continuous
+Data.
+<em>Educational and Psychological Measurement</em>, <b>26</b>, 825&ndash;831.
+doi: <a href="https://doi.org/10.1177/001316446602600402">10.1177/001316446602600402</a>.
+</p>
+<p>Legendre, P. and L. Legendre (2012).
+<em>Numerical Ecology</em>,
+3rd English ed. Amsterdam: Elsevier Science BV.
+</p>
+<p>Murtagh, Fionn and Legendre, Pierre (2014).
+Ward's hierarchical agglomerative clustering method: which algorithms
+implement Ward's criterion?
+<em>Journal of Classification</em>, <b>31</b>, 274&ndash;295.
+doi: <a href="https://doi.org/10.1007/s00357-014-9161-z">10.1007/s00357-014-9161-z</a>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="identify.hclust.html">identify.hclust</a></code>, <code><a href="rect.hclust.html">rect.hclust</a></code>,
+<code><a href="cutree.html">cutree</a></code>, <code><a href="dendrogram.html">dendrogram</a></code>, <code><a href="kmeans.html">kmeans</a></code>.
+</p>
+<p>For the Lance&ndash;Williams formula and methods that apply it generally,
+see <code><a href="../../cluster/html/agnes.html">agnes</a></code> from package <a href="https://CRAN.R-project.org/package=cluster"><span class="pkg">cluster</span></a>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+require(graphics)
+
+### Example 1: Violent crime rates by US state
+
+hc &lt;- hclust(dist(USArrests), "ave")
+plot(hc)
+plot(hc, hang = -1)
+
+## Do the same with centroid clustering and *squared* Euclidean distance,
+## cut the tree into ten clusters and reconstruct the upper part of the
+## tree from the cluster centers.
+hc &lt;- hclust(dist(USArrests)^2, "cen")
+memb &lt;- cutree(hc, k = 10)
+cent &lt;- NULL
+for(k in 1:10){
+  cent &lt;- rbind(cent, colMeans(USArrests[memb == k, , drop = FALSE]))
+}
+hc1 &lt;- hclust(dist(cent)^2, method = "cen", members = table(memb))
+opar &lt;- par(mfrow = c(1, 2))
+plot(hc,  labels = FALSE, hang = -1, main = "Original Tree")
+plot(hc1, labels = FALSE, hang = -1, main = "Re-start from 10 clusters")
+par(opar)
+
+### Example 2: Straight-line distances among 10 US cities
+##  Compare the results of algorithms "ward.D" and "ward.D2"
+
+mds2 &lt;- -cmdscale(UScitiesD)
+plot(mds2, type="n", axes=FALSE, ann=FALSE)
+text(mds2, labels=rownames(mds2), xpd = NA)
+
+hcity.D  &lt;- hclust(UScitiesD, "ward.D") # "wrong"
+hcity.D2 &lt;- hclust(UScitiesD, "ward.D2")
+opar &lt;- par(mfrow = c(1, 2))
+plot(hcity.D,  hang=-1)
+plot(hcity.D2, hang=-1)
+par(opar)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>stats</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

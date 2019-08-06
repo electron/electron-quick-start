@@ -1,8 +1,8 @@
-// -*- mode: C++; c-indent-level: 4; c-basic-offset: 4; tab-width: 8 -*-
+// -*- mode: C++; c-indent-level: 4; c-basic-offset: 4; indent-tabs-mode: nil; -*-
 //
 // XPtr.h: Rcpp R/C++ interface class library -- smart external pointers
 //
-// Copyright (C) 2009 - 2013	Dirk Eddelbuettel and Romain Francois
+// Copyright (C) 2009 - 2017  Dirk Eddelbuettel and Romain Francois
 //
 // This file is part of Rcpp.
 //
@@ -24,19 +24,19 @@
 
 #include <RcppCommon.h>
 
-namespace Rcpp{
+namespace Rcpp {
 
 template <typename T>
-void standard_delete_finalizer(T* obj){
-    delete obj ;
+void standard_delete_finalizer(T* obj) {
+    delete obj;
 }
 
 template <typename T, void Finalizer(T*) >
-void finalizer_wrapper(SEXP p){
-    if( TYPEOF(p) == EXTPTRSXP ){
-        T* ptr = (T*) R_ExternalPtrAddr(p) ;
-        RCPP_DEBUG_3( "finalizer_wrapper<%s>(SEXP p = <%p>). ptr = %p", DEMANGLE(T), p, ptr  )
-        Finalizer(ptr) ;
+void finalizer_wrapper(SEXP p) {
+    if (TYPEOF(p) == EXTPTRSXP) {
+        T* ptr = (T*) R_ExternalPtrAddr(p);
+        RCPP_DEBUG_3("finalizer_wrapper<%s>(SEXP p = <%p>). ptr = %p", DEMANGLE(T), p, ptr)
+        Finalizer(ptr);
     }
 }
 
@@ -56,7 +56,7 @@ class XPtr :
 {
 public:
 
-    typedef StoragePolicy<XPtr> Storage ;
+    typedef StoragePolicy<XPtr> Storage;
 
     /**
      * constructs a XPtr wrapping the external pointer (EXTPTRSXP SEXP)
@@ -64,15 +64,15 @@ public:
      * @param xp external pointer to wrap
      */
     explicit XPtr(SEXP x, SEXP tag = R_NilValue, SEXP prot = R_NilValue) {
-        if( TYPEOF(x) != EXTPTRSXP ) {
+        if (TYPEOF(x) != EXTPTRSXP) {
             const char* fmt = "Expecting an external pointer: [type=%s].";
             throw ::Rcpp::not_compatible(fmt, Rf_type2char(TYPEOF(x)));
         }
 
-        Storage::set__(x) ;
-        R_SetExternalPtrTag( x, tag ) ;
-        R_SetExternalPtrProtected( x, prot ) ;
-    } ;
+        Storage::set__(x);
+        R_SetExternalPtrTag( x, tag);
+        R_SetExternalPtrProtected(x, prot);
+    };
 
     /**
      * creates a new external pointer wrapping the dumb pointer p.
@@ -85,21 +85,22 @@ public:
      *        so you need to make sure the pointer can be "delete" d
      *        this way (has to be a C++ object)
      */
-    explicit XPtr(T* p, bool set_delete_finalizer = true, SEXP tag = R_NilValue, SEXP prot = R_NilValue){
-        RCPP_DEBUG_2( "XPtr(T* p = <%p>, bool set_delete_finalizer = %s, SEXP tag = R_NilValue, SEXP prot = R_NilValue)", p, ( set_delete_finalizer ? "true" : "false" ) )
-        Storage::set__( R_MakeExternalPtr( (void*)p , tag, prot) ) ;
-        if( set_delete_finalizer ){
-            setDeleteFinalizer() ;
+    explicit XPtr(T* p, bool set_delete_finalizer = true,
+                  SEXP tag = R_NilValue, SEXP prot = R_NilValue) {
+        RCPP_DEBUG_2("XPtr(T* p = <%p>, bool set_delete_finalizer = %s, SEXP tag = R_NilValue, SEXP prot = R_NilValue)", p, (set_delete_finalizer ? "true" : "false"))
+        Storage::set__(R_MakeExternalPtr((void*)p , tag, prot));
+        if (set_delete_finalizer) {
+            setDeleteFinalizer();
         }
     }
 
-    XPtr( const XPtr& other ) {
-        Storage::copy__(other) ;
+    XPtr(const XPtr& other) {
+        Storage::copy__(other);
     }
 
-    XPtr& operator=(const XPtr& other){
-    	    Storage::copy__(other) ;
-    	    return *this ;
+    XPtr& operator=(const XPtr& other) {
+    	    Storage::copy__(other);
+    	    return *this;
     }
 
     /**
@@ -107,7 +108,7 @@ public:
      * if you want an exception thrown if the pointer is NULL)
      */
     inline T* get() const {
-        return (T*)(R_ExternalPtrAddr( Storage::get__() ));
+        return (T*)(R_ExternalPtrAddr(Storage::get__()));
     }
 
     /**
@@ -116,12 +117,10 @@ public:
      */
     typedef void (*unspecified_bool_type)();
     static void unspecified_bool_true() {}
-    operator unspecified_bool_type() const
-    {
+    operator unspecified_bool_type() const {
         return get() == NULL ? 0 : unspecified_bool_true;
     }
-    bool operator!() const
-    {
+    bool operator!() const {
         return get() == NULL;
     }
 
@@ -131,7 +130,7 @@ public:
     inline T* checked_get() const {
         T* ptr = get();
         if (ptr == NULL)
-            throw ::Rcpp::exception("external pointer is not valid" ) ;
+            throw ::Rcpp::exception("external pointer is not valid");
         return ptr;
     }
 
@@ -140,7 +139,7 @@ public:
      * object to look and feel like a dumb pointer to T
      */
     T& operator*() const {
-        return *(checked_get()) ;
+        return *(checked_get());
     }
 
     /**
@@ -148,11 +147,12 @@ public:
      * on this as if it was the dumb pointer
      */
     T* operator->() const {
-        return checked_get() ;
+        return checked_get();
     }
 
     void setDeleteFinalizer() {
-        R_RegisterCFinalizerEx( Storage::get__(), finalizer_wrapper<T,Finalizer> , (Rboolean) finalizeOnExit) ;
+        R_RegisterCFinalizerEx(Storage::get__(), finalizer_wrapper<T,Finalizer>,
+                               (Rboolean) finalizeOnExit);
     }
 
     /**
@@ -166,23 +166,22 @@ public:
      */
     void release() {
 
-        if (get() != NULL)
-        {
+        if (get() != NULL) {
             // Call the finalizer -- note that this implies that finalizers
             // need to be ready for a NULL external pointer value (our
             // default C++ finalizer is since delete NULL is a no-op).
-            finalizer_wrapper<T,Finalizer>( Storage::get__() );
+            finalizer_wrapper<T,Finalizer>(Storage::get__());
 
             // Clear the external pointer
-            R_ClearExternalPtr( Storage::get__() );
+            R_ClearExternalPtr(Storage::get__());
         }
     }
 
-    inline operator T*(){
-        return checked_get() ;
+    inline operator T*() {
+        return checked_get();
     }
 
-    void update(SEXP){}
+    void update(SEXP) {}
 };
 
 } // namespace Rcpp

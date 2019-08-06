@@ -1,0 +1,136 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Form Row and Column Sums and Means</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for colSums {base}"><tr><td>colSums {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Form Row and Column Sums and Means</h2>
+
+<h3>Description</h3>
+
+<p>Form row and column sums and means for numeric arrays (or data frames).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+colSums (x, na.rm = FALSE, dims = 1)
+rowSums (x, na.rm = FALSE, dims = 1)
+colMeans(x, na.rm = FALSE, dims = 1)
+rowMeans(x, na.rm = FALSE, dims = 1)
+
+.colSums(x, m, n, na.rm = FALSE)
+.rowSums(x, m, n, na.rm = FALSE)
+.colMeans(x, m, n, na.rm = FALSE)
+.rowMeans(x, m, n, na.rm = FALSE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>an array of two or more dimensions, containing numeric,
+complex, integer or logical values, or a numeric data frame.  For
+<code>.colSums()</code> etc, a numeric, integer or logical matrix (or
+vector of length <code>m * n</code>).</p>
+</td></tr>
+<tr valign="top"><td><code>na.rm</code></td>
+<td>
+<p>logical.  Should missing values (including <code>NaN</code>)
+be omitted from the calculations?</p>
+</td></tr>
+<tr valign="top"><td><code>dims</code></td>
+<td>
+<p>integer: Which dimensions are regarded as &lsquo;rows&rsquo; or
+&lsquo;columns&rsquo; to sum over.  For <code>row*</code>, the sum or mean is
+over dimensions <code>dims+1, ...</code>; for <code>col*</code> it is over
+dimensions <code>1:dims</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>m, n</code></td>
+<td>
+<p>the dimensions of the matrix <code>x</code> for
+<code>.colSums()</code> etc.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>These functions are equivalent to use of <code><a href="apply.html">apply</a></code> with
+<code>FUN = mean</code> or <code>FUN = sum</code> with appropriate margins, but
+are a lot faster.  As they are written for speed, they blur over some
+of the subtleties of <code>NaN</code> and <code>NA</code>.  If <code>na.rm =
+    FALSE</code> and either <code>NaN</code> or <code>NA</code> appears in a sum, the
+result will be one of <code>NaN</code> or <code>NA</code>, but which might be
+platform-dependent.
+</p>
+<p>Notice that omission of missing values is done on a per-column or
+per-row basis, so column means may not be over the same set of rows,
+and vice versa.  To use only complete rows or columns, first select
+them with <code><a href="../../stats/html/na.fail.html">na.omit</a></code> or <code><a href="../../stats/html/complete.cases.html">complete.cases</a></code>
+(possibly on the transpose of <code>x</code>).
+</p>
+<p>The versions with an initial dot in the name (<code>.colSums()</code> etc)
+are &lsquo;bare-bones&rsquo; versions for use in programming: they apply
+only to numeric (like) matrices and do not name the result.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A numeric or complex array of suitable size, or a vector if the result
+is one-dimensional.  For the first four functions the <code>dimnames</code>
+(or <code>names</code> for a vector result) are taken from the original
+array.
+</p>
+<p>If there are no values in a range to be summed over (after removing
+missing values with <code>na.rm = TRUE</code>), that
+component of the output is set to <code>0</code> (<code>*Sums</code>) or <code>NaN</code>
+(<code>*Means</code>), consistent with <code><a href="sum.html">sum</a></code> and
+<code><a href="mean.html">mean</a></code>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="apply.html">apply</a></code>, <code><a href="rowsum.html">rowsum</a></code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Compute row and column sums for a matrix:
+x &lt;- cbind(x1 = 3, x2 = c(4:1, 2:5))
+rowSums(x); colSums(x)
+dimnames(x)[[1]] &lt;- letters[1:8]
+rowSums(x); colSums(x); rowMeans(x); colMeans(x)
+x[] &lt;- as.integer(x)
+rowSums(x); colSums(x)
+x[] &lt;- x &lt; 3
+rowSums(x); colSums(x)
+x &lt;- cbind(x1 = 3, x2 = c(4:1, 2:5))
+x[3, ] &lt;- NA; x[4, 2] &lt;- NA
+rowSums(x); colSums(x); rowMeans(x); colMeans(x)
+rowSums(x, na.rm = TRUE); colSums(x, na.rm = TRUE)
+rowMeans(x, na.rm = TRUE); colMeans(x, na.rm = TRUE)
+
+## an array
+dim(UCBAdmissions)
+rowSums(UCBAdmissions); rowSums(UCBAdmissions, dims = 2)
+colSums(UCBAdmissions); colSums(UCBAdmissions, dims = 2)
+
+## complex case
+x &lt;- cbind(x1 = 3 + 2i, x2 = c(4:1, 2:5) - 5i)
+x[3, ] &lt;- NA; x[4, 2] &lt;- NA
+rowSums(x); colSums(x); rowMeans(x); colMeans(x)
+rowSums(x, na.rm = TRUE); colSums(x, na.rm = TRUE)
+rowMeans(x, na.rm = TRUE); colMeans(x, na.rm = TRUE)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

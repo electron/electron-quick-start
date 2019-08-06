@@ -1,0 +1,140 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Check Code/Documentation Consistency</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for codoc {tools}"><tr><td>codoc {tools}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Check Code/Documentation Consistency</h2>
+
+<h3>Description</h3>
+
+<p>Find inconsistencies between actual and documented &lsquo;structure&rsquo;
+of <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> objects in a package.  <code>codoc</code> compares names and
+optionally also corresponding positions and default values of the
+arguments of functions.  <code>codocClasses</code> and <code>codocData</code>
+compare slot names of S4 classes and variable names of data sets,
+respectively.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+codoc(package, dir, lib.loc = NULL,
+      use.values = NULL, verbose = getOption("verbose"))
+codocClasses(package, lib.loc = NULL)
+codocData(package, lib.loc = NULL)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>package</code></td>
+<td>
+<p>a character string naming an installed package.</p>
+</td></tr>
+<tr valign="top"><td><code>dir</code></td>
+<td>
+<p>a character string specifying the path to a package's root
+source directory.  This must contain the subdirectories &lsquo;<span class="file">man</span>&rsquo;
+with <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> documentation sources (in Rd format) and &lsquo;<span class="file">R</span>&rsquo; with <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>
+code.  Only used if <code>package</code> is not given.</p>
+</td></tr>
+<tr valign="top"><td><code>lib.loc</code></td>
+<td>
+<p>a character vector of directory names of <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> libraries,
+or <code>NULL</code>.  The default value of <code>NULL</code> corresponds to all
+libraries currently known.  The specified library trees are used to
+search for <code>package</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>use.values</code></td>
+<td>
+<p>if <code>FALSE</code>, do not use function default values
+when comparing code and docs.  Otherwise, compare <em>all</em> default
+values if <code>TRUE</code>, and only the ones documented in the usage
+otherwise (default).</p>
+</td></tr>
+<tr valign="top"><td><code>verbose</code></td>
+<td>
+<p>a logical.  If <code>TRUE</code>, additional diagnostics are
+printed.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>The purpose of <code>codoc</code> is to check whether the documented usage
+of function objects agrees with their formal arguments as defined in
+the <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> code.  This is not always straightforward, in particular as the
+usage information for methods to generic functions often employs the
+name of the generic rather than the method.
+</p>
+<p>The following algorithm is used.  If an installed package is used, it
+is loaded (unless it is the <span class="pkg">base</span> package), after possibly
+detaching an already loaded version of the package.  Otherwise, if the
+sources are used, the <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> code files of the package are collected and
+sourced in a new environment.  Then, the usage sections of the Rd
+files are extracted and parsed &lsquo;as much as possible&rsquo; to give
+the formals documented.  For interpreted functions in the code
+environment, the formals are compared between code and documentation
+according to the values of the argument <code>use.values</code>.  Synopsis
+sections are used if present; their occurrence is reported if
+<code>verbose</code> is true.
+</p>
+<p>If a package has a namespace both exported and unexported objects are
+checked, as well as registered S3 methods.  (In the unlikely event of
+differences the order is exported objects in the package, registered
+S3 methods and finally objects in the namespace and only the first
+found is checked.)
+</p>
+<p>Currently, the R documentation format has no high-level markup for the
+basic &lsquo;structure&rsquo; of classes and data sets (similar to the usage
+sections for function synopses).  Variable names for data frames in
+documentation objects obtained by suitably editing &lsquo;templates&rsquo;
+created by <code><a href="../../utils/html/prompt.html">prompt</a></code> are recognized by <code>codocData</code>
+and used provided that the documentation object is for a single data
+frame (i.e., only has one alias).  <code>codocClasses</code> analogously
+handles slot names for classes in documentation objects obtained by
+editing shells created by <code><a href="../../methods/html/promptClass.html">promptClass</a></code>.
+</p>
+<p>Help files named &lsquo;<span class="file"><var>pkgname</var>-defunct.Rd</span>&rsquo; for the
+appropriate <var>pkgname</var> are checked more loosely, as they may
+have undocumented arguments.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>codoc</code> returns an object of class <code>"codoc"</code>.  Currently,
+this is a list which, for each Rd object in the package where an
+inconsistency was found, contains an element with a list of the
+mismatches (which in turn are lists with elements <code>code</code> and
+<code>docs</code>, giving the corresponding arguments obtained from the
+function's code and documented usage).
+</p>
+<p><code>codocClasses</code> and <code>codocData</code> return objects of class
+<code>"codocClasses"</code> and <code>"codocData"</code>, respectively, with a
+structure similar to class <code>"codoc"</code>.
+</p>
+<p>There are <code>print</code> methods for nicely displaying the information
+contained in such objects.
+</p>
+
+
+<h3>Note</h3>
+
+<p>The default for <code>use.values</code> has been changed from
+<code>FALSE</code> to <code>NULL</code>, for <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> versions 1.9.0 and later.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="undoc.html">undoc</a></code>, <code><a href="QC.html">QC</a></code>
+</p>
+
+<hr /><div style="text-align: center;">[Package <em>tools</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

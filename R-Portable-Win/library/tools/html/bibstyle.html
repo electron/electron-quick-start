@@ -1,0 +1,170 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Select or Define a Bibliography Style</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for bibstyle {tools}"><tr><td>bibstyle {tools}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Select or Define a Bibliography Style</h2>
+
+<h3>Description</h3>
+
+<p>This function defines and registers styles for rendering
+<code><a href="../../utils/html/bibentry.html">bibentry</a></code> objects into &lsquo;<span class="file">Rd</span>&rsquo; format, for later
+conversion to text, HTML, etc.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+bibstyle(style, envir, ..., .init = FALSE, .default = TRUE)
+getBibstyle(all = FALSE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>style</code></td>
+<td>
+
+<p>A character string naming the style.
+</p>
+</td></tr>
+<tr valign="top"><td><code>envir</code></td>
+<td>
+
+<p>(optional) An environment holding the functions to implement the style.
+</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+
+<p>Named arguments to add to the environment.
+</p>
+</td></tr>
+<tr valign="top"><td><code>.init</code></td>
+<td>
+
+<p>Whether to initialize the environment from the default style <code>"JSS"</code>.
+</p>
+</td></tr>
+<tr valign="top"><td><code>.default</code></td>
+<td>
+
+<p>Whether to set the specified style as the default style.
+</p>
+</td></tr>
+<tr valign="top"><td><code>all</code></td>
+<td>
+
+<p>Whether to return the names of all registered styles.
+</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>Rendering of <code><a href="../../utils/html/bibentry.html">bibentry</a></code> objects may be done using routines
+modelled after those used by BibTeX.  This function allows environments
+to be created and manipulated to contain those routines.
+</p>
+<p>There are two ways to create a new style environment.  The easiest
+is to set <code>.init = TRUE</code>, in which case the environment will be
+initialized with a copy of the default <code>"JSS"</code> environment.  (This style
+is modelled after the &lsquo;<span class="file">jss.bst</span>&rsquo; style used by the <em>Journal
+of Statistical Software</em>.)  Alternatively, the <code>envir</code> argument
+can be used to specify a completely new style environment.
+</p>
+<p>To find the name of the default style, use <code>getBibstyle()</code>. To
+retrieve an existing style without setting it as the default, use
+<code>bibstyle(style, .default = FALSE)</code>.  To modify an existing style,
+specify <code>style</code> and some named entries via <code>...</code>.
+(Modifying the default <code>"JSS"</code> style is discouraged.)  Setting
+<code>style</code> to <code>NULL</code> or leaving it missing will retrieve the
+default style, but modifications will not be allowed.
+</p>
+<p>At a minimum, the environment should contain routines to render each
+of the 12 types of bibliographic entry supported by
+<code><a href="../../utils/html/bibentry.html">bibentry</a></code> as well as several other routines
+described below.
+The former must be named <code>formatArticle</code>,
+<code>formatBook</code>, <code>formatInbook</code>, <code>formatIncollection</code>,
+<code>formatInProceedings</code>, <code>formatManual</code>,
+<code>formatMastersthesis</code>, <code>formatMisc</code>, <code>formatPhdthesis</code>,
+<code>formatProceedings</code>, <code>formatTechreport</code> and
+<code>formatUnpublished</code>.  Each of these takes one argument, a single
+<code><a href="../../base/html/class.html">unclass</a></code>'ed entry from the <code><a href="../../utils/html/bibentry.html">bibentry</a></code> vector
+passed to the renderer, and should produce a single element character
+vector (possibly containing newlines).
+</p>
+<p>The other routines are as follows.  <code>sortKeys</code>, a function to
+produce a sort key to sort the entries, is passed the original
+<code><a href="../../utils/html/bibentry.html">bibentry</a></code> vector and should produce a sortable vector of
+the same length to define the sort order.  Finally,
+the optional function <code>cite</code> should have the same argument list
+as <code>utils::<a href="../../utils/html/cite.html">cite</a></code>, and should produce a citation to be used
+in text.
+</p>
+<p>The <code><a href="../../base/html/format.html">format</a></code> method for <code>"bibentry"</code> objects adds a
+field named <code>".index"</code> to each entry after sorting and before
+formatting.  This is a 1-based index within the complete object that
+can be used in styles that require numbering.  Although the
+<code>"JSS"</code> style doesn't use numbers, it includes a
+<code>fmtPrefix()</code> stub function that may be used to display them.
+See the example below.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>bibstyle</code> returns the environment which has been selected or created.
+</p>
+<p><code>getBibstyle</code> returns the name of the default style, or all
+style names.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Duncan Murdoch
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="../../utils/html/bibentry.html">bibentry</a></code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+
+refs &lt;-
+c(bibentry(bibtype = "manual",
+    title = "R: A Language and Environment for Statistical Computing",
+    author = person("R Core Team"),
+    organization = "R Foundation for Statistical Computing",
+    address = "Vienna, Austria",
+    year = 2013,
+    url = "https://www.R-project.org"),
+  bibentry(bibtype = "article",
+    author = c(person(c("George", "E.", "P."), "Box"),
+               person(c("David",  "R."),      "Cox")),
+    year = 1964,
+    title = "An Analysis of Transformations",
+    journal = "Journal of the Royal Statistical Society, Series B",
+    volume = 26,
+    pages = "211-252"))
+
+bibstyle("unsorted", sortKeys = function(refs) seq_along(refs),
+    fmtPrefix = function(paper) paste0("[", paper$.index, "]"),
+       .init = TRUE)
+print(refs, .bibstyle = "unsorted")
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>tools</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

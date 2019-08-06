@@ -1,0 +1,170 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Split the Elements of a Character Vector</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for strsplit {base}"><tr><td>strsplit {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Split the Elements of a Character Vector</h2>
+
+<h3>Description</h3>
+
+<p>Split the elements of a character vector <code>x</code> into substrings
+according to the matches to substring <code>split</code> within them.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+strsplit(x, split, fixed = FALSE, perl = FALSE, useBytes = FALSE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+
+<p>character vector, each element of which is to be split.  Other
+inputs, including a factor, will give an error.
+</p>
+</td></tr>
+<tr valign="top"><td><code>split</code></td>
+<td>
+
+<p>character vector (or object which can be coerced to such)
+containing <a href="regex.html">regular expression</a>(s) (unless <code>fixed = TRUE</code>)
+to use for splitting.  If empty matches occur, in particular if
+<code>split</code> has length 0, <code>x</code> is split into single characters.
+If <code>split</code> has length greater than 1, it is re-cycled along
+<code>x</code>.
+</p>
+</td></tr>
+<tr valign="top"><td><code>fixed</code></td>
+<td>
+
+<p>logical.  If <code>TRUE</code> match <code>split</code> exactly, otherwise
+use regular expressions.  Has priority over <code>perl</code>.
+</p>
+</td></tr>
+<tr valign="top"><td><code>perl</code></td>
+<td>
+<p>logical.  Should Perl-compatible regexps be used?</p>
+</td></tr>
+<tr valign="top"><td><code>useBytes</code></td>
+<td>
+<p>logical.  If <code>TRUE</code> the matching is done
+byte-by-byte rather than character-by-character, and inputs with
+marked encodings are not converted.  This is forced (with a warning)
+if any input is found which is marked as <code>"bytes"</code>
+(see <code><a href="Encoding.html">Encoding</a></code>).</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>Argument <code>split</code> will be coerced to character, so
+you will see uses with <code>split = NULL</code> to mean
+<code>split = character(0)</code>, including in the examples below.
+</p>
+<p>Note that splitting into single characters can be done <em>via</em>
+<code>split = character(0)</code> or <code>split = ""</code>; the two are
+equivalent.  The definition of &lsquo;character&rsquo; here depends on the
+locale: in a single-byte locale it is a byte, and in a multi-byte
+locale it is the unit represented by a &lsquo;wide character&rsquo; (almost
+always a Unicode code point).
+</p>
+<p>A missing value of <code>split</code> does not split the corresponding
+element(s) of <code>x</code> at all.
+</p>
+<p>The algorithm applied to each input string is
+</p>
+<pre>    repeat {
+        if the string is empty
+            break.
+        if there is a match
+            add the string to the left of the match to the output.
+            remove the match and all to the left of it.
+        else
+            add the string to the output.
+            break.
+    }
+</pre>
+<p>Note that this means that if there is a match at the beginning of a
+(non-empty) string, the first element of the output is <code>""</code>, but
+if there is a match at the end of the string, the output is the same
+as with the match removed.
+</p>
+<p>Invalid inputs in the current locale are warned about up to 5 times.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list of the same length as <code>x</code>, the <code>i</code>-th element of which
+contains the vector of splits of <code>x[i]</code>.
+</p>
+<p>If any element of <code>x</code> or <code>split</code> is declared to be in UTF-8
+(see <code><a href="Encoding.html">Encoding</a></code>), all non-ASCII character strings in the
+result will be in UTF-8 and have their encoding declared as UTF-8.
+For <code>perl = TRUE, useBytes = FALSE</code> all non-ASCII strings in a
+multibyte locale are translated to UTF-8.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="paste.html">paste</a></code> for the reverse,
+<code><a href="grep.html">grep</a></code> and <code><a href="grep.html">sub</a></code> for string search and
+manipulation; also <code><a href="nchar.html">nchar</a></code>, <code><a href="substr.html">substr</a></code>.
+</p>
+<p>&lsquo;<a href="regex.html">regular expression</a>&rsquo; for the details of the pattern
+specification.
+</p>
+<p>Option <code>PCRE_use_JIT</code> controls the details when <code>perl = TRUE</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+noquote(strsplit("A text I want to display with spaces", NULL)[[1]])
+
+x &lt;- c(as = "asfef", qu = "qwerty", "yuiop[", "b", "stuff.blah.yech")
+# split x on the letter e
+strsplit(x, "e")
+
+unlist(strsplit("a.b.c", "."))
+## [1] "" "" "" "" ""
+## Note that 'split' is a regexp!
+## If you really want to split on '.', use
+unlist(strsplit("a.b.c", "[.]"))
+## [1] "a" "b" "c"
+## or
+unlist(strsplit("a.b.c", ".", fixed = TRUE))
+
+## a useful function: rev() for strings
+strReverse &lt;- function(x)
+        sapply(lapply(strsplit(x, NULL), rev), paste, collapse = "")
+strReverse(c("abc", "Statistics"))
+
+## get the first names of the members of R-core
+a &lt;- readLines(file.path(R.home("doc"),"AUTHORS"))[-(1:8)]
+a &lt;- a[(0:2)-length(a)]
+(a &lt;- sub(" .*","", a))
+# and reverse them
+strReverse(a)
+
+## Note that final empty strings are not produced:
+strsplit(paste(c("", "a", ""), collapse="#"), split="#")[[1]]
+# [1] ""  "a"
+## and also an empty string is only produced before a definite match:
+strsplit("", " ")[[1]]    # character(0)
+strsplit(" ", " ")[[1]]   # [1] ""
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

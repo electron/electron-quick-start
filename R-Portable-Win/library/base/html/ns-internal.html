@@ -1,0 +1,187 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Namespace Internals</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for ns-internals {base}"><tr><td>ns-internals {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Namespace Internals</h2>
+
+<h3>Description</h3>
+
+<p>Internal namespace support functions.  Not intended to be called
+directly, and only visible because of the special nature of the
+<span class="pkg">base</span> namespace.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+asNamespace(ns, base.OK = TRUE)
+getNamespaceInfo (ns, which)
+.getNamespaceInfo(ns, which)
+importIntoEnv(impenv, impnames, expenv, expnames)
+isBaseNamespace(ns)
+isNamespace(ns)
+namespaceExport(ns, vars)
+namespaceImport(self, ..., from = NULL, except = character(0L))
+namespaceImportFrom(self, ns, vars, generics, packages,
+                    from = "non-package environment",
+                    except = character(0L))
+namespaceImportClasses(self, ns, vars, from = NULL)
+namespaceImportMethods(self, ns, vars, from = NULL)
+packageHasNamespace(package, package.lib)
+parseNamespaceFile(package, package.lib, mustExist = TRUE)
+registerS3method(genname, class, method, envir = parent.frame())
+registerS3methods(info, package, env)
+setNamespaceInfo(ns, which, val)
+.mergeExportMethods(new, ns)
+.mergeImportMethods(impenv, expenv, metaname)
+.knownS3Generics
+loadingNamespaceInfo()
+.getNamespace(name)
+..getNamespace(name, where)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>ns</code></td>
+<td>
+<p>string or namespace environment.</p>
+</td></tr>
+<tr valign="top"><td><code>base.OK</code></td>
+<td>
+<p>logical.</p>
+</td></tr>
+<tr valign="top"><td><code>impenv</code></td>
+<td>
+<p>environment.</p>
+</td></tr>
+<tr valign="top"><td><code>expenv</code></td>
+<td>
+<p>namespace environment.</p>
+</td></tr>
+<tr valign="top"><td><code>vars</code></td>
+<td>
+<p>character vector.</p>
+</td></tr>
+<tr valign="top"><td><code>generics</code></td>
+<td>
+<p>optional character vector.</p>
+</td></tr>
+<tr valign="top"><td><code>self</code></td>
+<td>
+<p>namespace environment.</p>
+</td></tr>
+<tr valign="top"><td><code>package</code></td>
+<td>
+<p>string naming the package/namespace to load.</p>
+</td></tr>
+<tr valign="top"><td><code>packages</code></td>
+<td>
+<p>vector of package names parallel to <code>generics</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>package.lib</code></td>
+<td>
+<p>character vector specifying library.</p>
+</td></tr>
+<tr valign="top"><td><code>mustExist</code></td>
+<td>
+<p>logical.</p>
+</td></tr>
+<tr valign="top"><td><code>genname</code></td>
+<td>
+<p>character.</p>
+</td></tr>
+<tr valign="top"><td><code>class</code></td>
+<td>
+<p>character.</p>
+</td></tr>
+<tr valign="top"><td><code>envir, env</code></td>
+<td>
+<p>environment.</p>
+</td></tr>
+<tr valign="top"><td><code>info</code></td>
+<td>
+<p>a 3-column character matrix.</p>
+</td></tr>
+<tr valign="top"><td><code>which</code></td>
+<td>
+<p>character.</p>
+</td></tr>
+<tr valign="top"><td><code>val</code></td>
+<td>
+<p>any object.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>character arguments.</p>
+</td></tr>
+<tr valign="top"><td><code>metaname</code></td>
+<td>
+<p>the methods table name.</p>
+</td></tr>
+<tr valign="top"><td><code>name</code></td>
+<td>
+<p>symbol: name of namespace</p>
+</td></tr>
+<tr valign="top"><td><code>except</code></td>
+<td>
+<p>character vector naming symbols to exclude from the
+import, particularly useful when <code>vars</code> is missing.
+</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p><code>packageHasNamespace</code> does not indicate if the package has a
+namespace (all now do), rather if it has a &lsquo;<span class="file">NAMESPACE</span>&rsquo; file,
+which <span class="pkg">base</span> and some legacy packages do not.  But then you are
+not intended to be using it ....
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Luke Tierney and other members of the R Core Team.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="ns-load.html">loadNamespace</a></code> or <code><a href="ns-reflect.html">getNamespace</a></code> are somewhat
+higher level namespace related functions.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+nsName &lt;- "stats"
+(ns &lt;- asNamespace(nsName)) # &lt;environment: namespace:stats&gt;
+
+## Inverse function of asNamespace() :
+environmentName(asNamespace("stats")) # "stats"
+environmentName(asNamespace("base"))  # "base"
+getNamespaceInfo(ns, "spec")[["name"]] ## -&gt; "stats"
+
+
+## Only for for the daring ones, trying to get into the bowels :
+
+lsNamespaceInfo &lt;- function(ns, ...) {
+    ns &lt;- asNamespace(ns, base.OK = FALSE)
+    ls(..., envir = get(".__NAMESPACE__.", envir = ns, inherits = FALSE))
+}
+allinfoNS &lt;- function(ns) sapply(lsNamespaceInfo(ns), getNamespaceInfo, ns=ns)
+
+utils::str(allinfoNS("stats"))
+utils::str(allinfoNS("stats4"))
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

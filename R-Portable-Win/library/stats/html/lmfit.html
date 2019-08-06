@@ -1,0 +1,163 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Fitter Functions for Linear Models</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for lm.fit {stats}"><tr><td>lm.fit {stats}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Fitter Functions for Linear Models</h2>
+
+<h3>Description</h3>
+
+<p>These are the basic computing engines called by <code><a href="lm.html">lm</a></code> used
+to fit linear models.  These should usually <em>not</em> be used
+directly unless by experienced users.  <code>.lm.fit()</code> is bare bone
+wrapper to the innermost QR-based C code, on which
+<code><a href="glm.html">glm.fit</a></code> and <code><a href="lsfit.html">lsfit</a></code> are based as well, for
+even more experienced users.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+lm.fit (x, y,    offset = NULL, method = "qr", tol = 1e-7,
+       singular.ok = TRUE, ...)
+
+lm.wfit(x, y, w, offset = NULL, method = "qr", tol = 1e-7,
+        singular.ok = TRUE, ...)
+
+.lm.fit(x, y, tol = 1e-7)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>design matrix of dimension <code>n * p</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>y</code></td>
+<td>
+<p>vector of observations of length <code>n</code>, or a matrix with
+<code>n</code> rows.</p>
+</td></tr>
+<tr valign="top"><td><code>w</code></td>
+<td>
+<p>vector of weights (length <code>n</code>) to be used in the fitting
+process for the <code>wfit</code> functions.  Weighted least squares is
+used with weights <code>w</code>, i.e., <code>sum(w * e^2)</code> is minimized.</p>
+</td></tr>
+<tr valign="top"><td><code>offset</code></td>
+<td>
+<p>(numeric of length <code>n</code>).  This can be used to
+specify an <em>a priori</em> known component to be included in the
+linear predictor during fitting.</p>
+</td></tr>
+<tr valign="top"><td><code>method</code></td>
+<td>
+<p>currently, only <code>method = "qr"</code> is supported.</p>
+</td></tr>
+<tr valign="top"><td><code>tol</code></td>
+<td>
+<p>tolerance for the <code><a href="../../base/html/qr.html">qr</a></code> decomposition.  Default
+is 1e-7.</p>
+</td></tr>
+<tr valign="top"><td><code>singular.ok</code></td>
+<td>
+<p>logical. If <code>FALSE</code>, a singular model is an
+error.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>currently disregarded.</p>
+</td></tr>
+</table>
+
+
+<h3>Value</h3>
+
+<p>a <code><a href="../../base/html/list.html">list</a></code> with components (for <code>lm.fit</code> and <code>lm.wfit</code>)
+</p>
+<table summary="R valueblock">
+<tr valign="top"><td><code>coefficients</code></td>
+<td>
+<p><code>p</code> vector</p>
+</td></tr>
+<tr valign="top"><td><code>residuals</code></td>
+<td>
+<p><code>n</code> vector or matrix</p>
+</td></tr>
+<tr valign="top"><td><code>fitted.values</code></td>
+<td>
+<p><code>n</code> vector or matrix</p>
+</td></tr>
+<tr valign="top"><td><code>effects</code></td>
+<td>
+<p><code>n</code> vector of orthogonal single-df
+effects.  The first <code>rank</code> of them correspond to non-aliased
+coefficients, and are named accordingly.</p>
+</td></tr>
+<tr valign="top"><td><code>weights</code></td>
+<td>
+<p><code>n</code> vector &mdash; <em>only</em> for the <code>*wfit*</code>
+functions.</p>
+</td></tr>
+<tr valign="top"><td><code>rank</code></td>
+<td>
+<p>integer, giving the rank</p>
+</td></tr>
+<tr valign="top"><td><code>df.residual</code></td>
+<td>
+<p>degrees of freedom of residuals</p>
+</td></tr>
+<tr valign="top"><td><code>qr</code></td>
+<td>
+<p>the QR decomposition, see <code><a href="../../base/html/qr.html">qr</a></code>.</p>
+</td></tr>
+</table>
+<p>Fits without any columns or non-zero weights do not have the
+<code>effects</code> and <code>qr</code> components.
+</p>
+<p><code>.lm.fit()</code> returns a subset of the above, the <code>qr</code> part
+unwrapped, plus a logical component <code>pivoted</code> indicating if the
+underlying QR algorithm did pivot.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="lm.html">lm</a></code> which you should use for linear least squares regression,
+unless you know better.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+require(utils)
+
+set.seed(129)
+
+n &lt;- 7 ; p &lt;- 2
+X &lt;- matrix(rnorm(n * p), n, p) # no intercept!
+y &lt;- rnorm(n)
+w &lt;- rnorm(n)^2
+
+str(lmw &lt;- lm.wfit(x = X, y = y, w = w))
+
+str(lm. &lt;- lm.fit (x = X, y = y))
+
+
+if(require("microbenchmark")) {
+  mb &lt;- microbenchmark(lm(y~X), lm.fit(X,y), .lm.fit(X,y))
+  print(mb)
+  boxplot(mb, notch=TRUE)
+}
+
+
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>stats</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

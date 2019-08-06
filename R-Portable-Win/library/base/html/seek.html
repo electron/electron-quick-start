@@ -1,0 +1,138 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Functions to Reposition Connections</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for seek {base}"><tr><td>seek {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Functions to Reposition Connections</h2>
+
+<h3>Description</h3>
+
+<p>Functions to re-position connections.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+seek(con, ...)
+## S3 method for class 'connection'
+seek(con, where = NA, origin = "start", rw = "", ...)
+
+isSeekable(con)
+
+truncate(con, ...)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>con</code></td>
+<td>
+<p>a <a href="connections.html">connection</a>.</p>
+</td></tr>
+<tr valign="top"><td><code>where</code></td>
+<td>
+<p>numeric.  A file position (relative to the origin
+specified by <code>origin</code>), or <code>NA</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>rw</code></td>
+<td>
+<p>character string.  Empty or <code>"read"</code> or <code>"write"</code>,
+partial matches allowed.</p>
+</td></tr>
+<tr valign="top"><td><code>origin</code></td>
+<td>
+<p>character string.  One of <code>"start"</code>, <code>"current"</code>,
+<code>"end"</code>: see &lsquo;Details&rsquo;.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>further arguments passed to or from other methods.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p><code>seek</code> with <code>where = NA</code> returns the current byte offset
+of a connection (from the beginning), and with a non-missing <code>where</code>
+argument the connection is re-positioned (if possible) to the
+specified position.  <code>isSeekable</code> returns whether the connection
+in principle supports <code>seek</code>: currently only (possibly
+gz-compressed) file connections do.
+</p>
+<p><code>where</code> is stored as a real but should represent an integer:
+non-integer values are likely to be truncated.  Note that the possible
+values can exceed the largest representable number in an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>
+<code>integer</code> on 64-bit builds, and on some 32-bit builds.
+</p>
+<p>File connections can be open for both writing/appending, in which case
+<span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> keeps separate positions for reading and writing.  Which <code>seek</code>
+refers to can be set by its <code>rw</code> argument: the default is the
+last mode (reading or writing) which was used.  Most files are
+only opened for reading or writing and so default to that state.  If a
+file is open for both reading and writing but has not been used, the
+default is to give the reading position (0).
+</p>
+<p>The initial file position for reading is always at the beginning.
+The initial position for writing is at the beginning of the file
+for modes <code>"r+"</code> and <code>"r+b"</code>, otherwise at the end of the
+file.  Some platforms only allow writing at the end of the file in
+the append modes.  (The reported write position for a file opened in
+an append mode will typically be unreliable until the file has been
+written to.)
+</p>
+<p><code>gzfile</code> connections support <code>seek</code> with a number of
+limitations, using the file position of the uncompressed file.
+They do not support <code>origin = "end"</code>.  When writing, seeking is
+only possible forwards: when reading seeking backwards is supported by
+rewinding the file and re-reading from its start.
+</p>
+<p>If <code>seek</code> is called with a non-<code>NA</code> value of <code>where</code>,
+any pushback on a text-mode connection is discarded.
+</p>
+<p><code>truncate</code> truncates a file opened for writing at its current
+position.  It works only for <code>file</code> connections, and is not
+implemented on all platforms: on others (including Windows) it will
+not work for large (&gt; 2Gb) files.
+</p>
+<p>None of these should be expected to work on text-mode connections with
+re-encoding selected.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>seek</code> returns the current position (before any move), as a
+(numeric) byte offset from the origin, if relevant, or <code>0</code> if
+not.  Note that the position can exceed the largest representable
+number in an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> <code>integer</code> on 64-bit builds, and on some 32-bit
+builds.
+</p>
+<p><code>truncate</code> returns <code>NULL</code>: it stops with an error if
+it fails (or is not implemented).
+</p>
+<p><code>isSeekable</code> returns a logical value, whether the connection
+supports <code>seek</code>.
+</p>
+
+
+<h3>Warning</h3>
+
+<p>Use of <code>seek</code> on Windows is discouraged.  We have found so many
+errors in the Windows implementation of file positioning that users
+are advised to use it only at their own risk, and asked not to waste
+the <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> developers' time with bug reports on Windows' deficiencies.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="connections.html">connections</a></code>
+</p>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

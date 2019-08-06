@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+
+
+<title>Introduction to dplyr</title>
+
+
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css" data-origin="pandoc">
+a.sourceLine { display: inline-block; line-height: 1.25; }
+a.sourceLine { pointer-events: none; color: inherit; text-decoration: inherit; }
+a.sourceLine:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode { white-space: pre; position: relative; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+code.sourceCode { white-space: pre-wrap; }
+a.sourceLine { text-indent: -1em; padding-left: 1em; }
+}
+pre.numberSource a.sourceLine
+  { position: relative; left: -4em; }
+pre.numberSource a.sourceLine::before
+  { content: attr(title);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; pointer-events: all; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {  }
+@media screen {
+a.sourceLine::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    for (var j = 0; j < rules.length; j++) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") continue;
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' || rule.style.backgroundColor === '') continue;
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#header {
+text-align: center;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Introduction to dplyr</h1>
+
+
+
+<p>When working with data you must:</p>
+<ul>
+<li><p>Figure out what you want to do.</p></li>
+<li><p>Describe those tasks in the form of a computer program.</p></li>
+<li><p>Execute the program.</p></li>
+</ul>
+<p>The dplyr package makes these steps fast and easy:</p>
+<ul>
+<li><p>By constraining your options, it helps you think about your data manipulation challenges.</p></li>
+<li><p>It provides simple “verbs”, functions that correspond to the most common data manipulation tasks, to help you translate your thoughts into code.</p></li>
+<li><p>It uses efficient backends, so you spend less time waiting for the computer.</p></li>
+</ul>
+<p>This document introduces you to dplyr’s basic set of tools, and shows you how to apply them to data frames. dplyr also supports databases via the dbplyr package, once you’ve installed, read <code>vignette(&quot;dbplyr&quot;)</code> to learn more.</p>
+<div id="data-nycflights13" class="section level2">
+<h2>Data: nycflights13</h2>
+<p>To explore the basic data manipulation verbs of dplyr, we’ll use <code>nycflights13::flights</code>. This dataset contains all 336776 flights that departed from New York City in 2013. The data comes from the US <a href="http://www.transtats.bts.gov/DatabaseInfo.asp?DB_ID=120&amp;Link=0">Bureau of Transportation Statistics</a>, and is documented in <code>?nycflights13</code></p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" title="1"><span class="kw">library</span>(nycflights13)</a>
+<a class="sourceLine" id="cb1-2" title="2"><span class="kw">dim</span>(flights)</a>
+<a class="sourceLine" id="cb1-3" title="3"><span class="co">#&gt; [1] 336776     19</span></a>
+<a class="sourceLine" id="cb1-4" title="4">flights</a>
+<a class="sourceLine" id="cb1-5" title="5"><span class="co">#&gt; # A tibble: 336,776 x 19</span></a>
+<a class="sourceLine" id="cb1-6" title="6"><span class="co">#&gt;    year month   day dep_time sched_dep_time dep_delay arr_time</span></a>
+<a class="sourceLine" id="cb1-7" title="7"><span class="co">#&gt;   &lt;int&gt; &lt;int&gt; &lt;int&gt;    &lt;int&gt;          &lt;int&gt;     &lt;dbl&gt;    &lt;int&gt;</span></a>
+<a class="sourceLine" id="cb1-8" title="8"><span class="co">#&gt; 1  2013     1     1      517            515         2      830</span></a>
+<a class="sourceLine" id="cb1-9" title="9"><span class="co">#&gt; 2  2013     1     1      533            529         4      850</span></a>
+<a class="sourceLine" id="cb1-10" title="10"><span class="co">#&gt; 3  2013     1     1      542            540         2      923</span></a>
+<a class="sourceLine" id="cb1-11" title="11"><span class="co">#&gt; 4  2013     1     1      544            545        -1     1004</span></a>
+<a class="sourceLine" id="cb1-12" title="12"><span class="co">#&gt; # … with 336,772 more rows, and 12 more variables: sched_arr_time &lt;int&gt;,</span></a>
+<a class="sourceLine" id="cb1-13" title="13"><span class="co">#&gt; #   arr_delay &lt;dbl&gt;, carrier &lt;chr&gt;, flight &lt;int&gt;, tailnum &lt;chr&gt;,</span></a>
+<a class="sourceLine" id="cb1-14" title="14"><span class="co">#&gt; #   origin &lt;chr&gt;, dest &lt;chr&gt;, air_time &lt;dbl&gt;, distance &lt;dbl&gt;, hour &lt;dbl&gt;,</span></a>
+<a class="sourceLine" id="cb1-15" title="15"><span class="co">#&gt; #   minute &lt;dbl&gt;, time_hour &lt;dttm&gt;</span></a></code></pre></div>
+<p>Note that <code>nycflights13::flights</code> is a tibble, a modern reimagining of the data frame. It’s particularly useful for large datasets because it only prints the first few rows. You can learn more about tibbles at <a href="http://tibble.tidyverse.org" class="uri">http://tibble.tidyverse.org</a>; in particular you can convert data frames to tibbles with <code>as_tibble()</code>.</p>
+</div>
+<div id="single-table-verbs" class="section level2">
+<h2>Single table verbs</h2>
+<p>Dplyr aims to provide a function for each basic verb of data manipulation:</p>
+<ul>
+<li><code>filter()</code> to select cases based on their values.</li>
+<li><code>arrange()</code> to reorder the cases.</li>
+<li><code>select()</code> and <code>rename()</code> to select variables based on their names.</li>
+<li><code>mutate()</code> and <code>transmute()</code> to add new variables that are functions of existing variables.</li>
+<li><code>summarise()</code> to condense multiple values to a single value.</li>
+<li><code>sample_n()</code> and <code>sample_frac()</code> to take random samples.</li>
+</ul>
+<div id="filter-rows-with-filter" class="section level3">
+<h3>Filter rows with <code>filter()</code></h3>
+<p><code>filter()</code> allows you to select a subset of rows in a data frame. Like all single verbs, the first argument is the tibble (or data frame). The second and subsequent arguments refer to variables within that data frame, selecting rows where the expression is <code>TRUE</code>.</p>
+<p>For example, we can select all flights on January 1st with:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb2-1" title="1"><span class="kw">filter</span>(flights, month <span class="op">==</span><span class="st"> </span><span class="dv">1</span>, day <span class="op">==</span><span class="st"> </span><span class="dv">1</span>)</a>
+<a class="sourceLine" id="cb2-2" title="2"><span class="co">#&gt; # A tibble: 842 x 19</span></a>
+<a class="sourceLine" id="cb2-3" title="3"><span class="co">#&gt;    year month   day dep_time sched_dep_time dep_delay arr_time</span></a>
+<a class="sourceLine" id="cb2-4" title="4"><span class="co">#&gt;   &lt;int&gt; &lt;int&gt; &lt;int&gt;    &lt;int&gt;          &lt;int&gt;     &lt;dbl&gt;    &lt;int&gt;</span></a>
+<a class="sourceLine" id="cb2-5" title="5"><span class="co">#&gt; 1  2013     1     1      517            515         2      830</span></a>
+<a class="sourceLine" id="cb2-6" title="6"><span class="co">#&gt; 2  2013     1     1      533            529         4      850</span></a>
+<a class="sourceLine" id="cb2-7" title="7"><span class="co">#&gt; 3  2013     1     1      542            540         2      923</span></a>
+<a class="sourceLine" id="cb2-8" title="8"><span class="co">#&gt; 4  2013     1     1      544            545        -1     1004</span></a>
+<a class="sourceLine" id="cb2-9" title="9"><span class="co">#&gt; # … with 838 more rows, and 12 more variables: sched_arr_time &lt;int&gt;,</span></a>
+<a class="sourceLine" id="cb2-10" title="10"><span class="co">#&gt; #   arr_delay &lt;dbl&gt;, carrier &lt;chr&gt;, flight &lt;int&gt;, tailnum &lt;chr&gt;,</span></a>
+<a class="sourceLine" id="cb2-11" title="11"><span class="co">#&gt; #   origin &lt;chr&gt;, dest &lt;chr&gt;, air_time &lt;dbl&gt;, distance &lt;dbl&gt;, hour &lt;dbl&gt;,</span></a>
+<a class="sourceLine" id="cb2-12" title="12"><span class="co">#&gt; #   minute &lt;dbl&gt;, time_hour &lt;dttm&gt;</span></a></code></pre></div>
+<p>This is rougly equivalent to this base R code:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb3-1" title="1">flights[flights<span class="op">$</span>month <span class="op">==</span><span class="st"> </span><span class="dv">1</span> <span class="op">&amp;</span><span class="st"> </span>flights<span class="op">$</span>day <span class="op">==</span><span class="st"> </span><span class="dv">1</span>, ]</a></code></pre></div>
+</div>
+<div id="arrange-rows-with-arrange" class="section level3">
+<h3>Arrange rows with <code>arrange()</code></h3>
+<p><code>arrange()</code> works similarly to <code>filter()</code> except that instead of filtering or selecting rows, it reorders them. It takes a data frame, and a set of column names (or more complicated expressions) to order by. If you provide more than one column name, each additional column will be used to break ties in the values of preceding columns:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb4-1" title="1"><span class="kw">arrange</span>(flights, year, month, day)</a>
+<a class="sourceLine" id="cb4-2" title="2"><span class="co">#&gt; # A tibble: 336,776 x 19</span></a>
+<a class="sourceLine" id="cb4-3" title="3"><span class="co">#&gt;    year month   day dep_time sched_dep_time dep_delay arr_time</span></a>
+<a class="sourceLine" id="cb4-4" title="4"><span class="co">#&gt;   &lt;int&gt; &lt;int&gt; &lt;int&gt;    &lt;int&gt;          &lt;int&gt;     &lt;dbl&gt;    &lt;int&gt;</span></a>
+<a class="sourceLine" id="cb4-5" title="5"><span class="co">#&gt; 1  2013     1     1      517            515         2      830</span></a>
+<a class="sourceLine" id="cb4-6" title="6"><span class="co">#&gt; 2  2013     1     1      533            529         4      850</span></a>
+<a class="sourceLine" id="cb4-7" title="7"><span class="co">#&gt; 3  2013     1     1      542            540         2      923</span></a>
+<a class="sourceLine" id="cb4-8" title="8"><span class="co">#&gt; 4  2013     1     1      544            545        -1     1004</span></a>
+<a class="sourceLine" id="cb4-9" title="9"><span class="co">#&gt; # … with 336,772 more rows, and 12 more variables: sched_arr_time &lt;int&gt;,</span></a>
+<a class="sourceLine" id="cb4-10" title="10"><span class="co">#&gt; #   arr_delay &lt;dbl&gt;, carrier &lt;chr&gt;, flight &lt;int&gt;, tailnum &lt;chr&gt;,</span></a>
+<a class="sourceLine" id="cb4-11" title="11"><span class="co">#&gt; #   origin &lt;chr&gt;, dest &lt;chr&gt;, air_time &lt;dbl&gt;, distance &lt;dbl&gt;, hour &lt;dbl&gt;,</span></a>
+<a class="sourceLine" id="cb4-12" title="12"><span class="co">#&gt; #   minute &lt;dbl&gt;, time_hour &lt;dttm&gt;</span></a></code></pre></div>
+<p>Use <code>desc()</code> to order a column in descending order:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb5-1" title="1"><span class="kw">arrange</span>(flights, <span class="kw">desc</span>(arr_delay))</a>
+<a class="sourceLine" id="cb5-2" title="2"><span class="co">#&gt; # A tibble: 336,776 x 19</span></a>
+<a class="sourceLine" id="cb5-3" title="3"><span class="co">#&gt;    year month   day dep_time sched_dep_time dep_delay arr_time</span></a>
+<a class="sourceLine" id="cb5-4" title="4"><span class="co">#&gt;   &lt;int&gt; &lt;int&gt; &lt;int&gt;    &lt;int&gt;          &lt;int&gt;     &lt;dbl&gt;    &lt;int&gt;</span></a>
+<a class="sourceLine" id="cb5-5" title="5"><span class="co">#&gt; 1  2013     1     9      641            900      1301     1242</span></a>
+<a class="sourceLine" id="cb5-6" title="6"><span class="co">#&gt; 2  2013     6    15     1432           1935      1137     1607</span></a>
+<a class="sourceLine" id="cb5-7" title="7"><span class="co">#&gt; 3  2013     1    10     1121           1635      1126     1239</span></a>
+<a class="sourceLine" id="cb5-8" title="8"><span class="co">#&gt; 4  2013     9    20     1139           1845      1014     1457</span></a>
+<a class="sourceLine" id="cb5-9" title="9"><span class="co">#&gt; # … with 336,772 more rows, and 12 more variables: sched_arr_time &lt;int&gt;,</span></a>
+<a class="sourceLine" id="cb5-10" title="10"><span class="co">#&gt; #   arr_delay &lt;dbl&gt;, carrier &lt;chr&gt;, flight &lt;int&gt;, tailnum &lt;chr&gt;,</span></a>
+<a class="sourceLine" id="cb5-11" title="11"><span class="co">#&gt; #   origin &lt;chr&gt;, dest &lt;chr&gt;, air_time &lt;dbl&gt;, distance &lt;dbl&gt;, hour &lt;dbl&gt;,</span></a>
+<a class="sourceLine" id="cb5-12" title="12"><span class="co">#&gt; #   minute &lt;dbl&gt;, time_hour &lt;dttm&gt;</span></a></code></pre></div>
+</div>
+<div id="select-columns-with-select" class="section level3">
+<h3>Select columns with <code>select()</code></h3>
+<p>Often you work with large datasets with many columns but only a few are actually of interest to you. <code>select()</code> allows you to rapidly zoom in on a useful subset using operations that usually only work on numeric variable positions:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb6-1" title="1"><span class="co"># Select columns by name</span></a>
+<a class="sourceLine" id="cb6-2" title="2"><span class="kw">select</span>(flights, year, month, day)</a>
+<a class="sourceLine" id="cb6-3" title="3"><span class="co">#&gt; # A tibble: 336,776 x 3</span></a>
+<a class="sourceLine" id="cb6-4" title="4"><span class="co">#&gt;    year month   day</span></a>
+<a class="sourceLine" id="cb6-5" title="5"><span class="co">#&gt;   &lt;int&gt; &lt;int&gt; &lt;int&gt;</span></a>
+<a class="sourceLine" id="cb6-6" title="6"><span class="co">#&gt; 1  2013     1     1</span></a>
+<a class="sourceLine" id="cb6-7" title="7"><span class="co">#&gt; 2  2013     1     1</span></a>
+<a class="sourceLine" id="cb6-8" title="8"><span class="co">#&gt; 3  2013     1     1</span></a>
+<a class="sourceLine" id="cb6-9" title="9"><span class="co">#&gt; 4  2013     1     1</span></a>
+<a class="sourceLine" id="cb6-10" title="10"><span class="co">#&gt; # … with 336,772 more rows</span></a>
+<a class="sourceLine" id="cb6-11" title="11"><span class="co"># Select all columns between year and day (inclusive)</span></a>
+<a class="sourceLine" id="cb6-12" title="12"><span class="kw">select</span>(flights, year<span class="op">:</span>day)</a>
+<a class="sourceLine" id="cb6-13" title="13"><span class="co">#&gt; # A tibble: 336,776 x 3</span></a>
+<a class="sourceLine" id="cb6-14" title="14"><span class="co">#&gt;    year month   day</span></a>
+<a class="sourceLine" id="cb6-15" title="15"><span class="co">#&gt;   &lt;int&gt; &lt;int&gt; &lt;int&gt;</span></a>
+<a class="sourceLine" id="cb6-16" title="16"><span class="co">#&gt; 1  2013     1     1</span></a>
+<a class="sourceLine" id="cb6-17" title="17"><span class="co">#&gt; 2  2013     1     1</span></a>
+<a class="sourceLine" id="cb6-18" title="18"><span class="co">#&gt; 3  2013     1     1</span></a>
+<a class="sourceLine" id="cb6-19" title="19"><span class="co">#&gt; 4  2013     1     1</span></a>
+<a class="sourceLine" id="cb6-20" title="20"><span class="co">#&gt; # … with 336,772 more rows</span></a>
+<a class="sourceLine" id="cb6-21" title="21"><span class="co"># Select all columns except those from year to day (inclusive)</span></a>
+<a class="sourceLine" id="cb6-22" title="22"><span class="kw">select</span>(flights, <span class="op">-</span>(year<span class="op">:</span>day))</a>
+<a class="sourceLine" id="cb6-23" title="23"><span class="co">#&gt; # A tibble: 336,776 x 16</span></a>
+<a class="sourceLine" id="cb6-24" title="24"><span class="co">#&gt;   dep_time sched_dep_time dep_delay arr_time sched_arr_time arr_delay</span></a>
+<a class="sourceLine" id="cb6-25" title="25"><span class="co">#&gt;      &lt;int&gt;          &lt;int&gt;     &lt;dbl&gt;    &lt;int&gt;          &lt;int&gt;     &lt;dbl&gt;</span></a>
+<a class="sourceLine" id="cb6-26" title="26"><span class="co">#&gt; 1      517            515         2      830            819        11</span></a>
+<a class="sourceLine" id="cb6-27" title="27"><span class="co">#&gt; 2      533            529         4      850            830        20</span></a>
+<a class="sourceLine" id="cb6-28" title="28"><span class="co">#&gt; 3      542            540         2      923            850        33</span></a>
+<a class="sourceLine" id="cb6-29" title="29"><span class="co">#&gt; 4      544            545        -1     1004           1022       -18</span></a>
+<a class="sourceLine" id="cb6-30" title="30"><span class="co">#&gt; # … with 336,772 more rows, and 10 more variables: carrier &lt;chr&gt;,</span></a>
+<a class="sourceLine" id="cb6-31" title="31"><span class="co">#&gt; #   flight &lt;int&gt;, tailnum &lt;chr&gt;, origin &lt;chr&gt;, dest &lt;chr&gt;, air_time &lt;dbl&gt;,</span></a>
+<a class="sourceLine" id="cb6-32" title="32"><span class="co">#&gt; #   distance &lt;dbl&gt;, hour &lt;dbl&gt;, minute &lt;dbl&gt;, time_hour &lt;dttm&gt;</span></a></code></pre></div>
+<p>There are a number of helper functions you can use within <code>select()</code>, like <code>starts_with()</code>, <code>ends_with()</code>, <code>matches()</code> and <code>contains()</code>. These let you quickly match larger blocks of variables that meet some criterion. See <code>?select</code> for more details.</p>
+<p>You can rename variables with <code>select()</code> by using named arguments:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb7-1" title="1"><span class="kw">select</span>(flights, <span class="dt">tail_num =</span> tailnum)</a>
+<a class="sourceLine" id="cb7-2" title="2"><span class="co">#&gt; # A tibble: 336,776 x 1</span></a>
+<a class="sourceLine" id="cb7-3" title="3"><span class="co">#&gt;   tail_num</span></a>
+<a class="sourceLine" id="cb7-4" title="4"><span class="co">#&gt;   &lt;chr&gt;   </span></a>
+<a class="sourceLine" id="cb7-5" title="5"><span class="co">#&gt; 1 N14228  </span></a>
+<a class="sourceLine" id="cb7-6" title="6"><span class="co">#&gt; 2 N24211  </span></a>
+<a class="sourceLine" id="cb7-7" title="7"><span class="co">#&gt; 3 N619AA  </span></a>
+<a class="sourceLine" id="cb7-8" title="8"><span class="co">#&gt; 4 N804JB  </span></a>
+<a class="sourceLine" id="cb7-9" title="9"><span class="co">#&gt; # … with 336,772 more rows</span></a></code></pre></div>
+<p>But because <code>select()</code> drops all the variables not explicitly mentioned, it’s not that useful. Instead, use <code>rename()</code>:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb8-1" title="1"><span class="kw">rename</span>(flights, <span class="dt">tail_num =</span> tailnum)</a>
+<a class="sourceLine" id="cb8-2" title="2"><span class="co">#&gt; # A tibble: 336,776 x 19</span></a>
+<a class="sourceLine" id="cb8-3" title="3"><span class="co">#&gt;    year month   day dep_time sched_dep_time dep_delay arr_time</span></a>
+<a class="sourceLine" id="cb8-4" title="4"><span class="co">#&gt;   &lt;int&gt; &lt;int&gt; &lt;int&gt;    &lt;int&gt;          &lt;int&gt;     &lt;dbl&gt;    &lt;int&gt;</span></a>
+<a class="sourceLine" id="cb8-5" title="5"><span class="co">#&gt; 1  2013     1     1      517            515         2      830</span></a>
+<a class="sourceLine" id="cb8-6" title="6"><span class="co">#&gt; 2  2013     1     1      533            529         4      850</span></a>
+<a class="sourceLine" id="cb8-7" title="7"><span class="co">#&gt; 3  2013     1     1      542            540         2      923</span></a>
+<a class="sourceLine" id="cb8-8" title="8"><span class="co">#&gt; 4  2013     1     1      544            545        -1     1004</span></a>
+<a class="sourceLine" id="cb8-9" title="9"><span class="co">#&gt; # … with 336,772 more rows, and 12 more variables: sched_arr_time &lt;int&gt;,</span></a>
+<a class="sourceLine" id="cb8-10" title="10"><span class="co">#&gt; #   arr_delay &lt;dbl&gt;, carrier &lt;chr&gt;, flight &lt;int&gt;, tail_num &lt;chr&gt;,</span></a>
+<a class="sourceLine" id="cb8-11" title="11"><span class="co">#&gt; #   origin &lt;chr&gt;, dest &lt;chr&gt;, air_time &lt;dbl&gt;, distance &lt;dbl&gt;, hour &lt;dbl&gt;,</span></a>
+<a class="sourceLine" id="cb8-12" title="12"><span class="co">#&gt; #   minute &lt;dbl&gt;, time_hour &lt;dttm&gt;</span></a></code></pre></div>
+</div>
+<div id="add-new-columns-with-mutate" class="section level3">
+<h3>Add new columns with <code>mutate()</code></h3>
+<p>Besides selecting sets of existing columns, it’s often useful to add new columns that are functions of existing columns. This is the job of <code>mutate()</code>:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb9-1" title="1"><span class="kw">mutate</span>(flights,</a>
+<a class="sourceLine" id="cb9-2" title="2">  <span class="dt">gain =</span> arr_delay <span class="op">-</span><span class="st"> </span>dep_delay,</a>
+<a class="sourceLine" id="cb9-3" title="3">  <span class="dt">speed =</span> distance <span class="op">/</span><span class="st"> </span>air_time <span class="op">*</span><span class="st"> </span><span class="dv">60</span></a>
+<a class="sourceLine" id="cb9-4" title="4">)</a>
+<a class="sourceLine" id="cb9-5" title="5"><span class="co">#&gt; # A tibble: 336,776 x 21</span></a>
+<a class="sourceLine" id="cb9-6" title="6"><span class="co">#&gt;    year month   day dep_time sched_dep_time dep_delay arr_time</span></a>
+<a class="sourceLine" id="cb9-7" title="7"><span class="co">#&gt;   &lt;int&gt; &lt;int&gt; &lt;int&gt;    &lt;int&gt;          &lt;int&gt;     &lt;dbl&gt;    &lt;int&gt;</span></a>
+<a class="sourceLine" id="cb9-8" title="8"><span class="co">#&gt; 1  2013     1     1      517            515         2      830</span></a>
+<a class="sourceLine" id="cb9-9" title="9"><span class="co">#&gt; 2  2013     1     1      533            529         4      850</span></a>
+<a class="sourceLine" id="cb9-10" title="10"><span class="co">#&gt; 3  2013     1     1      542            540         2      923</span></a>
+<a class="sourceLine" id="cb9-11" title="11"><span class="co">#&gt; 4  2013     1     1      544            545        -1     1004</span></a>
+<a class="sourceLine" id="cb9-12" title="12"><span class="co">#&gt; # … with 336,772 more rows, and 14 more variables: sched_arr_time &lt;int&gt;,</span></a>
+<a class="sourceLine" id="cb9-13" title="13"><span class="co">#&gt; #   arr_delay &lt;dbl&gt;, carrier &lt;chr&gt;, flight &lt;int&gt;, tailnum &lt;chr&gt;,</span></a>
+<a class="sourceLine" id="cb9-14" title="14"><span class="co">#&gt; #   origin &lt;chr&gt;, dest &lt;chr&gt;, air_time &lt;dbl&gt;, distance &lt;dbl&gt;, hour &lt;dbl&gt;,</span></a>
+<a class="sourceLine" id="cb9-15" title="15"><span class="co">#&gt; #   minute &lt;dbl&gt;, time_hour &lt;dttm&gt;, gain &lt;dbl&gt;, speed &lt;dbl&gt;</span></a></code></pre></div>
+<p><code>dplyr::mutate()</code> is similar to the base <code>transform()</code>, but allows you to refer to columns that you’ve just created:</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb10-1" title="1"><span class="kw">mutate</span>(flights,</a>
+<a class="sourceLine" id="cb10-2" title="2">  <span class="dt">gain =</span> arr_delay <span class="op">-</span><span class="st"> </span>dep_delay,</a>
+<a class="sourceLine" id="cb10-3" title="3">  <span class="dt">gain_per_hour =</span> gain <span class="op">/</span><span class="st"> </span>(air_time <span class="op">/</span><span class="st"> </span><span class="dv">60</span>)</a>
+<a class="sourceLine" id="cb10-4" title="4">)</a>
+<a class="sourceLine" id="cb10-5" title="5"><span class="co">#&gt; # A tibble: 336,776 x 21</span></a>
+<a class="sourceLine" id="cb10-6" title="6"><span class="co">#&gt;    year month   day dep_time sched_dep_time dep_delay arr_time</span></a>
+<a class="sourceLine" id="cb10-7" title="7"><span class="co">#&gt;   &lt;int&gt; &lt;int&gt; &lt;int&gt;    &lt;int&gt;          &lt;int&gt;     &lt;dbl&gt;    &lt;int&gt;</span></a>
+<a class="sourceLine" id="cb10-8" title="8"><span class="co">#&gt; 1  2013     1     1      517            515         2      830</span></a>
+<a class="sourceLine" id="cb10-9" title="9"><span class="co">#&gt; 2  2013     1     1      533            529         4      850</span></a>
+<a class="sourceLine" id="cb10-10" title="10"><span class="co">#&gt; 3  2013     1     1      542            540         2      923</span></a>
+<a class="sourceLine" id="cb10-11" title="11"><span class="co">#&gt; 4  2013     1     1      544            545        -1     1004</span></a>
+<a class="sourceLine" id="cb10-12" title="12"><span class="co">#&gt; # … with 336,772 more rows, and 14 more variables: sched_arr_time &lt;int&gt;,</span></a>
+<a class="sourceLine" id="cb10-13" title="13"><span class="co">#&gt; #   arr_delay &lt;dbl&gt;, carrier &lt;chr&gt;, flight &lt;int&gt;, tailnum &lt;chr&gt;,</span></a>
+<a class="sourceLine" id="cb10-14" title="14"><span class="co">#&gt; #   origin &lt;chr&gt;, dest &lt;chr&gt;, air_time &lt;dbl&gt;, distance &lt;dbl&gt;, hour &lt;dbl&gt;,</span></a>
+<a class="sourceLine" id="cb10-15" title="15"><span class="co">#&gt; #   minute &lt;dbl&gt;, time_hour &lt;dttm&gt;, gain &lt;dbl&gt;, gain_per_hour &lt;dbl&gt;</span></a></code></pre></div>
+<p>If you only want to keep the new variables, use <code>transmute()</code>:</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb11-1" title="1"><span class="kw">transmute</span>(flights,</a>
+<a class="sourceLine" id="cb11-2" title="2">  <span class="dt">gain =</span> arr_delay <span class="op">-</span><span class="st"> </span>dep_delay,</a>
+<a class="sourceLine" id="cb11-3" title="3">  <span class="dt">gain_per_hour =</span> gain <span class="op">/</span><span class="st"> </span>(air_time <span class="op">/</span><span class="st"> </span><span class="dv">60</span>)</a>
+<a class="sourceLine" id="cb11-4" title="4">)</a>
+<a class="sourceLine" id="cb11-5" title="5"><span class="co">#&gt; # A tibble: 336,776 x 2</span></a>
+<a class="sourceLine" id="cb11-6" title="6"><span class="co">#&gt;    gain gain_per_hour</span></a>
+<a class="sourceLine" id="cb11-7" title="7"><span class="co">#&gt;   &lt;dbl&gt;         &lt;dbl&gt;</span></a>
+<a class="sourceLine" id="cb11-8" title="8"><span class="co">#&gt; 1     9          2.38</span></a>
+<a class="sourceLine" id="cb11-9" title="9"><span class="co">#&gt; 2    16          4.23</span></a>
+<a class="sourceLine" id="cb11-10" title="10"><span class="co">#&gt; 3    31         11.6 </span></a>
+<a class="sourceLine" id="cb11-11" title="11"><span class="co">#&gt; 4   -17         -5.57</span></a>
+<a class="sourceLine" id="cb11-12" title="12"><span class="co">#&gt; # … with 336,772 more rows</span></a></code></pre></div>
+</div>
+<div id="summarise-values-with-summarise" class="section level3">
+<h3>Summarise values with <code>summarise()</code></h3>
+<p>The last verb is <code>summarise()</code>. It collapses a data frame to a single row.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb12-1" title="1"><span class="kw">summarise</span>(flights,</a>
+<a class="sourceLine" id="cb12-2" title="2">  <span class="dt">delay =</span> <span class="kw">mean</span>(dep_delay, <span class="dt">na.rm =</span> <span class="ot">TRUE</span>)</a>
+<a class="sourceLine" id="cb12-3" title="3">)</a>
+<a class="sourceLine" id="cb12-4" title="4"><span class="co">#&gt; # A tibble: 1 x 1</span></a>
+<a class="sourceLine" id="cb12-5" title="5"><span class="co">#&gt;   delay</span></a>
+<a class="sourceLine" id="cb12-6" title="6"><span class="co">#&gt;   &lt;dbl&gt;</span></a>
+<a class="sourceLine" id="cb12-7" title="7"><span class="co">#&gt; 1  12.6</span></a></code></pre></div>
+<p>It’s not that useful until we learn the <code>group_by()</code> verb below.</p>
+</div>
+<div id="randomly-sample-rows-with-sample_n-and-sample_frac" class="section level3">
+<h3>Randomly sample rows with <code>sample_n()</code> and <code>sample_frac()</code></h3>
+<p>You can use <code>sample_n()</code> and <code>sample_frac()</code> to take a random sample of rows: use <code>sample_n()</code> for a fixed number and <code>sample_frac()</code> for a fixed fraction.</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb13-1" title="1"><span class="kw">sample_n</span>(flights, <span class="dv">10</span>)</a>
+<a class="sourceLine" id="cb13-2" title="2"><span class="co">#&gt; # A tibble: 10 x 19</span></a>
+<a class="sourceLine" id="cb13-3" title="3"><span class="co">#&gt;    year month   day dep_time sched_dep_time dep_delay arr_time</span></a>
+<a class="sourceLine" id="cb13-4" title="4"><span class="co">#&gt;   &lt;int&gt; &lt;int&gt; &lt;int&gt;    &lt;int&gt;          &lt;int&gt;     &lt;dbl&gt;    &lt;int&gt;</span></a>
+<a class="sourceLine" id="cb13-5" title="5"><span class="co">#&gt; 1  2013     9     9     1440           1429        11     1649</span></a>
+<a class="sourceLine" id="cb13-6" title="6"><span class="co">#&gt; 2  2013     5    15     1427           1429        -2     1728</span></a>
+<a class="sourceLine" id="cb13-7" title="7"><span class="co">#&gt; 3  2013     8    14     1121           1120         1     1228</span></a>
+<a class="sourceLine" id="cb13-8" title="8"><span class="co">#&gt; 4  2013     8     4     1448           1429        19     1657</span></a>
+<a class="sourceLine" id="cb13-9" title="9"><span class="co">#&gt; # … with 6 more rows, and 12 more variables: sched_arr_time &lt;int&gt;,</span></a>
+<a class="sourceLine" id="cb13-10" title="10"><span class="co">#&gt; #   arr_delay &lt;dbl&gt;, carrier &lt;chr&gt;, flight &lt;int&gt;, tailnum &lt;chr&gt;,</span></a>
+<a class="sourceLine" id="cb13-11" title="11"><span class="co">#&gt; #   origin &lt;chr&gt;, dest &lt;chr&gt;, air_time &lt;dbl&gt;, distance &lt;dbl&gt;, hour &lt;dbl&gt;,</span></a>
+<a class="sourceLine" id="cb13-12" title="12"><span class="co">#&gt; #   minute &lt;dbl&gt;, time_hour &lt;dttm&gt;</span></a>
+<a class="sourceLine" id="cb13-13" title="13"><span class="kw">sample_frac</span>(flights, <span class="fl">0.01</span>)</a>
+<a class="sourceLine" id="cb13-14" title="14"><span class="co">#&gt; # A tibble: 3,368 x 19</span></a>
+<a class="sourceLine" id="cb13-15" title="15"><span class="co">#&gt;    year month   day dep_time sched_dep_time dep_delay arr_time</span></a>
+<a class="sourceLine" id="cb13-16" title="16"><span class="co">#&gt;   &lt;int&gt; &lt;int&gt; &lt;int&gt;    &lt;int&gt;          &lt;int&gt;     &lt;dbl&gt;    &lt;int&gt;</span></a>
+<a class="sourceLine" id="cb13-17" title="17"><span class="co">#&gt; 1  2013    11     7     1855           1900        -5     2238</span></a>
+<a class="sourceLine" id="cb13-18" title="18"><span class="co">#&gt; 2  2013     3    10     1930           1935        -5     2213</span></a>
+<a class="sourceLine" id="cb13-19" title="19"><span class="co">#&gt; 3  2013     2    22     1622           1615         7     1820</span></a>
+<a class="sourceLine" id="cb13-20" title="20"><span class="co">#&gt; 4  2013     8     9      602            605        -3      744</span></a>
+<a class="sourceLine" id="cb13-21" title="21"><span class="co">#&gt; # … with 3,364 more rows, and 12 more variables: sched_arr_time &lt;int&gt;,</span></a>
+<a class="sourceLine" id="cb13-22" title="22"><span class="co">#&gt; #   arr_delay &lt;dbl&gt;, carrier &lt;chr&gt;, flight &lt;int&gt;, tailnum &lt;chr&gt;,</span></a>
+<a class="sourceLine" id="cb13-23" title="23"><span class="co">#&gt; #   origin &lt;chr&gt;, dest &lt;chr&gt;, air_time &lt;dbl&gt;, distance &lt;dbl&gt;, hour &lt;dbl&gt;,</span></a>
+<a class="sourceLine" id="cb13-24" title="24"><span class="co">#&gt; #   minute &lt;dbl&gt;, time_hour &lt;dttm&gt;</span></a></code></pre></div>
+<p>Use <code>replace = TRUE</code> to perform a bootstrap sample. If needed, you can weight the sample with the <code>weight</code> argument.</p>
+</div>
+<div id="commonalities" class="section level3">
+<h3>Commonalities</h3>
+<p>You may have noticed that the syntax and function of all these verbs are very similar:</p>
+<ul>
+<li><p>The first argument is a data frame.</p></li>
+<li><p>The subsequent arguments describe what to do with the data frame. You can refer to columns in the data frame directly without using <code>$</code>.</p></li>
+<li><p>The result is a new data frame</p></li>
+</ul>
+<p>Together these properties make it easy to chain together multiple simple steps to achieve a complex result.</p>
+<p>These five functions provide the basis of a language of data manipulation. At the most basic level, you can only alter a tidy data frame in five useful ways: you can reorder the rows (<code>arrange()</code>), pick observations and variables of interest (<code>filter()</code> and <code>select()</code>), add new variables that are functions of existing variables (<code>mutate()</code>), or collapse many values to a summary (<code>summarise()</code>). The remainder of the language comes from applying the five functions to different types of data. For example, I’ll discuss how these functions work with grouped data.</p>
+</div>
+</div>
+<div id="patterns-of-operations" class="section level2">
+<h2>Patterns of operations</h2>
+<p>The dplyr verbs can be classified by the type of operations they accomplish (we sometimes speak of their <strong>semantics</strong>, i.e., their meaning). The most important and useful distinction is between grouped and ungrouped operations. In addition, it is helpful to have a good grasp of the difference between select and mutate operations.</p>
+<div id="grouped-operations" class="section level3">
+<h3>Grouped operations</h3>
+<p>The dplyr verbs are useful on their own, but they become even more powerful when you apply them to groups of observations within a dataset. In dplyr, you do this with the <code>group_by()</code> function. It breaks down a dataset into specified groups of rows. When you then apply the verbs above on the resulting object they’ll be automatically applied “by group”.</p>
+<p>Grouping affects the verbs as follows:</p>
+<ul>
+<li><p>grouped <code>select()</code> is the same as ungrouped <code>select()</code>, except that grouping variables are always retained.</p></li>
+<li><p>grouped <code>arrange()</code> is the same as ungrouped; unless you set <code>.by_group = TRUE</code>, in which case it orders first by the grouping variables</p></li>
+<li><p><code>mutate()</code> and <code>filter()</code> are most useful in conjunction with window functions (like <code>rank()</code>, or <code>min(x) == x</code>). They are described in detail in <code>vignette(&quot;window-functions&quot;)</code>.</p></li>
+<li><p><code>sample_n()</code> and <code>sample_frac()</code> sample the specified number/fraction of rows in each group.</p></li>
+<li><p><code>summarise()</code> computes the summary for each group.</p></li>
+</ul>
+<p>In the following example, we split the complete dataset into individual planes and then summarise each plane by counting the number of flights (<code>count = n()</code>) and computing the average distance (<code>dist = mean(distance, na.rm = TRUE)</code>) and arrival delay (<code>delay = mean(arr_delay, na.rm = TRUE)</code>). We then use ggplot2 to display the output.</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb14-1" title="1">by_tailnum &lt;-<span class="st"> </span><span class="kw">group_by</span>(flights, tailnum)</a>
+<a class="sourceLine" id="cb14-2" title="2">delay &lt;-<span class="st"> </span><span class="kw">summarise</span>(by_tailnum,</a>
+<a class="sourceLine" id="cb14-3" title="3">  <span class="dt">count =</span> <span class="kw">n</span>(),</a>
+<a class="sourceLine" id="cb14-4" title="4">  <span class="dt">dist =</span> <span class="kw">mean</span>(distance, <span class="dt">na.rm =</span> <span class="ot">TRUE</span>),</a>
+<a class="sourceLine" id="cb14-5" title="5">  <span class="dt">delay =</span> <span class="kw">mean</span>(arr_delay, <span class="dt">na.rm =</span> <span class="ot">TRUE</span>))</a>
+<a class="sourceLine" id="cb14-6" title="6">delay &lt;-<span class="st"> </span><span class="kw">filter</span>(delay, count <span class="op">&gt;</span><span class="st"> </span><span class="dv">20</span>, dist <span class="op">&lt;</span><span class="st"> </span><span class="dv">2000</span>)</a>
+<a class="sourceLine" id="cb14-7" title="7"></a>
+<a class="sourceLine" id="cb14-8" title="8"><span class="co"># Interestingly, the average delay is only slightly related to the</span></a>
+<a class="sourceLine" id="cb14-9" title="9"><span class="co"># average distance flown by a plane.</span></a>
+<a class="sourceLine" id="cb14-10" title="10"><span class="kw">ggplot</span>(delay, <span class="kw">aes</span>(dist, delay)) <span class="op">+</span></a>
+<a class="sourceLine" id="cb14-11" title="11"><span class="st">  </span><span class="kw">geom_point</span>(<span class="kw">aes</span>(<span class="dt">size =</span> count), <span class="dt">alpha =</span> <span class="dv">1</span><span class="op">/</span><span class="dv">2</span>) <span class="op">+</span></a>
+<a class="sourceLine" id="cb14-12" title="12"><span class="st">  </span><span class="kw">geom_smooth</span>() <span class="op">+</span></a>
+<a class="sourceLine" id="cb14-13" title="13"><span class="st">  </span><span class="kw">scale_size_area</span>()</a></code></pre></div>
+<p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAkAAAAEgCAYAAABchszxAAAEGWlDQ1BrQ0dDb2xvclNwYWNlR2VuZXJpY1JHQgAAOI2NVV1oHFUUPrtzZyMkzlNsNIV0qD8NJQ2TVjShtLp/3d02bpZJNtoi6GT27s6Yyc44M7v9oU9FUHwx6psUxL+3gCAo9Q/bPrQvlQol2tQgKD60+INQ6Ium65k7M5lpurHeZe58853vnnvuuWfvBei5qliWkRQBFpquLRcy4nOHj4g9K5CEh6AXBqFXUR0rXalMAjZPC3e1W99Dwntf2dXd/p+tt0YdFSBxH2Kz5qgLiI8B8KdVy3YBevqRHz/qWh72Yui3MUDEL3q44WPXw3M+fo1pZuQs4tOIBVVTaoiXEI/MxfhGDPsxsNZfoE1q66ro5aJim3XdoLFw72H+n23BaIXzbcOnz5mfPoTvYVz7KzUl5+FRxEuqkp9G/Ajia219thzg25abkRE/BpDc3pqvphHvRFys2weqvp+krbWKIX7nhDbzLOItiM8358pTwdirqpPFnMF2xLc1WvLyOwTAibpbmvHHcvttU57y5+XqNZrLe3lE/Pq8eUj2fXKfOe3pfOjzhJYtB/yll5SDFcSDiH+hRkH25+L+sdxKEAMZahrlSX8ukqMOWy/jXW2m6M9LDBc31B9LFuv6gVKg/0Szi3KAr1kGq1GMjU/aLbnq6/lRxc4XfJ98hTargX++DbMJBSiYMIe9Ck1YAxFkKEAG3xbYaKmDDgYyFK0UGYpfoWYXG+fAPPI6tJnNwb7ClP7IyF+D+bjOtCpkhz6CFrIa/I6sFtNl8auFXGMTP34sNwI/JhkgEtmDz14ySfaRcTIBInmKPE32kxyyE2Tv+thKbEVePDfW/byMM1Kmm0XdObS7oGD/MypMXFPXrCwOtoYjyyn7BV29/MZfsVzpLDdRtuIZnbpXzvlf+ev8MvYr/Gqk4H/kV/G3csdazLuyTMPsbFhzd1UabQbjFvDRmcWJxR3zcfHkVw9GfpbJmeev9F08WW8uDkaslwX6avlWGU6NRKz0g/SHtCy9J30o/ca9zX3Kfc19zn3BXQKRO8ud477hLnAfc1/G9mrzGlrfexZ5GLdn6ZZrrEohI2wVHhZywjbhUWEy8icMCGNCUdiBlq3r+xafL549HQ5jH+an+1y+LlYBifuxAvRN/lVVVOlwlCkdVm9NOL5BE4wkQ2SMlDZU97hX86EilU/lUmkQUztTE6mx1EEPh7OmdqBtAvv8HdWpbrJS6tJj3n0CWdM6busNzRV3S9KTYhqvNiqWmuroiKgYhshMjmhTh9ptWhsF7970j/SbMrsPE1suR5z7DMC+P/Hs+y7ijrQAlhyAgccjbhjPygfeBTjzhNqy28EdkUh8C+DU9+z2v/oyeH791OncxHOs5y2AtTc7nb/f73TWPkD/qwBnjX8BoJ98VQNcC+8AAEAASURBVHgB7N0J/O3ltD/w54x10qCUulFOhlKXhMgQjiIzpVK4OJJIJLpKrjhkylB0Q11FVNclJLpSoUOD629KN7kadCSpJM3Tmf77/c369T27vX/7u/dvz79nvV77t/dv7+/3GdaznrU+z1rreb4zVtYoZcocyBzIHMgcyBzIHMgcmEYcmDmN+pq7mjmQOZA5kDmQOZA5kDlQcCADoCwImQOZA5kDmQOZA5kD044DGQBNuyHPHc4cyBzIHMgcyBzIHMgAKMtA5kDmQOZA5kDmQObAtONABkDTbshzhzMHMgcyBzIHMgcyBzIAyjKQOZA5kDmQOZA5kDkw7Tgwe9R7fNNNN6UVK1YMTTfmzp2b7rnnnqFpT7casvrqqxf9GiZed6Nvc+bMSUuXLu1GUUNVxmqrrZaWL1+eli1bNlTtmmpjZs2alZzcMY5yOGPGjLHTHfpkzMZRDumOu+66a6oiPXH/euutN/E5f+gPB0YeABHAYTrKaI011ki33nprf0avT7XMnDkzmZx4fffdd/ep1v5UA9jdfvvtQyVD3ej5Ouusk+68886xGy/zC/gZNzmcN29eARTGTXfMnj07AQrjNl7k0JjdfPPN3ZiuuYwBcSCHwAbE+Fxt5kDmQOZA5kDmQObA4DiQAdDgeJ9rzhzIHMgcyBzIHMgcGBAHBgaArrvuunTmmWemyy67bJWuc5Wef/756YILLhjL3IxVOpv/yRzIHMgcyBzIHMgcGAgHBgKAfv3rX6e3ve1t6aqrrkpHHnlkOuKII4rOy1lYuHBhOuecc9JJJ52UDjrooLHLzRjIKOdKMwcyBzIHMgcyBzIHVuHAQJKgjznmmPTOd74zPeUpTymS4z784Q8Xux++9rWvpe222y4dcMABRSPf9KY3pZ/97GfFdau0Ov+TOZA5kDmQOZA5kDmQOTAFDvQdANlxc/nll6ctttginXXWWelRj3pU+uAHP1h0wfc77bTTRHee8IQnpEsuuWQVACREVr9t2VbLYaJha89UeRP98R6fp1rmMN0/jn0K/o5r33K/YoSH+z3GKd6Hu7XVWxf9iffqd+Yrh4kDfQdA119/fbF98OCDD05bbrllOvHEExOg8453vCNde+21ae21157gj89XX331xP8+HH744enkk0+e+E6+0Prrrz/x/zB82GijjYahGV1vw7rrrtv1MoehQFtax5HWXHPN5JVpdDgwrrpjXOVwXMdrdGbM1FradwDkDA9nJxx22GHp8Y9/fLrjjjvSrrvumvbee+/iHAyHtwU5PMtZC2Xaeeed09Zbbz3xlesdhjgsxJjq0ziRVY5zZXjv6r1vo95P8iX3bNzI4sGBnN08qG0YeOSgUTpk3A7Wozect3Xbbbf1jM1///vf05e+9KVkA8qBBx6YHvzgB/esrihYn4zZOMpht88BeuADHxhsy+994kDfAVBMuq222qrooom/wQYbpCuuuKLw5Nx4440TXfd5k002mfjfB+CnDIB4jYbJgDlYb5jaswrzOvyHEgOAhB/H7UCzUM7DdJhmh8O0ym1rrbVWARLGTRaBcYuecZNDJ3ejXo0XwPiBD3ygAI8OJ5R3KfWA/PeS1EV/9KpfvWz7ZGWTw24vnjIAmozjvfmt77vAKOZtttkmnX322UWPrrzyynTNNdekzTffPD3jGc9IZ5xxRrFauOGGG4qt8LxEmTIHMgcyBzIHOudAPBZFGJuhBUjGzZvbOXfyndOVA333AGH0u971rvS+970vffvb306Azvvf//7EE/Sc5zynOAPola98ZbFq2HPPPdNmm202Xccm9ztzIHMgc6ArHOBholePP/74Qrfutttu6QEPeEBXys6FZA6MKgcGAoA23XTTdMIJJyQxaauRyKTnLpUb5Hk43Iv+z5Q5kDmQOZA5MHUO2GzysIc9rCjoQQ960NQLzCVkDow4BwaKMJrtKhImy5Q5kDmQOZA50F0OZODTXX7m0kabA33PARptduXWZw5kDmQOZA5kDmQOjAMHMgAah1HMfcgcyBzIHMgcyBzIHGiLAxkAtcWufHHmQOZA5kDmQOZA5sA4cCADoHEYxdyHzIHMgcyBzIHMgcyBtjiQAVBb7MoXZw5kDmQOZA5kDmQOjAMHMgAah1HMfcgcyBzIHMgcyBzIHGiLAxkAtcWufHHmQOZA5kDmQOZA5sA4cCADoHEYxdyHzIHMgcyBzIHMgcyBtjiQAVBb7MoXZw5kDmQOZA5kDmQOjAMHMgAah1HMfcgcyBzIHMgcyBzIHGiLAxkAtcWufHHmQOZA5kDmQOZA5sA4cCADoHEYxdyHzIHMgcyBzIHMgcyBtjiQAVBb7MoXZw5kDmQOZA5kDmQOjAMHMgAah1HMfcgcyBzIHMgcyBzIHGiLAxkAtcWufHHmQOZA5kDmQOZA5sA4cCADoHEYxdyHzIHMgcyBzIHMgcyBtjiQAVBb7MoXZw5kDmQOZA5kDmQOjAMHMgAah1Hsch+uvPLK9J3vfCfdcccdXS45F5c5kDmQOZA5kDkwHByYPRzNyK0YFg5cc8016eMf/3iaNWtWOv/889MHPvCBtMYaawxL83I7MgcyBzIHMgcyB7rCgewB6gobx6eQJUuWpBkzZqT58+enm2++Od14443j07nck8yBzIHMgcyBzIF/cCADoCwKq3DgSU96Ulp//fUTILTDDjukjTfeeJXf8z+ZA5kDmQOZA5kD48CBkQ+BzZ49XF2YOXNmmjNnzsjKhrZ/9KMfTbfccktae+21i37oE8LrFStWFJ/H5U+M18qVK8elSxP9iL5NfDEGH4Rm0SjPsUbDYKx4XsetX8Yry2GjEc/fDQMHhgs9dMARCsMEGxbSltVWW21YmtNxOzbYYIOJeylmhNfxeeLHEf9AQc+dO3fEe3H/5hsngHUcZLHcO30yx4Zpzpfb1+ln/TFm4zZe+mWOjVu/YuE9bv3qVH5H9b6RB0B33nlnGqbVO5Bw2223jao8NGw3JbbmmmsmvL777rsbXjOqX1LOt99++1DJUDd4KXH9nnvuGTtZ1K/ly5ePnRwyqGRx3HSHfs2bN2/s+kUOgZ9ujtdaa63Vjamfy2iDA8PjOmmj0fnSzIHMgcyBzIHMgcyBzIGpcCADoKlwL9+bOZA5kDmQOZA5kDkwkhzIAGgkh236NPqGG25Iy5Ytmz4dzj3NHMgcyBzIHOgLB0Y+B6gvXMqVDIQDxx9/fPr1r39d5B8dcsghaZ111hlIO3KlmQOZA5kDmQPjx4HsARq/MR2LHl1xxRXpggsuSPNrBzIuXbo0nX766WPRr9yJzIHMgcyBzIHh4EAGQMMxDrkVdRyw62z11VdPt956a7r++uvH7nyUuu7mfzMHMgcyBzIH+syBDID6zPBcXTUObLjhhmn//fcvDl7cfffdk1emzIHMgcyBzIHMgW5xIOcAdYuTuZyuc2CLLbZIhx12WNfLzQVmDmQOZA5kDmQOZA9QloHMgcyBzIHMgcyBzIFpx4EMgKbdkOcOZw5kDmQOZA5kDmQOZACUZSBzIHMgcyBzIHMgc2DacSADoGk35LnDmQOZA5kDmQOZA5kDOQk6y8BQc8BBiOecc0563OMel3bcccehbmtuXOZA5kDmQObA6HAge4BGZ6ymXUv/+Mc/ps9+9rPp5ptvTl/+8pfTRRddNO14kDucOZA5kDmQOdAbDmQA1Bu+5lK7wIG//vWvaY011khrrbVW8QKIMmUOZA5kDmQOjBYH7rnnnnTXXXcNXaMzABq6IckNCg489rGPTWuvvXa68sorCwD03Oc+N37K75kDmQOZA5kDI8CBv//972nrrbdOV1111dC1NucADd2Q5AYFB1ZbbbXiIMQ///nPaf311y8ejRG/5ffMgcyBzIHMgeHnwE033ZR+//vfD2VDswdoKIclNyo4MGPGjPTQhz40g59gSH7PHMgcyBxokwM33HBD+tjHPpZe8pKXpHe/+93pl7/85UQJy5cvT8ccc0zaZZdd0ktf+tJ0xBFHFA+gjgs+/elPp69//evxb/F+6KGHph/+8IfF56OPPjqdeeaZ6Ytf/GLaeeed05577pl+8IMfFL/dfvvt6ZBDDik+v/e9701nn3128XlY/mQANCwjkduROZA5kDmQOZA50GUOACEveMEL0oknnpie//znp7vvvjs9/elPL1ILVLXXXnsVoOhRj3pU2nbbbQug5PqVK1cWLfne976XfvrTn67SKoDo4osvLr4Dft70pjelE044odipC1A973nPS7/97W/T7Nmzix28LpTSsNFGG61SzqD/ySGwQY9Arj9zIHMgcyBzIHOgRxw4/vjj03XXXZcuv/zyNHfu3KIWScm8NNtss036yle+kk477bTC++NH4OfJT35y8R2PThV6wAMekBYvXpxmzpyZ9ttvv/TgBz+48BD98z//c+ERes973pP22GOPtPnmm1cprm/XZA9Q31idK8ocyBzIHMgcyBzoLwecpfaMZzxjAvyo3fEib3zjG5Pf5FqWz1jjBeKp+fnPf165oe4BfpD3hzzkIem2226r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9pweOyH33Xff7MqeinDke4vHDAlzM1yTnQicWZU5MF04kAHQCI80N7Zdc949ZffNb35z8TDZEe7SlJru/CJ5DhK6H/e4x400YPAgzf/8z/8swI+nN3uS8rbbbjsl/uSbMwc8BypT5kDmwL0cyABohCXBlnVxfKdlS6I899xzxwYAWaVKjP7e975XADxnRO25554tR8tTi72GmX7+85+nH/3oR2nhwoVNnw8VRw9EPpSEy0yZA5kDmQOZA93jwFBug+9e98a7JGEeOzpsb7388stXeUTIqPdcroLTpy+66KJ08cUXp//6r/8qcoRGvV9XXHFFOuaYY4oddR//+MeL55A16pPdhLYrez7Qm970prT55ps3umwkv5OPcPrpp6cvf/nLPclNGEmm5EZnDmQO9J0D2QPUd5Z3r0Jen/e9733p+9//fnrEIx6RnvSkJ3Wv8AGXJLfJVm5b7z2vywMwu7nldFDdsxtDX3h4eHd8bkY8e0DQuNGRRx6Z/u///q8AP3PmzLnfY1fGrb/D0h9eVd5HD/991rOeNdIh4mHh6bi0w/Ehv/nNb4pjGCyst95668KmjEv/mvUjA6BmnBmR74GgKqGhEenORDN32GGH5Llktu0CQc71cUjjqJMk1Be/+MVF4vr+++8/Lbch8wA5adx2bEAoU3844IgIOy3lDP7hD39Ie+21V38qzrUMNQfkGjpCxEYUx5AAQ9/61rfSzjvvnHbdddcptf33v/998XSBKGSjjTZK22yzTfGvxaDjSpwz99znPrd42kBc58HbHpxuY48DentFGQD1irO53ClxQB6PU2uF9xhLEyeeSj+lgofgZkplqoplCLrRcRPe8IY3pE984hPFeL71rW/tuJx8Y3scEH513pew+W9/+9v2bs5XjyUHTj311HTeeeelTTfddKJ/8g1537/xjW8Uu4t5CzulQw89NDnZPx6t5MkDANDtt99ePHTbkwXI5ac//el01llnFYuixYsXpz322CO9+tWvLjzgohx2wfaCMgDqBVfHoEyrRIcT9prkLpkMdm3Vk23so76Vvb5P3fgfKFyyZEnxWBLGbNTIkQ2HH374qDV75Nu70047FTsLhR2dA5RpenNAKNTGmWZHIvC+SK/gfe/0QFk7WOX71ecwHnHEEcW5VEcddVQxCIDQmWeeWXzHMw58AUsHHHBAsfuVt5J3qtuU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" /><!-- --></p>
+<p>You use <code>summarise()</code> with <strong>aggregate functions</strong>, which take a vector of values and return a single number. There are many useful examples of such functions in base R like <code>min()</code>, <code>max()</code>, <code>mean()</code>, <code>sum()</code>, <code>sd()</code>, <code>median()</code>, and <code>IQR()</code>. dplyr provides a handful of others:</p>
+<ul>
+<li><p><code>n()</code>: the number of observations in the current group</p></li>
+<li><p><code>n_distinct(x)</code>:the number of unique values in <code>x</code>.</p></li>
+<li><p><code>first(x)</code>, <code>last(x)</code> and <code>nth(x, n)</code> - these work similarly to <code>x[1]</code>, <code>x[length(x)]</code>, and <code>x[n]</code> but give you more control over the result if the value is missing.</p></li>
+</ul>
+<p>For example, we could use these to find the number of planes and the number of flights that go to each possible destination:</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb15-1" title="1">destinations &lt;-<span class="st"> </span><span class="kw">group_by</span>(flights, dest)</a>
+<a class="sourceLine" id="cb15-2" title="2"><span class="kw">summarise</span>(destinations,</a>
+<a class="sourceLine" id="cb15-3" title="3">  <span class="dt">planes =</span> <span class="kw">n_distinct</span>(tailnum),</a>
+<a class="sourceLine" id="cb15-4" title="4">  <span class="dt">flights =</span> <span class="kw">n</span>()</a>
+<a class="sourceLine" id="cb15-5" title="5">)</a>
+<a class="sourceLine" id="cb15-6" title="6"><span class="co">#&gt; # A tibble: 105 x 3</span></a>
+<a class="sourceLine" id="cb15-7" title="7"><span class="co">#&gt;   dest  planes flights</span></a>
+<a class="sourceLine" id="cb15-8" title="8"><span class="co">#&gt;   &lt;chr&gt;  &lt;int&gt;   &lt;int&gt;</span></a>
+<a class="sourceLine" id="cb15-9" title="9"><span class="co">#&gt; 1 ABQ      108     254</span></a>
+<a class="sourceLine" id="cb15-10" title="10"><span class="co">#&gt; 2 ACK       58     265</span></a>
+<a class="sourceLine" id="cb15-11" title="11"><span class="co">#&gt; 3 ALB      172     439</span></a>
+<a class="sourceLine" id="cb15-12" title="12"><span class="co">#&gt; 4 ANC        6       8</span></a>
+<a class="sourceLine" id="cb15-13" title="13"><span class="co">#&gt; # … with 101 more rows</span></a></code></pre></div>
+<p>When you group by multiple variables, each summary peels off one level of the grouping. That makes it easy to progressively roll-up a dataset:</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb16-1" title="1">daily &lt;-<span class="st"> </span><span class="kw">group_by</span>(flights, year, month, day)</a>
+<a class="sourceLine" id="cb16-2" title="2">(per_day   &lt;-<span class="st"> </span><span class="kw">summarise</span>(daily, <span class="dt">flights =</span> <span class="kw">n</span>()))</a>
+<a class="sourceLine" id="cb16-3" title="3"><span class="co">#&gt; # A tibble: 365 x 4</span></a>
+<a class="sourceLine" id="cb16-4" title="4"><span class="co">#&gt; # Groups:   year, month [12]</span></a>
+<a class="sourceLine" id="cb16-5" title="5"><span class="co">#&gt;    year month   day flights</span></a>
+<a class="sourceLine" id="cb16-6" title="6"><span class="co">#&gt;   &lt;int&gt; &lt;int&gt; &lt;int&gt;   &lt;int&gt;</span></a>
+<a class="sourceLine" id="cb16-7" title="7"><span class="co">#&gt; 1  2013     1     1     842</span></a>
+<a class="sourceLine" id="cb16-8" title="8"><span class="co">#&gt; 2  2013     1     2     943</span></a>
+<a class="sourceLine" id="cb16-9" title="9"><span class="co">#&gt; 3  2013     1     3     914</span></a>
+<a class="sourceLine" id="cb16-10" title="10"><span class="co">#&gt; 4  2013     1     4     915</span></a>
+<a class="sourceLine" id="cb16-11" title="11"><span class="co">#&gt; # … with 361 more rows</span></a>
+<a class="sourceLine" id="cb16-12" title="12">(per_month &lt;-<span class="st"> </span><span class="kw">summarise</span>(per_day, <span class="dt">flights =</span> <span class="kw">sum</span>(flights)))</a>
+<a class="sourceLine" id="cb16-13" title="13"><span class="co">#&gt; # A tibble: 12 x 3</span></a>
+<a class="sourceLine" id="cb16-14" title="14"><span class="co">#&gt; # Groups:   year [1]</span></a>
+<a class="sourceLine" id="cb16-15" title="15"><span class="co">#&gt;    year month flights</span></a>
+<a class="sourceLine" id="cb16-16" title="16"><span class="co">#&gt;   &lt;int&gt; &lt;int&gt;   &lt;int&gt;</span></a>
+<a class="sourceLine" id="cb16-17" title="17"><span class="co">#&gt; 1  2013     1   27004</span></a>
+<a class="sourceLine" id="cb16-18" title="18"><span class="co">#&gt; 2  2013     2   24951</span></a>
+<a class="sourceLine" id="cb16-19" title="19"><span class="co">#&gt; 3  2013     3   28834</span></a>
+<a class="sourceLine" id="cb16-20" title="20"><span class="co">#&gt; 4  2013     4   28330</span></a>
+<a class="sourceLine" id="cb16-21" title="21"><span class="co">#&gt; # … with 8 more rows</span></a>
+<a class="sourceLine" id="cb16-22" title="22">(per_year  &lt;-<span class="st"> </span><span class="kw">summarise</span>(per_month, <span class="dt">flights =</span> <span class="kw">sum</span>(flights)))</a>
+<a class="sourceLine" id="cb16-23" title="23"><span class="co">#&gt; # A tibble: 1 x 2</span></a>
+<a class="sourceLine" id="cb16-24" title="24"><span class="co">#&gt;    year flights</span></a>
+<a class="sourceLine" id="cb16-25" title="25"><span class="co">#&gt;   &lt;int&gt;   &lt;int&gt;</span></a>
+<a class="sourceLine" id="cb16-26" title="26"><span class="co">#&gt; 1  2013  336776</span></a></code></pre></div>
+<p>However you need to be careful when progressively rolling up summaries like this: it’s ok for sums and counts, but you need to think about weighting for means and variances (it’s not possible to do this exactly for medians).</p>
+</div>
+<div id="selecting-operations" class="section level3">
+<h3>Selecting operations</h3>
+<p>One of the appealing features of dplyr is that you can refer to columns from the tibble as if they were regular variables. However, the syntactic uniformity of referring to bare column names hides semantical differences across the verbs. A column symbol supplied to <code>select()</code> does not have the same meaning as the same symbol supplied to <code>mutate()</code>.</p>
+<p>Selecting operations expect column names and positions. Hence, when you call <code>select()</code> with bare variable names, they actually represent their own positions in the tibble. The following calls are completely equivalent from dplyr’s point of view:</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb17-1" title="1"><span class="co"># `year` represents the integer 1</span></a>
+<a class="sourceLine" id="cb17-2" title="2"><span class="kw">select</span>(flights, year)</a>
+<a class="sourceLine" id="cb17-3" title="3"><span class="co">#&gt; # A tibble: 336,776 x 1</span></a>
+<a class="sourceLine" id="cb17-4" title="4"><span class="co">#&gt;    year</span></a>
+<a class="sourceLine" id="cb17-5" title="5"><span class="co">#&gt;   &lt;int&gt;</span></a>
+<a class="sourceLine" id="cb17-6" title="6"><span class="co">#&gt; 1  2013</span></a>
+<a class="sourceLine" id="cb17-7" title="7"><span class="co">#&gt; 2  2013</span></a>
+<a class="sourceLine" id="cb17-8" title="8"><span class="co">#&gt; 3  2013</span></a>
+<a class="sourceLine" id="cb17-9" title="9"><span class="co">#&gt; 4  2013</span></a>
+<a class="sourceLine" id="cb17-10" title="10"><span class="co">#&gt; # … with 336,772 more rows</span></a>
+<a class="sourceLine" id="cb17-11" title="11"><span class="kw">select</span>(flights, <span class="dv">1</span>)</a>
+<a class="sourceLine" id="cb17-12" title="12"><span class="co">#&gt; # A tibble: 336,776 x 1</span></a>
+<a class="sourceLine" id="cb17-13" title="13"><span class="co">#&gt;    year</span></a>
+<a class="sourceLine" id="cb17-14" title="14"><span class="co">#&gt;   &lt;int&gt;</span></a>
+<a class="sourceLine" id="cb17-15" title="15"><span class="co">#&gt; 1  2013</span></a>
+<a class="sourceLine" id="cb17-16" title="16"><span class="co">#&gt; 2  2013</span></a>
+<a class="sourceLine" id="cb17-17" title="17"><span class="co">#&gt; 3  2013</span></a>
+<a class="sourceLine" id="cb17-18" title="18"><span class="co">#&gt; 4  2013</span></a>
+<a class="sourceLine" id="cb17-19" title="19"><span class="co">#&gt; # … with 336,772 more rows</span></a></code></pre></div>
+<p>By the same token, this means that you cannot refer to variables from the surrounding context if they have the same name as one of the columns. In the following example, <code>year</code> still represents 1, not 5:</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb18-1" title="1">year &lt;-<span class="st"> </span><span class="dv">5</span></a>
+<a class="sourceLine" id="cb18-2" title="2"><span class="kw">select</span>(flights, year)</a></code></pre></div>
+<p>One useful subtlety is that this only applies to bare names and to selecting calls like <code>c(year, month, day)</code> or <code>year:day</code>. In all other cases, the columns of the data frame are not put in scope. This allows you to refer to contextual variables in selection helpers:</p>
+<div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb19-1" title="1">year &lt;-<span class="st"> &quot;dep&quot;</span></a>
+<a class="sourceLine" id="cb19-2" title="2"><span class="kw">select</span>(flights, <span class="kw">starts_with</span>(year))</a>
+<a class="sourceLine" id="cb19-3" title="3"><span class="co">#&gt; # A tibble: 336,776 x 2</span></a>
+<a class="sourceLine" id="cb19-4" title="4"><span class="co">#&gt;   dep_time dep_delay</span></a>
+<a class="sourceLine" id="cb19-5" title="5"><span class="co">#&gt;      &lt;int&gt;     &lt;dbl&gt;</span></a>
+<a class="sourceLine" id="cb19-6" title="6"><span class="co">#&gt; 1      517         2</span></a>
+<a class="sourceLine" id="cb19-7" title="7"><span class="co">#&gt; 2      533         4</span></a>
+<a class="sourceLine" id="cb19-8" title="8"><span class="co">#&gt; 3      542         2</span></a>
+<a class="sourceLine" id="cb19-9" title="9"><span class="co">#&gt; 4      544        -1</span></a>
+<a class="sourceLine" id="cb19-10" title="10"><span class="co">#&gt; # … with 336,772 more rows</span></a></code></pre></div>
+<p>These semantics are usually intuitive. But note the subtle difference:</p>
+<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb20-1" title="1">year &lt;-<span class="st"> </span><span class="dv">5</span></a>
+<a class="sourceLine" id="cb20-2" title="2"><span class="kw">select</span>(flights, year, <span class="kw">identity</span>(year))</a>
+<a class="sourceLine" id="cb20-3" title="3"><span class="co">#&gt; # A tibble: 336,776 x 2</span></a>
+<a class="sourceLine" id="cb20-4" title="4"><span class="co">#&gt;    year sched_dep_time</span></a>
+<a class="sourceLine" id="cb20-5" title="5"><span class="co">#&gt;   &lt;int&gt;          &lt;int&gt;</span></a>
+<a class="sourceLine" id="cb20-6" title="6"><span class="co">#&gt; 1  2013            515</span></a>
+<a class="sourceLine" id="cb20-7" title="7"><span class="co">#&gt; 2  2013            529</span></a>
+<a class="sourceLine" id="cb20-8" title="8"><span class="co">#&gt; 3  2013            540</span></a>
+<a class="sourceLine" id="cb20-9" title="9"><span class="co">#&gt; 4  2013            545</span></a>
+<a class="sourceLine" id="cb20-10" title="10"><span class="co">#&gt; # … with 336,772 more rows</span></a></code></pre></div>
+<p>In the first argument, <code>year</code> represents its own position <code>1</code>. In the second argument, <code>year</code> is evaluated in the surrounding context and represents the fifth column.</p>
+<p>For a long time, <code>select()</code> used to only understand column positions. Counting from dplyr 0.6, it now understands column names as well. This makes it a bit easier to program with <code>select()</code>:</p>
+<div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb21-1" title="1">vars &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;year&quot;</span>, <span class="st">&quot;month&quot;</span>)</a>
+<a class="sourceLine" id="cb21-2" title="2"><span class="kw">select</span>(flights, vars, <span class="st">&quot;day&quot;</span>)</a>
+<a class="sourceLine" id="cb21-3" title="3"><span class="co">#&gt; # A tibble: 336,776 x 3</span></a>
+<a class="sourceLine" id="cb21-4" title="4"><span class="co">#&gt;    year month   day</span></a>
+<a class="sourceLine" id="cb21-5" title="5"><span class="co">#&gt;   &lt;int&gt; &lt;int&gt; &lt;int&gt;</span></a>
+<a class="sourceLine" id="cb21-6" title="6"><span class="co">#&gt; 1  2013     1     1</span></a>
+<a class="sourceLine" id="cb21-7" title="7"><span class="co">#&gt; 2  2013     1     1</span></a>
+<a class="sourceLine" id="cb21-8" title="8"><span class="co">#&gt; 3  2013     1     1</span></a>
+<a class="sourceLine" id="cb21-9" title="9"><span class="co">#&gt; 4  2013     1     1</span></a>
+<a class="sourceLine" id="cb21-10" title="10"><span class="co">#&gt; # … with 336,772 more rows</span></a></code></pre></div>
+<p>Note that the code above is somewhat unsafe because you might have added a column named <code>vars</code> to the tibble, or you might apply the code to another data frame containing such a column. To avoid this issue, you can wrap the variable in an <code>identity()</code> call as we mentioned above, as this will bypass column names. However, a more explicit and general method that works in all dplyr verbs is to unquote the variable with the <code>!!</code> operator. This tells dplyr to bypass the data frame and to directly look in the context:</p>
+<div class="sourceCode" id="cb22"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb22-1" title="1"><span class="co"># Let&#39;s create a new `vars` column:</span></a>
+<a class="sourceLine" id="cb22-2" title="2">flights<span class="op">$</span>vars &lt;-<span class="st"> </span>flights<span class="op">$</span>year</a>
+<a class="sourceLine" id="cb22-3" title="3"></a>
+<a class="sourceLine" id="cb22-4" title="4"><span class="co"># The new column won&#39;t be an issue if you evaluate `vars` in the</span></a>
+<a class="sourceLine" id="cb22-5" title="5"><span class="co"># context with the `!!` operator:</span></a>
+<a class="sourceLine" id="cb22-6" title="6">vars &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;year&quot;</span>, <span class="st">&quot;month&quot;</span>, <span class="st">&quot;day&quot;</span>)</a>
+<a class="sourceLine" id="cb22-7" title="7"><span class="kw">select</span>(flights, <span class="op">!!</span><span class="st"> </span>vars)</a>
+<a class="sourceLine" id="cb22-8" title="8"><span class="co">#&gt; # A tibble: 336,776 x 3</span></a>
+<a class="sourceLine" id="cb22-9" title="9"><span class="co">#&gt;    year month   day</span></a>
+<a class="sourceLine" id="cb22-10" title="10"><span class="co">#&gt;   &lt;int&gt; &lt;int&gt; &lt;int&gt;</span></a>
+<a class="sourceLine" id="cb22-11" title="11"><span class="co">#&gt; 1  2013     1     1</span></a>
+<a class="sourceLine" id="cb22-12" title="12"><span class="co">#&gt; 2  2013     1     1</span></a>
+<a class="sourceLine" id="cb22-13" title="13"><span class="co">#&gt; 3  2013     1     1</span></a>
+<a class="sourceLine" id="cb22-14" title="14"><span class="co">#&gt; 4  2013     1     1</span></a>
+<a class="sourceLine" id="cb22-15" title="15"><span class="co">#&gt; # … with 336,772 more rows</span></a></code></pre></div>
+<p>This operator is very useful when you need to use dplyr within custom functions. You can learn more about it in <code>vignette(&quot;programming&quot;)</code>. However it is important to understand the semantics of the verbs you are unquoting into, that is, the values they understand. As we have just seen, <code>select()</code> supports names and positions of columns. But that won’t be the case in other verbs like <code>mutate()</code> because they have different semantics.</p>
+</div>
+<div id="mutating-operations" class="section level3">
+<h3>Mutating operations</h3>
+<p>Mutate semantics are quite different from selection semantics. Whereas <code>select()</code> expects column names or positions, <code>mutate()</code> expects <em>column vectors</em>. Let’s create a smaller tibble for clarity:</p>
+<div class="sourceCode" id="cb23"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb23-1" title="1">df &lt;-<span class="st"> </span><span class="kw">select</span>(flights, year<span class="op">:</span>dep_time)</a></code></pre></div>
+<p>When we use <code>select()</code>, the bare column names stand for ther own positions in the tibble. For <code>mutate()</code> on the other hand, column symbols represent the actual column vectors stored in the tibble. Consider what happens if we give a string or a number to <code>mutate()</code>:</p>
+<div class="sourceCode" id="cb24"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb24-1" title="1"><span class="kw">mutate</span>(df, <span class="st">&quot;year&quot;</span>, <span class="dv">2</span>)</a>
+<a class="sourceLine" id="cb24-2" title="2"><span class="co">#&gt; # A tibble: 336,776 x 6</span></a>
+<a class="sourceLine" id="cb24-3" title="3"><span class="co">#&gt;    year month   day dep_time `&quot;year&quot;`   `2`</span></a>
+<a class="sourceLine" id="cb24-4" title="4"><span class="co">#&gt;   &lt;int&gt; &lt;int&gt; &lt;int&gt;    &lt;int&gt; &lt;chr&gt;    &lt;dbl&gt;</span></a>
+<a class="sourceLine" id="cb24-5" title="5"><span class="co">#&gt; 1  2013     1     1      517 year         2</span></a>
+<a class="sourceLine" id="cb24-6" title="6"><span class="co">#&gt; 2  2013     1     1      533 year         2</span></a>
+<a class="sourceLine" id="cb24-7" title="7"><span class="co">#&gt; 3  2013     1     1      542 year         2</span></a>
+<a class="sourceLine" id="cb24-8" title="8"><span class="co">#&gt; 4  2013     1     1      544 year         2</span></a>
+<a class="sourceLine" id="cb24-9" title="9"><span class="co">#&gt; # … with 336,772 more rows</span></a></code></pre></div>
+<p><code>mutate()</code> gets length-1 vectors that it interprets as new columns in the data frame. These vectors are recycled so they match the number of rows. That’s why it doesn’t make sense to supply expressions like <code>&quot;year&quot; + 10</code> to <code>mutate()</code>. This amounts to adding 10 to a string! The correct expression is:</p>
+<div class="sourceCode" id="cb25"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb25-1" title="1"><span class="kw">mutate</span>(df, year <span class="op">+</span><span class="st"> </span><span class="dv">10</span>)</a>
+<a class="sourceLine" id="cb25-2" title="2"><span class="co">#&gt; # A tibble: 336,776 x 5</span></a>
+<a class="sourceLine" id="cb25-3" title="3"><span class="co">#&gt;    year month   day dep_time `year + 10`</span></a>
+<a class="sourceLine" id="cb25-4" title="4"><span class="co">#&gt;   &lt;int&gt; &lt;int&gt; &lt;int&gt;    &lt;int&gt;       &lt;dbl&gt;</span></a>
+<a class="sourceLine" id="cb25-5" title="5"><span class="co">#&gt; 1  2013     1     1      517        2023</span></a>
+<a class="sourceLine" id="cb25-6" title="6"><span class="co">#&gt; 2  2013     1     1      533        2023</span></a>
+<a class="sourceLine" id="cb25-7" title="7"><span class="co">#&gt; 3  2013     1     1      542        2023</span></a>
+<a class="sourceLine" id="cb25-8" title="8"><span class="co">#&gt; 4  2013     1     1      544        2023</span></a>
+<a class="sourceLine" id="cb25-9" title="9"><span class="co">#&gt; # … with 336,772 more rows</span></a></code></pre></div>
+<p>In the same way, you can unquote values from the context if these values represent a valid column. They must be either length 1 (they then get recycled) or have the same length as the number of rows. In the following example we create a new vector that we add to the data frame:</p>
+<div class="sourceCode" id="cb26"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb26-1" title="1">var &lt;-<span class="st"> </span><span class="kw">seq</span>(<span class="dv">1</span>, <span class="kw">nrow</span>(df))</a>
+<a class="sourceLine" id="cb26-2" title="2"><span class="kw">mutate</span>(df, <span class="dt">new =</span> var)</a>
+<a class="sourceLine" id="cb26-3" title="3"><span class="co">#&gt; # A tibble: 336,776 x 5</span></a>
+<a class="sourceLine" id="cb26-4" title="4"><span class="co">#&gt;    year month   day dep_time   new</span></a>
+<a class="sourceLine" id="cb26-5" title="5"><span class="co">#&gt;   &lt;int&gt; &lt;int&gt; &lt;int&gt;    &lt;int&gt; &lt;int&gt;</span></a>
+<a class="sourceLine" id="cb26-6" title="6"><span class="co">#&gt; 1  2013     1     1      517     1</span></a>
+<a class="sourceLine" id="cb26-7" title="7"><span class="co">#&gt; 2  2013     1     1      533     2</span></a>
+<a class="sourceLine" id="cb26-8" title="8"><span class="co">#&gt; 3  2013     1     1      542     3</span></a>
+<a class="sourceLine" id="cb26-9" title="9"><span class="co">#&gt; 4  2013     1     1      544     4</span></a>
+<a class="sourceLine" id="cb26-10" title="10"><span class="co">#&gt; # … with 336,772 more rows</span></a></code></pre></div>
+<p>A case in point is <code>group_by()</code>. While you might think it has select semantics, it actually has mutate semantics. This is quite handy as it allows to group by a modified column:</p>
+<div class="sourceCode" id="cb27"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb27-1" title="1"><span class="kw">group_by</span>(df, month)</a>
+<a class="sourceLine" id="cb27-2" title="2"><span class="co">#&gt; # A tibble: 336,776 x 4</span></a>
+<a class="sourceLine" id="cb27-3" title="3"><span class="co">#&gt; # Groups:   month [12]</span></a>
+<a class="sourceLine" id="cb27-4" title="4"><span class="co">#&gt;    year month   day dep_time</span></a>
+<a class="sourceLine" id="cb27-5" title="5"><span class="co">#&gt;   &lt;int&gt; &lt;int&gt; &lt;int&gt;    &lt;int&gt;</span></a>
+<a class="sourceLine" id="cb27-6" title="6"><span class="co">#&gt; 1  2013     1     1      517</span></a>
+<a class="sourceLine" id="cb27-7" title="7"><span class="co">#&gt; 2  2013     1     1      533</span></a>
+<a class="sourceLine" id="cb27-8" title="8"><span class="co">#&gt; 3  2013     1     1      542</span></a>
+<a class="sourceLine" id="cb27-9" title="9"><span class="co">#&gt; 4  2013     1     1      544</span></a>
+<a class="sourceLine" id="cb27-10" title="10"><span class="co">#&gt; # … with 336,772 more rows</span></a>
+<a class="sourceLine" id="cb27-11" title="11"><span class="kw">group_by</span>(df, <span class="dt">month =</span> <span class="kw">as.factor</span>(month))</a>
+<a class="sourceLine" id="cb27-12" title="12"><span class="co">#&gt; # A tibble: 336,776 x 4</span></a>
+<a class="sourceLine" id="cb27-13" title="13"><span class="co">#&gt; # Groups:   month [12]</span></a>
+<a class="sourceLine" id="cb27-14" title="14"><span class="co">#&gt;    year month   day dep_time</span></a>
+<a class="sourceLine" id="cb27-15" title="15"><span class="co">#&gt;   &lt;int&gt; &lt;fct&gt; &lt;int&gt;    &lt;int&gt;</span></a>
+<a class="sourceLine" id="cb27-16" title="16"><span class="co">#&gt; 1  2013 1         1      517</span></a>
+<a class="sourceLine" id="cb27-17" title="17"><span class="co">#&gt; 2  2013 1         1      533</span></a>
+<a class="sourceLine" id="cb27-18" title="18"><span class="co">#&gt; 3  2013 1         1      542</span></a>
+<a class="sourceLine" id="cb27-19" title="19"><span class="co">#&gt; 4  2013 1         1      544</span></a>
+<a class="sourceLine" id="cb27-20" title="20"><span class="co">#&gt; # … with 336,772 more rows</span></a>
+<a class="sourceLine" id="cb27-21" title="21"><span class="kw">group_by</span>(df, <span class="dt">day_binned =</span> <span class="kw">cut</span>(day, <span class="dv">3</span>))</a>
+<a class="sourceLine" id="cb27-22" title="22"><span class="co">#&gt; # A tibble: 336,776 x 5</span></a>
+<a class="sourceLine" id="cb27-23" title="23"><span class="co">#&gt; # Groups:   day_binned [3]</span></a>
+<a class="sourceLine" id="cb27-24" title="24"><span class="co">#&gt;    year month   day dep_time day_binned</span></a>
+<a class="sourceLine" id="cb27-25" title="25"><span class="co">#&gt;   &lt;int&gt; &lt;int&gt; &lt;int&gt;    &lt;int&gt; &lt;fct&gt;     </span></a>
+<a class="sourceLine" id="cb27-26" title="26"><span class="co">#&gt; 1  2013     1     1      517 (0.97,11] </span></a>
+<a class="sourceLine" id="cb27-27" title="27"><span class="co">#&gt; 2  2013     1     1      533 (0.97,11] </span></a>
+<a class="sourceLine" id="cb27-28" title="28"><span class="co">#&gt; 3  2013     1     1      542 (0.97,11] </span></a>
+<a class="sourceLine" id="cb27-29" title="29"><span class="co">#&gt; 4  2013     1     1      544 (0.97,11] </span></a>
+<a class="sourceLine" id="cb27-30" title="30"><span class="co">#&gt; # … with 336,772 more rows</span></a></code></pre></div>
+<p>This is why you can’t supply a column name to <code>group_by()</code>. This amounts to creating a new column containing the string recycled to the number of rows:</p>
+<div class="sourceCode" id="cb28"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb28-1" title="1"><span class="kw">group_by</span>(df, <span class="st">&quot;month&quot;</span>)</a>
+<a class="sourceLine" id="cb28-2" title="2"><span class="co">#&gt; # A tibble: 336,776 x 5</span></a>
+<a class="sourceLine" id="cb28-3" title="3"><span class="co">#&gt; # Groups:   &quot;month&quot; [1]</span></a>
+<a class="sourceLine" id="cb28-4" title="4"><span class="co">#&gt;    year month   day dep_time `&quot;month&quot;`</span></a>
+<a class="sourceLine" id="cb28-5" title="5"><span class="co">#&gt;   &lt;int&gt; &lt;int&gt; &lt;int&gt;    &lt;int&gt; &lt;chr&gt;    </span></a>
+<a class="sourceLine" id="cb28-6" title="6"><span class="co">#&gt; 1  2013     1     1      517 month    </span></a>
+<a class="sourceLine" id="cb28-7" title="7"><span class="co">#&gt; 2  2013     1     1      533 month    </span></a>
+<a class="sourceLine" id="cb28-8" title="8"><span class="co">#&gt; 3  2013     1     1      542 month    </span></a>
+<a class="sourceLine" id="cb28-9" title="9"><span class="co">#&gt; 4  2013     1     1      544 month    </span></a>
+<a class="sourceLine" id="cb28-10" title="10"><span class="co">#&gt; # … with 336,772 more rows</span></a></code></pre></div>
+<p>Since grouping with select semantics can be sometimes useful as well, we have added the <code>group_by_at()</code> variant. In dplyr, variants suffixed with <code>_at()</code> support selection semantics in their second argument. You just need to wrap the selection with <code>vars()</code>:</p>
+<div class="sourceCode" id="cb29"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb29-1" title="1"><span class="kw">group_by_at</span>(df, <span class="kw">vars</span>(year<span class="op">:</span>day))</a>
+<a class="sourceLine" id="cb29-2" title="2"><span class="co">#&gt; # A tibble: 336,776 x 4</span></a>
+<a class="sourceLine" id="cb29-3" title="3"><span class="co">#&gt; # Groups:   year, month, day [365]</span></a>
+<a class="sourceLine" id="cb29-4" title="4"><span class="co">#&gt;    year month   day dep_time</span></a>
+<a class="sourceLine" id="cb29-5" title="5"><span class="co">#&gt;   &lt;int&gt; &lt;int&gt; &lt;int&gt;    &lt;int&gt;</span></a>
+<a class="sourceLine" id="cb29-6" title="6"><span class="co">#&gt; 1  2013     1     1      517</span></a>
+<a class="sourceLine" id="cb29-7" title="7"><span class="co">#&gt; 2  2013     1     1      533</span></a>
+<a class="sourceLine" id="cb29-8" title="8"><span class="co">#&gt; 3  2013     1     1      542</span></a>
+<a class="sourceLine" id="cb29-9" title="9"><span class="co">#&gt; 4  2013     1     1      544</span></a>
+<a class="sourceLine" id="cb29-10" title="10"><span class="co">#&gt; # … with 336,772 more rows</span></a></code></pre></div>
+<p>You can read more about the <code>_at()</code> and <code>_if()</code> variants in the <code>?scoped</code> help page.</p>
+</div>
+</div>
+<div id="piping" class="section level2">
+<h2>Piping</h2>
+<p>The dplyr API is functional in the sense that function calls don’t have side-effects. You must always save their results. This doesn’t lead to particularly elegant code, especially if you want to do many operations at once. You either have to do it step-by-step:</p>
+<div class="sourceCode" id="cb30"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb30-1" title="1">a1 &lt;-<span class="st"> </span><span class="kw">group_by</span>(flights, year, month, day)</a>
+<a class="sourceLine" id="cb30-2" title="2">a2 &lt;-<span class="st"> </span><span class="kw">select</span>(a1, arr_delay, dep_delay)</a>
+<a class="sourceLine" id="cb30-3" title="3">a3 &lt;-<span class="st"> </span><span class="kw">summarise</span>(a2,</a>
+<a class="sourceLine" id="cb30-4" title="4">  <span class="dt">arr =</span> <span class="kw">mean</span>(arr_delay, <span class="dt">na.rm =</span> <span class="ot">TRUE</span>),</a>
+<a class="sourceLine" id="cb30-5" title="5">  <span class="dt">dep =</span> <span class="kw">mean</span>(dep_delay, <span class="dt">na.rm =</span> <span class="ot">TRUE</span>))</a>
+<a class="sourceLine" id="cb30-6" title="6">a4 &lt;-<span class="st"> </span><span class="kw">filter</span>(a3, arr <span class="op">&gt;</span><span class="st"> </span><span class="dv">30</span> <span class="op">|</span><span class="st"> </span>dep <span class="op">&gt;</span><span class="st"> </span><span class="dv">30</span>)</a></code></pre></div>
+<p>Or if you don’t want to name the intermediate results, you need to wrap the function calls inside each other:</p>
+<div class="sourceCode" id="cb31"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb31-1" title="1"><span class="kw">filter</span>(</a>
+<a class="sourceLine" id="cb31-2" title="2">  <span class="kw">summarise</span>(</a>
+<a class="sourceLine" id="cb31-3" title="3">    <span class="kw">select</span>(</a>
+<a class="sourceLine" id="cb31-4" title="4">      <span class="kw">group_by</span>(flights, year, month, day),</a>
+<a class="sourceLine" id="cb31-5" title="5">      arr_delay, dep_delay</a>
+<a class="sourceLine" id="cb31-6" title="6">    ),</a>
+<a class="sourceLine" id="cb31-7" title="7">    <span class="dt">arr =</span> <span class="kw">mean</span>(arr_delay, <span class="dt">na.rm =</span> <span class="ot">TRUE</span>),</a>
+<a class="sourceLine" id="cb31-8" title="8">    <span class="dt">dep =</span> <span class="kw">mean</span>(dep_delay, <span class="dt">na.rm =</span> <span class="ot">TRUE</span>)</a>
+<a class="sourceLine" id="cb31-9" title="9">  ),</a>
+<a class="sourceLine" id="cb31-10" title="10">  arr <span class="op">&gt;</span><span class="st"> </span><span class="dv">30</span> <span class="op">|</span><span class="st"> </span>dep <span class="op">&gt;</span><span class="st"> </span><span class="dv">30</span></a>
+<a class="sourceLine" id="cb31-11" title="11">)</a>
+<a class="sourceLine" id="cb31-12" title="12"><span class="co">#&gt; Adding missing grouping variables: `year`, `month`, `day`</span></a>
+<a class="sourceLine" id="cb31-13" title="13"><span class="co">#&gt; # A tibble: 49 x 5</span></a>
+<a class="sourceLine" id="cb31-14" title="14"><span class="co">#&gt; # Groups:   year, month [11]</span></a>
+<a class="sourceLine" id="cb31-15" title="15"><span class="co">#&gt;    year month   day   arr   dep</span></a>
+<a class="sourceLine" id="cb31-16" title="16"><span class="co">#&gt;   &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;dbl&gt; &lt;dbl&gt;</span></a>
+<a class="sourceLine" id="cb31-17" title="17"><span class="co">#&gt; 1  2013     1    16  34.2  24.6</span></a>
+<a class="sourceLine" id="cb31-18" title="18"><span class="co">#&gt; 2  2013     1    31  32.6  28.7</span></a>
+<a class="sourceLine" id="cb31-19" title="19"><span class="co">#&gt; 3  2013     2    11  36.3  39.1</span></a>
+<a class="sourceLine" id="cb31-20" title="20"><span class="co">#&gt; 4  2013     2    27  31.3  37.8</span></a>
+<a class="sourceLine" id="cb31-21" title="21"><span class="co">#&gt; # … with 45 more rows</span></a></code></pre></div>
+<p>This is difficult to read because the order of the operations is from inside to out. Thus, the arguments are a long way away from the function. To get around this problem, dplyr provides the <code>%&gt;%</code> operator from magrittr. <code>x %&gt;% f(y)</code> turns into <code>f(x, y)</code> so you can use it to rewrite multiple operations that you can read left-to-right, top-to-bottom:</p>
+<div class="sourceCode" id="cb32"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb32-1" title="1">flights <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb32-2" title="2"><span class="st">  </span><span class="kw">group_by</span>(year, month, day) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb32-3" title="3"><span class="st">  </span><span class="kw">select</span>(arr_delay, dep_delay) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb32-4" title="4"><span class="st">  </span><span class="kw">summarise</span>(</a>
+<a class="sourceLine" id="cb32-5" title="5">    <span class="dt">arr =</span> <span class="kw">mean</span>(arr_delay, <span class="dt">na.rm =</span> <span class="ot">TRUE</span>),</a>
+<a class="sourceLine" id="cb32-6" title="6">    <span class="dt">dep =</span> <span class="kw">mean</span>(dep_delay, <span class="dt">na.rm =</span> <span class="ot">TRUE</span>)</a>
+<a class="sourceLine" id="cb32-7" title="7">  ) <span class="op">%&gt;%</span></a>
+<a class="sourceLine" id="cb32-8" title="8"><span class="st">  </span><span class="kw">filter</span>(arr <span class="op">&gt;</span><span class="st"> </span><span class="dv">30</span> <span class="op">|</span><span class="st"> </span>dep <span class="op">&gt;</span><span class="st"> </span><span class="dv">30</span>)</a></code></pre></div>
+</div>
+<div id="other-data-sources" class="section level2">
+<h2>Other data sources</h2>
+<p>As well as data frames, dplyr works with data that is stored in other ways, like data tables, databases and multidimensional arrays.</p>
+<div id="data-table" class="section level3">
+<h3>Data table</h3>
+<p>dplyr also provides <a href="http://datatable.r-forge.r-project.org/">data table</a> methods for all verbs through <a href="http://github.com/hadley/dtplyr">dtplyr</a>. If you’re using data.tables already this lets you to use dplyr syntax for data manipulation, and data.table for everything else.</p>
+<p>For multiple operations, data.table can be faster because you usually use it with multiple verbs simultaneously. For example, with data table you can do a mutate and a select in a single step. It’s smart enough to know that there’s no point in computing the new variable for rows you’re about to throw away.</p>
+<p>The advantages of using dplyr with data tables are:</p>
+<ul>
+<li><p>For common data manipulation tasks, it insulates you from the reference semantics of data.tables, and protects you from accidentally modifying your data.</p></li>
+<li><p>Instead of one complex method built on the subscripting operator (<code>[</code>), it provides many simple methods.</p></li>
+</ul>
+</div>
+<div id="databases" class="section level3">
+<h3>Databases</h3>
+<p>dplyr also allows you to use the same verbs with a remote database. It takes care of generating the SQL for you so that you can avoid the cognitive challenge of constantly switching between languages. To use these capabilities, you’ll need to install the dbplyr package and then read <code>vignette(&quot;dbplyr&quot;)</code> for the details.</p>
+</div>
+<div id="multidimensional-arrays-cubes" class="section level3">
+<h3>Multidimensional arrays / cubes</h3>
+<p><code>tbl_cube()</code> provides an experimental interface to multidimensional arrays or data cubes. If you’re using this form of data in R, please get in touch so I can better understand your needs.</p>
+</div>
+</div>
+<div id="comparisons" class="section level2">
+<h2>Comparisons</h2>
+<p>Compared to all existing options, dplyr:</p>
+<ul>
+<li><p>abstracts away how your data is stored, so that you can work with data frames, data tables and remote databases using the same set of functions. This lets you focus on what you want to achieve, not on the logistics of data storage.</p></li>
+<li><p>provides a thoughtful default <code>print()</code> method that doesn’t automatically print pages of data to the screen (this was inspired by data table’s output).</p></li>
+</ul>
+<p>Compared to base functions:</p>
+<ul>
+<li><p>dplyr is much more consistent; functions have the same interface. So once you’ve mastered one, you can easily pick up the others</p></li>
+<li><p>base functions tend to be based around vectors; dplyr is based around data frames</p></li>
+</ul>
+<p>Compared to plyr, dplyr:</p>
+<ul>
+<li><p>is much much faster</p></li>
+<li><p>provides a better thought out set of joins</p></li>
+<li><p>only provides tools for working with data frames (e.g. most of dplyr is equivalent to <code>ddply()</code> + various functions, <code>do()</code> is equivalent to <code>dlply()</code>)</p></li>
+</ul>
+<p>Compared to virtual data frame approaches:</p>
+<ul>
+<li><p>it doesn’t pretend that you have a data frame: if you want to run lm etc, you’ll still need to manually pull down the data</p></li>
+<li><p>it doesn’t provide methods for R summary functions (e.g. <code>mean()</code>, or <code>sum()</code>)</p></li>
+</ul>
+</div>
+
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

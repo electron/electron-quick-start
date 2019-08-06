@@ -1,0 +1,152 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Debug a Function</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for debug {base}"><tr><td>debug {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Debug a Function</h2>
+
+<h3>Description</h3>
+
+<p>Set, unset or query the debugging flag on a function.
+The <code>text</code> and <code>condition</code> arguments are the same as those
+that can be supplied via a call to <code><a href="browser.html">browser</a></code>.  They can be retrieved
+by the user once the browser has been entered, and provide a mechanism to
+allow users to identify which breakpoint has been activated.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+debug(fun, text = "", condition = NULL, signature = NULL)
+debugonce(fun, text = "", condition = NULL, signature = NULL)
+undebug(fun, signature = NULL)
+isdebugged(fun, signature = NULL)
+debuggingState(on = NULL)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>fun</code></td>
+<td>
+<p>any interpreted <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> function.</p>
+</td></tr>
+<tr valign="top"><td><code>text</code></td>
+<td>
+<p>a text string that can be retrieved when the browser is entered.</p>
+</td></tr>
+<tr valign="top"><td><code>condition</code></td>
+<td>
+<p>a condition that can be retrieved when the browser is
+entered.</p>
+</td></tr>
+<tr valign="top"><td><code>signature</code></td>
+<td>
+<p>an optional method signature. If specified, the
+method is debugged, rather than its generic.</p>
+</td></tr>
+<tr valign="top"><td><code>on</code></td>
+<td>
+<p>logical; a call to the support function
+<code>debuggingState</code> returns <code>TRUE</code> if debugging is globally
+turned on, <code>FALSE</code> otherwise.  An argument of one or the other
+of those values sets the state.  If the debugging state is
+<code>FALSE</code>, none of the debugging actions will occur (but explicit
+<code><a href="browser.html">browser</a></code> calls in functions will continue to work).</p>
+</td></tr>
+</table>
+
+
+
+<h3>Details</h3>
+
+<p>When a function flagged for debugging is entered, normal execution
+is suspended and the body of function is executed one statement at a
+time.  A new <code><a href="browser.html">browser</a></code> context is initiated for each step
+(and the previous one destroyed).
+</p>
+<p>At the debug prompt the user can enter commands or <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> expressions,
+followed by a newline.  The commands are described in the
+<code><a href="browser.html">browser</a></code> help topic.
+</p>
+<p>To debug a function which is defined inside another function,
+single-step through to the end of its definition, and then call
+<code>debug</code> on its name.
+</p>
+<p>If you want to debug a function not starting at the very beginning,
+use <code><a href="trace.html">trace</a>(..., at = *)</code> or <code><a href="../../utils/html/findLineNum.html">setBreakpoint</a></code>.
+</p>
+<p>Using <code>debug</code> is persistent, and unless debugging is turned off
+the debugger will be entered on every invocation (note that if the
+function is removed and replaced the debug state is not preserved).
+Use <code>debugonce()</code> to enter the debugger only the next time the
+function is invoked.
+</p>
+<p>To debug an S4 method by explicit signature, use
+<code>signature</code>. When specified, signature indicates the method of
+<code>fun</code> to be debugged. Note that debugging is implemented slightly
+differently for this case, as it uses the trace machinery, rather than
+the debugging bit. As such, <code>text</code> and <code>condition</code> cannot be
+specified in combination with a non-null <code>signature</code>. For methods
+which implement the <code>.local</code> rematching mechanism, the
+<code>.local</code> closure itself is the one that will be ultimately
+debugged (see <code><a href="../../methods/html/isRematched.html">isRematched</a></code>).
+</p>
+<p><code>isdebugged</code> returns <code>TRUE</code> if a) <code>signature</code> is <code>NULL</code>
+and the closure <code>fun</code> has been debugged, or b) <code>signature</code> is not
+<code>NULL</code>, <code>fun</code> is an S4 generic, and the method of <code>fun</code>
+for that signature has been debugged. In all other cases, it returns
+<code>FALSE</code>.
+</p>
+<p>The number of lines printed for the deparsed call when a function is
+entered for debugging can be limited by setting
+<code><a href="options.html">options</a>(deparse.max.lines)</code>.
+</p>
+<p>When debugging is enabled on a byte compiled function then the
+interpreted version of the function will be used until debugging is
+disabled.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>debug</code> and <code>undebug</code> invisibly return <code>NULL</code>.
+</p>
+<p><code>isdebugged</code> returns <code>TRUE</code> if the function or method is
+</p>
+<p>marked for debugging, and <code>FALSE</code> otherwise.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="../../utils/html/debugcall.html">debugcall</a></code> for conveniently debugging methods,
+<code><a href="browser.html">browser</a></code> notably for its &lsquo;<em>commands</em>&rsquo;, <code><a href="trace.html">trace</a></code>;
+<code><a href="traceback.html">traceback</a></code> to see the stack after an <code>Error: ...</code>
+message; <code><a href="../../utils/html/recover.html">recover</a></code> for another debugging approach.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Not run: 
+debug(library)
+library(methods)
+
+## End(Not run)
+## Not run: 
+debugonce(sample)
+## only the first call will be debugged
+sampe(10, 1)
+sample(10, 1)
+
+## End(Not run)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

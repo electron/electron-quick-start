@@ -5,29 +5,37 @@ knitr::opts_chunk$set(
     error = FALSE,
      tidy = FALSE,
     cache = FALSE,
- collapse = TRUE)
+ collapse = TRUE
+)
 
 ## ----echo = FALSE---------------------------------------------------------------------------------
 options(width = 100L)
 
 ## -------------------------------------------------------------------------------------------------
-flights <- fread("flights14.csv")
+input <- if (file.exists("flights14.csv")) {
+   "flights14.csv"
+} else {
+  "https://raw.githubusercontent.com/Rdatatable/data.table/master/vignettes/flights14.csv"
+}
+flights <- fread(input)
 flights
 dim(flights)
 
 ## -------------------------------------------------------------------------------------------------
-DT = data.table(ID = c("b","b","b","a","a","c"), a = 1:6, b = 7:12, c = 13:18)
+DT = data.table(
+  ID = c("b","b","b","a","a","c"),
+  a = 1:6,
+  b = 7:12,
+  c = 13:18
+)
 DT
 class(DT$ID)
-
-## -------------------------------------------------------------------------------------------------
-getOption("datatable.print.nrows")
 
 ## ----eval = FALSE---------------------------------------------------------------------------------
 #  DT[i, j, by]
 #  
-#  ##   R:      i                 j        by
-#  ## SQL:  where   select | update  group by
+#  ##   R:                 i                 j        by
+#  ## SQL:  where | order by   select | update  group by
 
 ## -------------------------------------------------------------------------------------------------
 ans <- flights[origin == "JFK" & month == 6L]
@@ -40,15 +48,6 @@ ans
 ## -------------------------------------------------------------------------------------------------
 ans <- flights[order(origin, -dest)]
 head(ans)
-
-## -------------------------------------------------------------------------------------------------
-odt = data.table(col = sample(1e7))
-(t1 <- system.time(ans1 <- odt[base::order(col)]))  ## uses order from base R
-(t2 <- system.time(ans2 <- odt[order(col)]))        ## uses data.table's forder
-(identical(ans1, ans2))
-
-## ----echo = FALSE---------------------------------------------------------------------------------
-rm(odt); rm(ans1); rm(ans2); rm(t1); rm(t2)
 
 ## -------------------------------------------------------------------------------------------------
 ans <- flights[, arr_delay]
@@ -70,7 +69,7 @@ ans <- flights[, .(delay_arr = arr_delay, delay_dep = dep_delay)]
 head(ans)
 
 ## -------------------------------------------------------------------------------------------------
-ans <- flights[, sum((arr_delay + dep_delay) < 0)]
+ans <- flights[, sum( (arr_delay + dep_delay) < 0 )]
 ans
 
 ## -------------------------------------------------------------------------------------------------
@@ -86,9 +85,16 @@ ans
 ans <- flights[origin == "JFK" & month == 6L, .N]
 ans
 
-## -------------------------------------------------------------------------------------------------
-ans <- flights[, c("arr_delay", "dep_delay"), with = FALSE]
+## ----j_cols_no_with-------------------------------------------------------------------------------
+ans <- flights[, c("arr_delay", "dep_delay")]
 head(ans)
+
+## ----j_cols_dot_prefix----------------------------------------------------------------------------
+select_cols = c("arr_delay", "dep_delay")
+flights[ , ..select_cols]
+
+## ----j_cols_with----------------------------------------------------------------------------------
+flights[ , select_cols, with = FALSE]
 
 ## -------------------------------------------------------------------------------------------------
 DF = data.frame(x = c(1,1,1,2,2,3,3,3), y = 1:8)
@@ -103,20 +109,20 @@ DF[with(DF, x > 1), ]
 #  ## not run
 #  
 #  # returns all columns except arr_delay and dep_delay
-#  ans <- flights[, !c("arr_delay", "dep_delay"), with = FALSE]
+#  ans <- flights[, !c("arr_delay", "dep_delay")]
 #  # or
-#  ans <- flights[, -c("arr_delay", "dep_delay"), with = FALSE]
+#  ans <- flights[, -c("arr_delay", "dep_delay")]
 
 ## ----eval = FALSE---------------------------------------------------------------------------------
 #  ## not run
 #  
 #  # returns year,month and day
-#  ans <- flights[, year:day, with = FALSE]
+#  ans <- flights[, year:day]
 #  # returns day, month and year
-#  ans <- flights[, day:year, with = FALSE]
+#  ans <- flights[, day:year]
 #  # returns all columns except year, month and day
-#  ans <- flights[, -(year:day), with = FALSE]
-#  ans <- flights[, !(year:day), with = FALSE]
+#  ans <- flights[, -(year:day)]
+#  ans <- flights[, !(year:day)]
 
 ## -------------------------------------------------------------------------------------------------
 ans <- flights[, .(.N), by = .(origin)]
@@ -134,7 +140,7 @@ ans <- flights[carrier == "AA", .N, by = origin]
 ans
 
 ## -------------------------------------------------------------------------------------------------
-ans <- flights[carrier == "AA", .N, by = .(origin,dest)]
+ans <- flights[carrier == "AA", .N, by = .(origin, dest)]
 head(ans)
 
 ## or equivalently using a character vector in 'by'
@@ -165,9 +171,9 @@ head(ans, 10)
 
 ## ----eval = FALSE---------------------------------------------------------------------------------
 #  DT[ ...
-#   ][ ...
-#   ][ ...
-#   ]
+#     ][ ...
+#       ][ ...
+#         ]
 
 ## -------------------------------------------------------------------------------------------------
 ans <- flights[, .N, .(dep_delay>0, arr_delay>0)]

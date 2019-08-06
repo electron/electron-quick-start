@@ -30,7 +30,7 @@ template <typename CLASS>
 template <typename T>
 typename AttributeProxyPolicy<CLASS>::AttributeProxy&
 AttributeProxyPolicy<CLASS>::AttributeProxy::operator=(const T& rhs) {
-    set( wrap(rhs) );
+    set(wrap(rhs));
     return *this;
 }
 
@@ -61,7 +61,7 @@ template <typename CLASS>
 template <typename T>
 typename NamesProxyPolicy<CLASS>::NamesProxy&
 NamesProxyPolicy<CLASS>::NamesProxy::operator=(const T& rhs) {
-    set( wrap(rhs) );
+    set(Shield<SEXP>(wrap(rhs)));
     return *this;
 }
 
@@ -82,7 +82,7 @@ template <typename CLASS>
 template <typename T>
 typename SlotProxyPolicy<CLASS>::SlotProxy&
 SlotProxyPolicy<CLASS>::SlotProxy::operator=(const T& rhs) {
-    set(wrap(rhs));
+    set(Shield<SEXP>(wrap(rhs)));
     return *this;
 }
 
@@ -97,7 +97,7 @@ template <typename CLASS>
 template <typename T>
 typename TagProxyPolicy<CLASS>::TagProxy&
 TagProxyPolicy<CLASS>::TagProxy::operator=(const T& rhs) {
-    set( wrap(rhs) );
+    set(Shield<SEXP>(wrap(rhs)));
     return *this;
 }
 
@@ -128,7 +128,7 @@ template <typename CLASS>
 template <typename T>
 typename BindingPolicy<CLASS>::Binding&
 BindingPolicy<CLASS>::Binding::operator=(const T& rhs) {
-    set(wrap(rhs));
+    set(Shield<SEXP>(wrap(rhs)));
     return *this;
 }
 
@@ -149,7 +149,7 @@ template <typename CLASS>
 template <typename T>
 typename DottedPairProxyPolicy<CLASS>::DottedPairProxy&
 DottedPairProxyPolicy<CLASS>::DottedPairProxy::operator=(const T& rhs) {
-    set(wrap(rhs));
+    set(Shield<SEXP>(wrap(rhs)));
     return *this;
 }
 
@@ -157,7 +157,7 @@ template <typename CLASS>
 template <typename T>
 typename DottedPairProxyPolicy<CLASS>::DottedPairProxy&
 DottedPairProxyPolicy<CLASS>::DottedPairProxy::operator=(const traits::named_object<T>& rhs) {
-    return set(wrap(rhs.object), rhs.name);
+    return set(Shield<SEXP>(wrap(rhs.object)), rhs.name);
 }
 
 template <typename CLASS>
@@ -184,9 +184,7 @@ template <typename CLASS>
 template <typename T>
 typename FieldProxyPolicy<CLASS>::FieldProxy&
 FieldProxyPolicy<CLASS>::FieldProxy::operator=(const T& rhs) {
-    SEXP tmp = PROTECT(wrap(rhs));
-    set(tmp);
-    UNPROTECT(1);
+    set(Shield<SEXP>(wrap(rhs)));
     return *this;
 }
 

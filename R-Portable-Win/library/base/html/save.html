@@ -1,0 +1,274 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Save R Objects</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for save {base}"><tr><td>save {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Save R Objects</h2>
+
+<h3>Description</h3>
+
+<p><code>save</code> writes an external representation of <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> objects to the
+specified file.  The objects can be read back from the file at a later
+date by using the function <code><a href="load.html">load</a></code> or <code><a href="attach.html">attach</a></code>
+(or <code><a href="../../utils/html/data.html">data</a></code> in some cases).
+</p>
+<p><code>save.image()</code> is just a short-cut for &lsquo;save my current
+workspace&rsquo;, i.e., <code>save(list = ls(all.names = TRUE), file =
+    ".RData", envir = .GlobalEnv)</code>.
+It is also what happens with <code><a href="quit.html">q</a>("yes")</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+save(..., list = character(),
+     file = stop("'file' must be specified"),
+     ascii = FALSE, version = NULL, envir = parent.frame(),
+     compress = isTRUE(!ascii), compression_level,
+     eval.promises = TRUE, precheck = TRUE)
+
+save.image(file = ".RData", version = NULL, ascii = FALSE,
+           compress = !ascii, safe = TRUE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>the names of the objects to be saved (as symbols or
+character strings).</p>
+</td></tr>
+<tr valign="top"><td><code>list</code></td>
+<td>
+<p>A character vector containing the names of objects to be
+saved.</p>
+</td></tr>
+<tr valign="top"><td><code>file</code></td>
+<td>
+<p>a (writable binary-mode) <a href="connections.html">connection</a> or the name of the
+file where the data will be saved (when <a href="path.expand.html">tilde expansion</a>
+is done).  Must be a file name for <code>save.image</code> or
+<code>version = 1</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>ascii</code></td>
+<td>
+<p>if <code>TRUE</code>, an ASCII representation of the data is
+written.  The default value of <code>ascii</code> is <code>FALSE</code> which
+leads to a binary file being written.  If <code>NA</code> and
+<code>version &gt;= 2</code>, a different ASCII representation is used which
+writes double/complex numbers as binary fractions.</p>
+</td></tr>
+<tr valign="top"><td><code>version</code></td>
+<td>
+<p>the workspace format version to use.  <code>NULL</code>
+specifies the current default format (3).  Version 1 was the default
+from <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> 0.99.0 to <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> 1.3.1 and version 2 from <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> 1.4.0 to 3.5.0.
+Version 3 is supported from <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> 3.5.0.</p>
+</td></tr>
+<tr valign="top"><td><code>envir</code></td>
+<td>
+<p>environment to search for objects to be saved.</p>
+</td></tr>
+<tr valign="top"><td><code>compress</code></td>
+<td>
+<p>logical or character string specifying whether saving
+to a named file is to use compression.  <code>TRUE</code> corresponds to
+<code>gzip</code> compression, and character strings <code>"gzip"</code>,
+<code>"bzip2"</code> or <code>"xz"</code> specify the type of
+compression.  Ignored when <code>file</code> is a connection and
+for workspace format version 1.</p>
+</td></tr>
+<tr valign="top"><td><code>compression_level</code></td>
+<td>
+<p>integer: the level of compression to be
+used.  Defaults to <code>6</code> for <code>gzip</code> compression and to
+<code>9</code> for <code>bzip2</code> or <code>xz</code> compression.</p>
+</td></tr>
+<tr valign="top"><td><code>eval.promises</code></td>
+<td>
+<p>logical: should objects which are promises be
+forced before saving?</p>
+</td></tr>
+<tr valign="top"><td><code>precheck</code></td>
+<td>
+<p>logical: should the existence of the objects be
+checked before starting to save (and in particular before opening
+the file/connection)?  Does not apply to version 1 saves.</p>
+</td></tr>
+<tr valign="top"><td><code>safe</code></td>
+<td>
+<p>logical.  If <code>TRUE</code>, a temporary file is used for
+creating the saved workspace.  The temporary file is renamed to
+<code>file</code> if the save succeeds.  This preserves an existing
+workspace <code>file</code> if the save fails, but at the cost of using
+extra disk space during the save.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>The names of the objects specified either as symbols (or character
+strings) in <code>...</code> or as a character vector in <code>list</code> are
+used to look up the objects from environment <code>envir</code>.  By default
+<a href="delayedAssign.html">promises</a> are evaluated, but if <code>eval.promises = FALSE</code>
+promises are saved (together with their evaluation environments).
+(Promises embedded in objects are always saved unevaluated.)
+</p>
+<p>All <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> platforms use the XDR (bigendian) representation of C ints and
+doubles in binary save-d files, and these are portable across all <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>
+platforms.
+</p>
+<p>ASCII saves used to be useful for moving data between platforms but
+are now mainly of historical interest.  They can be more compact than
+binary saves where compression is not used, but are almost always
+slower to both read and write: binary saves compress much better than
+ASCII ones.  Further, decimal ASCII saves may not restore
+double/complex values exactly, and what value is restored may depend
+on the <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> platform.
+</p>
+<p>Default values for the <code>ascii</code>, <code>compress</code>, <code>safe</code> and
+<code>version</code> arguments can be modified with the
+<code>"save.defaults"</code> option (used both by <code>save</code> and
+<code>save.image</code>), see also the &lsquo;Examples&rsquo; section.  If a
+<code>"save.image.defaults"</code> option is set it is used in preference to
+<code>"save.defaults"</code> for function <code>save.image</code> (which allows
+this to have different defaults).  In addition,
+<code>compression_level</code> can be part of the <code>"save.defaults"</code>
+option.
+</p>
+<p>A connection that is not already open will be opened in mode
+<code>"wb"</code>.  Supplying a connection which is open and not in binary
+mode gives an error.
+</p>
+
+
+<h3>Compression</h3>
+
+<p>Large files can be reduced considerably in size by compression.  A
+particular 46MB <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> object was saved as 35MB without compression in 2
+seconds, 22MB with <code>gzip</code> compression in 8 secs, 19MB with
+<code>bzip2</code> compression in 13 secs and 9.4MB with <code>xz</code>
+compression in 40 secs.  The load times were 1.3, 2.8, 5.5 and 5.7
+seconds respectively.  These results are indicative, but the relative
+performances do depend on the actual file: <code>xz</code> compressed
+unusually well here.
+</p>
+<p>It is possible to compress later (with <code>gzip</code>, <code>bzip2</code>
+or <code>xz</code>) a file saved with <code>compress = FALSE</code>: the effect
+is the same as saving with compression.  Also, a saved file can be
+uncompressed and re-compressed under a different compression scheme
+(and see <code><a href="../../tools/html/checkRdaFiles.html">resaveRdaFiles</a></code> for a way to do so from within <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>).
+</p>
+
+
+<h3>Parallel compression</h3>
+
+<p>That <code>file</code> can be a connection can be exploited to make use of
+an external parallel compression utility such as <code>pigz</code>
+(<a href="http://zlib.net/pigz/">http://zlib.net/pigz/</a>) or <code>pbzip2</code>
+(<a href="https://launchpad.net/pbzip2">https://launchpad.net/pbzip2</a>) <em>via</em> a <code><a href="connections.html">pipe</a></code>
+connection.  For example, using 8 threads,
+</p>
+<pre>    con &lt;- pipe("pigz -p8 &gt; fname.gz", "wb")
+    save(myObj, file = con); close(con)
+
+    con &lt;- pipe("pbzip2 -p8 -9 &gt; fname.bz2", "wb")
+    save(myObj, file = con); close(con)
+
+    con &lt;- pipe("xz -T8 -6 -e &gt; fname.xz", "wb")
+    save(myObj, file = con); close(con)
+</pre>
+<p>where the last requires <code>xz</code> 5.1.1 or later built with support
+for multiple threads (and parallel compression is only effective for
+large objects: at level 6 it will compress in serialized chunks of 12MB).
+</p>
+
+
+<h3>Warnings</h3>
+
+<p>The <code>...</code> arguments only give the <em>names</em> of the objects
+to be saved: they are searched for in the environment given by the
+<code>envir</code> argument, and the actual objects given as arguments need
+not be those found.
+</p>
+<p>Saved <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> objects are binary files, even those saved with
+<code>ascii = TRUE</code>, so ensure that they are transferred without
+conversion of end-of-line markers and of 8-bit characters.  The lines
+are delimited by LF on all platforms.
+</p>
+<p>Although the default version has not changed since <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> 1.4.0, this
+does not mean that saved files are necessarily backwards compatible.
+You will be able to load a saved image into an earlier version of <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>
+unless use is made of later additions (for example, raw vectors,
+external pointers and some S4 objects).
+</p>
+<p>One such &lsquo;later addition&rsquo; was long vectors, introduced in <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>
+3.0.0 and loadable only on 64-bit platforms.
+</p>
+<p>Loading files saved with <code>ASCII = NA</code> requires a C99-compliant C
+function <code>sscanf</code>: this is a problem on Windows, first worked
+around in <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> 3.1.2: they should be readable in earlier versions of <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>
+on all other platforms.
+</p>
+
+
+<h3>Note</h3>
+
+<p>For saving single <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> objects, <code><a href="readRDS.html">saveRDS</a>()</code> is mostly
+preferable to <code>save()</code>, notably because of the <em>functional</em>
+nature of <code><a href="readRDS.html">readRDS</a>()</code>, as opposed to <code><a href="load.html">load</a>()</code>.
+</p>
+<p>The most common reason for failure is lack of write permission in the
+current directory.  For <code>save.image</code> and for saving at the end of
+a session this will shown by messages like
+</p>
+<pre>    Error in gzfile(file, "wb") : unable to open connection
+    In addition: Warning message:
+    In gzfile(file, "wb") :
+      cannot open compressed file '.RDataTmp',
+      probable reason 'Permission denied'
+</pre>
+<p><code>file</code> can be a UTF-8-encoded filepath that cannot be translated to
+the current locale.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="dput.html">dput</a></code>, <code><a href="dump.html">dump</a></code>, <code><a href="load.html">load</a></code>,
+<code><a href="../../utils/html/data.html">data</a></code>.
+</p>
+<p>For other interfaces to the underlying serialization format, see
+<code><a href="serialize.html">serialize</a></code> and <code><a href="readRDS.html">saveRDS</a></code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+
+x &lt;- stats::runif(20)
+y &lt;- list(a = 1, b = TRUE, c = "oops")
+save(x, y, file = "xy.RData")
+save.image() # creating ".RData" in current working directory
+unlink("xy.RData")
+
+# set save defaults using option:
+options(save.defaults = list(ascii = TRUE, safe = FALSE))
+save.image() # creating ".RData"
+if(interactive()) withAutoprint({
+   file.info(".RData")
+   readLines(".RData", n = 7) # first 7 lines; first starts w/ "RDA"..
+})
+unlink(".RData")
+
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

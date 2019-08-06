@@ -24,9 +24,18 @@
 #endif
 
 //////////////////////////////////////////////////////////////////////////
+// Global switch
+
+#ifdef PLOGR_ENABLE
+#define _PLOGR_ENABLE 1
+#else
+#define _PLOGR_ENABLE 0
+#endif // PLOGR_ENABLE
+
+//////////////////////////////////////////////////////////////////////////
 // Log severity level checker
 
-#define IF_LOG_(instance, severity)     if (plog::get<instance>() && plog::get<instance>()->checkSeverity(severity))
+#define IF_LOG_(instance, severity)     if (_PLOGR_ENABLE && plog::get<instance>() && plog::get<instance>()->checkSeverity(severity))
 #define IF_LOG(severity)                IF_LOG_(0, severity)
 
 //////////////////////////////////////////////////////////////////////////

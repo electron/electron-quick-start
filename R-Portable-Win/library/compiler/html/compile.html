@@ -1,0 +1,246 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Byte Code Compiler</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for compile {compiler}"><tr><td>compile {compiler}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Byte Code Compiler</h2>
+
+<h3>Description</h3>
+
+<p>These functions provide an interface to a byte code compiler for <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+cmpfun(f, options = NULL)
+compile(e, env = .GlobalEnv, options = NULL, srcref = NULL)
+cmpfile(infile, outfile, ascii = FALSE, env = .GlobalEnv,
+        verbose = FALSE, options = NULL, version = NULL)
+loadcmp(file, envir = .GlobalEnv, chdir = FALSE)
+disassemble(code)
+enableJIT(level)
+compilePKGS(enable)
+getCompilerOption(name, options)
+setCompilerOptions(...)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>f</code></td>
+<td>
+<p>a closure.</p>
+</td></tr>
+<tr valign="top"><td><code>options</code></td>
+<td>
+<p>list of named compiler options: see &lsquo;Details&rsquo;.</p>
+</td></tr>
+<tr valign="top"><td><code>env</code></td>
+<td>
+<p>the top level environment for the compiling.</p>
+</td></tr>
+<tr valign="top"><td><code>srcref</code></td>
+<td>
+<p>initial source reference for the expression.</p>
+</td></tr>
+<tr valign="top"><td><code>file,infile,outfile</code></td>
+<td>
+<p>pathnames; outfile defaults to infile with
+a &lsquo;<span class="file">.Rc</span>&rsquo; extension in place of any existing extension.</p>
+</td></tr>
+<tr valign="top"><td><code>ascii</code></td>
+<td>
+<p>logical; should the compiled file be saved in ascii format?</p>
+</td></tr>
+<tr valign="top"><td><code>verbose</code></td>
+<td>
+<p>logical; should the compiler show what is being compiled?</p>
+</td></tr>
+<tr valign="top"><td><code>version</code></td>
+<td>
+<p>the workspace format version to use.  <code>NULL</code>
+specifies the current default format (3).  Version 1 was the default
+from <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> 0.99.0 to <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> 1.3.1 and version 2 from <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> 1.4.0 to 3.5.0.
+Version 3 is supported from <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> 3.5.0.</p>
+</td></tr>
+<tr valign="top"><td><code>envir</code></td>
+<td>
+<p>environment to evaluate loaded expressions in.</p>
+</td></tr>
+<tr valign="top"><td><code>chdir</code></td>
+<td>
+<p>logical; change directory before evaluation?</p>
+</td></tr>
+<tr valign="top"><td><code>code</code></td>
+<td>
+<p>byte code expression or compiled closure</p>
+</td></tr>
+<tr valign="top"><td><code>e</code></td>
+<td>
+<p>expression to compile.</p>
+</td></tr>
+<tr valign="top"><td><code>level</code></td>
+<td>
+<p>integer; the JIT level to use (<code>0</code> to <code>3</code>).</p>
+</td></tr>
+<tr valign="top"><td><code>enable</code></td>
+<td>
+<p>logical; enable compiling packages if <code>TRUE</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>name</code></td>
+<td>
+<p>character string; name of option to return.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>named compiler options to set.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>The function <code>cmpfun</code> compiles the body of a closure and
+returns a new closure with the same formals and the body replaced by
+the compiled body expression.
+</p>
+<p><code>compile</code> compiles an expression into a byte code object; the
+object can then be evaluated with <code>eval</code>.
+</p>
+<p><code>cmpfile</code> parses the expressions in <code>infile</code>, compiles
+them, and writes the compiled expressions to <code>outfile</code>.  If
+<code>outfile</code> is not provided, it is formed from <code>infile</code> by
+replacing or appending a <code>.Rc</code> suffix.
+</p>
+<p><code>loadcmp</code> is used to load compiled files.  It is similar to
+<code>sys.source</code>, except that its default loading environment is the
+global environment rather than the base environment.
+</p>
+<p><code>disassemble</code> produces a printed representation of the code
+that may be useful to give a hint of what is going on.
+</p>
+<p><code>enableJIT</code> enables or disables just-in-time (JIT)
+compilation. JIT is disabled if the argument is 0. If <code>level</code> is
+1 then larger closures are compiled before their first use.  If
+<code>level</code> is 2, then some small closures are also compiled before
+their second use.  If <code>level</code> is 3 then in addition
+all top level loops are compiled before they are executed.  JIT level
+3 requires the compiler option <code>optimize</code> to be 2 or 3.  The JIT
+level can also be selected by starting <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> with the environment
+variable <code>R_ENABLE_JIT</code> set to one of these values. Calling
+<code>enableJIT</code> with a negative argument returns the current JIT
+level. The default JIT level is <code>3</code>.
+</p>
+<p><code>compilePKGS</code> enables or disables compiling packages when they
+are installed.  This requires that the package uses lazy loading as
+compilation occurs as functions are written to the lazy loading data
+base. This can also be enabled by starting <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> with the environment
+variable <code>_R_COMPILE_PKGS_</code> set to a positive integer value.
+This should not be enabled outside package installation, because it
+causes any serialized function to be compiled, which comes with
+time and space overhead. <code>R_COMPILE_PKGS</code> can be used, instead,
+to instruct <code>INSTALL</code> to enable/disable compilation of packages
+during installation.
+</p>
+<p>Currently the compiler warns about a variety of things.  It does
+this by using <code>cat</code> to print messages.  Eventually this should
+use the condition handling mechanism.
+</p>
+<p>The <code>options</code> argument can be used to control compiler operation. 
+There are currently four options: <code>optimize</code>, <code>suppressAll</code>,
+<code>suppressUndefined</code>, and <code>suppressNoSuperAssignVar</code>. 
+<code>optimize</code> specifies the optimization level, an integer from <code>0</code>
+to <code>3</code> (the current out-of-the-box default is <code>2</code>). 
+<code>suppressAll</code> should be a scalar logical; if <code>TRUE</code> no messages
+will be shown (this is the default). <code>suppressUndefined</code> can be
+<code>TRUE</code> to suppress all messages about undefined variables, or it can
+be a character vector of the names of variables for which messages should
+not be shown.  <code>suppressNoSuperAssignVar</code> can be <code>TRUE</code> to
+suppress messages about super assignments to a variable for which no
+binding is visible at compile time.  During compilation of packages,
+<code>suppressAll</code> is currently <code>FALSE</code>, <code>suppressUndefined</code> is
+<code>TRUE</code> and <code>suppressNoSuperAssignVar</code> is <code>TRUE</code>.
+</p>
+<p><code>getCompilerOption</code> returns the value of the specified option.
+The default value is returned unless a value is supplied in the
+<code>options</code> argument; the <code>options</code> argument is primarily for
+internal use.  <code>setCompilerOption</code> sets the default option
+values. Options to set are identified by argument names, e.g.
+<code>setCompilerOptions(suppressAll = TRUE, optimize = 3)</code>.
+It returns a named list of the previous values.
+</p>
+<p>Calling the compiler a byte code compiler is actually a bit of a
+misnomer: the external representation of code objects currently uses
+<code>int</code> operands, and when compiled with <code>gcc</code> the internal
+representation is actually threaded code rather than byte code.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Luke Tierney</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+oldJIT &lt;- enableJIT(0)
+# a simple example
+f &lt;- function(x) x+1
+fc &lt;- cmpfun(f)
+fc(2)
+disassemble(fc)
+
+# old R version of lapply
+la1 &lt;- function(X, FUN, ...) {
+    FUN &lt;- match.fun(FUN)
+    if (!is.list(X))
+	X &lt;- as.list(X)
+    rval &lt;- vector("list", length(X))
+    for(i in seq(along = X))
+	rval[i] &lt;- list(FUN(X[[i]], ...))
+    names(rval) &lt;- names(X)		  # keep `names' !
+    return(rval)
+}
+# a small variation
+la2 &lt;- function(X, FUN, ...) {
+    FUN &lt;- match.fun(FUN)
+    if (!is.list(X))
+	X &lt;- as.list(X)
+    rval &lt;- vector("list", length(X))
+    for(i in seq(along = X)) {
+        v &lt;- FUN(X[[i]], ...)
+        if (is.null(v)) rval[i] &lt;- list(v)
+        else rval[[i]] &lt;- v
+    }
+    names(rval) &lt;- names(X)		  # keep `names' !
+    return(rval)
+}
+# Compiled versions
+la1c &lt;- cmpfun(la1)
+la2c &lt;- cmpfun(la2)
+# some timings
+x &lt;- 1:10
+y &lt;- 1:100
+
+system.time(for (i in 1:10000) lapply(x, is.null))
+system.time(for (i in 1:10000) la1(x, is.null))
+system.time(for (i in 1:10000) la1c(x, is.null))
+system.time(for (i in 1:10000) la2(x, is.null))
+system.time(for (i in 1:10000) la2c(x, is.null))
+system.time(for (i in 1:1000) lapply(y, is.null))
+system.time(for (i in 1:1000) la1(y, is.null))
+system.time(for (i in 1:1000) la1c(y, is.null))
+system.time(for (i in 1:1000) la2(y, is.null))
+system.time(for (i in 1:1000) la2c(y, is.null))
+
+
+enableJIT(oldJIT)</pre>
+
+<hr /><div style="text-align: center;">[Package <em>compiler</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

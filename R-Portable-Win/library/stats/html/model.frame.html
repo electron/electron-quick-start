@@ -1,0 +1,195 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Extracting the Model Frame from a Formula or Fit</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for model.frame {stats}"><tr><td>model.frame {stats}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Extracting the Model Frame from a Formula or Fit</h2>
+
+<h3>Description</h3>
+
+<p><code>model.frame</code> (a generic function) and its methods return a
+<code><a href="../../base/html/data.frame.html">data.frame</a></code> with the variables needed to use
+<code>formula</code> and any <code>...</code> arguments.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+model.frame(formula, ...)
+
+## Default S3 method:
+model.frame(formula, data = NULL,
+            subset = NULL, na.action = na.fail,
+            drop.unused.levels = FALSE, xlev = NULL, ...)
+
+## S3 method for class 'aovlist'
+model.frame(formula, data = NULL, ...)
+
+## S3 method for class 'glm'
+model.frame(formula, ...)
+
+## S3 method for class 'lm'
+model.frame(formula, ...)
+
+get_all_vars(formula, data, ...)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>formula</code></td>
+<td>
+<p>a model <code><a href="formula.html">formula</a></code> or <code><a href="terms.html">terms</a></code>
+object or an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> object.</p>
+</td></tr>
+<tr valign="top"><td><code>data</code></td>
+<td>
+<p>a data.frame, list or environment (or object
+coercible by <code><a href="../../base/html/as.data.frame.html">as.data.frame</a></code> to a data.frame),
+containing the variables in <code>formula</code>.  Neither a matrix nor an
+array will be accepted.</p>
+</td></tr>
+<tr valign="top"><td><code>subset</code></td>
+<td>
+<p>a specification of the rows to be used: defaults to all
+rows. This can be any valid indexing vector (see
+<code><a href="../../base/html/Extract.data.frame.html">[.data.frame</a></code>) for the rows of <code>data</code> or if that is not
+supplied, a data frame made up of the variables used in <code>formula</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>na.action</code></td>
+<td>
+<p>how <code>NA</code>s are treated.  The default is first,
+any <code>na.action</code> attribute of <code>data</code>, second
+a <code>na.action</code> setting of <code><a href="../../base/html/options.html">options</a></code>, and third
+<code><a href="na.fail.html">na.fail</a></code> if that is unset.  The &lsquo;factory-fresh&rsquo;
+default is <code><a href="na.fail.html">na.omit</a></code>.  Another possible value is <code>NULL</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>drop.unused.levels</code></td>
+<td>
+<p>should factors have unused levels dropped?
+Defaults to <code>FALSE</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>xlev</code></td>
+<td>
+<p>a named list of character vectors giving the full set of levels
+to be assumed for each factor.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>for <code>model.frame</code> methods, a mix of further
+arguments such as <code>data</code>, <code>na.action</code>, <code>subset</code> to pass
+to the default method.  Any additional arguments (such as
+<code>offset</code> and <code>weights</code> or other named arguments) which
+reach the default method are used to create further columns in the
+model frame, with parenthesised names such as <code>"(offset)"</code>.
+</p>
+<p>For <code>get_all_vars</code>, further named columns to include
+in the model frame.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>Exactly what happens depends on the class and attributes of the object
+<code>formula</code>.  If this is an object of fitted-model class such as
+<code>"lm"</code>, the method will either return the saved model frame
+used when fitting the model (if any, often selected by argument
+<code>model = TRUE</code>) or pass the call used when fitting on to the
+default method.  The default method itself can cope with rather
+standard model objects such as those of class
+<code>"<a href="../../MASS/html/lqs.html">lqs</a>"</code> from package <a href="https://CRAN.R-project.org/package=MASS"><span class="pkg">MASS</span></a> if no other
+arguments are supplied.
+</p>
+<p>The rest of this section applies only to the default method.
+</p>
+<p>If either <code>formula</code> or <code>data</code> is already a model frame (a
+data frame with a <code>"terms"</code> attribute) and the other is missing,
+the model frame is returned.  Unless <code>formula</code> is a terms object,
+<code>as.formula</code> and then <code>terms</code> is called on it.  (If you wish
+to use the <code>keep.order</code> argument of <code>terms.formula</code>, pass a
+terms object rather than a formula.)
+</p>
+<p>Row names for the model frame are taken from the <code>data</code> argument
+if present, then from the names of the response in the formula (or
+rownames if it is a matrix), if there is one.
+</p>
+<p>All the variables in <code>formula</code>, <code>subset</code> and in <code>...</code>
+are looked for first in <code>data</code> and then in the environment of
+<code>formula</code> (see the help for <code><a href="formula.html">formula</a>()</code> for further
+details) and collected into a data frame.  Then the <code>subset</code>
+expression is evaluated, and it is used as a row index to the data
+frame.  Then the <code>na.action</code> function is applied to the data frame
+(and may well add attributes).  The levels of any factors in the data
+frame are adjusted according to the <code>drop.unused.levels</code> and
+<code>xlev</code> arguments: if <code>xlev</code> specifies a factor and a
+character variable is found, it is converted to a factor (as from <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>
+2.10.0).
+</p>
+<p>Unless <code>na.action = NULL</code>, time-series attributes will be removed
+from the variables found (since they will be wrong if <code>NA</code>s are
+removed).
+</p>
+<p>Note that <em>all</em> the variables in the formula are included in the
+data frame, even those preceded by <code>-</code>.
+</p>
+<p>Only variables whose type is raw, logical, integer, real, complex or
+character can be included in a model frame: this includes classed
+variables such as factors (whose underlying type is integer), but
+excludes lists.
+</p>
+<p><code>get_all_vars</code> returns a <code><a href="../../base/html/data.frame.html">data.frame</a></code> containing the
+variables used in <code>formula</code> plus those specified in <code>...</code>
+which are recycled to the number of data frame rows.
+Unlike <code>model.frame.default</code>, it returns the input variables and
+not those resulting from function calls in <code>formula</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A <code><a href="../../base/html/data.frame.html">data.frame</a></code> containing the variables used in
+<code>formula</code> plus those specified in <code>...</code>.  It will have
+additional attributes, including <code>"terms"</code> for an object of class
+<code>"<a href="terms.object.html">terms</a>"</code> derived from <code>formula</code>,
+and possibly <code>"na.action"</code> giving information on the handling of
+<code>NA</code>s (which will not be present if no special handling was done,
+e.g. by <code><a href="na.fail.html">na.pass</a></code>).
+</p>
+
+
+<h3>References</h3>
+
+<p>Chambers, J. M. (1992)
+<em>Data for models.</em>
+Chapter 3 of <em>Statistical Models in S</em>
+eds J. M. Chambers and T. J. Hastie, Wadsworth &amp; Brooks/Cole.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="model.matrix.html">model.matrix</a></code> for the &lsquo;design matrix&rsquo;,
+<code><a href="formula.html">formula</a></code> for formulas  and
+<code><a href="expand.model.frame.html">expand.model.frame</a></code> for model.frame manipulation.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+data.class(model.frame(dist ~ speed, data = cars))
+
+## get_all_vars(): new var.s are recycled (iff length matches: 50 = 2*25)
+ncars &lt;- get_all_vars(sqrt(dist) ~ I(speed/2), data = cars, newVar = 2:3)
+stopifnot(is.data.frame(ncars),
+          identical(cars, ncars[,names(cars)]),
+          ncol(ncars) == ncol(cars) + 1)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>stats</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

@@ -1,0 +1,404 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Extract or Replace Parts of an Object</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for Extract {base}"><tr><td>Extract {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Extract or Replace Parts of an Object</h2>
+
+<h3>Description</h3>
+
+<p>Operators acting on vectors, matrices, arrays and lists to extract or
+replace parts.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+x[i]
+x[i, j, ... , drop = TRUE]
+x[[i, exact = TRUE]]
+x[[i, j, ..., exact = TRUE]]
+x$name
+getElement(object, name)
+
+x[i] &lt;- value
+x[i, j, ...] &lt;- value
+x[[i]] &lt;- value
+x$name &lt;- value
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x, object</code></td>
+<td>
+
+<p>object from which to extract element(s) or in which to replace element(s).
+</p>
+</td></tr>
+<tr valign="top"><td><code>i, j, ...</code></td>
+<td>
+
+<p>indices specifying elements to extract or replace.  Indices are
+<code>numeric</code> or <code>character</code> vectors or empty (missing) or
+<code>NULL</code>.  Numeric values are coerced to integer as by
+<code><a href="integer.html">as.integer</a></code> (and hence truncated towards zero).
+Character vectors will be matched to the <code><a href="names.html">names</a></code> of the
+object (or for matrices/arrays, the <code><a href="dimnames.html">dimnames</a></code>):
+see &lsquo;Character indices&rsquo; below for further details.
+</p>
+<p>For <code>[</code>-indexing only: <code>i</code>, <code>j</code>, <code>...</code> can be
+logical vectors, indicating elements/slices to select.  Such vectors
+are recycled if necessary to match the corresponding extent.
+<code>i</code>, <code>j</code>, <code>...</code> can also be negative integers,
+indicating elements/slices to leave out of the selection.
+</p>
+<p>When indexing arrays by <code>[</code> a single argument <code>i</code> can be a
+matrix with as many columns as there are dimensions of <code>x</code>; the
+result is then a vector with elements corresponding to the sets of
+indices in each row of <code>i</code>.
+</p>
+<p>An index value of <code>NULL</code> is treated as if it were <code>integer(0)</code>.
+</p>
+</td></tr>
+<tr valign="top"><td><code>name</code></td>
+<td>
+
+<p>A literal character string or a <a href="name.html">name</a> (possibly <a href="Quotes.html">backtick</a>
+quoted).  For extraction, this is normally (see under
+&lsquo;Environments&rsquo;) partially matched to the <code><a href="names.html">names</a></code>
+of the object.
+</p>
+</td></tr>
+<tr valign="top"><td><code>drop</code></td>
+<td>
+<p>For matrices and arrays.  If <code>TRUE</code> the result is
+coerced to the lowest possible dimension (see the examples).  This
+only works for extracting elements, not for the replacement.  See
+<code><a href="drop.html">drop</a></code> for further details.
+</p>
+</td></tr>
+<tr valign="top"><td><code>exact</code></td>
+<td>
+<p>Controls possible partial matching of <code>[[</code> when
+extracting by a character vector (for most objects, but see under
+&lsquo;Environments&rsquo;).  The default is no partial matching.  Value
+<code>NA</code> allows partial matching but issues a warning when it
+occurs.  Value <code>FALSE</code> allows partial matching without any
+warning.</p>
+</td></tr>
+<tr valign="top"><td><code>value</code></td>
+<td>
+<p>typically an array-like <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> object of a similar class as
+<code>x</code>.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>These operators are generic.  You can write methods to handle indexing
+of specific classes of objects, see <a href="InternalMethods.html">InternalMethods</a> as well as
+<code><a href="Extract.data.frame.html">[.data.frame</a></code> and <code><a href="Extract.factor.html">[.factor</a></code>.  The
+descriptions here apply only to the default methods.  Note that
+separate methods are required for the replacement functions
+<code>[&lt;-</code>, <code>[[&lt;-</code> and <code>$&lt;-</code> for use when indexing occurs on
+the assignment side of an expression.
+</p>
+<p>The most important distinction between <code>[</code>, <code>[[</code> and
+<code>$</code> is that the <code>[</code> can select more than one element whereas
+the other two select a single element.
+</p>
+<p>The default methods work somewhat differently for atomic vectors,
+matrices/arrays and for recursive (list-like, see
+<code><a href="is.recursive.html">is.recursive</a></code>) objects.  <code>$</code> is only valid for
+recursive objects, and is only discussed in the section below on
+recursive objects.
+</p>
+<p>Subsetting (except by an empty index) will drop all attributes except
+<code>names</code>, <code>dim</code> and <code>dimnames</code>.
+</p>
+<p>Indexing can occur on the right-hand-side of an expression for
+extraction, or on the left-hand-side for replacement.  When an index
+expression appears on the left side of an assignment (known as
+<em>subassignment</em>) then that part of <code>x</code> is set to the value
+of the right hand side of the assignment.  In this case no partial
+matching of character indices is done, and the left-hand-side is
+coerced as needed to accept the values.  For vectors, the answer will
+be of the higher of the types of <code>x</code> and <code>value</code> in the
+hierarchy raw &lt; logical &lt; integer &lt; double &lt; complex &lt; character &lt;
+list &lt; expression.  Attributes are preserved (although <code>names</code>,
+<code>dim</code> and <code>dimnames</code> will be adjusted suitably).
+Subassignment is done sequentially, so if an index is specified more
+than once the latest assigned value for an index will result.
+</p>
+<p>It is an error to apply any of these operators to an object which is
+not subsettable (e.g., a function).
+</p>
+
+
+<h3>Atomic vectors</h3>
+
+<p>The usual form of indexing is <code>[</code>.  <code>[[</code> can be used to
+select a single element <em>dropping</em> <code><a href="names.html">names</a></code>, whereas
+<code>[</code> keeps them, e.g., in <code>c(abc = 123)[1]</code>.
+</p>
+<p>The index object <code>i</code> can be numeric, logical, character or empty.
+Indexing by factors is allowed and is equivalent to indexing by the
+numeric codes (see <code><a href="factor.html">factor</a></code>) and not by the character
+values which are printed (for which use <code>[as.character(i)]</code>).
+</p>
+<p>An empty index selects all values: this is most often used to replace
+all the entries but keep the <code><a href="attributes.html">attributes</a></code>.
+</p>
+
+
+<h3>Matrices and arrays</h3>
+
+<p>Matrices and arrays are vectors with a dimension attribute and so all
+the vector forms of indexing can be used with a single index.  The
+result will be an unnamed vector unless <code>x</code> is one-dimensional
+when it will be a one-dimensional array.
+</p>
+<p>The most common form of indexing a <i>k</i>-dimensional array is to
+specify <i>k</i> indices to <code>[</code>.  As for vector indexing, the
+indices can be numeric, logical, character, empty or even factor.
+And again, indexing by factors is equivalent to indexing by the
+numeric codes, see &lsquo;Atomic vectors&rsquo; above.
+</p>
+<p>An empty index (a comma separated blank) indicates that all entries in
+that dimension are selected.
+The argument <code>drop</code> applies to this form of indexing.
+</p>
+<p>A third form of indexing is via a numeric matrix with the one column
+for each dimension: each row of the index matrix then selects a single
+element of the array, and the result is a vector.  Negative indices are
+not allowed in the index matrix.  <code>NA</code> and zero values are allowed:
+rows of an index matrix containing a zero are ignored, whereas rows
+containing an <code>NA</code> produce an <code>NA</code> in the result.
+</p>
+<p>Indexing via a character matrix with one column per dimensions is also
+supported if the array has dimension names.  As with numeric matrix
+indexing, each row of the index matrix selects a single element of the
+array.  Indices are matched against the appropriate dimension names.
+<code>NA</code> is allowed and will produce an <code>NA</code> in the result.
+Unmatched indices as well as the empty string (<code>""</code>) are not
+allowed and will result in an error.
+</p>
+<p>A vector obtained by matrix indexing will be unnamed unless <code>x</code>
+is one-dimensional when the row names (if any) will be indexed to
+provide names for the result.
+</p>
+
+
+<h3>Recursive (list-like) objects</h3>
+
+<p>Indexing by <code>[</code> is similar to atomic vectors and selects a list
+of the specified element(s).
+</p>
+<p>Both <code>[[</code> and <code>$</code> select a single element of the list.  The
+main difference is that <code>$</code> does not allow computed indices,
+whereas <code>[[</code> does.  <code>x$name</code> is equivalent to
+<code>x[["name", exact = FALSE]]</code>.  Also, the partial matching
+behavior of <code>[[</code> can be controlled using the <code>exact</code> argument.
+</p>
+<p><code>getElement(x, name)</code> is a version of <code>x[[name, exact = TRUE]]</code>
+which for formally classed (S4) objects returns <code><a href="../../methods/html/slot.html">slot</a>(x, name)</code>,
+hence providing access to even more general list-like objects.
+</p>
+<p><code>[</code> and <code>[[</code> are sometimes applied to other recursive
+objects such as <a href="call.html">call</a>s and <a href="expression.html">expression</a>s.  Pairlists are
+coerced to lists for extraction by <code>[</code>, but all three operators
+can be used for replacement.
+</p>
+<p><code>[[</code> can be applied recursively to lists, so that if the single
+index <code>i</code> is a vector of length <code>p</code>, <code>alist[[i]]</code> is
+equivalent to <code>alist[[i1]]...[[ip]]</code> providing all but the
+final indexing results in a list.
+</p>
+<p>Note that in all three kinds of replacement, a value of <code>NULL</code>
+deletes the corresponding item of the list.  To set entries to
+<code>NULL</code>, you need <code>x[i] &lt;- list(NULL)</code>.
+</p>
+<p>When <code>$&lt;-</code> is applied to a <code>NULL</code> <code>x</code>, it first coerces
+<code>x</code> to <code>list()</code>.  This is what also happens with <code>[[&lt;-</code>
+if the replacement value <code>value</code> is of length greater than one:
+if <code>value</code> has length 1 or 0, <code>x</code> is first coerced to a
+zero-length vector of the type of <code>value</code>.
+</p>
+
+
+<h3>Environments</h3>
+
+<p>Both <code>$</code> and <code>[[</code> can be applied to environments.  Only
+character indices are allowed and no partial matching is done.  The
+semantics of these operations are those of <code>get(i, env = x,
+    inherits = FALSE)</code>.  If no match is found then <code>NULL</code> is
+returned.  The replacement versions, <code>$&lt;-</code> and <code>[[&lt;-</code>, can
+also be used.  Again, only character arguments are allowed.  The
+semantics in this case are those of <code>assign(i, value, env = x,
+    inherits = FALSE)</code>.  Such an assignment will either create a new
+binding or change the existing binding in <code>x</code>.
+</p>
+
+
+<h3>NAs in indexing</h3>
+
+<p>When extracting, a numerical, logical or character <code>NA</code> index picks
+an unknown element and so returns <code>NA</code> in the corresponding
+element of a logical, integer, numeric, complex or character result,
+and <code>NULL</code> for a list.  (It returns <code>00</code> for a raw result.)
+</p>
+<p>When replacing (that is using indexing on the lhs of an
+assignment) <code>NA</code> does not select any element to be replaced.  As
+there is ambiguity as to whether an element of the rhs should
+be used or not, this is only allowed if the rhs value is of length one
+(so the two interpretations would have the same outcome).
+(The documented behaviour of S was that an <code>NA</code> replacement index
+&lsquo;goes nowhere&rsquo; but uses up an element of <code>value</code>:
+Becker <em>et al</em> p. 359.  However, that has not been true of
+other implementations.)
+</p>
+
+
+<h3>Argument matching</h3>
+
+<p>Note that these operations do not match their index arguments in the
+standard way: argument names are ignored and positional matching only is
+used.  So <code>m[j = 2, i = 1]</code> is equivalent to <code>m[2, 1]</code> and
+<strong>not</strong> to <code>m[1, 2]</code>.
+</p>
+<p>This may not be true for methods defined for them; for example it is
+not true for the <code>data.frame</code> methods described in
+<code><a href="Extract.data.frame.html">[.data.frame</a></code> which warn if <code>i</code> or <code>j</code>
+is named and have undocumented behaviour in that case.
+</p>
+<p>To avoid confusion, do not name index arguments (but <code>drop</code> and
+<code>exact</code> must be named).
+</p>
+
+
+<h3>S4 methods</h3>
+
+<p>These operators are also implicit S4 generics, but as primitives, S4
+methods will be dispatched only on S4 objects <code>x</code>.
+</p>
+
+
+
+
+
+
+
+<p>The implicit generics for the <code>$</code> and <code>$&lt;-</code> operators do not
+have <code>name</code> in their signature because the grammar only allows
+symbols or string constants for the <code>name</code> argument.
+</p>
+
+
+<h3>Character indices</h3>
+
+<p>Character indices can in some circumstances be partially matched (see
+<code><a href="pmatch.html">pmatch</a></code>) to the names or dimnames of the object being
+subsetted (but never for subassignment).  Unlike S (Becker <em>et
+al</em> p. 358), <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> never uses partial matching when extracting by
+<code>[</code>, and partial matching is not by default used by <code>[[</code>
+(see argument <code>exact</code>).
+</p>
+<p>Thus the default behaviour is to use partial matching only when
+extracting from recursive objects (except environments) by <code>$</code>.
+Even in that case, warnings can be switched on by
+<code><a href="options.html">options</a>(warnPartialMatchDollar = TRUE)</code>.
+</p>
+<p>Neither empty (<code>""</code>) nor <code>NA</code> indices match any names, not
+even empty nor missing names.  If any object has no names or
+appropriate dimnames, they are taken as all <code>""</code> and so match
+nothing.
+</p>
+
+
+<h3>References</h3>
+
+<p>Becker, R. A., Chambers, J. M. and Wilks, A. R. (1988)
+<em>The New S Language</em>.
+Wadsworth &amp; Brooks/Cole.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="names.html">names</a></code> for details of matching to names, and
+<code><a href="pmatch.html">pmatch</a></code> for partial matching.
+</p>
+<p><code><a href="list.html">list</a></code>, <code><a href="array.html">array</a></code>, <code><a href="matrix.html">matrix</a></code>.
+</p>
+<p><code><a href="Extract.data.frame.html">[.data.frame</a></code> and <code><a href="Extract.factor.html">[.factor</a></code> for the
+behaviour when applied to data.frame and factors.
+</p>
+<p><code><a href="Syntax.html">Syntax</a></code> for operator precedence, and the
+&lsquo;R Language Definition&rsquo; manual about indexing details.
+</p>
+<p><code><a href="NULL.html">NULL</a></code> for details of indexing null objects.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+x &lt;- 1:12
+m &lt;- matrix(1:6, nrow = 2, dimnames = list(c("a", "b"), LETTERS[1:3]))
+li &lt;- list(pi = pi, e = exp(1))
+x[10]                 # the tenth element of x
+x &lt;- x[-1]            # delete the 1st element of x
+m[1,]                 # the first row of matrix m
+m[1, , drop = FALSE]  # is a 1-row matrix
+m[,c(TRUE,FALSE,TRUE)]# logical indexing
+m[cbind(c(1,2,1),3:1)]# matrix numeric index
+ci &lt;- cbind(c("a", "b", "a"), c("A", "C", "B"))
+m[ci]                 # matrix character index
+m &lt;- m[,-1]           # delete the first column of m
+li[[1]]               # the first element of list li
+y &lt;- list(1, 2, a = 4, 5)
+y[c(3, 4)]            # a list containing elements 3 and 4 of y
+y$a                   # the element of y named a
+
+## non-integer indices are truncated:
+(i &lt;- 3.999999999) # "4" is printed
+(1:5)[i]  # 3
+
+## named atomic vectors, compare "[" and "[[" :
+nx &lt;- c(Abc = 123, pi = pi)
+nx[1] ; nx["pi"] # keeps names, whereas "[[" does not:
+nx[[1]] ; nx[["pi"]]
+
+## recursive indexing into lists
+z &lt;- list(a = list(b = 9, c = "hello"), d = 1:5)
+unlist(z)
+z[[c(1, 2)]]
+z[[c(1, 2, 1)]]  # both "hello"
+z[[c("a", "b")]] &lt;- "new"
+unlist(z)
+
+## check $ and [[ for environments
+e1 &lt;- new.env()
+e1$a &lt;- 10
+e1[["a"]]
+e1[["b"]] &lt;- 20
+e1$b
+ls(e1)
+
+## partial matching - possibly with warning :
+stopifnot(identical(li$p, pi))
+op &lt;- options(warnPartialMatchDollar = TRUE)
+stopifnot( identical(li$p, pi), #-- a warning
+  inherits(tryCatch (li$p, warning = identity), "warning"))
+## revert the warning option:
+if(is.null(op[[1]])) op[[1]] &lt;- FALSE; options(op)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

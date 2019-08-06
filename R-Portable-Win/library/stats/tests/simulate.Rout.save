@@ -1,6 +1,6 @@
 
-R version 3.4.0 RC (2017-04-18 r72543) -- "You Stupid Darkness"
-Copyright (C) 2017 The R Foundation for Statistical Computing
+R version 3.6.0 Patched (2019-06-07 r76684) -- "Planting of a Tree"
+Copyright (C) 2019 The R Foundation for Statistical Computing
 Platform: x86_64-pc-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
@@ -20,7 +20,7 @@ Type 'q()' to quit R.
 > options(digits = 5)
 > 
 > ## cases should be named
-> load("hills.rda") # copied from package MASS
+> hills <- readRDS("hills.rds") # copied from package MASS
 > fit1 <- lm(time ~ dist, data = hills)
 > set.seed(1)
 > simulate(fit1, nsim = 3)
@@ -67,8 +67,7 @@ Moffat Chase     134.2882 205.1244 148.7057
        Estimate Std. Error t value   Pr(>|t|)
 dist  4.8999847  0.4737032 10.3440 9.8468e-12
 climb 0.0084718  0.0016869  5.0221 1.8636e-05
-> set.seed(1)
-> ( ys <- simulate(fit2, nsim = 3) )
+> set.seed(1); ( ys <- simulate(fit2, nsim = 3) )
                    sim_1   sim_2   sim_3
 Greenmantle       15.754  13.355  18.247
 Carnethy          51.988  47.396  67.247
@@ -115,6 +114,11 @@ climb 0.0099795  0.0015691    6.36 3.8442e-07
        Estimate Std. Error t value   Pr(>|t|)
 dist  4.8215499   0.420077 11.4778 7.0162e-13
 climb 0.0090388   0.001496  6.0422 9.6065e-07
+> ## should be identical to glm(*, gaussian):
+> fit2. <- glm(time ~ -1 + dist + climb, family=gaussian, data=hills[-18, ],
++              weight = 1/dist^2)
+> set.seed(1); ys. <- simulate(fit2., nsim = 3)
+> stopifnot(all.equal(ys, ys.))
 > 
 > ## Poisson fit
 > load("anorexia.rda") # copied from package MASS
@@ -408,4 +412,4 @@ log(u)       0.015569 0.00033659  46.256 5.7704e-10
 > 
 > proc.time()
    user  system elapsed 
-  0.258   0.017   0.270 
+  0.286   0.052   0.318 

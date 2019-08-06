@@ -1,0 +1,156 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Compile LaTeX Files</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for texi2dvi {tools}"><tr><td>texi2dvi {tools}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Compile LaTeX Files</h2>
+
+<h3>Description</h3>
+
+<p>Run <code>latex</code>/<code>pdflatex</code>, <code>makeindex</code> and <code>bibtex</code>
+until all cross-references are resolved to create a dvi or a PDF file.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+texi2dvi(file, pdf = FALSE, clean = FALSE, quiet = TRUE,
+         texi2dvi = getOption("texi2dvi"),
+         texinputs = NULL, index = TRUE)
+
+texi2pdf(file, clean = FALSE, quiet = TRUE,
+         texi2dvi = getOption("texi2dvi"),
+         texinputs = NULL, index = TRUE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>file</code></td>
+<td>
+<p>character string.  Name of the LaTeX source file.</p>
+</td></tr>
+<tr valign="top"><td><code>pdf</code></td>
+<td>
+<p>logical.  If <code>TRUE</code>, a PDF file is produced instead of
+the default dvi file (<code>texi2dvi</code> command line option <span class="option">--pdf</span>).</p>
+</td></tr>
+<tr valign="top"><td><code>clean</code></td>
+<td>
+<p>logical.  If <code>TRUE</code>, all auxiliary files created
+during the conversion are removed.</p>
+</td></tr>
+<tr valign="top"><td><code>quiet</code></td>
+<td>
+<p>logical.  No output unless an error occurs.</p>
+</td></tr>
+<tr valign="top"><td><code>texi2dvi</code></td>
+<td>
+<p>character string (or <code>NULL</code>).  Script or program
+used to compile a TeX file to dvi or PDF. The default (selected
+by <code>""</code> or <code>"texi2dvi"</code> or <code>NULL</code>) is to look
+for a program or script named &lsquo;<span class="file">texi2dvi</span>&rsquo; on the path and
+otherwise emulate the script with <code>system2</code> calls (which
+can be selected by the value <code>"emulation"</code>).  See also
+&lsquo;Details&rsquo;.</p>
+</td></tr> 
+<tr valign="top"><td><code>texinputs</code></td>
+<td>
+<p><code>NULL</code> or a character vector of paths to add to
+the LaTeX and bibtex input search paths.</p>
+</td></tr>
+<tr valign="top"><td><code>index</code></td>
+<td>
+<p>logical: should indices be prepared?</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p><code>texi2pdf</code> is a wrapper for the common case of
+<code>texi2dvi(pdf = TRUE)</code>.
+</p>
+<p>Despite the name, this is used in <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> to compile LaTeX files,
+specifically those generated from vignettes and by the
+<code><a href="../../base/html/RdUtils.html">Rd2pdf</a></code> script (used for package reference manuals).  It
+ensures that the &lsquo;<span class="file"><var><a href="../../base/html/Rhome.html">R_HOME</a></var>/share/texmf</span>&rsquo; directory is
+in the <span class="env">TEXINPUTS</span> path, so <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> style files such as &lsquo;<span class="file">Sweave</span>&rsquo;
+and &lsquo;<span class="file">Rd</span>&rsquo; will be found.  The TeX search path used is first the
+existing <span class="env">TEXINPUTS</span> setting (or the current directory if unset),
+then elements of argument <code>texinputs</code>, then
+&lsquo;<span class="file"><var>R_HOME</var>/share/texmf</span>&rsquo; and finally the default path.
+Analogous changes are made to <span class="env">BIBINPUTS</span> and <span class="env">BSTINPUTS</span>
+settings.
+</p>
+<p>On Windows the option <code>"texi2dvi"</code> is normally unset.  The MiKTeX
+command <code>texify.exe</code> is a suitable choice for <code>texi2dvi</code>,
+and is tried as from <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> 3.2.3 if the argument is blank or <code>NULL</code>
+and a program or script <code>texi2dvi</code> is not found.
+</p>
+<p>MiKTeX had a <code>texi2dvi</code> executable until Sept 2015, but no other
+Windows TeX installation that we know of does, so emulation is used on
+e.g. TeXLive installations on Windows.
+</p>
+<p>Occasionally indices contain special characters which cause indexing
+to fail (particularly when using the <span class="samp">hyperref</span> LaTeX package)
+even on valid input.  The argument <code>index = FALSE</code> is provided to
+allow package manuals to be made when this happens: it uses emulation.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Invisible <code>NULL</code>.  Used for the side effect of creating a dvi or
+PDF file in the current working directory (and maybe other files,
+especially if <code>clean = FALSE</code>).
+</p>
+
+
+<h3>Note</h3>
+
+
+
+
+
+
+<p>There are various versions of the <code>texi2dvi</code> script on
+Unix-alikes and quite a number of bugs have been seen, some of which
+this <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> wrapper works around.
+</p>
+<p>One that was present with <code>texi2dvi</code> version <code>4.8</code> (as
+supplied by macOS) is that it will not work correctly for paths which
+contain spaces, nor if the absolute path to a file would contain
+spaces.
+</p>
+<p>The three possible approaches all have their quirks.  For example the
+Unix-alike <code>texi2dvi</code> script removes ancillary files that already
+exist but the other two approaches do not (and may get confused by
+such files).
+</p>
+<p>Where supported (<code>texi2dvi</code> 5.0 and later;
+<code>texify.exe</code> from MiKTeX), option <span class="option">--max-iterations=20</span>
+is used to avoid infinite retries.
+</p>
+<p>The emulation mode supports <code>quiet = TRUE</code> from <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> 3.2.3 only.
+Currently <code>clean = TRUE</code> only cleans up in this mode if the
+conversion was successful&mdash;this gives users a chance to examine log
+files in the event of error.
+</p>
+<p>All the approaches should respect the values of environment variables
+<span class="env">LATEX</span>, <span class="env">PDFLATEX</span>, <span class="env">MAKEINDEX</span> and <span class="env">BIBTEX</span> for the
+full paths to the corresponding commands.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Originally Achim Zeileis but largely rewritten by R-core.
+</p>
+
+<hr /><div style="text-align: center;">[Package <em>tools</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

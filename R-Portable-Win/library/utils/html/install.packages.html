@@ -1,0 +1,499 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Install Packages from Repositories or Local Files</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for install.packages {utils}"><tr><td>install.packages {utils}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Install Packages from Repositories or Local Files</h2>
+
+<h3>Description</h3>
+
+<p>Download and install packages from CRAN-like repositories or from
+local files.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+install.packages(pkgs, lib, repos = getOption("repos"),
+                 contriburl = contrib.url(repos, type),
+                 method, available = NULL, destdir = NULL,
+                 dependencies = NA, type = getOption("pkgType"),
+                 configure.args = getOption("configure.args"),
+                 configure.vars = getOption("configure.vars"),
+                 clean = FALSE, Ncpus = getOption("Ncpus", 1L),
+                 verbose = getOption("verbose"),
+                 libs_only = FALSE, INSTALL_opts, quiet = FALSE,
+                 keep_outputs = FALSE, ...)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>pkgs</code></td>
+<td>
+<p>character vector of the names of packages whose
+current versions should be downloaded from the repositories.
+</p>
+<p>If <code>repos = NULL</code>, a character vector of file paths,
+</p>
+
+<dl>
+<dt>on windows,</dt><dd>
+<p>file paths of &lsquo;<span class="file">.zip</span>&rsquo; files containing binary builds of
+packages.  (<code>http://</code> and <code>file://</code> URLs are also accepted
+and the files will be downloaded and installed from local copies.)
+Source directories or file paths or URLs of archives may be
+specified with <code>type = "source"</code>, but some packages need
+suitable tools installed (see the &lsquo;Details&rsquo; section).
+</p>
+</dd>
+<dt>On Unix-alikes,</dt><dd><p>these file paths can be source directories or archives
+or binary package archive files (as created by <code>R CMD build
+      --binary</code>).  (<code>http://</code> and <code>file://</code> URLs are also
+accepted and the files will be downloaded and installed from local
+copies.)  On a CRAN build of <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> for macOS these can be &lsquo;<span class="file">.tgz</span>&rsquo;
+files containing binary package archives.
+Tilde-expansion will be done on file paths.
+</p>
+</dd>
+</dl>
+
+<p>If this is missing, a listbox of
+available packages is presented where possible in an interactive <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>
+session.
+</p>
+</td></tr>
+<tr valign="top"><td><code>lib</code></td>
+<td>
+
+<p>character vector giving the library directories where to
+install the packages.  Recycled as needed.  If missing, defaults to
+the first element of <code><a href="../../base/html/libPaths.html">.libPaths</a>()</code>.
+</p>
+</td></tr>
+<tr valign="top"><td><code>repos</code></td>
+<td>
+
+<p>character vector, the base URL(s) of the repositories
+to use, e.g., the URL of a CRAN mirror such as
+<code>"https://cloud.r-project.org"</code>.  For more details on
+supported URL schemes see <code><a href="../../base/html/connections.html">url</a></code>.
+</p>
+<p>Can be <code>NULL</code> to install from local files, directories or URLs:
+this will be inferred by extension from <code>pkgs</code> if of length one.
+</p>
+</td></tr>
+<tr valign="top"><td><code>contriburl</code></td>
+<td>
+
+<p>URL(s) of the contrib sections of the repositories.  Use this
+argument if your repository mirror is incomplete, e.g., because
+you burned only the &lsquo;<span class="file">contrib</span>&rsquo; section on a CD, or only have
+binary packages.  Overrides argument <code>repos</code>.
+Incompatible with <code>type = "both"</code>.
+</p>
+</td></tr>
+<tr valign="top"><td><code>method</code></td>
+<td>
+
+<p>download method, see <code><a href="download.file.html">download.file</a></code>.  Unused if
+a non-<code>NULL</code> <code>available</code> is supplied.
+</p>
+</td></tr>
+<tr valign="top"><td><code>available</code></td>
+<td>
+
+<p>a matrix as returned by <code><a href="available.packages.html">available.packages</a></code>
+listing packages available at the repositories, or <code>NULL</code> when
+the function makes an internal call to <code>available.packages</code>.
+Incompatible with <code>type = "both"</code>.
+</p>
+</td></tr>
+<tr valign="top"><td><code>destdir</code></td>
+<td>
+
+<p>directory where downloaded packages are stored.  If it is
+<code>NULL</code> (the default) a subdirectory
+<code>downloaded_packages</code> of the session temporary
+directory will be used (and the files will be deleted
+at the end of the session).
+</p>
+</td></tr>
+<tr valign="top"><td><code>dependencies</code></td>
+<td>
+<p>logical indicating whether to also install
+uninstalled packages which these packages depend on/link
+to/import/suggest (and so on recursively).
+Not used if <code>repos = NULL</code>.
+Can also be a character vector, a subset of
+<code>c("Depends", "Imports", "LinkingTo", "Suggests", "Enhances")</code>.
+</p>
+<p>Only supported if <code>lib</code> is of length one (or missing),
+so it is unambiguous where to install the dependent packages.  If
+this is not the case it is ignored, with a warning.
+</p>
+<p>The default, <code>NA</code>, means
+<code>c("Depends", "Imports", "LinkingTo")</code>.
+</p>
+<p><code>TRUE</code> means to use
+<code>c("Depends", "Imports", "LinkingTo", "Suggests")</code> for
+<code>pkgs</code> and
+<code>c("Depends", "Imports", "LinkingTo")</code> for added dependencies:
+this installs all the packages needed to run <code>pkgs</code>, their
+examples, tests and vignettes (if the package author specified them
+correctly).
+</p>
+<p>In all of these, <code>"LinkingTo"</code> is omitted for binary packages.
+</p>
+</td></tr>
+<tr valign="top"><td><code>type</code></td>
+<td>
+<p>character, indicating the type of package to download and
+install.  Will be <code>"source"</code> except on Windows and some macOS
+builds: see the section on &lsquo;Binary packages&rsquo; for those.
+</p>
+</td></tr>
+<tr valign="top"><td><code>configure.args</code></td>
+<td>
+
+<p>(Used only for source installs.) A character vector or a named list.
+If a character vector with no names is supplied, the elements are
+concatenated into a single string (separated by a space) and used as
+the value for the <span class="option">--configure-args</span> flag in the call to
+<code>R CMD INSTALL</code>.  If the character vector has names these
+are assumed to identify values for <span class="option">--configure-args</span> for
+individual packages.  This allows one to specify settings for an
+entire collection of packages which will be used if any of those
+packages are to be installed.  (These settings can therefore be
+re-used and act as default settings.)
+</p>
+<p>A named list can be used also to the same effect, and that
+allows multi-element character strings for each package
+which are concatenated to a single string to be used as the
+value for <span class="option">--configure-args</span>.
+</p>
+</td></tr>
+<tr valign="top"><td><code>configure.vars</code></td>
+<td>
+
+<p>(Used only for source installs.) Analogous to <code>configure.args</code>
+for flag <span class="option">--configure-vars</span>, which is used to set environment
+variables for the <code>configure</code> run.
+</p>
+</td></tr>
+<tr valign="top"><td><code>clean</code></td>
+<td>
+<p>a logical value indicating whether to add the
+<span class="option">--clean</span> flag to the call to <code>R CMD INSTALL</code>.
+This is sometimes used to perform additional operations at the end
+of the package installation in addition to removing intermediate files.
+</p>
+</td></tr>
+<tr valign="top"><td><code>Ncpus</code></td>
+<td>
+<p>the number of parallel processes to use for a parallel
+install of more than one source package.  Values greater than one
+are supported if the <code>make</code> command specified by
+<code>Sys.getenv("MAKE", "make")</code> accepts argument
+<code>-k -j <var>Ncpus</var></code>.
+</p>
+</td></tr>
+<tr valign="top"><td><code>verbose</code></td>
+<td>
+
+<p>a logical indicating if some &ldquo;progress report&rdquo; should be given.
+</p>
+</td></tr>
+<tr valign="top"><td><code>libs_only</code></td>
+<td>
+
+<p>a logical value: should the <span class="option">--libs-only</span> option be used to
+install only additional sub-architectures for source installs?  (See also
+<code>INSTALL_opts</code>.)  This can also be used on Windows to install
+just the DLL(s) from a binary package, e.g. to add 64-bit
+DLLs to a 32-bit install.
+</p>
+</td></tr>
+<tr valign="top"><td><code>INSTALL_opts</code></td>
+<td>
+
+<p>an optional character vector of additional option(s) to be passed to
+<code>R CMD INSTALL</code> for a source package install.  E.g.,
+<code>c("--html", "--no-multiarch", "--no-test-load")</code>.
+</p>
+<p>Can also be a named list of character vectors to be used as
+additional options, with names the respective package names.
+</p>
+</td></tr>
+<tr valign="top"><td><code>quiet</code></td>
+<td>
+
+<p>logical: if true, reduce the amount of output.
+</p>
+</td></tr>
+<tr valign="top"><td><code>keep_outputs</code></td>
+<td>
+
+<p>a logical: if true, keep the outputs from installing source packages
+in the current working directory, with the names of the output files
+the package names with &lsquo;<span class="file">.out</span>&rsquo; appended.  Alternatively, a
+character string giving the directory in which to save the outputs.
+Ignored when installing from local files.
+</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+
+<p>Arguments to be passed to <code><a href="download.file.html">download.file</a></code> or to the
+functions for binary installs on macOS and Windows (which accept
+an argument <code>"lock"</code>: see the section on &lsquo;Locking&rsquo;).
+</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>This is the main function to install packages.  It takes a vector of
+names and a destination library, downloads the packages from the
+repositories and installs them.  (If the library is omitted it
+defaults to the first directory in <code>.libPaths()</code>, with a message
+if there is more than one.)  If <code>lib</code> is omitted or is of length
+one and is not a (group) writable directory, in interactive use the
+code offers to create a personal library tree (the first element of
+<code>Sys.getenv("R_LIBS_USER")</code>) and install there.
+</p>
+<p>Detection of a writable directory is problematic on Windows: see the
+&lsquo;Note&rsquo; section.
+</p>
+<p>For installs from a repository an attempt is made to install the
+packages in an order that respects their dependencies.  This does
+assume that all the entries in <code>lib</code> are on the default library
+path for installs (set by environment variable <span class="env">R_LIBS</span>).
+</p>
+<p>You are advised to run <code>update.packages</code> before
+<code>install.packages</code> to ensure that any already installed
+dependencies have their latest versions.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Invisible <code>NULL</code>.
+</p>
+
+
+<h3>Binary packages</h3>
+
+<p>This section applies only to platforms where binary packages are
+available: Windows and CRAN builds for macOS.
+</p>
+<p><span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> packages are primarily distributed as <em>source</em> packages, but
+<em>binary</em> packages (a packaging up of the installed package) are
+also supported, and the type most commonly used on Windows and by the
+CRAN builds for macOS.  This function can install either type, either by
+downloading a file from a repository or from a local file.
+</p>
+<p>Possible values of <code>type</code> are (currently) <code>"source"</code>,
+<code>"mac.binary"</code>, <code>"mac.binary.el-capitan"</code> and
+<code>"win.binary"</code>: the appropriate binary type where supported can
+also be selected as <code>"binary"</code>.
+</p>
+<p>For a binary install from a repository, the function checks for the
+availability of a source package on the same repository, and reports
+if the source package has a later version, or is available but no
+binary version is.  This check can be suppressed by using
+</p>
+<pre>    options(install.packages.check.source = "no")</pre>
+<p>and should be if there is a partial repository containing only binary
+files.
+</p>
+<p>An alternative (and the current default) is <code>"both"</code> which means
+&lsquo;use binary if available and current, otherwise try
+source&rsquo;. The action if there are source packages which are preferred
+but may contain code which needs to be compiled is controlled by
+<code><a href="../../base/html/options.html">getOption</a>("install.packages.compile.from.source")</code>.
+<code>type = "both"</code> will be silently changed to <code>"binary"</code> if
+either <code>contriburl</code> or <code>available</code> is specified.
+</p>
+<p>Using packages with <code>type = "source"</code> always works provided the
+package contains no C/C++/Fortran code that needs compilation.
+Otherwise,
+</p>
+
+<dl>
+<dt>on Windows</dt><dd><p>you will need to have installed the Rtools
+collection as described in the &lsquo;R for Windows FAQ&rsquo; <em>and</em>
+you must have the <span class="env">PATH</span> environment variable set up as required
+by Rtools.
+</p>
+<p>For a 32/64-bit installation of <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> on Windows, a small minority of
+packages with compiled code need either <code>INSTALL_opts =
+  "--force-biarch"</code> or <code>INSTALL_opts = "--merge-multiarch"</code> for a
+source installation.  (It is safe to always set the latter when
+installing from a repository or tarballs, although it will be a little
+slower.)
+</p>
+<p>When installing a binary package, <code>install.packages</code> will abort
+the install if it detects that the package is already installed and is
+currently in use.  In some circumstances (e.g., multiple instances of
+<span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> running at the same time and sharing a library) it will not detect a
+problem, but the installation may fail as Windows locks files in use.
+</p>
+</dd>
+<dt>On Unix-alikes,</dt><dd><p>when the package contains C/C++/Fortran code
+that needs compilation, on macOS you need to have installed the
+&lsquo;Command-line tools for Xcode&rsquo; (see the &lsquo;R Installation
+and Administration Manual&rsquo;) and if needed by the package a Fortran
+compiler, and have them in your path.
+</p>
+</dd>
+</dl>
+
+
+
+<h3>Locking</h3>
+
+<p>There are various options for locking: these differ between source and
+binary installs.
+</p>
+<p>By default for a source install, the library directory is
+&lsquo;locked&rsquo; by creating a directory &lsquo;<span class="file">00LOCK</span>&rsquo; within it.  This
+has two purposes: it prevents any other process installing into that
+library concurrently, and is used to store any previous version of the
+package to restore on error.  A finer-grained locking is provided by
+the option <span class="option">--pkglock</span> which creates a separate lock for each
+package: this allows enough freedom for parallel
+installation.  Per-package locking is the default when installing a
+single package, and for multiple packages when <code>Ncpus &gt; 1L</code>.
+Finally locking (and restoration on error) can be suppressed by
+<span class="option">--no-lock</span>.
+
+</p>
+<p>For a macOS binary install, no locking is done by default.  Setting
+argument <code>lock</code> to <code>TRUE</code> (it defaults to the value of
+<code><a href="../../base/html/options.html">getOption</a>("install.lock", FALSE)</code>) will use per-directory
+locking as described for source installs.  For Windows binary install,
+per-directory locking is used by default (<code>lock</code> defaults to the
+value of <code><a href="../../base/html/options.html">getOption</a>("install.lock", TRUE)</code>).  If the value is
+<code>"pkglock"</code> per-package locking will be used.
+</p>
+<p>If package locking is used on Windows with <code>libs_only = TRUE</code> and
+the installation fails, the package will be restored to its previous
+state.
+</p>
+<p>Note that it is possible for the package installation to fail so badly
+that the lock directory is not removed: this inhibits any further
+installs to the library directory (or for <code>--pkglock</code>, of the
+package) until the lock directory is removed manually.
+</p>
+
+
+<h3>Parallel installs</h3>
+
+<p>Parallel installs are attempted if <code>pkgs</code> has length greater than
+one and <code>Ncpus &gt; 1</code>.  It makes use of a parallel <code>make</code>,
+so the <code>make</code> specified (default <code>make</code>) when <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> was
+built must be capable of supporting <code>make -j <var>n</var></code>: GNU make,
+<code>dmake</code> and <code>pmake</code> do, but Solaris <code>make</code> and
+older FreeBSD <code>make</code> do not: if necessary environment variable
+<span class="env">MAKE</span> can be set for the current session to select a suitable
+<code>make</code>.
+</p>
+<p><code>install.packages</code> needs to be able to compute all the
+dependencies of <code>pkgs</code> from <code>available</code>, including if one
+element of <code>pkgs</code> depends indirectly on another.  This means that
+if for example you are installing <acronym><span class="acronym">CRAN</span></acronym> packages which depend
+on Bioconductor packages which in turn depend on <acronym><span class="acronym">CRAN</span></acronym>
+packages, <code>available</code> needs to cover both <acronym><span class="acronym">CRAN</span></acronym> and
+Bioconductor packages.
+</p>
+
+
+<h3>Timeouts</h3>
+
+<p>A limit on the elapsed time for each call to <code>R CMD INSTALL</code>
+(so for source installs) can be set <em>via</em> environment variable
+<span class="env">_R_INSTALL_PACKAGES_ELAPSED_TIMEOUT_</span>: in seconds (or in minutes
+or hours with optional suffix <span class="samp">m</span> or <span class="samp">h</span>, suffix <span class="samp">s</span>
+being allowed for the default seconds) with <code>0</code> meaning no limit.
+</p>
+<p>For non-parallel installs this is implemented <em>via</em> the
+<code>timeout</code> argument of <code><a href="../../base/html/system2.html">system2</a></code>: for parallel
+installs <em>via</em> the OS's <code>timeout</code> command.  (The one
+tested is from GNU <span class="pkg">coreutils</span>, commonly available on Linux but
+not other Unix-alikes.  If no such command is available the timeout
+request is ignored, with a warning.)  For parallel installs a
+<span class="samp">Error 124</span> message from <code>make</code> indicates that timeout
+occurred.
+</p>
+<p>Timeouts during installation might leave lock directories behind and
+not restore previous versions.
+</p>
+
+
+<h3>Note</h3>
+
+
+<dl>
+<dt>On Unix-alikes:</dt><dd>
+<p>Some binary distributions of <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> have <code>INSTALL</code> in a separate
+bundle, e.g. an <code>R-devel</code> RPM.  <code>install.packages</code> will
+give an error if called with <code>type = "source"</code> on such a system.
+</p>
+<p>Some binary Linux distributions of <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> can be installed on a machine
+without the tools needed to install packages: a possible remedy is to
+do a complete install of <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> which should bring in all those tools as
+dependencies.
+</p>
+</dd>
+<dt>On Windows:</dt><dd>
+<p><code>install.packages</code> tries to detect if you have write permission
+on the library directories specified, but Windows reports unreliably.
+If there is only one library directory (the default), <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> tries to
+find out by creating a test directory, but even this need not be the
+whole story: you may have permission to write in a library directory
+but lack permission to write binary files (such as &lsquo;<span class="file">.dll</span>&rsquo; files)
+there.  See the &lsquo;R for Windows FAQ&rsquo; for workarounds.
+</p>
+</dd>
+</dl>
+
+
+
+<h3>See Also</h3>
+
+<p><code><a href="update.packages.html">update.packages</a></code>,
+<code><a href="available.packages.html">available.packages</a></code>,
+<code><a href="download.packages.html">download.packages</a></code>,
+<code><a href="installed.packages.html">installed.packages</a></code>,
+<code><a href="contrib.url.html">contrib.url</a></code>.
+</p>
+<p>See <code><a href="download.file.html">download.file</a></code> for how to handle proxies and
+other options to monitor file transfers.
+</p>
+<p><code><a href="untar.html">untar</a></code> for manually unpacking source package tarballs.
+</p>
+<p><code><a href="INSTALL.html">INSTALL</a></code>, <code><a href="REMOVE.html">REMOVE</a></code>, <code><a href="remove.packages.html">remove.packages</a></code>,
+<code><a href="../../base/html/library.html">library</a></code>, <code><a href="../../base/html/zpackages.html">.packages</a></code>, <code><a href="../../base/html/dcf.html">read.dcf</a></code>
+</p>
+<p>The &lsquo;R Installation and Administration&rsquo; manual for how to
+set up a repository.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>## Not run: 
+## A Linux example for Fedora's layout of udunits2 headers.
+install.packages(c("ncdf4", "RNetCDF"),
+  configure.args = c(RNetCDF = "--with-netcdf-include=/usr/include/udunits2"))
+
+## End(Not run)</pre>
+
+<hr /><div style="text-align: center;">[Package <em>utils</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

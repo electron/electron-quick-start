@@ -1,0 +1,190 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Functions to Get and Set Hooks for Load, Attach, Detach and...</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for userhooks {base}"><tr><td>userhooks {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Functions to Get and Set Hooks for Load, Attach, Detach and Unload</h2>
+
+<h3>Description</h3>
+
+<p>These functions allow users to set actions to be taken before packages
+are attached/detached and namespaces are (un)loaded.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+getHook(hookName)
+setHook(hookName, value,
+        action = c("append", "prepend", "replace"))
+
+packageEvent(pkgname,
+             event = c("onLoad", "attach", "detach", "onUnload"))
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>hookName</code></td>
+<td>
+<p>character string: the hook name</p>
+</td></tr>
+<tr valign="top"><td><code>pkgname</code></td>
+<td>
+<p>character string: the package/namespace name</p>
+</td></tr>
+<tr valign="top"><td><code>event</code></td>
+<td>
+<p>character string: an event for the package.  Can be abbreviated.</p>
+</td></tr>
+<tr valign="top"><td><code>value</code></td>
+<td>
+<p>A function or a list of functions, or for <code>action = "replace"</code>, <code>NULL</code> </p>
+</td></tr>
+<tr valign="top"><td><code>action</code></td>
+<td>
+<p>The action to be taken.  Can be abbreviated.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p><code>setHook</code> provides a general mechanism for users to register
+hooks, a list of functions to be called from system (or user)
+functions.  The initial set of hooks was associated with events on
+packages/namespaces: these hooks are named via calls to
+<code>packageEvent</code>.
+</p>
+<p>To remove a hook completely, call <code>setHook(hookName, NULL, "replace")</code>.
+</p>
+<p>When an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> package is attached by <code><a href="library.html">library</a></code> or loaded by
+other means, it can call initialization code.  See
+<code><a href="ns-hooks.html">.onLoad</a></code> for a description of the package hook functions
+called during initialization.  Users can add their own initialization
+code via the hooks provided by <code>setHook()</code>, functions which will
+be called as <code>funname(pkgname, pkgpath)</code> inside a
+<code><a href="try.html">try</a></code> call.
+</p>
+<p>The sequence of events depends on which hooks are defined, and whether
+a package is attached or just loaded.  In the case where all hooks
+are defined and a package is attached, the order of initialization
+events is as follows:
+</p>
+
+<ol>
+<li><p> The package namespace is loaded.
+</p>
+</li>
+<li><p> The package's <code><a href="ns-hooks.html">.onLoad</a></code> function is run.
+</p>
+</li>
+<li><p> If S4 methods dispatch is on, any actions set by
+<code><a href="../../methods/html/setLoadActions.html">setLoadAction</a></code> are run.
+</p>
+</li>
+<li><p> The namespace is sealed.
+</p>
+</li>
+<li><p> The user's <code>"onLoad"</code> hook is run.
+</p>
+</li>
+<li><p> The package is added to the search path.
+</p>
+</li>
+<li><p> The package's <code><a href="ns-hooks.html">.onAttach</a></code> function is run.
+</p>
+</li>
+<li><p> The package environment is sealed.
+</p>
+</li>
+<li><p> The user's <code>"attach"</code> hook is run.
+</p>
+</li></ol>
+
+<p>A similar sequence (but in reverse) is run when a package is detached
+and its namespace unloaded:
+</p>
+
+<ol>
+<li><p> The user's <code>"detach"</code> hook is run.
+</p>
+</li>
+<li><p> The package's <code><a href="ns-hooks.html">.Last.lib</a></code> function is run.
+</p>
+</li>
+<li><p> The package is removed from the search path.
+</p>
+</li>
+<li><p> The user's <code>"onUnload"</code> hook is run.
+</p>
+</li>
+<li><p> The package's <code><a href="ns-hooks.html">.onUnload</a></code> function is run.
+</p>
+</li>
+<li><p> The package namespace is unloaded.
+</p>
+</li></ol>
+
+<p>Note that when an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> session is finished, packages are not detached and
+namespaces are not unloaded, so the corresponding hooks will not be
+run.
+</p>
+<p>Also note that some of the user hooks are run without the package
+being on the search path, so in those hooks objects in the package
+need to be referred to using the double (or triple) colon operator,
+as in the example.
+</p>
+<p>If multiple hooks are added, they are normally run in the order shown
+by <code>getHook</code>, but the <code>"detach"</code> and <code>"onUnload"</code> hooks
+are run in reverse order so the default for package events is to add
+hooks &lsquo;inside&rsquo; existing ones.
+</p>
+<p>The hooks are stored in the environment <code>.userHooksEnv</code> in the
+base package, with &lsquo;mangled&rsquo; names.
+</p>
+
+
+<h3>Value</h3>
+
+<p>For <code>getHook</code> function, a list of functions (possibly empty).
+For <code>setHook</code> function, no return value.
+For <code>packageEvent</code>, the derived hook name (a character string).
+</p>
+
+
+<h3>Note</h3>
+
+<p>Hooks need to be set before the event they modify: for standard
+packages this can be problematic as <span class="pkg">methods</span> is loaded and
+attached early in the startup sequence.   The usual place to set hooks
+such as the example below is in the &lsquo;<span class="file">.Rprofile</span>&rsquo; file, but that
+will not work for <span class="pkg">methods</span>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="library.html">library</a></code>, <code><a href="detach.html">detach</a></code>, <code><a href="ns-load.html">loadNamespace</a></code>.
+</p>
+<p>See <code><a href="ns-dblcolon.html">::</a></code>
+for a discussion of the double and triple colon operators.
+</p>
+<p>Other hooks may be added later: functions <code><a href="../../graphics/html/frame.html">plot.new</a></code> and
+<code><a href="../../graphics/html/persp.html">persp</a></code> already have them.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+setHook(packageEvent("grDevices", "onLoad"),
+        function(...) grDevices::ps.options(horizontal = FALSE))
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+
+
+<title>dplyr compatibility</title>
+
+
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css" data-origin="pandoc">
+a.sourceLine { display: inline-block; line-height: 1.25; }
+a.sourceLine { pointer-events: none; color: inherit; text-decoration: inherit; }
+a.sourceLine:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode { white-space: pre; position: relative; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+code.sourceCode { white-space: pre-wrap; }
+a.sourceLine { text-indent: -1em; padding-left: 1em; }
+}
+pre.numberSource a.sourceLine
+  { position: relative; left: -4em; }
+pre.numberSource a.sourceLine::before
+  { content: attr(title);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; pointer-events: all; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {  }
+@media screen {
+a.sourceLine::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    for (var j = 0; j < rules.length; j++) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") continue;
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' || rule.style.backgroundColor === '') continue;
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#header {
+text-align: center;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">dplyr compatibility</h1>
+
+
+
+<p>This vignette is aimed at package authors who need to update their code because of a backward incompatible change to dplyr. We do try and minimise backward incompatible changes as much as possible, but sometimes they are necessary in order to radically simplify existing code, or unlock a lot of potential value in the future.</p>
+<p>This vignette starts with some general advice on writing package code that works with multiple version of dplyr, then continues to discuss specific changes in dplyr versions.</p>
+<div id="working-with-multiple-dplyr-versions" class="section level2">
+<h2>Working with multiple dplyr versions</h2>
+<p>Ideally, you want to make sure that your package works with both the released version and the development version of dplyr. This is typically a little bit more work, but has two big advantages:</p>
+<ol style="list-style-type: decimal">
+<li><p>It’s more convenient for your users, since they’re not forced to update dplyr if they don’t want to)</p></li>
+<li><p>It’s easier on CRAN since it doesn’t require a massive coordinated release of multiple packages.</p></li>
+</ol>
+<p>To make code work with multiple versions of a package, your first tool is the simple if statement:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" title="1"><span class="cf">if</span> (utils<span class="op">::</span><span class="kw">packageVersion</span>(<span class="st">&quot;dplyr&quot;</span>) <span class="op">&gt;</span><span class="st"> &quot;0.5.0&quot;</span>) {</a>
+<a class="sourceLine" id="cb1-2" title="2">  <span class="co"># code for new version</span></a>
+<a class="sourceLine" id="cb1-3" title="3">} <span class="cf">else</span> {</a>
+<a class="sourceLine" id="cb1-4" title="4">  <span class="co"># code for old version</span></a>
+<a class="sourceLine" id="cb1-5" title="5">}</a></code></pre></div>
+<p>Always condition on <code>&gt; current-version</code>, not <code>&gt;= next-version</code> because this will ensure that this branch is also used for the development version of the package. For example, if the current release is version “0.5.0”, the development version will be “0.5.0.9000”.</p>
+<p>Occasionally, you’ll run into a situation where the <code>NAMESPACE</code> has changed and you need to conditionally import different functions. This typically occurs when functions are moved from one package to another. We try out best to provide automatic fallbacks, but this is not always possible. Often you can work around the problem by avoiding <code>importFrom</code> and using <code>::</code> instead. Do this where possible:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb2-1" title="1"><span class="cf">if</span> (utils<span class="op">::</span><span class="kw">packageVersion</span>(<span class="st">&quot;dplyr&quot;</span>) <span class="op">&gt;</span><span class="st"> &quot;0.5.0&quot;</span>) {</a>
+<a class="sourceLine" id="cb2-2" title="2">  dbplyr<span class="op">::</span><span class="kw">build_sql</span>(...)</a>
+<a class="sourceLine" id="cb2-3" title="3">} <span class="cf">else</span> {</a>
+<a class="sourceLine" id="cb2-4" title="4">  dplyr<span class="op">::</span><span class="kw">build_sql</span>(...)</a>
+<a class="sourceLine" id="cb2-5" title="5">}</a></code></pre></div>
+<p>This will generate an <code>R CMD check</code> NOTE (because the one of the functions will always be missing), but this is ok. Simply explain that you get the note because you have written a wrapper to make sure your code is backward compatible.</p>
+<p>Sometimes it’s not possible to avoid <code>importFrom()</code>. For example you might be importing a generic so that you can define a method for it. In this case, you can take advantage of a little-known feature in the <code>NAMESPACE</code> file: you can include <code>if</code> statements.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb3-1" title="1"><span class="co">#&#39; @rawNamespace</span></a>
+<a class="sourceLine" id="cb3-2" title="2"><span class="co">#&#39; if (utils::packageVersion(&quot;dplyr&quot;) &gt; &quot;0.5.0&quot;) {</span></a>
+<a class="sourceLine" id="cb3-3" title="3"><span class="co">#&#39;   importFrom(&quot;dbplyr&quot;, &quot;build_sql&quot;)</span></a>
+<a class="sourceLine" id="cb3-4" title="4"><span class="co">#&#39; } else {</span></a>
+<a class="sourceLine" id="cb3-5" title="5"><span class="co">#&#39;   importFrom(&quot;dplyr&quot;, &quot;build_sql&quot;)</span></a>
+<a class="sourceLine" id="cb3-6" title="6"><span class="co">#&#39; }</span></a></code></pre></div>
+</div>
+<div id="dplyr-0.6.0" class="section level2">
+<h2>dplyr 0.6.0</h2>
+<div id="database-code-moves-to-dbplyr" class="section level3">
+<h3>Database code moves to dbplyr</h3>
+<p>Almost all database related code has been moved out of dplyr and into a new package, <a href="http://github.com/hadley/dbplyr/">dbplyr</a>. This makes dplyr simpler, and will make it easier to release fixes for bugs that only affect databases. If you’ve implemented a database backend for dplyr, please read the <a href="https://github.com/hadley/dbplyr/blob/master/NEWS.md#backends">backend news</a> on the backend.</p>
+<p>Depending on what generics you use, and what generics you provide methods for you, you may need to write some conditional code. To help make this easier we’ve written <code>wrap_dbplyr_obj()</code> which will write the helper code for you:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb4-1" title="1"><span class="kw">wrap_dbplyr_obj</span>(<span class="st">&quot;build_sql&quot;</span>)</a>
+<a class="sourceLine" id="cb4-2" title="2"></a>
+<a class="sourceLine" id="cb4-3" title="3"><span class="kw">wrap_dbplyr_obj</span>(<span class="st">&quot;base_agg&quot;</span>)</a></code></pre></div>
+<p>Simply copy the results of this function in your package.</p>
+<p>These will generate <code>R CMD check</code> NOTES, so make sure to tell CRAN that this is to ensure backward compatibility.</p>
+</div>
+<div id="deprecation-of-underscored-verbs_" class="section level3">
+<h3>Deprecation of underscored <code>verbs_()</code></h3>
+<p>Because the tidyeval framework allows us to combine SE and NSE semantics within the same functions, the underscored verbs have been softly deprecated.</p>
+<div id="for-users-of-se_-verbs" class="section level4">
+<h4>For users of SE_ verbs</h4>
+<p>The legacy underscored versions take objects for which a <code>lazyeval::as.lazy()</code> method is defined. This includes symbols and calls, strings, and formulas. All of these objects have been replaced with quosures and you can call tidyeval verbs with unquoted quosures:</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb5-1" title="1">quo &lt;-<span class="st"> </span><span class="kw">quo</span>(cyl)</a>
+<a class="sourceLine" id="cb5-2" title="2"><span class="kw">select</span>(mtcars, <span class="op">!!</span><span class="st"> </span>quo)</a></code></pre></div>
+<p>Symbolic expressions are also supported, but note that bare symbols and calls do not carry scope information. If you’re referring to objects in the data frame, it’s safe to omit specifying an enclosure:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb6-1" title="1">sym &lt;-<span class="st"> </span><span class="kw">quote</span>(cyl)</a>
+<a class="sourceLine" id="cb6-2" title="2"><span class="kw">select</span>(mtcars, <span class="op">!!</span><span class="st"> </span>sym)</a>
+<a class="sourceLine" id="cb6-3" title="3"></a>
+<a class="sourceLine" id="cb6-4" title="4">call &lt;-<span class="st"> </span><span class="kw">quote</span>(<span class="kw">mean</span>(cyl))</a>
+<a class="sourceLine" id="cb6-5" title="5"><span class="kw">summarise</span>(mtcars, <span class="op">!!</span><span class="st"> </span>call)</a></code></pre></div>
+<p>Transforming objects into quosures is generally straightforward. To enclose with the current environment, you can unquote directly in <code>quo()</code> or you can use <code>as_quosure()</code>:</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb7-1" title="1"><span class="kw">quo</span>(<span class="op">!!</span><span class="st"> </span>sym)</a>
+<a class="sourceLine" id="cb7-2" title="2"><span class="co">#&gt; &lt;quosure&gt;</span></a>
+<a class="sourceLine" id="cb7-3" title="3"><span class="co">#&gt; expr: ^cyl</span></a>
+<a class="sourceLine" id="cb7-4" title="4"><span class="co">#&gt; env:  global</span></a>
+<a class="sourceLine" id="cb7-5" title="5"><span class="kw">quo</span>(<span class="op">!!</span><span class="st"> </span>call)</a>
+<a class="sourceLine" id="cb7-6" title="6"><span class="co">#&gt; &lt;quosure&gt;</span></a>
+<a class="sourceLine" id="cb7-7" title="7"><span class="co">#&gt; expr: ^mean(cyl)</span></a>
+<a class="sourceLine" id="cb7-8" title="8"><span class="co">#&gt; env:  global</span></a>
+<a class="sourceLine" id="cb7-9" title="9"></a>
+<a class="sourceLine" id="cb7-10" title="10">rlang<span class="op">::</span><span class="kw">as_quosure</span>(sym)</a>
+<a class="sourceLine" id="cb7-11" title="11"><span class="co">#&gt; Warning: `as_quosure()` requires an explicit environment as of rlang 0.3.0.</span></a>
+<a class="sourceLine" id="cb7-12" title="12"><span class="co">#&gt; Please supply `env`.</span></a>
+<a class="sourceLine" id="cb7-13" title="13"><span class="co">#&gt; This warning is displayed once per session.</span></a>
+<a class="sourceLine" id="cb7-14" title="14"><span class="co">#&gt; &lt;quosure&gt;</span></a>
+<a class="sourceLine" id="cb7-15" title="15"><span class="co">#&gt; expr: ^cyl</span></a>
+<a class="sourceLine" id="cb7-16" title="16"><span class="co">#&gt; env:  global</span></a>
+<a class="sourceLine" id="cb7-17" title="17">rlang<span class="op">::</span><span class="kw">as_quosure</span>(call)</a>
+<a class="sourceLine" id="cb7-18" title="18"><span class="co">#&gt; &lt;quosure&gt;</span></a>
+<a class="sourceLine" id="cb7-19" title="19"><span class="co">#&gt; expr: ^mean(cyl)</span></a>
+<a class="sourceLine" id="cb7-20" title="20"><span class="co">#&gt; env:  global</span></a></code></pre></div>
+<p>Note that while formulas and quosures are very similar objects (and in the most general sense, formulas are quosures), they can’t be used interchangeably in tidyeval functions. Early implementations did treat bare formulas as quosures, but this created compatibility issues with modelling functions of the stats package. Fortunately, it’s easy to transform formulas to quosures that will self-evaluate in tidyeval functions:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb8-1" title="1">f &lt;-<span class="st"> </span><span class="er">~</span>cyl</a>
+<a class="sourceLine" id="cb8-2" title="2">f</a>
+<a class="sourceLine" id="cb8-3" title="3"><span class="co">#&gt; ~cyl</span></a>
+<a class="sourceLine" id="cb8-4" title="4">rlang<span class="op">::</span><span class="kw">as_quosure</span>(f)</a>
+<a class="sourceLine" id="cb8-5" title="5"><span class="co">#&gt; &lt;quosure&gt;</span></a>
+<a class="sourceLine" id="cb8-6" title="6"><span class="co">#&gt; expr: ^cyl</span></a>
+<a class="sourceLine" id="cb8-7" title="7"><span class="co">#&gt; env:  global</span></a></code></pre></div>
+<p>Finally, and perhaps most importantly, <strong>strings are not and should not be parsed</strong>. As developers, it is tempting to try and solve problems using strings because we have been trained to work with strings rather than quoted expressions. However it’s almost always the wrong way to approach the problem. The exception is for creating symbols. In that case it is perfectly legitimate to use strings:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb9-1" title="1">rlang<span class="op">::</span><span class="kw">sym</span>(<span class="st">&quot;cyl&quot;</span>)</a>
+<a class="sourceLine" id="cb9-2" title="2"><span class="co">#&gt; cyl</span></a>
+<a class="sourceLine" id="cb9-3" title="3">rlang<span class="op">::</span><span class="kw">syms</span>(letters[<span class="dv">1</span><span class="op">:</span><span class="dv">3</span>])</a>
+<a class="sourceLine" id="cb9-4" title="4"><span class="co">#&gt; [[1]]</span></a>
+<a class="sourceLine" id="cb9-5" title="5"><span class="co">#&gt; a</span></a>
+<a class="sourceLine" id="cb9-6" title="6"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb9-7" title="7"><span class="co">#&gt; [[2]]</span></a>
+<a class="sourceLine" id="cb9-8" title="8"><span class="co">#&gt; b</span></a>
+<a class="sourceLine" id="cb9-9" title="9"><span class="co">#&gt; </span></a>
+<a class="sourceLine" id="cb9-10" title="10"><span class="co">#&gt; [[3]]</span></a>
+<a class="sourceLine" id="cb9-11" title="11"><span class="co">#&gt; c</span></a></code></pre></div>
+<p>But you should never use strings to create calls. Instead you can use quasiquotation:</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb10-1" title="1">syms &lt;-<span class="st"> </span>rlang<span class="op">::</span><span class="kw">syms</span>(<span class="kw">c</span>(<span class="st">&quot;foo&quot;</span>, <span class="st">&quot;bar&quot;</span>, <span class="st">&quot;baz&quot;</span>))</a>
+<a class="sourceLine" id="cb10-2" title="2"><span class="kw">quo</span>(<span class="kw">my_call</span>(<span class="op">!!!</span><span class="st"> </span>syms))</a>
+<a class="sourceLine" id="cb10-3" title="3"><span class="co">#&gt; &lt;quosure&gt;</span></a>
+<a class="sourceLine" id="cb10-4" title="4"><span class="co">#&gt; expr: ^my_call(foo, bar, baz)</span></a>
+<a class="sourceLine" id="cb10-5" title="5"><span class="co">#&gt; env:  global</span></a>
+<a class="sourceLine" id="cb10-6" title="6"></a>
+<a class="sourceLine" id="cb10-7" title="7">fun &lt;-<span class="st"> </span>rlang<span class="op">::</span><span class="kw">sym</span>(<span class="st">&quot;my_call&quot;</span>)</a>
+<a class="sourceLine" id="cb10-8" title="8"><span class="kw">quo</span>((<span class="op">!!</span>fun)(<span class="op">!!!</span><span class="st"> </span>syms))</a>
+<a class="sourceLine" id="cb10-9" title="9"><span class="co">#&gt; &lt;quosure&gt;</span></a>
+<a class="sourceLine" id="cb10-10" title="10"><span class="co">#&gt; expr: ^my_call(foo, bar, baz)</span></a>
+<a class="sourceLine" id="cb10-11" title="11"><span class="co">#&gt; env:  global</span></a></code></pre></div>
+<p>Or create the call with <code>call2()</code>:</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb11-1" title="1">call &lt;-<span class="st"> </span>rlang<span class="op">::</span><span class="kw">call2</span>(<span class="st">&quot;my_call&quot;</span>, <span class="op">!!!</span><span class="st"> </span>syms)</a>
+<a class="sourceLine" id="cb11-2" title="2">call</a>
+<a class="sourceLine" id="cb11-3" title="3"><span class="co">#&gt; my_call(foo, bar, baz)</span></a>
+<a class="sourceLine" id="cb11-4" title="4"></a>
+<a class="sourceLine" id="cb11-5" title="5">rlang<span class="op">::</span><span class="kw">as_quosure</span>(call)</a>
+<a class="sourceLine" id="cb11-6" title="6"><span class="co">#&gt; &lt;quosure&gt;</span></a>
+<a class="sourceLine" id="cb11-7" title="7"><span class="co">#&gt; expr: ^my_call(foo, bar, baz)</span></a>
+<a class="sourceLine" id="cb11-8" title="8"><span class="co">#&gt; env:  global</span></a>
+<a class="sourceLine" id="cb11-9" title="9"></a>
+<a class="sourceLine" id="cb11-10" title="10"><span class="co"># Or equivalently:</span></a>
+<a class="sourceLine" id="cb11-11" title="11"><span class="kw">quo</span>(<span class="op">!!</span><span class="st"> </span>rlang<span class="op">::</span><span class="kw">call2</span>(<span class="st">&quot;my_call&quot;</span>, <span class="op">!!!</span><span class="st"> </span>syms))</a>
+<a class="sourceLine" id="cb11-12" title="12"><span class="co">#&gt; &lt;quosure&gt;</span></a>
+<a class="sourceLine" id="cb11-13" title="13"><span class="co">#&gt; expr: ^my_call(foo, bar, baz)</span></a>
+<a class="sourceLine" id="cb11-14" title="14"><span class="co">#&gt; env:  global</span></a></code></pre></div>
+<p>Note that idioms based on <code>interp()</code> should now generally be avoided and replaced with quasiquotation. Where you used to interpolate:</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb12-1" title="1">lazyeval<span class="op">::</span><span class="kw">interp</span>(<span class="op">~</span><span class="st"> </span><span class="kw">mean</span>(var), <span class="dt">var =</span> rlang<span class="op">::</span><span class="kw">sym</span>(<span class="st">&quot;mpg&quot;</span>))</a></code></pre></div>
+<p>You would now unquote:</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb13-1" title="1">var &lt;-<span class="st"> &quot;mpg&quot;</span></a>
+<a class="sourceLine" id="cb13-2" title="2"><span class="kw">quo</span>(<span class="kw">mean</span>(<span class="op">!!</span><span class="st"> </span>rlang<span class="op">::</span><span class="kw">sym</span>(var)))</a></code></pre></div>
+<p>See also <code>vignette(&quot;programming&quot;)</code> for more about quasiquotation and quosures.</p>
+</div>
+<div id="for-package-authors" class="section level4">
+<h4>For package authors</h4>
+<p>For package authors, rlang provides a <a href="https://github.com/hadley/rlang/blob/master/R/compat-lazyeval.R">compatibility file</a> that you can copy to your package. <code>compat_lazy()</code> and <code>compat_lazy_dots()</code> turn lazy-able objects into proper quosures. This helps providing an underscored version to your users for backward compatibility. For instance, here is how we defined the underscored version of <code>filter()</code> in dplyr 0.6:</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb14-1" title="1">filter_.tbl_df &lt;-<span class="st"> </span><span class="cf">function</span>(.data, ..., <span class="dt">.dots =</span> <span class="kw">list</span>()) {</a>
+<a class="sourceLine" id="cb14-2" title="2">  dots &lt;-<span class="st"> </span><span class="kw">compat_lazy_dots</span>(.dots, <span class="kw">caller_env</span>(), ...)</a>
+<a class="sourceLine" id="cb14-3" title="3">  <span class="kw">filter</span>(.data, <span class="op">!!!</span><span class="st"> </span>dots)</a>
+<a class="sourceLine" id="cb14-4" title="4">}</a></code></pre></div>
+<p>With tidyeval, S3 dispatch to the correct method might be an issue. In the past, the genericity of dplyr verbs was accomplished by dispatching in the underscored versions. Now that those are deprecated, we’ve turned the non-underscored verbs into S3 generics.</p>
+<p>We maintain backward compatibility by redispatching to old underscored verbs in the default methods of the new S3 generics. For example, here is how we redispatch <code>filter()</code>:</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb15-1" title="1">filter.default &lt;-<span class="st"> </span><span class="cf">function</span>(.data, ...) {</a>
+<a class="sourceLine" id="cb15-2" title="2">  <span class="kw">filter_</span>(.data, <span class="dt">.dots =</span> <span class="kw">compat_as_lazy_dots</span>(...))</a>
+<a class="sourceLine" id="cb15-3" title="3">}</a></code></pre></div>
+<p>This gets the job done in most cases. However, the default method will not be called for objects inheriting from one of the classes for which we provide non-underscored methods: <code>data.frame</code>, <code>tbl_df</code>, <code>tbl_cube</code> and <code>grouped_df</code>. An example of this is the <code>sf</code> package whose objects have classes <code>c(&quot;sf&quot;, &quot;data.frame&quot;)</code>. Authors of such packages should provide a method for the non-underscored generic in order to be compatible with dplyr:</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb16-1" title="1">filter.sf &lt;-<span class="st"> </span><span class="cf">function</span>(.data, ...) {</a>
+<a class="sourceLine" id="cb16-2" title="2">  <span class="kw">st_as_sf</span>(<span class="kw">NextMethod</span>())</a>
+<a class="sourceLine" id="cb16-3" title="3">}</a></code></pre></div>
+<p>If you need help with this, please let us know!</p>
+</div>
+</div>
+<div id="deprecation-of-mutate_each-and-summarise_each" class="section level3">
+<h3>Deprecation of <code>mutate_each()</code> and <code>summarise_each()</code></h3>
+<p>These functions have been replaced by a more complete family of functions. This family has suffixes <code>_if</code>, <code>_at</code> and <code>_all</code> and includes more verbs than just <code>mutate</code> <code>summarise</code>.</p>
+<p>If you need to update your code to the new family, there are two relevant functions depending on which variables you apply <code>funs()</code> to. If you called <code>mutate_each()</code> without supplying a selection of variables, <code>funs</code> is applied to all variables. In this case, you should update your code to use <code>mutate_all()</code> instead:</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb17-1" title="1"><span class="kw">mutate_each</span>(starwars, <span class="kw">funs</span>(as.character))</a>
+<a class="sourceLine" id="cb17-2" title="2"><span class="kw">mutate_all</span>(starwars, <span class="kw">funs</span>(as.character))</a></code></pre></div>
+<p>Note that the new verbs support bare functions as well, so you don’t necessarily need to wrap with <code>funs()</code>:</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb18-1" title="1"><span class="kw">mutate_all</span>(starwars, as.character)</a></code></pre></div>
+<p>On the other hand, if you supplied a variable selection, you should use <code>mutate_at()</code>. The variable selection should be wrapped with <code>vars()</code>.</p>
+<div class="sourceCode" id="cb19"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb19-1" title="1"><span class="kw">mutate_each</span>(starwars, <span class="kw">funs</span>(as.character), height, mass)</a>
+<a class="sourceLine" id="cb19-2" title="2"><span class="kw">mutate_at</span>(starwars, <span class="kw">vars</span>(height, mass), as.character)</a></code></pre></div>
+<p><code>vars()</code> supports all the selection helpers that you usually use with <code>select()</code>:</p>
+<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb20-1" title="1"><span class="kw">summarise_at</span>(mtcars, <span class="kw">vars</span>(<span class="kw">starts_with</span>(<span class="st">&quot;d&quot;</span>)), mean)</a></code></pre></div>
+<p>Note that intead of a <code>vars()</code> selection, you can also supply character vectors of column names:</p>
+<div class="sourceCode" id="cb21"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb21-1" title="1"><span class="kw">mutate_at</span>(starwars, <span class="kw">c</span>(<span class="st">&quot;height&quot;</span>, <span class="st">&quot;mass&quot;</span>), as.character)</a></code></pre></div>
+</div>
+</div>
+
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

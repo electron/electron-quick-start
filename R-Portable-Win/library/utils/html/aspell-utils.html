@@ -1,0 +1,148 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Spell Check Utilities</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for aspell-utils {utils}"><tr><td>aspell-utils {utils}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Spell Check Utilities</h2>
+
+<h3>Description</h3>
+
+<p>Utilities for spell checking packages via Aspell, Hunspell or Ispell.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+aspell_package_Rd_files(dir, drop = c("\\author", "\\references"),
+                        control = list(), program = NULL,
+                        dictionaries = character())
+aspell_package_vignettes(dir,
+                         control = list(), program = NULL,
+                         dictionaries = character())
+aspell_package_R_files(dir, ignore = character(), control = list(),
+                       program = NULL, dictionaries = character())
+aspell_package_C_files(dir, ignore = character(), control = list(),
+                       program = NULL, dictionaries = character())
+
+aspell_write_personal_dictionary_file(x, out, language = "en",
+                                      program = NULL)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>dir</code></td>
+<td>
+<p>a character string specifying the path to a package's root
+directory.</p>
+</td></tr>
+<tr valign="top"><td><code>drop</code></td>
+<td>
+<p>a character vector naming additional Rd sections to drop
+when selecting text via <code><a href="../../tools/html/RdTextFilter.html">RdTextFilter</a></code>.</p>
+</td></tr>
+<tr valign="top"><td><code>control</code></td>
+<td>
+<p>a list or character vector of control options for
+the spell checker.</p>
+</td></tr>
+<tr valign="top"><td><code>program</code></td>
+<td>
+<p>a character string giving the name (if on the system
+path) or full path of the spell check program to be used, or
+<code>NULL</code> (default).  By default, the system path is searched for
+<code>aspell</code>, <code>hunspell</code> and <code>ispell</code> (in that
+order), and the first one found is used.</p>
+</td></tr>
+<tr valign="top"><td><code>dictionaries</code></td>
+<td>
+<p>a character vector of names or file paths of
+additional R level dictionaries to use.  See <code><a href="aspell.html">aspell</a></code>.</p>
+</td></tr>
+<tr valign="top"><td><code>ignore</code></td>
+<td>
+<p>a character vector with regular expressions to be
+replaced by blanks when filtering the message strings.</p>
+</td></tr>
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>a character vector, or the result of a call to
+<code><a href="aspell.html">aspell</a>()</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>out</code></td>
+<td>
+<p>a character string naming the personal dictionary file to
+write to.</p>
+</td></tr>
+<tr valign="top"><td><code>language</code></td>
+<td>
+<p>a character string indicating a language as used by
+Aspell.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>Functions <code>aspell_package_Rd_files</code>,
+<code>aspell_package_vignettes</code>, <code>aspell_package_R_files</code> and
+<code>aspell_package_C_files</code> perform spell checking on the Rd files,
+vignettes, R files, and C-level messages of the package with root
+directory <code>dir</code>.  They determine the respective files, apply the
+appropriate filters, and run the spell checker.
+</p>
+<p>See <code><a href="aspell.html">aspell</a></code> for details on filters.
+</p>
+<p>The C-level message string are obtained from the
+&lsquo;<span class="file">po/<var>PACKAGE</var>.pot</span>&rsquo; message catalog file, with <var>PACKAGE</var>
+the basename of <code>dir</code>.  See the section on &ldquo;C-level
+messages&rdquo; in &ldquo;Writing <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> Extensions&rdquo; for more information.
+</p>
+<p>When using Aspell, the vignette checking skips parameters and/or
+options of commands <code style="white-space: pre;">\Sexpr</code>, <code style="white-space: pre;">\citep</code>, <code style="white-space: pre;">\code</code>,
+<code style="white-space: pre;">\pkg</code>, <code style="white-space: pre;">\proglang</code> and <code style="white-space: pre;">\samp</code>.  Further commands can
+be skipped by adding <code style="white-space: pre;">--add-tex-command</code> options to the
+<code>control</code> argument.  E.g., to skip both option and parameter of
+<code style="white-space: pre;">\mycmd</code>, add <code style="white-space: pre;">--add-tex-command='mycmd op'</code>.
+</p>
+<p>Suitable values for <code>control</code>, <code>program</code>,
+<code>dictionaries</code>, <code>drop</code> and <code>ignore</code> can also be
+specified using a package defaults file which should go as
+&lsquo;<span class="file">defaults.R</span>&rsquo; into the &lsquo;<span class="file">.aspell</span>&rsquo; subdirectory of <code>dir</code>,
+and provides defaults via assignments of suitable named lists, e.g.,
+</p>
+<pre>vignettes &lt;- list(control = "--add-tex-command='mycmd op'")</pre>
+<p>for vignettes (when using Aspell) and similarly assigning to
+<code>Rd_files</code>, <code>R_files</code> and <code>C_files</code> for Rd files, R
+files and C level message defaults.
+</p>
+<p>Maintainers of packages using both English and American spelling will
+find it convenient to pass control options <span class="option">--master=en_US</span> and
+<span class="option">--add-extra-dicts=en_GB</span> to Aspell and control options
+<span class="option">-d en_US,en_GB</span> to Hunspell (provided that the corresponding
+dictionaries are installed).
+</p>
+<p>Older versions of <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> had no support for R level dictionaries, and
+hence provided the function
+<code>aspell_write_personal_dictionary_file</code> to create (spell check)
+program-specific personal dictionary files from words to be accepted.
+The new mechanism is to use R level dictionaries, i.e., &lsquo;<span class="file">.rds</span>&rsquo;
+files obtained by serializing character vectors of such words using
+<code><a href="../../base/html/readRDS.html">saveRDS</a></code>.  For such dictionaries specified via the
+package defaults mechanism, elements with no path separator can be R
+system dictionaries or dictionaries in the &lsquo;<span class="file">.aspell</span>&rsquo;
+subdirectory.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="aspell.html">aspell</a></code>
+</p>
+
+<hr /><div style="text-align: center;">[Package <em>utils</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

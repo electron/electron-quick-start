@@ -1,0 +1,173 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: The Choleski Decomposition</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for chol {base}"><tr><td>chol {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>The Choleski Decomposition</h2>
+
+<h3>Description</h3>
+
+<p>Compute the Choleski factorization of a real symmetric
+positive-definite square matrix.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+chol(x, ...)
+
+## Default S3 method:
+chol(x, pivot = FALSE,  LINPACK = FALSE, tol = -1, ...)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>an object for which a method exists.  The default method
+applies to numeric (or logical) symmetric, positive-definite matrices.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>arguments to be based to or from methods.</p>
+</td></tr>
+<tr valign="top"><td><code>pivot</code></td>
+<td>
+<p>Should pivoting be used?</p>
+</td></tr>
+<tr valign="top"><td><code>LINPACK</code></td>
+<td>
+<p>logical.  Should LINPACK be used (now ignored)?</p>
+</td></tr>
+<tr valign="top"><td><code>tol</code></td>
+<td>
+<p>A numeric tolerance for use with <code>pivot = TRUE</code>.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p><code>chol</code> is generic: the description here applies to the default
+method.
+</p>
+<p>Note that only the upper triangular part of <code>x</code> is used, so
+that <i>R'R = x</i> when <code>x</code> is symmetric.
+</p>
+<p>If <code>pivot = FALSE</code> and <code>x</code> is not non-negative definite an
+error occurs.  If <code>x</code> is positive semi-definite (i.e., some zero
+eigenvalues) an error will also occur as a numerical tolerance is used.
+</p>
+<p>If <code>pivot = TRUE</code>, then the Choleski decomposition of a positive
+semi-definite <code>x</code> can be computed.  The rank of <code>x</code> is
+returned as <code>attr(Q, "rank")</code>, subject to numerical errors.
+The pivot is returned as <code>attr(Q, "pivot")</code>.  It is no longer
+the case that <code>t(Q) %*% Q</code> equals <code>x</code>.  However, setting
+<code>pivot &lt;- attr(Q, "pivot")</code> and <code>oo &lt;- order(pivot)</code>, it
+is true that <code>t(Q[, oo]) %*% Q[, oo]</code> equals <code>x</code>,
+or, alternatively, <code>t(Q) %*% Q</code> equals <code>x[pivot,
+    pivot]</code>.  See the examples.
+</p>
+<p>The value of <code>tol</code> is passed to LAPACK, with negative values
+selecting the default tolerance of (usually) <code>nrow(x) *
+  .Machine$double.neg.eps * max(diag(x))</code>.  The algorithm terminates once
+the pivot is less than <code>tol</code>.
+</p>
+<p>Unsuccessful results from the underlying LAPACK code will result in an
+error giving a positive error code: these can only be interpreted by
+detailed study of the FORTRAN code.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The upper triangular factor of the Choleski decomposition, i.e., the
+matrix <i>R</i> such that <i>R'R = x</i> (see example).
+</p>
+<p>If pivoting is used, then two additional attributes
+<code>"pivot"</code> and <code>"rank"</code> are also returned.
+</p>
+
+
+<h3>Warning</h3>
+
+<p>The code does not check for symmetry.
+</p>
+<p>If <code>pivot = TRUE</code> and <code>x</code> is not non-negative definite then
+there will be a warning message but a meaningless result will occur.
+So only use <code>pivot = TRUE</code> when <code>x</code> is non-negative definite
+by construction.
+</p>
+
+
+<h3>Source</h3>
+
+<p>This is an interface to the LAPACK routines <code>DPOTRF</code> and
+<code>DPSTRF</code>,
+</p>
+<p>LAPACK is from <a href="http://www.netlib.org/lapack">http://www.netlib.org/lapack</a> and its guide is listed
+in the references.
+</p>
+
+
+<h3>References</h3>
+
+<p>Anderson. E. and ten others (1999)
+<em>LAPACK Users' Guide</em>. Third Edition. SIAM.<br />
+Available on-line at
+<a href="http://www.netlib.org/lapack/lug/lapack_lug.html">http://www.netlib.org/lapack/lug/lapack_lug.html</a>.
+</p>
+<p>Becker, R. A., Chambers, J. M. and Wilks, A. R. (1988)
+<em>The New S Language</em>.
+Wadsworth &amp; Brooks/Cole.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="chol2inv.html">chol2inv</a></code> for its <em>inverse</em> (without pivoting),
+<code><a href="backsolve.html">backsolve</a></code> for solving linear systems with upper
+triangular left sides.
+</p>
+<p><code><a href="qr.html">qr</a></code>, <code><a href="svd.html">svd</a></code> for related matrix factorizations.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+( m &lt;- matrix(c(5,1,1,3),2,2) )
+( cm &lt;- chol(m) )
+t(cm) %*% cm  #-- = 'm'
+crossprod(cm)  #-- = 'm'
+
+# now for something positive semi-definite
+x &lt;- matrix(c(1:5, (1:5)^2), 5, 2)
+x &lt;- cbind(x, x[, 1] + 3*x[, 2])
+colnames(x) &lt;- letters[20:22]
+m &lt;- crossprod(x)
+qr(m)$rank # is 2, as it should be
+
+# chol() may fail, depending on numerical rounding:
+# chol() unlike qr() does not use a tolerance.
+try(chol(m))
+
+(Q &lt;- chol(m, pivot = TRUE))
+## we can use this by
+pivot &lt;- attr(Q, "pivot")
+crossprod(Q[, order(pivot)]) # recover m
+
+## now for a non-positive-definite matrix
+( m &lt;- matrix(c(5,-5,-5,3), 2, 2) )
+try(chol(m))  # fails
+(Q &lt;- chol(m, pivot = TRUE)) # warning
+crossprod(Q)  # not equal to m
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

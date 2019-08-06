@@ -1,0 +1,168 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Create colour spaces</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for make.rgb {grDevices}"><tr><td>make.rgb {grDevices}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Create colour spaces </h2>
+
+<h3>Description</h3>
+
+<p>These functions specify colour spaces for use in
+<code><a href="convertColor.html">convertColor</a></code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+make.rgb(red, green, blue, name = NULL, white = "D65",
+         gamma = 2.2)
+
+colorConverter(toXYZ, fromXYZ, name, white = NULL, vectorized = FALSE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>red,green,blue</code></td>
+<td>
+<p>Chromaticity (xy or xyY) of RGB primaries</p>
+</td></tr>
+<tr valign="top"><td><code>name</code></td>
+<td>
+<p>Name for the colour space</p>
+</td></tr>
+<tr valign="top"><td><code>white</code></td>
+<td>
+<p>Character string specifying the reference white (see
+&lsquo;Details&rsquo;.)</p>
+</td></tr>
+<tr valign="top"><td><code>gamma</code></td>
+<td>
+<p>Display gamma (nonlinearity). A positive number or the
+string <code>"sRGB"</code> </p>
+</td></tr>
+<tr valign="top"><td><code>fromXYZ</code></td>
+<td>
+<p>Function to convert from XYZ tristimulus coordinates
+to this space</p>
+</td></tr>
+<tr valign="top"><td><code>toXYZ</code></td>
+<td>
+<p>Function to convert from this space to XYZ tristimulus
+coordinates.</p>
+</td></tr>
+<tr valign="top"><td><code>vectorized</code></td>
+<td>
+<p>Whether <code>fromXYZ</code> and <code>toXYZ</code> are
+vectorized internally to handle input color matrices.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>An RGB colour space is defined by the chromaticities of the  red, green and
+blue primaries.  These are given as vectors of length 2 or 3 in xyY
+coordinates (the Y component is not used and may be omitted).
+The chromaticities are defined relative to a reference white, which
+must be one of the CIE standard illuminants: &quot;A&quot;, &quot;B&quot;, &quot;C&quot;,
+&quot;D50&quot;, &quot;D55&quot;, &quot;D60&quot;, &quot;E&quot; (usually &quot;D65&quot;).
+</p>
+<p>The display gamma is most commonly 2.2, though 1.8 is used for Apple RGB.
+The sRGB standard specifies a more complicated function that is close
+to a gamma of 2.2; <code>gamma = "sRGB"</code> uses this function.
+</p>
+<p>Colour spaces other than RGB can be specified directly by giving
+conversions to and from XYZ tristimulus coordinates.
+The functions  should take two arguments. The first is a vector giving the
+coordinates for one colour. The second argument is the reference
+white. If a specific reference white is included in the definition of
+the colour space (as for the RGB spaces) this second argument should
+be ignored and may be <code>...</code>.
+</p>
+<p>As of R 3.6.0 the built in color converters along with
+<code><a href="convertColor.html">convertColor</a></code> were vectorized to process three column
+color matrices in one call, instead of row by row via <code><a href="../../base/html/apply.html">apply</a></code>.
+In order to maintain backwards compatibility, <code>colorConverter</code> wraps
+<code>fromXYZ</code> and <code>toXYZ</code> in a <code>apply</code> loop in case they do not
+also support matrix inputs.  If the <code>fromXYZ</code> and <code>toXYZ</code> functions
+you are using operate correctly on the whole color matrix at once instead of
+row by row, you can set <code>vectorized=TRUE</code> for a performance improvement.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class <code>colorConverter</code>
+</p>
+
+
+<h3>References</h3>
+
+<p>Conversion algorithms from <a href="http://www.brucelindbloom.com">http://www.brucelindbloom.com</a>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="convertColor.html">convertColor</a>
+  </code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+(pal &lt;- make.rgb(red =   c(0.6400, 0.3300),
+                 green = c(0.2900, 0.6000),
+                 blue =  c(0.1500, 0.0600),
+                 name = "PAL/SECAM RGB"))
+
+## converter for sRGB in #rrggbb format
+hexcolor &lt;- colorConverter(toXYZ = function(hex, ...) {
+                            rgb &lt;- t(col2rgb(hex))/255
+                            colorspaces$sRGB$toXYZ(rgb, ...) },
+                           fromXYZ = function(xyz, ...) {
+                              rgb &lt;- colorspaces$sRGB$fromXYZ(xyz, ...)
+                              rgb &lt;- round(rgb, 5)
+                              if (min(rgb) &lt; 0 || max(rgb) &gt; 1)
+                                   as.character(NA)
+                              else rgb(rgb[1], rgb[2], rgb[3])},
+                           white = "D65", name = "#rrggbb")
+
+(cols &lt;- t(col2rgb(palette())))
+zapsmall(luv &lt;- convertColor(cols, from = "sRGB", to = "Luv", scale.in = 255))
+(hex &lt;- convertColor(luv, from = "Luv",  to = hexcolor, scale.out = NULL))
+
+## must make hex a matrix before using it
+(cc &lt;- round(convertColor(as.matrix(hex), from = hexcolor, to = "sRGB",
+                          scale.in = NULL, scale.out = 255)))
+stopifnot(cc == cols)
+
+## Internally vectorized version of hexcolor, notice the use
+## of `vectorized = TRUE`:
+
+hexcolorv &lt;- colorConverter(toXYZ = function(hex, ...) {
+                            rgb &lt;- t(col2rgb(hex))/255
+                            colorspaces$sRGB$toXYZ(rgb, ...) },
+                           fromXYZ = function(xyz, ...) {
+                              rgb &lt;- colorspaces$sRGB$fromXYZ(xyz, ...)
+                              rgb &lt;- round(rgb, 5)
+                              oob &lt;- pmin(rgb[,1],rgb[,2],rgb[,3]) &lt; 0 |
+                                     pmax(rgb[,1],rgb[,2],rgb[,3]) &gt; 0
+                              res &lt;- rep(NA_character_, nrow(rgb))
+                              res[!oob] &lt;- rgb(rgb[!oob,,drop=FALSE])},
+                           white = "D65", name = "#rrggbb",
+                           vectorized=TRUE)
+(ccv &lt;- round(convertColor(as.matrix(hex), from = hexcolor, to = "sRGB",
+                           scale.in = NULL, scale.out = 255)))
+stopifnot(ccv == cols)
+
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>grDevices</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

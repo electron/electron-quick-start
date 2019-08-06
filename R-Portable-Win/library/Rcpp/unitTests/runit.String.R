@@ -94,4 +94,8 @@ if (.runThisTest) {
         checkEquals(Encoding(test_String_ctor_encoding2()), "UTF-8")
     }
 
+    test.String.embeddedNul <- function() {
+        checkException(test_String_embeddedNul())
+    }
+
 }

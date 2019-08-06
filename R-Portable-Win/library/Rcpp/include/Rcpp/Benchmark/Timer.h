@@ -120,17 +120,17 @@ namespace Rcpp{
             out.attr("names") = names;
             return out;
         }
-        
+
         static std::vector<Timer> get_timers(int n){
             return std::vector<Timer>( n, Timer() ) ;
         }
-        
+
         inline nanotime_t now() const {
             return get_nanotime() ;
         }
-        
+
         inline nanotime_t origin() const {
-            return start_time ;    
+            return start_time ;
         }
 
     private:
@@ -143,5 +143,8 @@ namespace Rcpp{
 
 }
 
+#ifdef FALSE
+  #undef FALSE
 #endif
 
+#endif

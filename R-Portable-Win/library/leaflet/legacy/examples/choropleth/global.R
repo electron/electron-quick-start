@@ -1,4 +1,4 @@
-density = c(
+density <- c(
   "Alabama" = 94.65,
   "Arizona" = 57.05,
   "Arkansas" = 56.43,
@@ -27,7 +27,7 @@ density = c(
   "Nebraska" = 23.97,
   "Nevada" = 24.80,
   "New Hampshire" = 147,
-  "New Jersey" = 1189 ,
+  "New Jersey" = 1189,
   "New Mexico" = 17.16,
   "New York" = 412.3,
   "North Carolina" = 198.2,
@@ -36,7 +36,7 @@ density = c(
   "Oklahoma" = 55.22,
   "Oregon" = 40.33,
   "Pennsylvania" = 284.3,
-  "Rhode Island" = 1006 ,
+  "Rhode Island" = 1006,
   "South Carolina" = 155.4,
   "South Dakota" = 98.07,
   "Tennessee" = 88.08,
@@ -54,8 +54,8 @@ density = c(
 densityBreaks <- c(0, 10, 20, 50, 100, 200, 500, 1000, Inf)
 # Construct break ranges for displaying in the legend
 densityRanges <- data.frame(
-  from = head(densityBreaks, length(densityBreaks)-1),
-  to = tail(densityBreaks, length(densityBreaks)-1)
+  from = head(densityBreaks, length(densityBreaks) - 1),
+  to = tail(densityBreaks, length(densityBreaks) - 1)
 )
 
 # Eight colors for eight buckets

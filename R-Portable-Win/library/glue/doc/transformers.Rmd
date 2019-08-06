@@ -1,0 +1,158 @@
+---
+title: "Transformers"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Transformers}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+Transformers allow you to apply functions to the glue input and output, before
+and after evaluation. This allows you to write things like `glue_sql()`, which
+automatically quotes variables for you or add a syntax for automatically
+collapsing outputs.
+
+The transformer functions simply take two arguments `text` and `envir`, where
+`text` is the unparsed string inside the glue block and `envir` is the
+execution environment. Most transformers will then call `eval(parse(text = text,
+keep.source = FALSE), envir)` which parses and evaluates the code.
+
+You can then supply the transformer function to glue with the `.transformer`
+argument. In this way users can define manipulate the text before parsing and
+change the output after evaluation.
+
+It is often useful to write a `glue()` wrapper function which supplies a
+`.transformer` to `glue()` or `glue_data()` and potentially has additional
+arguments. One important consideration when doing this is to include
+`.envir = parent.frame()` in the wrapper to ensure the evaluation environment
+is correct.
+
+Some examples implementations of potentially useful transformers follow. The
+aim right now is not to include most of these custom functions within the
+`glue` package. Rather users are encouraged to create custom functions using
+transformers to fit their individual needs.
+
+```{r, include = FALSE}
+library(glue)
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+### collapse transformer
+
+A transformer which automatically collapses any glue block ending with `*`.
+
+```{r}
+collapse_transformer <- function(regex = "[*]$", ...) {
+  function(text, envir) {
+    if (grepl(regex, text)) {
+        text <- sub(regex, "", text)
+    }
+    res <- eval(parse(text = text, keep.source = FALSE), envir)
+    glue_collapse(res, ...)
+  }
+}
+
+glue("{1:5*}\n{letters[1:5]*}", .transformer = collapse_transformer(sep = ", "))
+
+glue("{1:5*}\n{letters[1:5]*}", .transformer = collapse_transformer(sep = ", ", last = " and "))
+```
+
+### Shell quoting transformer
+
+A transformer which automatically quotes variables for use in shell commands,
+e.g. via `system()` or `system2()`.
+
+```{r}
+shell_transformer <- function(type = c("sh", "csh", "cmd", "cmd2")) {
+  type <- match.arg(type)
+  function(text, envir) {
+    res <- eval(parse(text = text, keep.source = FALSE), envir)
+    shQuote(res)
+  }
+}
+
+glue_sh <- function(..., .envir = parent.frame(), .type = c("sh", "csh", "cmd", "cmd2")) {
+  .type <- match.arg(.type)
+  glue(..., .envir = .envir, .transformer = shell_transformer(.type))
+
+}
+
+filename <- "test"
+writeLines(con = filename, "hello!")
+
+command <- glue_sh("cat {filename}")
+command
+system(command)
+```
+
+### emoji transformer
+
+A transformer which converts the text to the equivalent emoji.
+
+```{r, eval = require("emo")}
+emoji_transformer <- function(text, envir) {
+  if (grepl("[*]$", text)) {
+    text <- sub("[*]$", "", text)
+    glue_collapse(ji_find(text)$emoji)
+  } else {
+    ji(text)
+  }
+}
+
+glue_ji <- function(..., .envir = parent.frame()) {
+  glue(..., .open = ":", .close = ":", .envir = .envir, .transformer = emoji_transformer)
+}
+glue_ji("one :heart:")
+glue_ji("many :heart*:")
+```
+
+### sprintf transformer
+
+A transformer which allows succinct sprintf format strings.
+
+```{r}
+sprintf_transformer <- function(text, envir) {
+  m <- regexpr(":.+$", text)
+  if (m != -1) {
+    format <- substring(regmatches(text, m), 2)
+    regmatches(text, m) <- ""
+    res <- eval(parse(text = text, keep.source = FALSE), envir)
+    do.call(sprintf, list(glue("%{format}f"), res))
+  } else {
+    eval(parse(text = text, keep.source = FALSE), envir)
+  }
+}
+
+glue_fmt <- function(..., .envir = parent.frame()) {
+  glue(..., .transformer = sprintf_transformer, .envir = .envir)
+}
+glue_fmt("π = {pi:.2}")
+```
+
+### safely transformer
+
+A transformer that acts like `purrr::safely()`, which returns a value instead of an error.
+
+```{r}
+safely_transformer <- function(otherwise = NA) {
+  function(text, envir) {
+    tryCatch(
+      eval(parse(text = text, keep.source = FALSE), envir),
+      error = function(e) if (is.language(otherwise)) eval(otherwise) else otherwise)
+  }
+}
+
+glue_safely <- function(..., .otherwise = NA, .envir = parent.frame()) {
+  glue(..., .transformer = safely_transformer(.otherwise), .envir = .envir)
+}
+
+# Default returns missing if there is an error
+glue_safely("foo: {xyz}")
+
+# Or an empty string
+glue_safely("foo: {xyz}", .otherwise = "Error")
+
+# Or output the error message in red
+library(crayon)
+glue_safely("foo: {xyz}", .otherwise = quote(glue("{red}Error: {conditionMessage(e)}{reset}")))
+```

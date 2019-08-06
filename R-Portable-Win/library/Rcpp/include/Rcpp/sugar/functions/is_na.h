@@ -72,7 +72,11 @@ class IsNa_Vector_is_na : public Rcpp::VectorBase<LGLSXP, false, IsNa_Vector_is_
        IsNa_Vector_is_na( const T& x) : ref(x){}
 
        inline int operator[]( R_xlen_t i) const {
+       #if defined(RCPP_NEW_DATE_DATETIME_VECTORS)
+           return ::Rcpp::traits::is_na<T>(ref[i]);
+       #else
            return ref[i].is_na() ;
+       #endif
        }
 
        inline R_xlen_t size() const { return ref.size() ; }
@@ -84,16 +88,25 @@ class IsNa_Vector_is_na : public Rcpp::VectorBase<LGLSXP, false, IsNa_Vector_is_
 } // sugar
 
 template <int RTYPE, bool NA, typename T>
-inline sugar::IsNa<RTYPE,NA,T> is_na( const Rcpp::VectorBase<RTYPE,NA,T>& t){
-	return sugar::IsNa<RTYPE,NA,T>( t ) ;
+inline sugar::IsNa<RTYPE,NA,T> is_na( const Rcpp::VectorBase<RTYPE,NA,T>& t) {
+    return sugar::IsNa<RTYPE,NA,T>(t);
 }
 
-inline sugar::IsNa_Vector_is_na<DatetimeVector> is_na( const DatetimeVector& x){
-    return sugar::IsNa_Vector_is_na<DatetimeVector>( x ) ;
+inline sugar::IsNa_Vector_is_na<oldDatetimeVector> is_na(const oldDatetimeVector& x) {
+    return sugar::IsNa_Vector_is_na<oldDatetimeVector>( x ) ;
 }
-inline sugar::IsNa_Vector_is_na<DateVector> is_na( const DateVector& x){
-    return sugar::IsNa_Vector_is_na<DateVector>( x ) ;
+
+inline sugar::IsNa_Vector_is_na<oldDateVector> is_na(const oldDateVector& x) {
+    return sugar::IsNa_Vector_is_na<oldDateVector>(x);
 }
+
+inline sugar::IsNa_Vector_is_na<NumericVector> is_na(newDatetimeVector& x) {
+    return sugar::IsNa_Vector_is_na<NumericVector>(x);
+}
+inline sugar::IsNa_Vector_is_na<NumericVector> is_na(newDateVector& x) {
+    return sugar::IsNa_Vector_is_na<NumericVector>(x);
+}
+
 
 } // Rcpp
 #endif

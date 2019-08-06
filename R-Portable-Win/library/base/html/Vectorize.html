@@ -1,0 +1,115 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Vectorize a Scalar Function</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for Vectorize {base}"><tr><td>Vectorize {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Vectorize a Scalar Function</h2>
+
+<h3>Description</h3>
+
+<p><code>Vectorize</code> creates a function wrapper that vectorizes the
+action of its argument <code>FUN</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+Vectorize(FUN, vectorize.args = arg.names, SIMPLIFY = TRUE,
+          USE.NAMES = TRUE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>FUN</code></td>
+<td>
+<p>function to apply, found via <code><a href="match.fun.html">match.fun</a></code>.</p>
+</td></tr>
+<tr valign="top"><td><code>vectorize.args</code></td>
+<td>
+<p>a character vector of arguments which should be
+vectorized.  Defaults to all arguments of <code>FUN</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>SIMPLIFY</code></td>
+<td>
+<p>logical or character string; attempt to reduce the
+result to a vector, matrix or higher dimensional array; see
+the <code>simplify</code> argument of <code><a href="lapply.html">sapply</a></code>.</p>
+</td></tr>
+<tr valign="top"><td><code>USE.NAMES</code></td>
+<td>
+<p>logical; use names if the first ... argument has
+names, or if it is a character vector, use that character vector as
+the names.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>The arguments named in the <code>vectorize.args</code> argument to
+<code>Vectorize</code> are the arguments passed in the <code>...</code>  list to
+<code><a href="mapply.html">mapply</a></code>.  Only those that are actually passed will be
+vectorized; default values will not.  See the examples.
+</p>
+<p><code>Vectorize</code> cannot be used with primitive functions as they do
+not have a value for <code><a href="formals.html">formals</a></code>.
+</p>
+<p>It also cannot be used with functions that have arguments named
+<code>FUN</code>, <code>vectorize.args</code>, <code>SIMPLIFY</code> or
+<code>USE.NAMES</code>, as they will interfere with the <code>Vectorize</code>
+arguments.  See the <code>combn</code> example below for a workaround.  
+</p>
+
+
+<h3>Value</h3>
+
+<p>A function with the same arguments as <code>FUN</code>, wrapping a call to
+<code><a href="mapply.html">mapply</a></code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+# We use rep.int as rep is primitive
+vrep &lt;- Vectorize(rep.int)
+vrep(1:4, 4:1)
+vrep(times = 1:4, x = 4:1)
+
+vrep &lt;- Vectorize(rep.int, "times")
+vrep(times = 1:4, x = 42)
+
+f &lt;- function(x = 1:3, y) c(x, y)
+vf &lt;- Vectorize(f, SIMPLIFY = FALSE)
+f(1:3, 1:3)
+vf(1:3, 1:3)
+vf(y = 1:3) # Only vectorizes y, not x
+
+# Nonlinear regression contour plot, based on nls() example
+require(graphics)
+SS &lt;- function(Vm, K, resp, conc) {
+    pred &lt;- (Vm * conc)/(K + conc)
+    sum((resp - pred)^2 / pred)
+}
+vSS &lt;- Vectorize(SS, c("Vm", "K"))
+Treated &lt;- subset(Puromycin, state == "treated")
+
+Vm &lt;- seq(140, 310, length.out = 50)
+K &lt;- seq(0, 0.15, length.out = 40)
+SSvals &lt;- outer(Vm, K, vSS, Treated$rate, Treated$conc)
+contour(Vm, K, SSvals, levels = (1:10)^2, xlab = "Vm", ylab = "K")
+
+# combn() has an argument named FUN
+combnV &lt;- Vectorize(function(x, m, FUNV = NULL) combn(x, m, FUN = FUNV),
+                    vectorize.args = c("x", "m"))
+combnV(4, 1:4)
+combnV(4, 1:4, sum)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

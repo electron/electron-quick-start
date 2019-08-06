@@ -1,0 +1,128 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Robust Line Fitting</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for line {stats}"><tr><td>line {stats}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Robust Line Fitting</h2>
+
+<h3>Description</h3>
+
+<p>Fit a line robustly as recommended in <em>Exploratory Data Analysis</em>.
+</p>
+<p>Currently by default (<code>iter = 1</code>) the initial median-median line is <em>not</em> iterated (as
+opposed to Tukey's &ldquo;resistant line&rdquo; in the references).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+line(x, y, iter = 1)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x, y</code></td>
+<td>
+<p>the arguments can be any way of specifying x-y pairs.  See
+<code><a href="../../grDevices/html/xy.coords.html">xy.coords</a></code>.</p>
+</td></tr>
+<tr valign="top"><td><code>iter</code></td>
+<td>
+<p>positive integer specifying the number of
+&ldquo;polishing&rdquo; iterations.  Note that this was hard coded to
+<code>1</code> in <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> versions before 3.5.0, and more importantly that such
+simple iterations may not converge, see Siegel's 9-point example.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>Cases with missing values are omitted.
+</p>
+<p>Contrary to the references where the data is split in three (almost)
+equally sized groups with symmetric sizes depending on <i>n</i> and
+<code>n %% 3</code> and computes medians inside each group, the
+<code>line()</code> code splits into three groups using all observations
+with <code>x[.] &lt;= q1</code> and <code>x[.] &gt;= q2</code>, where <code>q1, q2</code> are
+(a kind of) quantiles for probabilities <i>p = 1/3</i> and <i>p = 2/3</i>
+of the form <code>(x[j1]+x[j2])/2</code> where <code>j1 = floor(p*(n-1))</code>
+and <code>j2 = ceiling(p(n-1))</code>, <code>n = length(x)</code>.
+</p>
+<p>Long vectors are not supported yet.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class <code>"tukeyline"</code>.
+</p>
+<p>Methods are available for the generic functions <code>coef</code>,
+<code>residuals</code>, <code>fitted</code>, and <code>print</code>.
+</p>
+
+
+<h3>References</h3>
+
+<p>Tukey, J. W. (1977).
+<em>Exploratory Data Analysis</em>,
+Reading Massachusetts: Addison-Wesley.
+</p>
+<p>Velleman, P. F. and Hoaglin, D. C. (1981).
+<em>Applications, Basics and Computing of Exploratory Data Analysis</em>,
+Duxbury Press.
+Chapter 5.
+
+</p>
+<p>Emerson, J. D. and Hoaglin, D. C. (1983).
+Resistant Lines for <i>y</i> versus <i>x</i>.
+Chapter 5 of <em>Understanding Robust and Exploratory Data Analysis</em>,
+eds. David C. Hoaglin, Frederick Mosteller and John W. Tukey.  Wiley.
+</p>
+<p>Iain M. Johnstone and Paul F. Velleman (1985).
+The Resistant Line and Related Regression Methods.
+<em>Journal of the American Statistical Association</em>, <b>80</b>,
+1041&ndash;1054.
+doi: <a href="https://doi.org/10.2307/2288572">10.2307/2288572</a>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="lm.html">lm</a></code>.
+</p>
+<p>There are alternatives for robust linear regression more robust and
+more (statistically) efficient,
+see <code><a href="../../MASS/html/rlm.html">rlm</a>()</code> from <a href="https://CRAN.R-project.org/package=MASS"><span class="pkg">MASS</span></a>, or
+<code><a href="../../robustbase/html/lmrob.html">lmrob</a>()</code>  
+from <a href="https://CRAN.R-project.org/package=robustbase"><span class="pkg">robustbase</span></a>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+require(graphics)
+
+plot(cars)
+(z &lt;- line(cars))
+abline(coef(z))
+## Tukey-Anscombe Plot :
+plot(residuals(z) ~ fitted(z), main = deparse(z$call))
+
+## Andrew Siegel's pathological 9-point data, y-values multiplied by 3:
+d.AS &lt;- data.frame(x = c(-4:3, 12), y = 3*c(rep(0,6), -5, 5, 1))
+cAS &lt;- with(d.AS, t(sapply(1:10,
+                   function(it) line(x,y, iter=it)$coefficients)))
+dimnames(cAS) &lt;- list(paste("it =", format(1:10)), c("intercept", "slope"))
+cAS
+## iterations started to oscillate, repeating iteration 7,8 indefinitely
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>stats</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

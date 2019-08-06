@@ -36,7 +36,7 @@ RCPP_MODULE(stdVector){
     using namespace Rcpp ;
 
     // we expose the class std::vector<double> as "vec" on the R side
-    class_<vec>( "vec")
+    class_<vec>( "stdNumeric")
 
     // exposing the default constructor
     .constructor()

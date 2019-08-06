@@ -1,0 +1,269 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Methods for Coercing an Object to a Class</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for setAs {methods}"><tr><td>setAs {methods}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Methods for Coercing an Object to a Class</h2>
+
+<h3>Description</h3>
+
+<p>A call to <code>setAs</code> defines a method for coercing an object of
+class <code>from</code> to class <code>to</code>.  The methods will then be used
+by calls to <code><a href="as.html">as</a></code> for objects with class <code>from</code>,
+including calls that replace part of the object.
+</p>
+<p>Methods for this purpose work indirectly, by defining methods for
+function <code>coerce</code>.  The <code>coerce</code> function is <em>not</em> to
+be called directly, and method selection uses class inheritance only
+on the first argument.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+setAs(from, to, def, replace, where = topenv(parent.frame()))
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>from, to</code></td>
+<td>
+<p>The classes between which the coerce methods
+<code>def</code> and <code>replace</code> perform coercion.
+</p>
+</td></tr>
+<tr valign="top"><td><code>def</code></td>
+<td>
+<p>function of one argument.  It will get an object from
+class <code>from</code> and had better return an object of class
+<code>to</code>.  The convention is that
+the name of the argument is <code>from</code>; if another argument name
+is used, <code>setAs</code> will attempt to substitute <code>from</code>. </p>
+</td></tr>
+<tr valign="top"><td><code>replace</code></td>
+<td>
+<p>if supplied, the function to use as a replacement
+method, when <code>as</code> is used on the left of an assignment.
+Should be a function of two arguments, <code>from, value</code>,
+although <code>setAs</code> will attempt to substitute if the arguments
+differ.
+</p>
+<p><em>The remaining argument will not be used in standard applications.</em>
+</p>
+</td></tr>
+<tr valign="top"><td><code>where</code></td>
+<td>
+<p>the position or environment in which to store the
+resulting methods. Do not use this argument when defining a method
+in a package.  Only the default, the namespace of the package,
+should be used in normal situations.
+</p>
+</td></tr>
+</table>
+
+
+<h3>Inheritance and Coercion</h3>
+
+<p>Objects from one class can turn into objects from another class
+either automatically or by an explicit call to the <code>as</code>
+function.  Automatic conversion is special, and comes from the
+designer of one class of objects asserting that this class extends
+another class.  The most common case is that one or more class names
+are supplied in the <code>contains=</code> argument to <code>setClass</code>, in
+which case the new class extends each of the earlier classes (in the
+usual terminology, the earlier classes are <em>superclasses</em> of
+the new class and it is a <em>subclass</em> of each of them).
+</p>
+<p>This form of inheritance is called <em>simple</em> inheritance in <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>.
+See <code><a href="setClass.html">setClass</a></code> for details.
+Inheritance can also be defined explicitly by a call to
+<code><a href="setIs.html">setIs</a></code>.
+The two versions have slightly different implications for coerce methods.
+Simple inheritance implies that inherited slots behave identically in the subclass and the superclass.
+Whenever two classes are related by simple inheritance, corresponding coerce methods
+are defined for both direct and replacement use of <code>as</code>.
+In the case of simple inheritance, these methods do the obvious
+computation:  they extract or replace the slots in the object that
+correspond to those in the superclass definition.
+</p>
+<p>The implicitly defined coerce methods may be overridden by a call
+to <code>setAs</code>; note, however, that the implicit methods are defined for each
+subclass-superclass pair, so that you must override each of these
+explicitly, not rely on inheritance.
+</p>
+<p>When inheritance is defined by a call to <code>setIs</code>, the coerce methods are provided explicitly, not generated automatically.
+Inheritance will apply (to the <code>from</code> argument, as described in  the section below).
+You could also supply methods via <code>setAs</code> for non-inherited relationships, and now these also can be inherited.
+</p>
+<p>For further on the distinction between simple and explicit inheritance, see <code><a href="setIs.html">setIs</a></code>.
+</p>
+
+
+<h3>How Functions 'as' and 'setAs' Work</h3>
+
+<p>The function <code>as</code>  turns <code>object</code> into an object
+of class <code>Class</code>.  In doing so, it applies a &ldquo;coerce
+method&rdquo;, using S4
+classes and methods, but in a somewhat special way.
+Coerce methods are methods for the function <code>coerce</code> or, in the
+replacement case the function <code>`coerce&lt;-`</code>.
+These functions have two arguments in method signatures, <code>from</code>
+and <code>to</code>, corresponding to the class of the object and the
+desired coerce class.
+These functions must not be called directly, but are used to store
+tables of methods for the use of <code>as</code>, directly and for
+replacements.
+In this section we will describe the direct case, but except where
+noted the replacement case works the same way, using <code>`coerce&lt;-`</code>
+and the <code>replace</code> argument to <code>setAs</code>, rather than
+<code>coerce</code> and the <code>def</code> argument.
+</p>
+<p>Assuming the <code>object</code> is not already of the desired class,
+<code>as</code> first looks for a method in the table of methods
+for the function
+<code>coerce</code> for the signature <code>c(from = class(object), to =
+    Class)</code>, in the same way method selection would do its initial lookup.
+To be precise, this means the table of both direct and inherited
+methods, but inheritance is used specially in this case (see below).
+</p>
+<p>If no method is found, <code>as</code> looks for one.
+First, if either <code>Class</code> or <code>class(object)</code> is a superclass
+of the other, the class definition will contain the information needed
+to construct a coerce method.
+In the usual case that the subclass contains the superclass (i.e., has
+all its slots), the method is constructed either by extracting or
+replacing the inherited slots.
+Non-simple extensions (the result of a call to <code><a href="setIs.html">setIs</a></code>)
+will usually contain explicit methods, though possibly not for replacement.
+</p>
+<p>If no subclass/superclass relationship provides a method, <code>as</code>
+looks for an inherited method, but applying, inheritance for the argument <code>from</code> only, not for
+the argument <code>to</code> (if you think about it, you'll probably agree
+that you wouldn't want the result to be from some class other than the
+<code>Class</code> specified). Thus,
+<code>selectMethod("coerce", sig, useInherited= c(from=TRUE, to= FALSE))</code>
+replicates the method selection used by <code>as()</code>.
+</p>
+<p>In nearly all cases the method found in this way will be cached in the
+table of coerce methods (the exception being subclass relationships with a test, which
+are legal but discouraged).
+So the detailed calculations should be done only on the first
+occurrence of a coerce from <code>class(object)</code> to <code>Class</code>.
+</p>
+<p>Note that  <code>coerce</code> is not a standard generic function.  It is
+not intended to be called directly.  To prevent accidentally caching
+an invalid inherited method, calls are routed to an equivalent call to
+<code>as</code>, and a warning is issued.  Also, calls to
+<code><a href="getMethod.html">selectMethod</a></code> for this function may not represent the
+method that <code>as</code> will choose.  You can only trust the result if
+the corresponding call to <code>as</code> has occurred previously in this
+session.
+</p>
+<p>With this explanation as background, the function <code>setAs</code> does a
+fairly obvious computation:  It constructs and sets a method for the function
+<code>coerce</code> with signature <code>c(from, to)</code>, using the <code>def</code>
+argument to define the body of the method.  The function supplied as
+<code>def</code> can have one argument (interpreted as an object to be
+coerced) or two arguments (the <code>from</code> object and the <code>to</code>
+class).  Either way, <code>setAs</code> constructs a function of two
+arguments, with the second defaulting to the name of the <code>to</code>
+class.  The method will be called from <code>as</code> with the object
+as the <code>from</code> argument and no <code>to</code> argument, with the default for this argument being the name of the intended
+<code>to</code> class, so the method can use this information in messages.
+</p>
+<p>The direct version of the <code>as</code> function also has a <code>strict=</code> argument that defaults to <code>TRUE</code>.
+Calls during the evaluation of methods for other functions will set this argument to <code>FALSE</code>.
+The distinction is relevant when the object being coerced is from a simple subclass of the <code>to</code> class; if <code>strict=FALSE</code> in this case, nothing need be done.
+For most user-written coerce methods, when the two classes have no subclass/superclass, the <code>strict=</code> argument is irrelevant.
+</p>
+<p>The <code>replace</code> argument to <code>setAs</code> provides a method for
+<code>`coerce&lt;-`</code>.
+As with all replacement methods, the last argument of the method must
+have the name <code>value</code> for the object on the right of the
+assignment.
+As with the <code>coerce</code> method, the first two arguments are
+<code>from, to</code>; there is no <code>strict=</code> option for the replace case.
+</p>
+<p>The function <code>coerce</code> exists as a repository for
+such methods, to be selected as described above by the <code>as</code>
+function.  Actually dispatching the methods using
+<code>standardGeneric</code> could produce incorrect inherited methods, by using
+inheritance on the
+<code>to</code> argument; as mentioned, this is not the logic used for
+<code>as</code>.
+To prevent selecting and caching invalid methods, calls to
+<code>coerce</code> are
+currently mapped into calls to <code>as</code>, with a warning message.
+</p>
+
+
+<h3>Basic Coercion Methods</h3>
+
+<p>Methods are pre-defined for coercing any object to one of the basic
+datatypes.  For example, <code>as(x, "numeric")</code> uses the existing
+<code>as.numeric</code> function.  These built-in methods can be listed by
+<code>showMethods("coerce")</code>.
+</p>
+
+
+<h3>References</h3>
+
+<p>Chambers, John M. (2016)
+<em>Extending R</em>,
+Chapman &amp; Hall.
+(Chapters 9 and 10.)
+</p>
+
+
+<h3>See Also</h3>
+
+<p>If you think of using <code>try(as(x, cl))</code>, consider
+<code><a href="canCoerce.html">canCoerce</a>(x, cl)</code> instead.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## using the definition of class "track" from \link{setClass}
+
+
+
+setAs("track", "numeric", function(from) from@y)
+
+t1 &lt;- new("track", x=1:20, y=(1:20)^2)
+
+as(t1, "numeric")
+
+## The next example shows:
+##  1. A virtual class to define setAs for several classes at once.
+##  2. as() using inherited information
+
+setClass("ca", slots = c(a = "character", id = "numeric"))
+
+setClass("cb", slots = c(b = "character", id = "numeric"))
+
+setClass("id")
+setIs("ca", "id")
+setIs("cb", "id")
+
+
+setAs("id", "numeric", function(from) from@id)
+
+CA &lt;- new("ca", a = "A", id = 1)
+CB &lt;- new("cb", b = "B", id = 2)
+
+setAs("cb", "ca", function(from, to )new(to, a=from@b, id = from@id))
+
+as(CB, "numeric")
+
+
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>methods</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

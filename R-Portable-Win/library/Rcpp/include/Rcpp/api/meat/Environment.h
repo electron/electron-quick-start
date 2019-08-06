@@ -27,7 +27,7 @@ namespace Rcpp{
 template <template <class> class StoragePolicy>
 template <typename WRAPPABLE>
 bool Environment_Impl<StoragePolicy>::assign( const std::string& name, const WRAPPABLE& x) const {
-    return assign( name, wrap( x ) ) ;
+    return assign(name, Shield<SEXP>(wrap(x)));
 }
 
 template <template <class> class StoragePolicy>
@@ -44,6 +44,15 @@ Environment_Impl<StoragePolicy>::Environment_Impl( int pos ){
    Storage::set__(env) ;
 }
 
+inline Environment new_env(int size = 29) {
+    Function newEnv("new.env", R_BaseNamespace);
+    return newEnv(_["size"] = size, _["parent"] = R_EmptyEnv);
+}
+
+inline Environment new_env(SEXP parent, int size = 29) {
+    Function newEnv("new.env", R_BaseNamespace);
+    return newEnv(_["size"] = size, _["parent"] = parent);
+}
 
 } // namespace Rcpp
 

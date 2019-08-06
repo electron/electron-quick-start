@@ -1,0 +1,108 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Localized Objects based on Reference Classes</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for LocalReferenceClasses {methods}"><tr><td>LocalReferenceClasses {methods}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Localized Objects based on Reference Classes</h2>
+
+<h3>Description</h3>
+
+<p>Local reference classes are modified <a href="refClass.html">ReferenceClasses</a> that
+isolate the objects to the local frame.  Therefore, they do <em>not</em>
+propagate changes back to the calling environment.   At the same time,
+they use the reference field semantics locally, avoiding the automatic
+duplication applied to standard <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> objects.
+</p>
+<p>The current implementation has no special construction.  To create a
+local reference class, call <code><a href="refClass.html">setRefClass</a>()</code> with a
+<code>contains=</code> argument that includes <code>"localRefClass"</code>.  See
+the example below.
+</p>
+<p>Local reference classes operate essentially as do regular, functional
+classes in <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>; that is, changes are made by assignment and take place
+in the local frame.
+The essential difference is that replacement operations (like the
+change to the <code>twiddle</code> field in the example) do not cause
+duplication of the entire object, as would be the case for a formal
+class or for data with attributes or in a named list.
+The purpose is to allow large objects in some fields that are not
+changed along with potentially frequent changes to other fields, but
+without copying the large fields.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+setRefClass(Class, fields = , contains = c("localRefClass",....),
+     methods =, where =, ...)
+</pre>
+
+
+<h3>Details</h3>
+
+<p>Localization of objects is only partially automated in the current implementation.
+Replacement expressions using the <code>$&lt;-</code> operator are safe. 
+</p>
+<p>However, if reference methods for the class themselves modify fields,
+using <code>&lt;&lt;-</code>, for example, then 
+one must ensure that the object is local to the relevant frame before
+any such method is called.
+Otherwise, standard reference class behavior still prevails.
+</p>
+<p>There are two ways to ensure locality.  The direct way is to invoke
+the special
+method <code>x$ensureLocal()</code> on the object.
+The other way is to modify a field explicitly by <code>x$field &lt;- ...</code>
+It's
+only necessary that  one or the other of these happens
+once for each object, in order to trigger the shallow copy that
+provides locality for the references.  In the example below, we show
+both mechanisms.
+</p>
+<p>However it's done, localization must occur
+<em>before</em> any methods make changes.  (Eventually, some use of code
+tools should at least largely automate this process, although it may
+be difficult to guarantee success under arbitrary circumstances.)
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>John Chambers
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## class "myIter" has a BigData field for the real (big) data
+## and a "twiddle" field for some parameters that it twiddles
+## ( for some reason)
+
+myIter &lt;- setRefClass("myIter", contains = "localRefClass",
+  fields = list(BigData = "numeric", twiddle = "numeric"))
+
+tw &lt;- rnorm(3)
+x1 &lt;- myIter(BigData = rnorm(1000), twiddle = tw) # OK, not REALLY big
+
+twiddler &lt;- function(x, n) {
+  x$ensureLocal() # see the Details.  Not really needed in this example
+  for(i in seq(length = n)) {
+      x$twiddle &lt;- x$twiddle + rnorm(length(x$twiddle))
+      ## then do something ....
+      ## Snooping in gdb, etc will show that x$BigData is not copied
+  }
+  return(x)
+}
+
+x2 &lt;- twiddler(x1, 10)
+
+stopifnot(identical(x1$twiddle, tw), !identical(x1$twiddle, x2$twiddle))
+
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>methods</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

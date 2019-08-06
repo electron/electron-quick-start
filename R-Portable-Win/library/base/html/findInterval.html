@@ -1,0 +1,143 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Find Interval Numbers or Indices</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for findInterval {base}"><tr><td>findInterval {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Find Interval Numbers or Indices</h2>
+
+<h3>Description</h3>
+
+<p>Given a vector of non-decreasing breakpoints in <code>vec</code>, find the
+interval containing each element of <code>x</code>; i.e., if
+<code>i &lt;- findInterval(x,v)</code>, for each index <code>j</code> in <code>x</code>
+<i>v[i[j]] &le; x[j] &lt; v[i[j] + 1]</i>
+where <i>v[0] := - Inf</i>,
+<i>v[N+1] := + Inf</i>, and <code>N &lt;- length(v)</code>.
+At the two boundaries, the returned index may differ by 1, depending
+on the optional arguments <code>rightmost.closed</code> and <code>all.inside</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+findInterval(x, vec, rightmost.closed = FALSE, all.inside = FALSE,
+             left.open = FALSE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>numeric.</p>
+</td></tr>
+<tr valign="top"><td><code>vec</code></td>
+<td>
+<p>numeric, sorted (weakly) increasingly, of length <code>N</code>,
+say.</p>
+</td></tr>
+<tr valign="top"><td><code>rightmost.closed</code></td>
+<td>
+<p>logical; if true, the rightmost interval,
+<code>vec[N-1] .. vec[N]</code> is treated as <em>closed</em>, see below.</p>
+</td></tr>
+<tr valign="top"><td><code>all.inside</code></td>
+<td>
+<p>logical; if true, the returned indices are coerced
+into <code>1,...,N-1</code>, i.e., <code>0</code> is mapped to <code>1</code>
+and <code>N</code> to <code>N-1</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>left.open</code></td>
+<td>
+<p>logical; if true all the intervals are open at left
+and closed at right; in the formulas below, <i>&le;</i> should be
+swapped with <i>&lt;</i> (and <i>&gt;</i> with <i>&ge;</i>), and
+<code>rightmost.closed</code> means &lsquo;leftmost is closed&rsquo;.  This may
+be useful, e.g., in survival analysis computations.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>The function <code>findInterval</code> finds the index of one vector <code>x</code> in
+another, <code>vec</code>, where the latter must be non-decreasing.  Where
+this is trivial, equivalent to <code>apply( outer(x, vec, "&gt;="), 1, sum)</code>,
+as a matter of fact, the internal algorithm uses interval search
+ensuring <i>O(n * log(N))</i> complexity where
+<code>n &lt;- length(x)</code> (and <code>N &lt;- length(vec)</code>).  For (almost)
+sorted <code>x</code>, it will be even faster, basically <i>O(n)</i>.
+</p>
+<p>This is the same computation as for the empirical distribution
+function, and indeed, <code>findInterval(t, sort(X))</code> is
+<em>identical</em> to <i>n * Fn(t;
+    X[1],..,X[n])</i> where <i>Fn</i> is the empirical distribution
+function of <i>X[1],..,X[n]</i>.
+</p>
+<p>When <code>rightmost.closed = TRUE</code>, the result for <code>x[j] = vec[N]</code>
+(<i> = max(vec)</i>), is <code>N - 1</code> as for all other
+values in the last interval.
+</p>
+<p><code>left.open = TRUE</code> is occasionally useful, e.g., for survival data.
+For (anti-)symmetry reasons, it is equivalent to using
+&ldquo;mirrored&rdquo; data, i.e., the following is always true: </p>
+<pre>
+    identical(
+          findInterval( x,  v,      left.open= TRUE, ...) ,
+      N - findInterval(-x, -v[N:1], left.open=FALSE, ...) )
+    </pre>
+<p>where <code>N &lt;- length(vec)</code> as above.
+</p>
+
+
+<h3>Value</h3>
+
+<p>vector of length <code>length(x)</code> with values in <code>0:N</code> (and
+<code>NA</code>) where <code>N &lt;- length(vec)</code>, or values coerced to
+<code>1:(N-1)</code> if and only if <code>all.inside = TRUE</code> (equivalently coercing all
+x values <em>inside</em> the intervals).  Note that <code><a href="NA.html">NA</a></code>s are
+propagated from <code>x</code>, and <code><a href="is.finite.html">Inf</a></code> values are allowed in
+both <code>x</code> and <code>vec</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Martin Maechler</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="../../stats/html/approxfun.html">approx</a>(*, method = "constant")</code> which is a
+generalization of <code>findInterval()</code>, <code><a href="../../stats/html/ecdf.html">ecdf</a></code> for
+computing the empirical distribution function which is (up to a factor
+of <i>n</i>) also basically the same as <code>findInterval(.)</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+x &lt;- 2:18
+v &lt;- c(5, 10, 15) # create two bins [5,10) and [10,15)
+cbind(x, findInterval(x, v))
+
+N &lt;- 100
+X &lt;- sort(round(stats::rt(N, df = 2), 2))
+tt &lt;- c(-100, seq(-2, 2, len = 201), +100)
+it &lt;- findInterval(tt, X)
+tt[it &lt; 1 | it &gt;= N] # only first and last are outside range(X)
+
+##  'left.open = TRUE' means  "mirroring" :
+N &lt;- length(v)
+stopifnot(identical(
+                  findInterval( x,  v,  left.open=TRUE) ,
+              N - findInterval(-x, -v[N:1])))
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

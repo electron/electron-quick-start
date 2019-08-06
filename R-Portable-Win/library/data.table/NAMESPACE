@@ -6,7 +6,8 @@ exportClasses(data.table, IDate, ITime)
 ##
 
 export(data.table, tables, setkey, setkeyv, key, "key<-", haskey, CJ, SJ, copy)
-export(set2key, set2keyv, key2, setindex, setindexv, indices)
+export(setindex, setindexv, indices)
+export(set2key, set2keyv, key2) # deprecated with helpful error; remove after May 2019 (see #3399)
 export(as.data.table,is.data.table,test.data.table,last,first,like,"%like%",between,"%between%",inrange,"%inrange%")
 export(timetaken)
 export(truelength, alloc.col, ":=")
@@ -29,7 +30,6 @@ export(rleid)
 export(rleidv)
 export(rowid)
 export(rowidv)
-export(as.xts.data.table)
 export(uniqueN)
 export(setDTthreads, getDTthreads)
 # set operators
@@ -40,6 +40,14 @@ export(fsetequal)
 S3method(all.equal, data.table)
 export(shouldPrint)
 export(fsort)  # experimental parallel sort for vector type double only, currently
+# grouping sets
+export(groupingsets)
+export(cube)
+export(rollup)
+S3method(groupingsets, data.table)
+S3method(cube, data.table)
+S3method(rollup, data.table)
+export(frollmean)
 
 S3method("[", data.table)
 S3method("[<-", data.table)
@@ -49,6 +57,7 @@ S3method("$<-", data.table)
 S3method(print, data.table)
 S3method(as.data.table, data.table)
 S3method(as.data.table, data.frame)
+S3method(as.data.table, array)
 S3method(as.data.table, matrix)
 S3method(as.data.table, list)
 S3method(as.data.table, integer)
@@ -60,7 +69,6 @@ S3method(as.data.table, ordered)
 S3method(as.data.table, Date)
 S3method(as.data.table, ITime)
 S3method(as.data.table, table)
-S3method(as.data.table, xts)
 S3method(as.data.table, default)
 S3method(as.data.frame, data.table)
 S3method(as.list, data.table)
@@ -68,7 +76,6 @@ S3method(as.matrix, data.table)
 #S3method(cbind, data.table)
 #S3method(rbind, data.table)
 export(.rbind.data.table)
-S3method(split, data.table)
 S3method(dim, data.table)
 S3method(dimnames, data.table)
 S3method("dimnames<-", data.table)
@@ -82,39 +89,57 @@ S3method(within, data.table)
 S3method(is.na, data.table)
 S3method(format, data.table)
 S3method(Ops, data.table)
-
 S3method(anyDuplicated, data.table)
+S3method(split, data.table)
+
+export(dcast)
+S3method(dcast, data.table)
+export(dcast.data.table)
+# exported too because if reshape2 is higher on search path, dcast(DT) will not dispatch since reshape2::dcast is not generic. So users
+# and many packges on CRAN call the exported function dcast.data.table() directly. See #3082.
 
 export(melt)
-export(melt.data.table)
 S3method(melt, data.table)
-export(dcast)
-export(dcast.data.table)
-S3method(dcast, data.table)
+export(melt.data.table)
+# method exported too for consistency with dcast.data.table. Can never remember which one is generic in reshape2 and which one
+# isn't. By now too much user code relies on melt.data.table being exported.
+
 
 import(utils)
+S3method(update, dev.pkg)
+export(update.dev.pkg)
 S3method(tail, data.table)
 S3method(head, data.table)
 import(stats)
 S3method(na.omit, data.table)
 
+S3method(as.data.table, xts)
+if (getRversion() >= "3.6.0") {
+  export(as.xts.data.table)          # fails in R-devel if not exported too, but I don't understand why
+  S3method(xts::as.xts, data.table)  # delayed registration (new in R-devel)  -- shouldn't this also export as.xts.data.table for us?
+} else {
+  export(as.xts.data.table)          # this on some configuration happens to fail as.xts dispatch to dt method #3286
+}
+
 # IDateTime support:
 export(as.IDate,as.ITime,IDateTime)
 export(second,minute,hour,yday,wday,mday,week,isoweek,month,quarter,year)
-
-export(as.chron.IDate, as.chron.ITime)
-export(as.Date.IDate) # workaround for zoo bug, see #1500
 
 S3method("[", ITime)
 S3method("+", IDate)
 S3method("-", IDate)
 S3method(as.character, ITime)
 S3method(as.data.frame, ITime)
-S3method(as.Date, IDate)
+S3method(as.Date, IDate)   # note that zoo::as.Date masks base::as.Date. Both generic.
+export(as.Date.IDate)      # workaround for zoo bug, see #1500. Removing this export causes CI pipeline to fail on others.Rraw test 6, but I can't reproduce locally.
 S3method(as.IDate, Date)
+S3method(as.IDate, POSIXct)
 S3method(as.IDate, default)
+S3method(as.IDate, numeric)
 S3method(as.ITime, character)
 S3method(as.ITime, default)
+S3method(as.ITime, POSIXct)
+S3method(as.ITime, numeric)
 S3method(as.ITime, POSIXlt)
 S3method(as.ITime, times)
 S3method(as.list, IDate)
@@ -135,10 +160,6 @@ S3method(split, IDate)
 S3method(unique, IDate)
 S3method(unique, ITime)
 
-
-
-# [.factor
-# c.factor
 # duplist
 # getdots
 # NCOL

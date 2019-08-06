@@ -2,7 +2,7 @@
 //
 // proxy.h: Rcpp R/C++ interface class library -- proxies
 //
-// Copyright (C) 2010 - 2014  Dirk Eddelbuettel and Romain Francois
+// Copyright (C) 2010 - 2018  Dirk Eddelbuettel and Romain Francois
 //
 // This file is part of Rcpp.
 //
@@ -25,10 +25,12 @@
 namespace Rcpp{
 namespace internal{
 
-	template <int RTYPE> class simple_name_proxy {
+	template <int RTYPE, template <class> class StoragePolicy>
+    class simple_name_proxy {
 	public:
-		typedef ::Rcpp::Vector<RTYPE> VECTOR ;
+		typedef ::Rcpp::Vector<RTYPE, StoragePolicy> VECTOR ;
 		typedef typename ::Rcpp::traits::storage_type<RTYPE>::type CTYPE ;
+
 		simple_name_proxy( VECTOR& v, const std::string& name_) :
 			parent(v), name(name_){} ;
 		simple_name_proxy( const simple_name_proxy& other ) :
@@ -78,10 +80,10 @@ namespace internal{
 		}
 	} ;
 
-	template <int RTYPE>
+	template <int RTYPE, template <class> class StoragePolicy>
 	class string_name_proxy{
 	public:
-		typedef typename ::Rcpp::Vector<RTYPE> VECTOR ;
+		typedef typename ::Rcpp::Vector<RTYPE, StoragePolicy> VECTOR ;
 		typedef const char* iterator ;
 		typedef const char& reference ;
 
@@ -100,11 +102,11 @@ namespace internal{
 			return *this ;
 		}
 
-		operator char* (){
+		operator char* () const {
 			 return get() ;
 		}
 
-		operator SEXP(){
+		operator SEXP() const {
 			return ::Rf_mkString(get()) ;
 		}
 
@@ -125,15 +127,16 @@ namespace internal{
 				parent.push_back( rhs, name );
 			}
 		}
-		char* get(){
+		char* get() const {
 			return parent[ parent.offset(name) ];
 		}
 
 	} ;
 
-	template <int RTYPE> class generic_name_proxy {
+	template <int RTYPE, template <class> class StoragePolicy>
+	class generic_name_proxy {
 	public:
-		typedef ::Rcpp::Vector<RTYPE> VECTOR ;
+		typedef ::Rcpp::Vector<RTYPE, StoragePolicy> VECTOR ;
 		generic_name_proxy( VECTOR& v, const std::string& name_) :
 			parent(v), name(name_){}
 		generic_name_proxy( const generic_name_proxy& other ) :
@@ -151,7 +154,7 @@ namespace internal{
 
 		template <typename T>
 		generic_name_proxy& operator=( const T& rhs ){
-			set( ::Rcpp::wrap(rhs) ) ;
+		    set(Shield<SEXP>(wrap(rhs)));
 			return *this ;
 		}
 
@@ -192,70 +195,81 @@ namespace internal{
 
 namespace traits {
 
-	template <int RTYPE>
+	template <int RTYPE, template <class> class StoragePolicy>
 	struct r_vector_name_proxy{
-		typedef typename ::Rcpp::internal::simple_name_proxy<RTYPE> type ;
+		typedef typename ::Rcpp::internal::simple_name_proxy<RTYPE, StoragePolicy> type ;
 	} ;
-	template<> struct r_vector_name_proxy<STRSXP>{
-		typedef ::Rcpp::internal::string_name_proxy<STRSXP> type ;
+	template<template <class> class StoragePolicy>
+	struct r_vector_name_proxy<STRSXP, StoragePolicy>{
+		typedef ::Rcpp::internal::string_name_proxy<STRSXP, StoragePolicy> type ;
 	} ;
-	template<> struct r_vector_name_proxy<VECSXP>{
-		typedef ::Rcpp::internal::generic_name_proxy<VECSXP> type ;
+	template<template <class> class StoragePolicy>
+	struct r_vector_name_proxy<VECSXP, StoragePolicy>{
+		typedef ::Rcpp::internal::generic_name_proxy<VECSXP, StoragePolicy> type ;
 	} ;
-	template<> struct r_vector_name_proxy<EXPRSXP>{
-		typedef ::Rcpp::internal::generic_name_proxy<EXPRSXP> type ;
+	template<template <class> class StoragePolicy>
+	struct r_vector_name_proxy<EXPRSXP, StoragePolicy>{
+		typedef ::Rcpp::internal::generic_name_proxy<EXPRSXP, StoragePolicy> type ;
 	} ;
 
-	template <int RTYPE>
+	template <int RTYPE, template <class> class StoragePolicy>
 	struct r_vector_proxy{
 		typedef typename storage_type<RTYPE>::type& type ;
 	} ;
-	template<> struct r_vector_proxy<STRSXP> {
-		typedef ::Rcpp::internal::string_proxy<STRSXP> type ;
+	template<template <class> class StoragePolicy>
+	struct r_vector_proxy<STRSXP, StoragePolicy> {
+		typedef ::Rcpp::internal::string_proxy<STRSXP, StoragePolicy> type ;
 	} ;
-	template<> struct r_vector_proxy<EXPRSXP> {
-		typedef ::Rcpp::internal::generic_proxy<EXPRSXP> type ;
+	template<template <class> class StoragePolicy>
+	struct r_vector_proxy<EXPRSXP, StoragePolicy> {
+		typedef ::Rcpp::internal::generic_proxy<EXPRSXP, StoragePolicy> type ;
 	} ;
-	template<> struct r_vector_proxy<VECSXP> {
-		typedef ::Rcpp::internal::generic_proxy<VECSXP> type ;
+	template<template <class> class StoragePolicy>
+	struct r_vector_proxy<VECSXP, StoragePolicy> {
+		typedef ::Rcpp::internal::generic_proxy<VECSXP, StoragePolicy> type ;
 	} ;
 
-	template <int RTYPE>
+	template <int RTYPE, template <class> class StoragePolicy>
 	struct r_vector_const_proxy{
 		typedef const typename storage_type<RTYPE>::type& type ;
 	} ;
-	template<> struct r_vector_const_proxy<STRSXP> {
-		typedef ::Rcpp::internal::const_string_proxy<STRSXP> type ;
+	template<template <class> class StoragePolicy>
+	struct r_vector_const_proxy<STRSXP, StoragePolicy> {
+		typedef ::Rcpp::internal::const_string_proxy<STRSXP, StoragePolicy> type ;
 	} ;
-	template<> struct r_vector_const_proxy<VECSXP> {
-		typedef ::Rcpp::internal::const_generic_proxy<VECSXP> type ;
+	template<template <class> class StoragePolicy>
+	struct r_vector_const_proxy<VECSXP, StoragePolicy> {
+		typedef ::Rcpp::internal::const_generic_proxy<VECSXP, StoragePolicy> type ;
 	} ;
-	template<> struct r_vector_const_proxy<EXPRSXP> {
-		typedef ::Rcpp::internal::const_generic_proxy<EXPRSXP> type ;
+	template<template <class> class StoragePolicy>
+	struct r_vector_const_proxy<EXPRSXP, StoragePolicy> {
+		typedef ::Rcpp::internal::const_generic_proxy<EXPRSXP, StoragePolicy> type ;
 	} ;
 
-	template <int RTYPE>
+	template <int RTYPE, template <class> class StoragePolicy>
 	struct r_vector_iterator {
 		typedef typename storage_type<RTYPE>::type* type ;
 	};
-	template <int RTYPE>
+	template <int RTYPE, template <class> class StoragePolicy>
 	struct r_vector_const_iterator {
 		typedef const typename storage_type<RTYPE>::type* type ;
 	};
 
-	template <int RTYPE> struct proxy_based_iterator{
-		typedef ::Rcpp::internal::Proxy_Iterator< typename r_vector_proxy<RTYPE>::type > type ;
+	template <int RTYPE, template <class> class StoragePolicy>
+	struct proxy_based_iterator{
+		typedef ::Rcpp::internal::Proxy_Iterator< typename r_vector_proxy<RTYPE, StoragePolicy>::type > type ;
 	} ;
-	template<> struct r_vector_iterator<VECSXP> : proxy_based_iterator<VECSXP>{} ;
-	template<> struct r_vector_iterator<EXPRSXP> : proxy_based_iterator<EXPRSXP>{} ;
-	template<> struct r_vector_iterator<STRSXP> : proxy_based_iterator<STRSXP>{} ;
-	
-	template <int RTYPE> struct proxy_based_const_iterator{
-		typedef ::Rcpp::internal::Proxy_Iterator< typename r_vector_const_proxy<RTYPE>::type > type ;
+	template<template <class> class StoragePolicy> struct r_vector_iterator<VECSXP, StoragePolicy> : proxy_based_iterator<VECSXP, StoragePolicy>{} ;
+	template<template <class> class StoragePolicy> struct r_vector_iterator<EXPRSXP, StoragePolicy> : proxy_based_iterator<EXPRSXP, StoragePolicy>{} ;
+	template<template <class> class StoragePolicy> struct r_vector_iterator<STRSXP, StoragePolicy> : proxy_based_iterator<STRSXP, StoragePolicy>{} ;
+
+	template <int RTYPE, template <class> class StoragePolicy>
+	struct proxy_based_const_iterator{
+		typedef ::Rcpp::internal::Proxy_Iterator< typename r_vector_const_proxy<RTYPE, StoragePolicy>::type > type ;
 	} ;
-	template<> struct r_vector_const_iterator<VECSXP> : proxy_based_const_iterator<VECSXP>{} ;
-	template<> struct r_vector_const_iterator<EXPRSXP> : proxy_based_const_iterator<EXPRSXP>{} ;
-	template<> struct r_vector_const_iterator<STRSXP> : proxy_based_const_iterator<STRSXP>{} ;
+	template<template <class> class StoragePolicy> struct r_vector_const_iterator<VECSXP, StoragePolicy> : proxy_based_const_iterator<VECSXP, StoragePolicy>{} ;
+	template<template <class> class StoragePolicy> struct r_vector_const_iterator<EXPRSXP, StoragePolicy> : proxy_based_const_iterator<EXPRSXP, StoragePolicy>{} ;
+	template<template <class> class StoragePolicy> struct r_vector_const_iterator<STRSXP, StoragePolicy> : proxy_based_const_iterator<STRSXP, StoragePolicy>{} ;
 
 }  // traits
 }

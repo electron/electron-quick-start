@@ -1,0 +1,211 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Summarise Output of R Sampling Profiler</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for summaryRprof {utils}"><tr><td>summaryRprof {utils}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Summarise Output of R Sampling Profiler</h2>
+
+<h3>Description</h3>
+
+<p>Summarise the output of the <code><a href="Rprof.html">Rprof</a></code> function to show the
+amount of time used by different <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> functions.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+summaryRprof(filename = "Rprof.out", chunksize = 5000,
+              memory = c("none", "both", "tseries", "stats"),
+              lines = c("hide", "show", "both"),
+              index = 2, diff = TRUE, exclude = NULL,
+              basenames = 1)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>filename</code></td>
+<td>
+<p>Name of a file produced by <code>Rprof()</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>chunksize</code></td>
+<td>
+<p>Number of lines to read at a time.</p>
+</td></tr>
+<tr valign="top"><td><code>memory</code></td>
+<td>
+<p>Summaries for memory information.  See &lsquo;Memory profiling&rsquo; below.   Can be abbreviated.</p>
+</td></tr>
+<tr valign="top"><td><code>lines</code></td>
+<td>
+<p>Summaries for line information.  See &lsquo;Line profiling&rsquo; below.   Can be abbreviated.</p>
+</td></tr>
+<tr valign="top"><td><code>index</code></td>
+<td>
+<p>How to summarize the stack trace for memory
+information.  See &lsquo;Details&rsquo; below.</p>
+</td></tr>
+<tr valign="top"><td><code>diff</code></td>
+<td>
+<p>If <code>TRUE</code> memory summaries use change in memory
+rather than current memory.</p>
+</td></tr>
+<tr valign="top"><td><code>exclude</code></td>
+<td>
+<p>Functions to exclude when summarizing the stack trace
+for memory summaries.</p>
+</td></tr>
+<tr valign="top"><td><code>basenames</code></td>
+<td>
+<p>Number of components of the path to filenames to display.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>This function provides the analysis code for <code><a href="Rprof.html">Rprof</a></code> files
+used by <code>R CMD Rprof</code>.
+</p>
+<p>As the profiling output file could be larger than available memory, it
+is read in blocks of <code>chunksize</code> lines.  Increasing <code>chunksize</code>
+will make the function run faster if sufficient memory is available.
+</p>
+
+
+<h3>Value</h3>
+
+<p>If <code>memory = "none"</code> and <code>lines = "hide"</code>, a list with components
+</p>
+<table summary="R valueblock">
+<tr valign="top"><td><code>by.self</code></td>
+<td>
+<p>A data frame of timings sorted by &lsquo;self&rsquo; time.</p>
+</td></tr>
+<tr valign="top"><td><code>by.total</code></td>
+<td>
+<p>A data frame of timings sorted by &lsquo;total&rsquo; time.</p>
+</td></tr>
+<tr valign="top"><td><code>sample.interval</code></td>
+<td>
+<p>The sampling interval.</p>
+</td></tr>
+<tr valign="top"><td><code>sampling.time</code></td>
+<td>
+<p>Total time of profiling run.</p>
+</td></tr>
+</table>
+<p>The first two components have columns <span class="samp">self.time</span>,
+<span class="samp">self.pct</span>, <span class="samp">total.time</span> and <span class="samp">total.pct</span>, the times in
+seconds and percentages of the total time spent executing code in that
+function and code in that function or called from that function,
+respectively.
+</p>
+<p>If <code>lines = "show"</code>, an additional component is added to the list:
+</p>
+<table summary="R valueblock">
+<tr valign="top"><td><code>by.line</code></td>
+<td>
+<p>A data frame of timings sorted by source location.</p>
+</td></tr>
+</table>
+<p>If <code>memory = "both"</code> the same list but with memory consumption in Mb
+in addition to the timings.
+</p>
+<p>If <code>memory = "tseries"</code> a data frame giving memory statistics over
+time. Memory usage is in bytes.
+</p>
+<p>If <code>memory = "stats"</code> a <code><a href="../../base/html/by.html">by</a></code> object giving memory statistics
+by function. Memory usage is in bytes.
+</p>
+<p>If no events were recorded, a zero-row data frame is returned.
+</p>
+
+
+<h3>Memory profiling</h3>
+
+<p>Options other than <code>memory = "none"</code> apply only to files produced
+by <code><a href="Rprof.html">Rprof</a>(memory.profiling =  TRUE)</code>.
+</p>
+<p>When called with <code>memory.profiling = TRUE</code>, the profiler writes
+information on three aspects of memory use: vector memory in small
+blocks on the R heap, vector memory in large blocks (from
+<code>malloc</code>), memory in nodes on the R heap.  It also records the number of
+calls to the internal function <code>duplicate</code> in the time
+interval.  <code>duplicate</code> is called by C code when arguments need to be
+copied.  Note that the profiler does not track which function actually
+allocated the memory.
+</p>
+<p>With <code>memory = "both"</code> the change in total memory (truncated at zero)
+is reported in addition to timing data.
+</p>
+<p>With <code>memory = "tseries"</code> or <code>memory = "stats"</code> the <code>index</code>
+argument specifies how to summarize the stack trace.  A positive number
+specifies that many calls from the bottom of the stack; a negative
+number specifies the number of calls from the top of the stack.  With
+<code>memory = "tseries"</code> the index is used to construct labels and may be
+a vector to give multiple sets of labels.  With <code>memory = "stats"</code> the
+index must be a single number and specifies how to aggregate the data to
+the maximum and average of the memory statistics.  With both
+<code>memory = "tseries"</code> and <code>memory = "stats"</code> the argument
+<code>diff = TRUE</code> asks for summaries of the increase in memory use over
+the sampling interval and <code>diff = FALSE</code> asks for the memory use at
+the end of the interval.
+</p>
+
+
+<h3>Line profiling</h3>
+
+<p>If the code being run has source reference information retained (via
+<code>keep.source = TRUE</code> in <code><a href="../../base/html/source.html">source</a></code> or
+<code>KeepSource = TRUE</code> in a package &lsquo;<span class="file">DESCRIPTION</span>&rsquo; file or
+some other way), then information about the origin of lines is
+recorded during profiling.  By default this is not displayed, but
+the <code>lines</code> parameter can enable the display.
+</p>
+<p>If <code>lines = "show"</code>, line locations will be used in preference
+to the usual function name information, and the results
+will be displayed ordered by location in addition to the other orderings.
+</p>
+<p>If <code>lines = "both"</code>, line locations will be mixed with function
+names in a combined display.  
+</p>
+
+
+<h3>See Also</h3>
+
+<p>The chapter on &ldquo;Tidying and profiling R code&rdquo; in
+&ldquo;Writing <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> Extensions&rdquo; (see the &lsquo;<span class="file">doc/manual</span>&rsquo; subdirectory
+of the <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> source tree).
+</p>
+<p><code><a href="Rprof.html">Rprof</a></code>
+</p>
+<p><code><a href="../../base/html/tracemem.html">tracemem</a></code> traces copying of an object via the C function
+<code>duplicate</code>.
+</p>
+<p><code><a href="Rprofmem.html">Rprofmem</a></code> is a non-sampling memory-use profiler.
+</p>
+<p><a href="https://developer.r-project.org/memory-profiling.html">https://developer.r-project.org/memory-profiling.html</a>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Not run: 
+## Rprof() is not available on all platforms
+Rprof(tmp &lt;- tempfile())
+example(glm)
+Rprof()
+summaryRprof(tmp)
+unlink(tmp)
+
+## End(Not run)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>utils</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

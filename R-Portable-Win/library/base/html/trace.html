@@ -1,0 +1,402 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Interactive Tracing and Debugging of Calls to a Function or...</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for trace {base}"><tr><td>trace {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Interactive Tracing and Debugging of Calls to a Function or Method</h2>
+
+<h3>Description</h3>
+
+<p>A call to <code>trace</code> allows you to insert debugging code (e.g., a
+call to <code><a href="browser.html">browser</a></code> or <code><a href="../../utils/html/recover.html">recover</a></code>) at chosen
+places in any function.  A call to <code>untrace</code> cancels the tracing.
+Specified methods can be traced the same way, without tracing all
+calls to the generic function.  Trace code (<code>tracer</code>) can be any
+<span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> expression.  Tracing can be temporarily turned on or off globally
+by calling <code>tracingState</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+trace(what, tracer, exit, at, print, signature,
+      where = topenv(parent.frame()), edit = FALSE)
+untrace(what, signature = NULL, where = topenv(parent.frame()))
+
+tracingState(on = NULL)
+.doTrace(expr, msg)
+returnValue(default = NULL)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>what</code></td>
+<td>
+<p>the name, possibly <code><a href="substitute.html">quote</a>()</code>d, of a function
+to be traced or untraced.  For <code>untrace</code> or for <code>trace</code>
+with more than one argument, more than one name can be given in the
+quoted form, and the same action will be applied to each one.  For
+&ldquo;hidden&rdquo; functions such as S3 methods in a namespace,
+<code>where = *</code> typically needs to be specified as well.</p>
+</td></tr>
+<tr valign="top"><td><code>tracer</code></td>
+<td>
+<p>either a <a href="function.html">function</a> or an unevaluated expression.  The
+function will be called or the expression will be evaluated either
+at the beginning of the call, or before those steps in the call
+specified by the argument <code>at</code>.
+See the details section.</p>
+</td></tr>
+<tr valign="top"><td><code>exit</code></td>
+<td>
+<p>either a <code><a href="function.html">function</a></code> or an unevaluated expression.  The
+function will be called or the expression will be evaluated on
+exiting the function.
+See the details section.</p>
+</td></tr>
+<tr valign="top"><td><code>at</code></td>
+<td>
+<p>optional numeric vector or list.  If supplied, <code>tracer</code>
+will be called just before the corresponding step in the body of the
+function.
+See the details section. </p>
+</td></tr>
+<tr valign="top"><td><code>print</code></td>
+<td>
+<p>If <code>TRUE</code> (as per default), a descriptive line is
+printed before any trace expression is evaluated.</p>
+</td></tr>
+<tr valign="top"><td><code>signature</code></td>
+<td>
+<p> If this argument is supplied, it should be a
+signature for a method for function <code>what</code>.  In this case, the
+method, and <em>not</em> the function itself, is traced.</p>
+</td></tr>
+<tr valign="top"><td><code>edit</code></td>
+<td>
+<p> For complicated tracing, such as tracing within a loop
+inside the function, you will need to insert the desired calls by
+editing the body of the function.  If so, supply the <code>edit</code>
+argument either as <code>TRUE</code>, or as the name of the editor you
+want to use.  Then <code>trace()</code> will call <code><a href="../../utils/html/edit.html">edit</a></code> and
+use the version of the function after you edit it.  See the details
+section for additional information.
+</p>
+</td></tr>
+<tr valign="top"><td><code>where</code></td>
+<td>
+<p>where to look for the function to be
+traced; by default, the top-level environment of the call to
+<code>trace</code>.
+</p>
+<p>An important use of this argument is to trace functions from a
+package which are &ldquo;hidden&rdquo; or called from another package.
+The namespace mechanism imports the functions to be called (with the
+exception of functions in the base package).  The functions being
+called are <em>not</em> the same objects seen from the top-level (in
+general, the imported packages may not even be attached).
+Therefore, you must ensure that the correct versions are being
+traced.  The way to do this is to set argument <code>where</code> to a
+function in the namespace (or that namespace).  The tracing
+computations will then start looking in the environment of that
+function (which will be the namespace of the corresponding package).
+(Yes, it's subtle, but the semantics here are central to how
+namespaces work in <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>.)
+</p>
+</td></tr>
+<tr valign="top"><td><code>on</code></td>
+<td>
+<p>logical; a call to the support function <code>tracingState</code> returns <code>TRUE</code>
+if tracing is globally turned on, <code>FALSE</code> otherwise.  An
+argument of one or the other of those values sets the state.  If the
+tracing state is <code>FALSE</code>, none of the trace actions will
+actually occur (used, for example, by debugging functions to shut
+off tracing during debugging).</p>
+</td></tr>
+<tr valign="top"><td><code>expr, msg</code></td>
+<td>
+<p>arguments to the support function <code>.doTrace</code>, calls to
+which are inserted into the modified function or method:
+<code>expr</code> is the tracing action (such as a call to
+<code>browser()</code>), and <code>msg</code> is a string identifying the
+place where the trace action occurs.
+</p>
+</td></tr>
+<tr valign="top"><td><code>default</code></td>
+<td>
+<p>If <code>returnValue</code> finds no return value (e.g.
+a function exited because of an error, restart or as a result
+of evaluating a return from a caller function), it will return
+<code>default</code> instead.
+</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>The <code>trace</code> function operates by constructing a revised version
+of the function (or of the method, if <code>signature</code> is supplied),
+and assigning the new object back where the original was found.
+If only the <code>what</code> argument is given, a line of trace printing is
+produced for each call to the function (back compatible with the
+earlier version of <code>trace</code>).
+</p>
+<p>The object constructed by <code>trace</code> is from a class that extends
+<code>"function"</code> and which contains the original, untraced version.
+A call to <code>untrace</code> re-assigns this version.
+</p>
+<p>If the argument <code>tracer</code> or <code>exit</code> is the name of a
+function, the tracing expression will be a call to that function, with
+no arguments.  This is the easiest and most common case, with the
+functions <code><a href="browser.html">browser</a></code> and <code><a href="../../utils/html/recover.html">recover</a></code> the
+likeliest candidates; the former browses in the frame of the function
+being traced, and the latter allows browsing in any of the currently
+active calls.
+</p>
+<p>The <code>tracer</code> or <code>exit</code> argument can also be an unevaluated
+expression (such as returned by a call to <code><a href="substitute.html">quote</a></code> or
+<code><a href="substitute.html">substitute</a></code>).  This expression itself is inserted in the
+traced function, so it will typically involve arguments or local
+objects in the traced function.  An expression of this form is useful
+if you only want to interact when certain conditions apply (and in
+this case you probably want to supply <code>print = FALSE</code> in the call
+to <code>trace</code> also).
+</p>
+<p>When the <code>at</code> argument is supplied, it can be a vector of
+integers referring to the substeps of the body of the function (this
+only works if the body of the function is enclosed in <code>{ ...}</code>).  In
+this case <code>tracer</code> is <em>not</em> called on entry, but instead
+just before evaluating each of the steps listed in <code>at</code>.  (Hint:
+you don't want to try to count the steps in the printed version of a
+function; instead, look at <code>as.list(body(f))</code> to get the numbers
+associated with the steps in function <code>f</code>.)
+</p>
+<p>The <code>at</code> argument can also be a list of integer vectors.  In
+this case, each vector refers to a step nested within another step of
+the function.  For example, <code>at = list(c(3,4))</code>
+will call the tracer just before the fourth step of the third step
+of the function.  See the example below.
+</p>
+<p>Using <code><a href="../../utils/html/findLineNum.html">setBreakpoint</a></code> (from package <span class="pkg">utils</span>) may be an
+alternative, calling <code>trace(...., at, ...)</code>.
+</p>
+<p>The <code>exit</code> argument is called during <code><a href="on.exit.html">on.exit</a></code>
+processing.  In an <code>on.exit</code> expression, the experimental <code>returnValue()</code>
+function may be called to obtain the value about to be returned by
+the function. Calling this function in other circumstances will give
+undefined results.
+</p>
+<p>An intrinsic limitation in the <code>exit</code> argument is that it won't
+work if the function itself uses <code>on.exit</code> with <code>add=
+  FALSE</code> (the default), since the existing calls will override the one
+supplied by <code>trace</code>.
+</p>
+<p>Tracing does not nest.  Any call to <code>trace</code> replaces previously
+traced versions of that function or method (except for edited
+versions as discussed below), and <code>untrace</code> always
+restores an untraced version.  (Allowing nested tracing has too many
+potentials for confusion and for accidentally leaving traced versions
+behind.)
+</p>
+<p>When the <code>edit</code> argument is used repeatedly with no call to
+<code>untrace</code> on the same function or method in between, the
+previously edited version is retained.  If you want to throw away
+all the previous tracing and then edit, call <code>untrace</code> before the next
+call to <code>trace</code>.  Editing may be combined with automatic
+tracing; just supply the other arguments such as <code>tracer</code>, and
+the <code>edit</code> argument as well.  The <code>edit = TRUE</code> argument
+uses the default editor (see <code><a href="../../utils/html/edit.html">edit</a></code>).
+</p>
+<p>Tracing primitive functions (builtins and specials) from the base
+package works, but only by a special mechanism and not very
+informatively.  Tracing a primitive causes the primitive to be
+replaced by a function with argument ... (only).  You can get a bit
+of information out, but not much.  A warning message is issued when
+<code>trace</code> is used on a primitive.
+</p>
+<p>The practice of saving the traced version of the function back where
+the function came from means that tracing carries over from one
+session to another, <em>if</em> the traced function is saved in the
+session image.  (In the next session, <code>untrace</code> will remove the
+tracing.)  On the other hand, functions that were in a package, not in
+the global environment, are not saved in the image, so tracing expires
+with the session for such functions.
+</p>
+<p>Tracing an S4 method is basically just like tracing a function, with the
+exception that the traced version is stored by a call to
+<code><a href="../../methods/html/setMethod.html">setMethod</a></code> rather than by direct assignment, and so is
+the untraced version after a call to <code>untrace</code>.
+</p>
+<p>The version of <code>trace</code> described here is largely compatible with
+the version in S-Plus, although the two work by entirely different
+mechanisms.  The S-Plus <code>trace</code> uses the session frame, with the
+result that tracing never carries over from one session to another (<span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>
+does not have a session frame).  Another relevant distinction has
+nothing directly to do with <code>trace</code>:  The browser in S-Plus
+allows changes to be made to the frame being browsed, and the changes
+will persist after exiting the browser.  The <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> browser allows changes,
+but they disappear when the browser exits.  This may be relevant in
+that the S-Plus version allows you to experiment with code changes
+interactively, but the <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> version does not.  (A future revision may
+include a &lsquo;destructive&rsquo; browser for <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>.)
+</p>
+
+
+<h3>Value</h3>
+
+<p>In the simple version (just the first argument), <code>trace</code> returns
+an invisible <code>NULL</code>.
+Otherwise, the traced function(s) name(s).  The relevant consequence is the
+assignment that takes place.
+</p>
+<p><code>untrace</code> returns the function name invisibly.
+</p>
+<p><code>tracingState</code> returns the current global tracing state, and possibly
+changes it.
+</p>
+<p>When called during <code>on.exit</code> processing, <code>returnValue</code> returns
+the value about to be returned by the exiting function.  Behaviour in
+other circumstances is undefined.
+</p>
+
+
+<h3>Note</h3>
+
+<p>Using <code>trace()</code> is conceptually a generalization of
+<code><a href="debug.html">debug</a></code>, implemented differently.  Namely by calling
+<code><a href="browser.html">browser</a></code> via its <code>tracer</code> or <code>exit</code> argument.
+
+
+</p>
+<p>The version of function tracing that includes any of the arguments
+except for the function name requires the <span class="pkg">methods</span> package
+(because it uses special classes of objects to store and restore
+versions of the traced functions).
+</p>
+<p>If methods dispatch is not currently on, <code>trace</code> will load the
+methods namespace, but will not put the methods package on the
+<code><a href="search.html">search</a></code> list.
+</p>
+
+
+<h3>References</h3>
+
+<p>Becker, R. A., Chambers, J. M. and Wilks, A. R. (1988)
+<em>The New S Language</em>.
+Wadsworth &amp; Brooks/Cole.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="browser.html">browser</a></code> and <code><a href="../../utils/html/recover.html">recover</a></code>, the likeliest
+tracing functions;
+also, <code><a href="substitute.html">quote</a></code> and <code><a href="substitute.html">substitute</a></code> for
+constructing general expressions.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+require(stats)
+
+##  Very simple use
+trace(sum)
+hist(rnorm(100)) # shows about 3-4 calls to sum()
+untrace(sum)
+
+## Show how pt() is called from inside power.t.test():
+if(FALSE)
+  trace(pt) ## would show ~20 calls, but we want to see more:
+trace(pt, tracer = quote(cat(sprintf("tracing pt(*, ncp = %.15g)\n", ncp))),
+      print = FALSE) # &lt;- not showing typical extra
+power.t.test(20, 1, power=0.8, sd=NULL)  ##--&gt; showing the ncp root finding:
+untrace(pt)
+
+
+
+f &lt;- function(x, y) {
+    y &lt;- pmax(y, 0.001)
+    if (x &gt; 0) x ^ y else stop("x must be positive")
+}
+
+## arrange to call the browser on entering and exiting
+## function f
+trace("f", quote(browser(skipCalls = 4)),
+      exit = quote(browser(skipCalls = 4)))
+
+## instead, conditionally assign some data, and then browse
+## on exit, but only then.  Don't bother me otherwise
+
+trace("f", quote(if(any(y &lt; 0)) yOrig &lt;- y),
+      exit = quote(if(exists("yOrig")) browser(skipCalls = 4)),
+      print = FALSE)
+
+## Enter the browser just before stop() is called.  First, find
+## the step numbers
+
+untrace(f) # (as it has changed f's body !)
+as.list(body(f))
+as.list(body(f)[[3]]) # -&gt; stop(..) is [[4]]
+
+## Now call the browser there
+
+trace("f", quote(browser(skipCalls = 4)), at = list(c(3,4)))
+## Not run: 
+f(-1,2) # --&gt; enters browser just before stop(..)
+
+## End(Not run)
+
+## trace a utility function, with recover so we
+## can browse in the calling functions as well.
+
+trace("as.matrix", recover)
+
+## turn off the tracing (that happened above)
+
+untrace(c("f", "as.matrix"))
+
+## Not run: 
+## Useful to find how system2() is called in a higher-up function:
+trace(base::system2, quote(print(ls.str())))
+
+## End(Not run)
+
+##-------- Tracing hidden functions : need 'where = *'
+##
+## 'where' can be a function whose environment is meant:
+trace(quote(ar.yw.default), where = ar)
+a &lt;- ar(rnorm(100)) # "Tracing ..."
+untrace(quote(ar.yw.default), where = ar)
+
+## trace() more than one function simultaneously:
+##         expression(E1, E2, ...)  here is equivalent to
+##          c(quote(E1), quote(E2), quote(.*), ..)
+trace(expression(ar.yw, ar.yw.default), where = ar)
+a &lt;- ar(rnorm(100)) # --&gt; 2 x "Tracing ..."
+# and turn it off:
+untrace(expression(ar.yw, ar.yw.default), where = ar)
+
+
+## Not run: 
+## trace calls to the function lm() that come from
+## the nlme package.
+## (The function nlme is in that package, and the package
+## has a namespace, so the where= argument must be used
+## to get the right version of lm)
+
+trace(lm, exit = recover, where = asNamespace("nlme"))
+
+## End(Not run)
+
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

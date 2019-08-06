@@ -30,6 +30,12 @@ public:
     ~RNGScope(){ internal::exitRNGScope(); }
 };
 
+class SuspendRNGSynchronizationScope {
+public:
+    SuspendRNGSynchronizationScope() { internal::beginSuspendRNGSynchronization(); }
+    ~SuspendRNGSynchronizationScope() { internal::endSuspendRNGSynchronization(); }
+};
+
 } // namespace Rcpp
 
 #endif

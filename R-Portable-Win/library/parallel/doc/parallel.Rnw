@@ -1,6 +1,6 @@
 % File src/library/parallel/vignettes/parallel.Rnw
 % Part of the R package, https://www.R-project.org
-% Copyright 2011-2016  R Core Team
+% Copyright 2011-2017  R Core Team
 % Distributed under GPL 2 or later
 
 \documentclass[a4paper]{article}
@@ -163,10 +163,6 @@ Note that all these methods of communication use
 processes.  This has limits (typically hundreds of millions of
 elements) which a well-designed parallelized algorithm should not
 approach.
-
-%<<>>=
-%library(parallel)
-%@
 
 \section{Numbers of CPUs/cores}
 
@@ -393,16 +389,16 @@ seed is advanced by $k$ steps by \R{} call
 The \citet{lecuyer.1999} generator is available \emph{via}
 \verb|RNGkind("L'Ecuyer-CMRG")|.  Thus using the ideas of
 \citet{lecuyer.2002} is as simple as
-\begin{verbatim}
+<<Ecuyer-ex, eval=FALSE>>=
 RNGkind("L'Ecuyer-CMRG")
-set.seed(<something>)
-## start M workers
+set.seed(2002) # something
+M <- 16 ## start M workers
 s <- .Random.seed
 for (i in 1:M) {
     s <- nextRNGStream(s)
     # send s to worker i as .Random.seed
 }
-\end{verbatim}
+@
 and this is is implemented for SNOW clusters in function
 \code{clusterSetRNGStream}, and as part of \code{mcparallel} and
 \code{mclapply} (by default).
@@ -441,6 +437,104 @@ disparate capabilities.  But some \emph{caveats} are in order:
   high.  So it makes sense to have substantially more tasks than
   nodes, but not by a factor of 100 (and maybe not by 10).
 \end{enumerate}
+
+
+\section{Setting the CPU Affinity with mclapply}
+%%\author{Helena Kotthaus, Andreas Lang \\ LS12 Department of Computer Science, TU Dortmund}
+
+The parameter \code{affinity.list} of the \code{mclapply} function
+can be used to run elements of the input vector \code{X} of \code{mclapply} on
+specific CPUs.
+\code{affinity.list} is a vector (atomic or list) containing the CPU
+affinity mask for each element of \code{X}, it describes on which CPU
+(core or hyperthread unit) a given item is allowed to run, see
+\code{? mcaffinity}.
+This can be helpful, if the elements of \code{X} (parallel jobs) have a
+high variance of completion time or if the hardware architecture
+is heterogeneous. It also enables the development of scheduling
+strategies for optimizing the overall runtime of independent parallel jobs.
+If \code{affinity.list} is set, the \code{mc.core} parameter is
+replaced with the number of CPU ids used in the affinity masks.
+To use this parameter prescheduling has to be deactivated
+(\code{mc.preschedule = FALSE}).
+For each value of the input vector \code{X} a separate job is forked.
+The master process only forks one child process for each selected CPU
+at once, to ensure that the number of forked jobs does not exceed the number
+of selected CPUs. As soon as a child process has finished, the next
+available job for the CPU is forked.
+
+The following code example demonstrates how the execution
+time can be reduced by assigning the elements of \code{X} to specific CPUs,
+not on Windows, where \code{mc.cores} must remain at 1.
+
+%%     setting eval=TRUE  would cost ca. 1.5 minutes every time this is built
+%%     also,   .Platform$OS.type == "Windows"  cannot use mc.cores = 2
+<<affinity-ex, eval=FALSE>>=
+## Exemplary variance filter executed on three different matrices in parallel.
+## Can be used in gene expression analysis as a prefilter
+## for the number of covariates.
+
+library(parallel)
+n <- 300   # observations
+p <- 20000 # covariates
+
+## Different sized matrices as filter inputs
+## Matrix A and B form smaller work loads
+## while matrix C forms a bigger workload (2*p)
+library(stats)
+A <- matrix(replicate( p,  rnorm(n, sd = runif(1, 0.1, 10))), n, p)
+B <- matrix(replicate( p,  rnorm(n, sd = runif(1, 0.1, 10))), n, p)
+C <- matrix(replicate(2*p, rnorm(n, sd = runif(1, 0.1, 10))), n, 2*p)
+
+varFilter <- function (X, nSim = 20) {
+  for (i in 1:nSim) {
+    train <- sample(nrow(X), 2 / 3 * nrow(X))
+    colVars <- apply(X[train, ], 2, var)
+    keep <- names(head(sort(colVars, decreasing = TRUE), 100))
+    # myAlgorithm(X[, keep])
+  }
+}
+
+## Runtime comparison -----------------------------------
+
+## mclapply with affinity.list
+## CPU mapping: A and B run on CPU 1 while C runs on CPU 2:
+affinity <- c(1,1,2)
+system.time(
+  mclapply(X = list(A,B,C), FUN = varFilter,
+           mc.preschedule = FALSE, affinity.list = affinity))
+##   user  system elapsed
+## 34.909   0.873  36.720
+
+
+## mclapply without affinity.list
+system.time(
+  mclapply(X = list(A,B,C), FUN = varFilter, mc.cores = 2,
+           mc.preschedule = FALSE) )
+##   user  system elapsed
+## 72.893   1.588  55.982
+
+
+## mclapply with prescheduling
+system.time(
+   mclapply(X = list(A,B,C), FUN = varFilter, mc.cores = 2,
+            mc.preschedule = TRUE) )
+##   user  system elapsed
+## 53.455   1.326  53.399
+@
+
+Instead of using \code{affinity.list} for runtime optimization,
+it can also be used to simply restrict the computation
+to specific CPUs as in the following example.
+
+<<eval = FALSE>>=
+## Restricts all elements of X to run on CPU 1 and 2.
+X <- list(1, 2, 3)
+affinity.list <- list(c(1,2), c(1,2), c(1,2))
+mclapply(X = X, FUN = function (i) i*i,
+         mc.preschedule = FALSE, affinity.list = affinity.list)
+@
+
 
 \section{Portability considerations}
 

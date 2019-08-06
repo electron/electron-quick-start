@@ -1,0 +1,363 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Specify a Superclass Explicitly</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for setIs {methods}"><tr><td>setIs {methods}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Specify a Superclass Explicitly</h2>
+
+<h3>Description</h3>
+
+<p><code>setIs</code> is an explicit alternative
+to the <code>contains=</code> argument to <code><a href="setClass.html">setClass</a></code>.  It is
+only needed to create relations with explicit test or coercion.
+These have not proved to be of much practical value, so this
+function should not likely be needed in applications.
+</p>
+<p>Where the programming goal is to define methods for transforming one
+class of objects to another, it is usually better practice to call
+<code><a href="setAs.html">setAs</a>()</code>, which requires the transformations to be done explicitly.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+setIs(class1, class2, test=NULL, coerce=NULL, replace=NULL,
+      by = character(), where = topenv(parent.frame()), classDef =,
+      extensionObject = NULL, doComplete = TRUE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>class1, class2</code></td>
+<td>
+
+<p>the names of the classes between which <code>is</code> relations are to be
+examined defined, or (more efficiently) the class definition
+objects for the classes.</p>
+</td></tr>
+<tr valign="top"><td><code>coerce, replace</code></td>
+<td>
+
+<p>functions optionally supplied to coerce the object to
+<code>class2</code>, and to alter the object so that <code>is(object, class2)</code>
+is identical to <code>value</code>.  See the details section below.</p>
+</td></tr>
+<tr valign="top"><td><code>test</code></td>
+<td>
+
+<p>a <em>conditional</em> relationship is
+defined by supplying this function.  Conditional relations are
+discouraged and are not included in selecting methods.  See the details section below.
+</p>
+<p>The remaining arguments are for internal use and/or usually omitted.</p>
+</td></tr>
+<tr valign="top"><td><code>extensionObject</code></td>
+<td>
+<p> alternative to the <code>test, coerce,
+    replace, by</code> arguments; an object from class
+<code>SClassExtension</code> describing the relation.  (Used in internal calls.)</p>
+</td></tr>
+<tr valign="top"><td><code>doComplete</code></td>
+<td>
+<p>when <code>TRUE</code>, the class definitions will be
+augmented with indirect relations as well.  (Used in internal calls.)</p>
+</td></tr>
+<tr valign="top"><td><code>by</code></td>
+<td>
+
+<p>In a call to <code>setIs</code>, the name of an intermediary class.
+Coercion will proceed by first coercing to this class and from there
+to the target class.  (The intermediate coercions have to be valid.)</p>
+</td></tr>
+<tr valign="top"><td><code>where</code></td>
+<td>
+
+<p>In a call to <code>setIs</code>, where to store the metadata defining the
+relationship.  Default is the global environment for calls from the
+top level of the session or a source file evaluated there.  When the
+call occurs in the top level of a file in the source of a package,
+the default will be the namespace or environment of the package.
+Other uses are tricky and not usually a good idea, unless you really
+know what you are doing.</p>
+</td></tr>
+<tr valign="top"><td><code>classDef</code></td>
+<td>
+
+<p>Optional class definition for <code>class</code> , required internally
+when <code>setIs</code> is called during the initial definition of the
+class by a call to <code><a href="setClass.html">setClass</a></code>. <em>Don't</em> use this
+argument, unless you really know why you're doing so.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>Arranging for a class to inherit from another class is a key tool in
+programming.  In <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>, there are three basic techniques, the first two
+providing what is called  &ldquo;simple&rdquo; inheritance, the preferred form:
+
+</p>
+
+<ol>
+<li>
+<p>By the <code>contains=</code> argument in a call to <code><a href="setClass.html">setClass</a></code>.  This
+is and should be the most common mechanism.  It arranges that the new
+class contains all the structure of the existing class, and in
+particular all the slots with the same class specified.  The
+resulting class extension is defined to be <code>simple</code>, with
+important implications for method definition (see the section on
+this topic below).
+</p>
+</li>
+<li>
+<p>Making <code>class1</code> a subclass of a virtual class
+either by a call to <code><a href="setClassUnion.html">setClassUnion</a></code> to make the
+subclass a member of a new class union, or by a call to
+<code>setIs</code> to add a class to an existing class union or as a new
+subclass of an existing virtual class.  In either case, the
+implication should be that methods defined for the class union or
+other superclass all work correctly for the subclass.  This may
+depend on some similarity in the structure of the subclasses or
+simply indicate that the superclass methods are defined in terms
+of generic functions that apply to all the subclasses.  These
+relationships are also generally simple.
+</p>
+</li>
+<li>
+<p>Supplying <code>coerce</code>  and <code>replace</code> arguments to <code>setAs</code>.
+<span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> allows arbitrary inheritance relationships, using the same
+mechanism for defining coerce methods by a call to
+<code><a href="setAs.html">setAs</a></code>.  The difference between the  two is simply
+that <code><a href="setAs.html">setAs</a></code> will require a call to <code><a href="as.html">as</a></code>
+for a conversion to take place, whereas after the call to
+<code><a href="setIs.html">setIs</a></code>, objects will be automatically converted to
+the superclass.
+</p>
+<p>The automatic feature is the dangerous part, mainly because it
+results in the subclass potentially inheriting methods that do
+not work.  See the section on inheritance below.  If the two
+classes involved do not actually inherit a large collection of
+methods, as in the first example below, the danger may be
+relatively slight.
+</p>
+<p>If the superclass inherits methods where the subclass has only a
+default or remotely inherited method, problems are more likely.
+In this case, a general
+recommendation is to use the <code><a href="setAs.html">setAs</a></code> mechanism
+instead, unless there is a strong counter reason. Otherwise, be prepared to
+override some of  the methods inherited.
+</p>
+</li></ol>
+
+<p>With this caution given, the rest of this section describes what
+happens when <code>coerce=</code> and <code>replace=</code> arguments are supplied
+to <code>setIs</code>.
+</p>
+<p>The <code>coerce</code> and <code>replace</code> arguments are functions that
+define how to coerce a <code>class1</code> object to <code>class2</code>, and
+how to replace the part of the subclass object that corresponds to
+<code>class2</code>.  The first of these is a function of one argument
+which should be <code>from</code>, and the second of two arguments
+(<code>from</code>, <code>value</code>).  For details, see the section on coerce
+functions below .
+</p>
+<p>When <code>by</code> is specified, the coerce process first coerces to
+this class and then to <code>class2</code>.  It's unlikely you
+would use the <code>by</code> argument directly, but it is used in defining
+cached information about classes.
+</p>
+<p>The value returned (invisibly) by
+<code>setIs</code> is the revised class definition of <code>class1</code>.
+</p>
+
+
+<h3>Coerce, replace, and test functions</h3>
+
+<p>The  <code>coerce</code> argument is a function that turns a
+<code>class1</code> object into a <code>class2</code> object.  The
+<code>replace</code> argument is a function of two arguments that modifies a <code>class1</code>
+object (the first argument) to replace the part of it that
+corresponds to <code>class2</code> (supplied as <code>value</code>, the second
+argument).  It then returns the modified object as the value of the
+call.  In other words, it acts as a replacement method to
+implement the expression <code>as(object, class2) &lt;- value</code>.
+</p>
+<p>The easiest way to think of the  <code>coerce</code> and <code>replace</code>
+functions is by thinking of the case that  <code>class1</code>
+contains <code>class2</code> in the usual sense, by including the slots of
+the second class.  (To repeat, in this situation you would not call
+<code>setIs</code>, but the analogy shows what happens when you do.)
+</p>
+<p>The <code>coerce</code> function in this case would just make a
+<code>class2</code> object by extracting the corresponding slots from the
+<code>class1</code> object. The <code>replace</code> function would replace in
+the <code>class1</code> object the slots corresponding to <code>class2</code>,
+and return the modified object as its value.
+</p>
+<p>For additional discussion of these functions, see
+the documentation of the
+<code><a href="setAs.html">setAs</a></code> function.  (Unfortunately, argument
+<code>def</code> to that function corresponds to argument <code>coerce</code> here.)
+</p>
+<p>The inheritance relationship can also be conditional, if a function is supplied as the
+<code>test</code> argument.  This should be a function of one argument
+that returns <code>TRUE</code> or <code>FALSE</code> according to whether the
+object supplied satisfies the relation <code>is(object, class2)</code>.
+Conditional relations between
+classes are discouraged in general because they require a per-object
+calculation to determine their validity. They cannot be applied
+as efficiently as ordinary relations and tend to make the code that
+uses them harder to interpret.  <em>NOTE:  conditional inheritance
+is not used to dispatch methods.</em>  Methods for conditional
+superclasses will not be inherited.  Instead, a method for the
+subclass should be defined that tests the conditional relationship.
+</p>
+
+
+<h3>Inherited methods</h3>
+
+<p>A method written for a particular signature (classes matched to one
+or more formal arguments to the function) naturally assumes that the
+objects corresponding to the arguments can be treated as coming from
+the corresponding classes.  The objects will have all the slots and
+available methods for the classes.
+</p>
+<p>The code that selects and dispatches the methods ensures that this
+assumption is correct.  If the inheritance was &ldquo;simple&rdquo;, that
+is, defined by one or more uses of the <code>contains=</code> argument in
+a call to <code><a href="setClass.html">setClass</a></code>, no extra work is generally
+needed.  Classes are inherited from the superclass, with the same
+definition.
+</p>
+<p>When inheritance is defined by a general call to
+<code>setIs</code>, extra computations are required.  This form of
+inheritance implies that the subclass does <em>not</em> just contain
+the slots of the superclass, but instead requires the explicit call
+to the coerce and/or replace method.  To ensure correct computation,
+the inherited method is supplemented by calls to <code><a href="as.html">as</a></code>
+before the body of the method is evaluated.
+</p>
+<p>The calls to <code><a href="as.html">as</a></code> generated in this case have the
+argument <code>strict = FALSE</code>, meaning that extra information can
+be left in the converted object, so long as it has all the
+appropriate slots.  (It's this option that allows simple subclass
+objects to be used without any change.)  When you are writing your
+coerce method, you may want to take advantage of that option.
+</p>
+<p>Methods inherited through non-simple extensions can result in ambiguities
+or unexpected selections.  If <code>class2</code> is a specialized class
+with just a few applicable methods, creating the inheritance
+relation may have little effect on the behavior of <code>class1</code>.
+But if <code>class2</code> is a class with many methods, you may
+find that you now inherit some undesirable methods for
+<code>class1</code>, in some cases, fail to inherit expected methods.
+In the second example below, the non-simple inheritance from class
+<code>"factor"</code> might be assumed to inherit S3 methods via that
+class.  But the S3 class is ambiguous, and in fact is
+<code>"character"</code> rather than <code>"factor"</code>.
+</p>
+<p>For some generic functions, methods inherited by non-simple
+extensions are either known to be invalid or sufficiently likely to
+be so that the generic function has been defined to exclude such
+inheritance.  For example <code><a href="new.html">initialize</a></code> methods must
+return an object of the target class; this is straightforward if the
+extension is simple, because no change is made to the argument
+object, but is essentially impossible.  For this reason, the generic
+function insists on only simple extensions for inheritance.  See the
+<code>simpleInheritanceOnly</code> argument to <code><a href="setGeneric.html">setGeneric</a></code>
+for the mechanism.  You can use this mechanism when defining new
+generic functions.
+</p>
+<p>If you get into problems with functions that do allow non-simple
+inheritance, there are two basic choices.  Either
+back off from the <code>setIs</code> call and settle for explicit coercing
+defined by a call to <code><a href="setAs.html">setAs</a></code>; or, define explicit
+methods involving <code>class1</code> to override the bad inherited
+methods.  The first choice is the safer, when there are serious
+problems.
+</p>
+
+
+<h3>References</h3>
+
+<p>Chambers, John M. (2016)
+<em>Extending R</em>,
+Chapman &amp; Hall.
+(Chapters 9 and 10.)
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+
+## Two examples of setIs() with coerce= and replace= arguments
+## The first one works fairly well, because neither class has many
+## inherited methods do be disturbed by the new inheritance
+
+## The second example does NOT work well, because the new superclass,
+## "factor", causes methods to be inherited that should not be.
+
+## First example:
+## a class definition (see \link{setClass} for class "track")
+setClass("trackCurve", contains = "track",
+         slots = c( smooth = "numeric"))
+## A class similar to "trackCurve", but with different structure
+## allowing matrices for the "y" and "smooth" slots
+setClass("trackMultiCurve",
+         slots = c(x="numeric", y="matrix", smooth="matrix"),
+         prototype = structure(list(), x=numeric(), y=matrix(0,0,0),
+
+                               smooth= matrix(0,0,0)))
+## Automatically convert an object from class "trackCurve" into
+## "trackMultiCurve", by making the y, smooth slots into 1-column matrices
+setIs("trackCurve",
+      "trackMultiCurve",
+      coerce = function(obj) {
+        new("trackMultiCurve",
+            x = obj@x,
+            y = as.matrix(obj@y),
+            smooth = as.matrix(obj@smooth))
+      },
+      replace = function(obj, value) {
+        obj@y &lt;- as.matrix(value@y)
+        obj@x &lt;- value@x
+        obj@smooth &lt;- as.matrix(value@smooth)
+        obj})
+
+
+
+
+## Second Example:
+## A class that adds a slot to "character"
+setClass("stringsDated", contains = "character",
+         slots = c(stamp="POSIXt"))
+
+## Convert automatically to a factor by explicit coerce
+setIs("stringsDated", "factor",
+      coerce = function(from) factor(from@.Data),
+      replace= function(from, value) {
+                  from@.Data &lt;- as.character(value); from })
+
+ll &lt;- sample(letters, 10, replace = TRUE)
+ld &lt;- new("stringsDated", ll, stamp = Sys.time())
+
+levels(as(ld, "factor"))
+levels(ld) # will be NULL--see comment in section on inheritance above.
+
+## In contrast, a class that simply extends "factor"
+## has no such ambiguities
+setClass("factorDated", contains = "factor",
+         slots = c(stamp="POSIXt"))
+fd &lt;- new("factorDated", factor(ll), stamp = Sys.time())
+identical(levels(fd), levels(as(fd, "factor")))
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>methods</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

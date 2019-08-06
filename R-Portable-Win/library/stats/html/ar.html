@@ -1,0 +1,316 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Fit Autoregressive Models to Time Series</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for ar {stats}"><tr><td>ar {stats}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Fit Autoregressive Models to Time Series</h2>
+
+<h3>Description</h3>
+
+<p>Fit an autoregressive time series model to the data, by default
+selecting the complexity by AIC.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+ar(x, aic = TRUE, order.max = NULL,
+   method = c("yule-walker", "burg", "ols", "mle", "yw"),
+   na.action, series, ...)
+
+ar.burg(x, ...)
+## Default S3 method:
+ar.burg(x, aic = TRUE, order.max = NULL,
+        na.action = na.fail, demean = TRUE, series,
+        var.method = 1, ...)
+## S3 method for class 'mts'
+ar.burg(x, aic = TRUE, order.max = NULL,
+        na.action = na.fail, demean = TRUE, series,
+        var.method = 1, ...)
+
+ar.yw(x, ...)
+## Default S3 method:
+ar.yw(x, aic = TRUE, order.max = NULL,
+      na.action = na.fail, demean = TRUE, series, ...)
+## S3 method for class 'mts'
+ar.yw(x, aic = TRUE, order.max = NULL,
+      na.action = na.fail, demean = TRUE, series,
+      var.method = 1, ...)
+
+ar.mle(x, aic = TRUE, order.max = NULL, na.action = na.fail,
+       demean = TRUE, series, ...)
+
+## S3 method for class 'ar'
+predict(object, newdata, n.ahead = 1, se.fit = TRUE, ...)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>a univariate or multivariate time series.</p>
+</td></tr>
+<tr valign="top"><td><code>aic</code></td>
+<td>
+<p><code><a href="../../base/html/logical.html">logical</a></code>.  If <code>TRUE</code> then the Akaike Information
+Criterion is used to choose the order of the autoregressive
+model.  If <code>FALSE</code>, the model of order <code>order.max</code> is
+fitted.</p>
+</td></tr>
+<tr valign="top"><td><code>order.max</code></td>
+<td>
+<p>maximum order (or order) of model to fit.  Defaults
+to the smaller of <i>N-1</i> and <i>10*log10(N)</i>
+where <i>N</i> is the number of non-missing observations
+except for <code>method = "mle"</code> where it is the minimum of this
+quantity and 12.</p>
+</td></tr>
+<tr valign="top"><td><code>method</code></td>
+<td>
+<p>character string specifying the method to fit the
+model.  Must be one of the strings in the default argument
+(the first few characters are sufficient).  Defaults to
+<code>"yule-walker"</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>na.action</code></td>
+<td>
+<p>function to be called to handle missing
+values.  Currently, via <code>na.action = na.pass</code>, only Yule-Walker
+method can handle missing values which must be consistent within a
+time point: either all variables must be missing or none.</p>
+</td></tr>
+<tr valign="top"><td><code>demean</code></td>
+<td>
+<p>should a mean be estimated during fitting?</p>
+</td></tr>
+<tr valign="top"><td><code>series</code></td>
+<td>
+<p>names for the series.  Defaults to
+<code>deparse(substitute(x))</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>var.method</code></td>
+<td>
+<p>the method to estimate the innovations variance
+(see &lsquo;Details&rsquo;).</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>additional arguments for specific methods.</p>
+</td></tr>
+<tr valign="top"><td><code>object</code></td>
+<td>
+<p>a fit from <code>ar()</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>newdata</code></td>
+<td>
+<p>data to which to apply the prediction.</p>
+</td></tr>
+<tr valign="top"><td><code>n.ahead</code></td>
+<td>
+<p>number of steps ahead at which to predict.</p>
+</td></tr>
+<tr valign="top"><td><code>se.fit</code></td>
+<td>
+<p>logical: return estimated standard errors of the
+prediction error?</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>For definiteness, note that the AR coefficients have the sign in
+</p>
+<p style="text-align: center;"><i>x[t] - m = a[1]*(x[t-1] - m) + &hellip; +  a[p]*(x[t-p] - m) + e[t]</i></p>
+
+<p><code>ar</code> is just a wrapper for the functions <code>ar.yw</code>,
+<code>ar.burg</code>, <code><a href="ar.ols.html">ar.ols</a></code> and <code>ar.mle</code>.
+</p>
+<p>Order selection is done by AIC if <code>aic</code> is true. This is
+problematic, as of the methods here only <code>ar.mle</code> performs
+true maximum likelihood estimation. The AIC is computed as if the variance
+estimate were the MLE, omitting the determinant term from the
+likelihood. Note that this is not the same as the Gaussian likelihood
+evaluated at the estimated parameter values.  In <code>ar.yw</code> the
+variance matrix of the innovations is computed from the fitted
+coefficients and the autocovariance of <code>x</code>.
+</p>
+<p><code>ar.burg</code> allows two methods to estimate the innovations
+variance and hence AIC. Method 1 is to use the update given by
+the Levinson-Durbin recursion (Brockwell and Davis, 1991, (8.2.6)
+on page 242), and follows S-PLUS. Method 2 is the mean of the sum
+of squares of the forward and backward prediction errors
+(as in Brockwell and Davis, 1996, page 145). Percival and Walden
+(1998) discuss both. In the multivariate case the estimated
+coefficients will depend (slightly) on the variance estimation method.
+</p>
+<p>Remember that <code>ar</code> includes by default a constant in the model, by
+removing the overall mean of <code>x</code> before fitting the AR model,
+or (<code>ar.mle</code>) estimating a constant to subtract.
+</p>
+
+
+<h3>Value</h3>
+
+<p>For <code>ar</code> and its methods a list of class <code>"ar"</code> with
+the following elements:
+</p>
+<table summary="R valueblock">
+<tr valign="top"><td><code>order</code></td>
+<td>
+<p>The order of the fitted model.  This is chosen by
+minimizing the AIC if <code>aic = TRUE</code>, otherwise it is <code>order.max</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>ar</code></td>
+<td>
+<p>Estimated autoregression coefficients for the fitted model.</p>
+</td></tr>
+<tr valign="top"><td><code>var.pred</code></td>
+<td>
+<p>The prediction variance: an estimate of the portion of the
+variance of the time series that is not explained by the
+autoregressive model.</p>
+</td></tr>
+<tr valign="top"><td><code>x.mean</code></td>
+<td>
+<p>The estimated mean of the series used in fitting and for
+use in prediction.</p>
+</td></tr>
+<tr valign="top"><td><code>x.intercept</code></td>
+<td>
+<p>(<code>ar.ols</code> only.) The intercept in the model for
+<code>x - x.mean</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>aic</code></td>
+<td>
+<p>The differences in AIC between each model and the
+best-fitting model.  Note that the latter can have an AIC of <code>-Inf</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>n.used</code></td>
+<td>
+<p>The number of observations in the time series, including
+missing.</p>
+</td></tr>
+<tr valign="top"><td><code>n.obs</code></td>
+<td>
+<p>The number of non-missing observations in the time series.</p>
+</td></tr>
+<tr valign="top"><td><code>order.max</code></td>
+<td>
+<p>The value of the <code>order.max</code> argument.</p>
+</td></tr>
+<tr valign="top"><td><code>partialacf</code></td>
+<td>
+<p>The estimate of the partial autocorrelation function
+up to lag <code>order.max</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>resid</code></td>
+<td>
+<p>residuals from the fitted model, conditioning on the
+first <code>order</code> observations. The first <code>order</code> residuals
+are set to <code>NA</code>. If <code>x</code> is a time series, so is <code>resid</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>method</code></td>
+<td>
+<p>The value of the <code>method</code> argument.</p>
+</td></tr>
+<tr valign="top"><td><code>series</code></td>
+<td>
+<p>The name(s) of the time series.</p>
+</td></tr>
+<tr valign="top"><td><code>frequency</code></td>
+<td>
+<p>The frequency of the time series.</p>
+</td></tr>
+<tr valign="top"><td><code>call</code></td>
+<td>
+<p>The matched call.</p>
+</td></tr>
+<tr valign="top"><td><code>asy.var.coef</code></td>
+<td>
+<p>(univariate case, <code>order &gt; 0</code>.)
+The asymptotic-theory variance matrix of the coefficient estimates.</p>
+</td></tr>
+</table>
+<p>For <code>predict.ar</code>, a time series of predictions, or if
+<code>se.fit = TRUE</code>, a list with components <code>pred</code>, the
+predictions, and <code>se</code>, the estimated standard errors.  Both
+components are time series.
+</p>
+
+
+<h3>Note</h3>
+
+<p>Only the univariate case of <code>ar.mle</code> is implemented.
+</p>
+<p>Fitting by <code>method="mle"</code> to long series can be very slow.
+</p>
+<p>If <code>x</code> contains missing values, see <code><a href="../../base/html/NA.html">NA</a></code>, also consider
+using <code><a href="arima.html">arima</a>()</code>, possibly with <code>method = "ML"</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Martyn Plummer. Univariate case of <code>ar.yw</code>, <code>ar.mle</code>
+and C code for univariate case of <code>ar.burg</code> by B. D. Ripley.
+</p>
+
+
+<h3>References</h3>
+
+<p>Brockwell, P. J. and Davis, R. A. (1991).
+<em>Time Series and Forecasting Methods</em>, second edition.
+Springer, New York.
+Section 11.4.
+</p>
+<p>Brockwell, P. J. and Davis, R. A. (1996).
+<em>Introduction to Time Series and Forecasting</em>.
+Springer, New York.
+Sections 5.1 and 7.6.
+</p>
+<p>Percival, D. P. and Walden, A. T. (1998).
+<em>Spectral Analysis for Physical Applications</em>.
+Cambridge University Press.
+</p>
+<p>Whittle, P. (1963).
+On the fitting of multivariate autoregressions and the approximate
+canonical factorization of a spectral density matrix.
+<em>Biometrika</em>, <b>40</b>, 129&ndash;134.
+doi: <a href="https://doi.org/10.2307/2333753">10.2307/2333753</a>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="ar.ols.html">ar.ols</a></code>, <code><a href="arima.html">arima</a></code> for ARMA models;
+<code><a href="acf2AR.html">acf2AR</a></code>, for AR construction from the ACF.
+</p>
+<p><code><a href="arima.sim.html">arima.sim</a></code> for simulation of AR processes.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+ar(lh)
+ar(lh, method = "burg")
+ar(lh, method = "ols")
+ar(lh, FALSE, 4) # fit ar(4)
+
+(sunspot.ar &lt;- ar(sunspot.year))
+predict(sunspot.ar, n.ahead = 25)
+## try the other methods too
+
+ar(ts.union(BJsales, BJsales.lead))
+## Burg is quite different here, as is OLS (see ar.ols)
+ar(ts.union(BJsales, BJsales.lead), method = "burg")
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>stats</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

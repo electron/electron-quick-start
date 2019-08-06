@@ -1,0 +1,121 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Convolution of Sequences via FFT</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for convolve {stats}"><tr><td>convolve {stats}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Convolution of Sequences via FFT</h2>
+
+<h3>Description</h3>
+
+<p>Use the Fast Fourier Transform to compute the several kinds of
+convolutions of two sequences.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+convolve(x, y, conj = TRUE, type = c("circular", "open", "filter"))
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x, y</code></td>
+<td>
+<p>numeric sequences <em>of the same length</em> to be
+convolved.</p>
+</td></tr>
+<tr valign="top"><td><code>conj</code></td>
+<td>
+<p>logical; if <code>TRUE</code>, take the complex <em>conjugate</em>
+before back-transforming (default, and used for usual convolution).</p>
+</td></tr>
+<tr valign="top"><td><code>type</code></td>
+<td>
+<p>character; partially matched to <code>"circular"</code>, <code>"open"</code>,
+<code>"filter"</code>.  For <code>"circular"</code>, the
+two sequences are treated as <em>circular</em>, i.e., periodic.
+</p>
+<p>For <code>"open"</code> and <code>"filter"</code>, the sequences are padded with
+<code>0</code>s (from left and right) first; <code>"filter"</code> returns the
+middle sub-vector of <code>"open"</code>, namely, the result of running a
+weighted mean of <code>x</code> with weights <code>y</code>.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>The Fast Fourier Transform, <code><a href="fft.html">fft</a></code>, is used for efficiency.
+</p>
+<p>The input sequences <code>x</code> and  <code>y</code> must have the same length if
+<code>circular</code> is true.
+</p>
+<p>Note that the usual definition of convolution of two sequences
+<code>x</code> and <code>y</code> is given by <code>convolve(x, rev(y), type = "o")</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>If <code>r &lt;- convolve(x, y, type = "open")</code>
+and <code>n &lt;- length(x)</code>, <code>m &lt;- length(y)</code>, then
+</p>
+<p style="text-align: center;"><i>r[k] = sum(i; x[k-m+i] * y[i])</i></p>
+
+<p>where the sum is over all valid indices <i>i</i>, for
+<i>k = 1, &hellip;, n+m-1</i>.
+</p>
+<p>If <code>type == "circular"</code>, <i>n = m</i> is required, and the above is
+true for <i>i , k = 1,&hellip;,n</i> when
+<i>x[j] := x[n+j]</i> for <i>j &lt; 1</i>.
+</p>
+
+
+<h3>References</h3>
+
+<p>Brillinger, D. R. (1981)
+<em>Time Series: Data Analysis and Theory</em>, Second Edition.
+San Francisco: Holden-Day.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="fft.html">fft</a></code>, <code><a href="nextn.html">nextn</a></code>, and particularly
+<code><a href="filter.html">filter</a></code> (from the <span class="pkg">stats</span> package) which may be
+more appropriate.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+require(graphics)
+
+x &lt;- c(0,0,0,100,0,0,0)
+y &lt;- c(0,0,1, 2 ,1,0,0)/4
+zapsmall(convolve(x, y))         #  *NOT* what you first thought.
+zapsmall(convolve(x, y[3:5], type = "f")) # rather
+x &lt;- rnorm(50)
+y &lt;- rnorm(50)
+# Circular convolution *has* this symmetry:
+all.equal(convolve(x, y, conj = FALSE), rev(convolve(rev(y),x)))
+
+n &lt;- length(x &lt;- -20:24)
+y &lt;- (x-10)^2/1000 + rnorm(x)/8
+
+Han &lt;- function(y) # Hanning
+       convolve(y, c(1,2,1)/4, type = "filter")
+
+plot(x, y, main = "Using  convolve(.) for Hanning filters")
+lines(x[-c(1  , n)      ], Han(y), col = "red")
+lines(x[-c(1:2, (n-1):n)], Han(Han(y)), lwd = 2, col = "dark blue")
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>stats</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

@@ -1,0 +1,170 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Find the Location of a Line of Source Code, or Set a...</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for findLineNum {utils}"><tr><td>findLineNum {utils}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>
+Find the Location of a Line of Source Code, or Set a Breakpoint There
+</h2>
+
+<h3>Description</h3>
+
+<p>These functions locate objects containing particular lines of source
+code, using the information saved when the code was parsed with
+<code>keep.source = TRUE</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+findLineNum(srcfile, line, nameonly = TRUE,
+            envir = parent.frame(), lastenv)
+
+setBreakpoint(srcfile, line, nameonly = TRUE,
+              envir = parent.frame(), lastenv, verbose = TRUE,
+              tracer, print = FALSE, clear = FALSE, ...)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>srcfile</code></td>
+<td>
+<p>The name of the file containing the source code.</p>
+</td></tr>
+<tr valign="top"><td><code>line</code></td>
+<td>
+<p>The line number within the file.  See Details for an
+alternate way to specify this.</p>
+</td></tr>
+<tr valign="top"><td><code>nameonly</code></td>
+<td>
+<p>If <code>TRUE</code> (the default), we require only a match
+to <code>basename(srcfile)</code>, not to the full path.</p>
+</td></tr>
+<tr valign="top"><td><code>envir</code></td>
+<td>
+<p>Where do we start looking for function objects?</p>
+</td></tr>
+<tr valign="top"><td><code>lastenv</code></td>
+<td>
+<p>Where do we stop?  See the Details.</p>
+</td></tr>
+<tr valign="top"><td><code>verbose</code></td>
+<td>
+<p>Should we print information on where breakpoints were set?</p>
+</td></tr>
+<tr valign="top"><td><code>tracer</code></td>
+<td>
+<p>An optional <code>tracer</code> function to pass to
+<code><a href="../../base/html/trace.html">trace</a></code>.  By default, a call to <code><a href="../../base/html/browser.html">browser</a></code>
+is inserted.</p>
+</td></tr>
+<tr valign="top"><td><code>print</code></td>
+<td>
+<p>The <code>print</code> argument to pass to <code><a href="../../base/html/trace.html">trace</a></code>.</p>
+</td></tr>
+<tr valign="top"><td><code>clear</code></td>
+<td>
+<p>If <code>TRUE</code>, call <code><a href="../../base/html/trace.html">untrace</a></code> rather than
+<code><a href="../../base/html/trace.html">trace</a></code>.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>Additional arguments to pass to <code><a href="../../base/html/trace.html">trace</a></code>.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>The <code>findLineNum</code> function searches through all objects in
+environment <code>envir</code>, its parent, grandparent, etc., all the way
+back to <code>lastenv</code>.
+</p>
+<p><code>lastenv</code> defaults to the global environment if
+<code>envir</code> is not specified, and to the
+root environment <code><a href="../../base/html/environment.html">emptyenv</a>()</code> if <code>envir</code> is
+specified.  (The first default tends to be quite fast, and will
+usually find all user code other than S4 methods; the second one is
+quite slow, as it will typically search all attached system
+libraries.)
+</p>
+<p>For convenience, <code>envir</code> may be specified indirectly:  if it is
+not an environment, it will be replaced with
+<code>environment(envir)</code>.
+</p>
+<p><code>setBreakpoint</code> is a simple wrapper function for
+<code><a href="../../base/html/trace.html">trace</a></code> and <code><a href="../../base/html/trace.html">untrace</a></code>.  It will set or clear
+breakpoints at the locations found by <code>findLineNum</code>.
+</p>
+<p>The <code>srcfile</code> is normally a filename entered as a character
+string, but it may be a <code>"<a href="../../base/html/srcfile.html">srcfile</a>"</code> object, or it may
+include a suffix like <code>"filename.R#nn"</code>, in which case the number
+<code>nn</code> will be used as a default value for <code>line</code>.
+</p>
+<p>As described in the description of the <code>where</code> argument on the
+man page for <code><a href="../../base/html/trace.html">trace</a></code>, the <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> package system uses a
+complicated scheme that may include more than one copy of a function
+in a package.  The user will typically see the public one on the
+search path, while code in the package will see a private one in the
+package namespace.  If you set <code>envir</code> to the environment of a
+function in the package, by default <code>findLineNum</code> will find both
+versions, and <code>setBreakpoint</code> will set the breakpoint in both.
+(This can be controlled using <code>lastenv</code>; e.g.,
+<code>envir = environment(foo)</code>, <code>lastenv = globalenv()</code>
+will find only the private copy, as the search is stopped before
+seeing the public copy.)
+</p>
+<p>S version 4 methods are also somewhat tricky to find.  They are stored
+with the generic function, which may be in the <span class="pkg">base</span> or other
+package, so it is usually necessary to have <code>lastenv = emptyenv()</code>
+in order to find them.  In some cases transformations are done by <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>
+when storing them and <code>findLineNum</code> may not be able to find the
+original code.  Many special cases, e.g. methods on primitive
+generics, are not yet supported.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>findLineNum</code> returns a list of objects containing location
+information.  A <code>print</code> method is defined for them.
+</p>
+<p><code>setBreakpoint</code> has no useful return value; it is called for the
+side effect of calling <code><a href="../../base/html/trace.html">trace</a></code> or <code><a href="../../base/html/trace.html">untrace</a></code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Duncan Murdoch
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="../../base/html/trace.html">trace</a></code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Not run: 
+# Find what function was defined in the file mysource.R at line 100:
+findLineNum("mysource.R#100")
+
+# Set a breakpoint in both copies of that function, assuming one is in the
+# same namespace as myfunction and the other is on the search path
+setBreakpoint("mysource.R#100", envir = myfunction)
+
+## End(Not run)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>utils</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

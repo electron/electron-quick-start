@@ -1,0 +1,223 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Arithmetic Operators</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for Arithmetic {base}"><tr><td>Arithmetic {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Arithmetic Operators</h2>
+
+<h3>Description</h3>
+
+<p>These unary and binary operators perform arithmetic on numeric or
+complex vectors (or objects which can be coerced to them).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
++ x
+- x
+x + y
+x - y
+x * y
+x / y
+x ^ y
+x %% y
+x %/% y
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x, y</code></td>
+<td>
+<p>numeric or complex vectors or objects which can be
+coerced to such, or other objects for which methods have been written.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>The unary and binary arithmetic operators are generic functions:
+methods can be written for them individually or via the
+<code><a href="groupGeneric.html">Ops</a></code> group generic function.  (See
+<code><a href="groupGeneric.html">Ops</a></code> for how dispatch is computed.)
+</p>
+<p>If applied to arrays the result will be an array if this is sensible
+(for example it will not if the recycling rule has been invoked).
+</p>
+<p>Logical vectors will be coerced to integer or numeric vectors,
+<code>FALSE</code> having value zero and <code>TRUE</code> having value one.
+</p>
+<p><code>1 ^ y</code> and <code>y ^ 0</code> are <code>1</code>, <em>always</em>.
+<code>x ^ y</code> should also give the proper limit result when
+either (numeric) argument is <a href="is.finite.html">infinite</a> (one of <code>Inf</code> or
+<code>-Inf</code>).
+</p>
+<p>Objects such as arrays or time-series can be operated on this
+way provided they are conformable.
+</p>
+<p>For double arguments, <code>%%</code> can be subject to catastrophic loss of
+accuracy if <code>x</code> is much larger than <code>y</code>, and a warning is
+given if this is detected.
+</p>
+<p><code>%%</code> and <code>x %/% y</code> can be used for non-integer <code>y</code>,
+e.g. <code>1 %/% 0.2</code>, but the results are subject to representation
+error and so may be platform-dependent.  Because the IEC 60059
+representation of <code>0.2</code> is a binary fraction slightly larger than
+<code>0.2</code>, the answer to <code>1 %/% 0.2</code> should be <code>4</code> but
+most platforms give <code>5</code>.
+</p>
+<p>Users are sometimes surprised by the value returned, for example why
+<code>(-8)^(1/3)</code> is <code>NaN</code>.  For <a href="double.html">double</a> inputs, <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> makes
+use of IEC 60559 arithmetic on all platforms, together with the C
+system function <span class="samp">pow</span> for the <code>^</code> operator.  The relevant
+standards define the result in many corner cases.  In particular, the
+result in the example above is mandated by the C99 standard.  On many
+Unix-alike systems the command <code>man pow</code> gives details of the
+values in a large number of corner cases.
+</p>
+<p>Arithmetic on type <a href="double.html">double</a> in <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> is supposed to be done in
+&lsquo;round to nearest, ties to even&rsquo; mode, but this does depend on
+the compiler and FPU being set up correctly.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Unary <code>+</code> and unary <code>-</code> return a numeric or complex vector.
+All attributes (including class) are preserved if there is no
+coercion: logical <code>x</code> is coerced to integer and names, dims and
+dimnames are preserved.
+</p>
+<p>The binary operators return vectors containing the result of the element
+by element operations.  If involving a zero-length vector the result
+has length zero.  Otherwise, the elements of shorter vectors are recycled
+as necessary (with a <code><a href="warning.html">warning</a></code> when they are recycled only
+<em>fractionally</em>).  The operators are <code>+</code> for addition,
+<code>-</code> for subtraction, <code>*</code> for multiplication, <code>/</code> for
+division and <code>^</code> for exponentiation.
+</p>
+<p><code>%%</code> indicates <code>x mod y</code> and <code>%/%</code> indicates
+integer division.  It is guaranteed that <code>x == (x %% y) + y * (
+  x %/% y )</code> (up to rounding error) unless <code>y == 0</code> where the
+result of <code>%%</code> is <code><a href="NA.html">NA_integer_</a></code> or
+<code><a href="is.finite.html">NaN</a></code> (depending on the <code><a href="typeof.html">typeof</a></code> of the
+arguments), and for non-<a href="is.finite.html">finite</a> arguments.
+</p>
+<p>If either argument is complex the result will be complex, otherwise if
+one or both arguments are numeric, the result will be numeric.  If
+both arguments are of type <a href="integer.html">integer</a>, the type of the result of
+<code>/</code> and <code>^</code> is <a href="numeric.html">numeric</a> and for the other operators it
+is integer (with overflow, which occurs at
+<i>+/- (2^31 - 1)</i>,
+returned as <code>NA_integer_</code> with a warning).
+</p>
+<p>The rules for determining the attributes of the result are rather
+complicated.  Most attributes are taken from the longer argument.
+Names will be copied from the first if it is the same length as the
+answer, otherwise from the second if that is.  If the arguments are
+the same length, attributes will be copied from both, with those of
+the first argument taking precedence when the same attribute is
+present in both arguments. For time series, these operations are
+allowed only if the series are compatible, when the class and
+<code><a href="../../stats/html/tsp.html">tsp</a></code> attribute of whichever is a time series (the same,
+if both are) are used.  For arrays (and an array result) the
+dimensions and dimnames are taken from first argument if it is an
+array, otherwise the second.
+</p>
+
+
+<h3>S4 methods</h3>
+
+<p>These operators are members of the S4 <code><a href="../../methods/html/S4groupGeneric.html">Arith</a></code> group generic,
+and so methods can be written for them individually as well as for the
+group generic (or the <code>Ops</code> group generic), with arguments
+<code>c(e1, e2)</code> (with <code>e2</code> missing for a unary operator).
+</p>
+
+
+<h3>Implementation limits</h3>
+
+<p><span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> is dependent on OS services (and they on FPUs) for floating-point
+arithmetic.  On all current <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> platforms IEC 60559 (also known as IEEE
+754) arithmetic is used, but some things in those standards are
+optional.  In particular, the support for <em>denormal numbers</em>
+(those outside the range given by <code><a href="zMachine.html">.Machine</a></code>) may differ
+between platforms and even between calculations on a single platform.
+</p>
+<p>Another potential issue is signed zeroes: on IEC 60659 platforms there
+are two zeroes with internal representations differing by sign.  Where
+possible <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> treats them as the same, but for example direct output
+from C code often does not do so and may output <span class="samp">-0.0</span> (and on
+Windows whether it does so or not depends on the version of Windows).
+One place in <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> where the difference might be seen is in division by
+zero: <code>1/x</code> is <code>Inf</code> or <code>-Inf</code> depending on the sign of
+zero <code>x</code>.  Another place is
+<code><a href="identical.html">identical</a>(0, -0, num.eq = FALSE)</code>.
+</p>
+
+
+<h3>Note</h3>
+
+<p>All logical operations involving a zero-length vector have a
+zero-length result.
+</p>
+<p>The binary operators are sometimes called as functions as
+e.g. <code>`&amp;`(x, y)</code>: see the description of how
+argument-matching is done in <code><a href="Ops.html">Ops</a></code>.
+</p>
+<p><code>**</code> is translated in the parser to <code>^</code>, but this was
+undocumented for many years.  It appears as an index entry in Becker
+<em>et al</em> (1988), pointing to the help for <code>Deprecated</code> but
+is not actually mentioned on that page.  Even though it had been
+deprecated in S for 20 years, it was still accepted in <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> in 2008.
+</p>
+
+
+<h3>References</h3>
+
+<p>Becker, R. A., Chambers, J. M. and Wilks, A. R. (1988)
+<em>The New S Language</em>.
+Wadsworth &amp; Brooks/Cole.
+</p>
+<p>D. Goldberg (1991).
+What Every Computer Scientist Should Know about Floating-Point
+Arithmetic.
+<em>ACM Computing Surveys</em>, <b>23</b>(1), 5&ndash;48.
+doi: <a href="https://doi.org/10.1145/103162.103163">10.1145/103162.103163</a>.
+<br />
+Postscript version available at
+<a href="http://www.validlab.com/goldberg/paper.ps">http://www.validlab.com/goldberg/paper.ps</a>.
+Extended PDF version at
+<a href="http://www.validlab.com/goldberg/paper.pdf">http://www.validlab.com/goldberg/paper.pdf</a>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="MathFun.html">sqrt</a></code> for miscellaneous and <code><a href="Special.html">Special</a></code> for special
+mathematical functions.
+</p>
+<p><code><a href="Syntax.html">Syntax</a></code> for operator precedence.
+</p>
+<p><code><a href="matmult.html">%*%</a></code> for matrix multiplication.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+x &lt;- -1:12
+x + 1
+2 * x + 3
+x %% 2 #-- is periodic
+x %/% 5
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

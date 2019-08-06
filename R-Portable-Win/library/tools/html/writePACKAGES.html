@@ -1,0 +1,184 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Generate PACKAGES Files</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for write_PACKAGES {tools}"><tr><td>write_PACKAGES {tools}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Generate PACKAGES Files</h2>
+
+<h3>Description</h3>
+
+<p>Generate &lsquo;<span class="file">PACKAGES</span>&rsquo;, &lsquo;<span class="file">PACKAGES.gz</span>&rsquo; and &lsquo;<span class="file">PACKAGES.rds</span>&rsquo;
+files for a repository of source or Mac/Windows binary packages.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+write_PACKAGES(dir = ".", fields = NULL,
+               type = c("source", "mac.binary", "win.binary"),
+               verbose = FALSE, unpacked = FALSE, subdirs = FALSE,
+               latestOnly = TRUE, addFiles = FALSE, rds_compress = "xz")
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>dir</code></td>
+<td>
+<p>Character vector describing the location of the repository
+(directory including source or binary packages) to generate the
+&lsquo;<span class="file">PACKAGES</span>&rsquo;, &lsquo;<span class="file">PACKAGES.gz</span>&rsquo; and &lsquo;<span class="file">PACKAGES.rds</span>&rsquo; files
+from and write them to.
+</p>
+</td></tr>
+<tr valign="top"><td><code>fields</code></td>
+<td>
+
+<p>a character vector giving the fields to be used in the
+&lsquo;<span class="file">PACKAGES</span>&rsquo;, &lsquo;<span class="file">PACKAGES.gz</span>&rsquo; and &lsquo;<span class="file">PACKAGES.rds</span>&rsquo; files in
+addition to the default ones, or <code>NULL</code> (default).
+</p>
+<p>The default corresponds to
+the fields needed by <code><a href="../../utils/html/available.packages.html">available.packages</a></code>:
+<code>"Package"</code>, <code>"Version"</code>, <code>"Priority"</code>,
+<code>"Depends"</code>, <code>"Imports"</code>, <code>"LinkingTo"</code>,
+<code>"Suggests"</code>, <code>"Enhances"</code>, <code>"OS_type"</code>,
+<code>"License"</code> and <code>"Archs"</code>, and those fields will always
+be included, plus
+the file name in field <code>"File"</code> if <code>addFile = TRUE</code>
+and the path to the subdirectory in field <code>"Path"</code> if subdirectories
+are used.
+</p>
+</td></tr>
+<tr valign="top"><td><code>type</code></td>
+<td>
+
+<p>Type of packages: currently source &lsquo;<span class="file">.tar.{gz,bz2,xz}</span>&rsquo; archives,
+and macOS or Windows binary (&lsquo;<span class="file">.tgz</span>&rsquo; or &lsquo;<span class="file">.zip</span>&rsquo;,
+respectively) packages are supported.  Defaults to
+<code>"win.binary"</code> on Windows and to <code>"source"</code> otherwise.
+</p>
+</td></tr>
+<tr valign="top"><td><code>verbose</code></td>
+<td>
+<p>logical.  Should packages be listed as they are
+processed?</p>
+</td></tr>
+<tr valign="top"><td><code>unpacked</code></td>
+<td>
+<p>a logical indicating whether the package contents are
+available in unpacked form or not (default).</p>
+</td></tr>
+<tr valign="top"><td><code>subdirs</code></td>
+<td>
+<p>either logical (to indicate if subdirectories should be
+included, recursively) or a character vector of names of subdirectories
+to include (which are not recursed).</p>
+</td></tr>
+<tr valign="top"><td><code>latestOnly</code></td>
+<td>
+<p>logical: if multiple versions of a package are
+available should only the latest version be included?</p>
+</td></tr>
+<tr valign="top"><td><code>addFiles</code></td>
+<td>
+<p>logical: should the filenames be included as field
+<span class="samp">File</span> in the &lsquo;<span class="file">PACKAGES</span>&rsquo; file.</p>
+</td></tr>
+<tr valign="top"><td><code>rds_compress</code></td>
+<td>
+<p>The type of compression to be used for
+&lsquo;<span class="file">PACKAGES.rds</span>&rsquo;: see <code><a href="../../base/html/readRDS.html">saveRDS</a></code>.  The default is the
+one found to give maximal compression, and is as used on <acronym><span class="acronym">CRAN</span></acronym>.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p><code>write_PACKAGES</code> scans the named directory for R packages,
+extracts information from each package's &lsquo;<span class="file">DESCRIPTION</span>&rsquo; file, and
+writes this information into the &lsquo;<span class="file">PACKAGES</span>&rsquo;, &lsquo;<span class="file">PACKAGES.gz</span>&rsquo;
+and &lsquo;<span class="file">PACKAGES.rds</span>&rsquo; files, where the first two represent the
+information in DCF format, and the third serializes it via
+<code><a href="../../base/html/readRDS.html">saveRDS</a></code>.
+</p>
+<p>Including non-latest versions of packages is only useful if they have
+less constraining version requirements, so for example
+<code>latestOnly = FALSE</code> could be used for a source repository when
+<span class="samp">foo_1.0</span> depends on <span class="samp">R &gt;= 2.15.0</span> but <span class="samp">foo_0.9</span> is
+available which depends on <span class="samp">R &gt;= 2.11.0</span>.
+</p>
+<p>Support for repositories with subdirectories and hence for
+<code>subdirs != FALSE</code> depends on recording a <code>"Path"</code> field in
+the &lsquo;<span class="file">PACKAGES</span>&rsquo; files.
+</p>
+<p>Support for more general file names (e.g., other types of compression)
+<em>via</em> a <code>"File"</code> field in the &lsquo;<span class="file">PACKAGES</span>&rsquo; files can be
+used by <code><a href="../../utils/html/download.packages.html">download.packages</a></code>.  If the file names are not of
+the standard form, use <code>addFiles = TRUE</code>.
+</p>
+<p><code>type = "win.binary"</code> uses <code><a href="../../base/html/connections.html">unz</a></code> connections to read
+all &lsquo;<span class="file">DESCRIPTION</span>&rsquo; files contained in the (zipped) binary packages
+for Windows in the given directory <code>dir</code>, and builds files
+&lsquo;<span class="file">PACKAGES</span>&rsquo;, &lsquo;<span class="file">PACKAGES.gz</span>&rsquo; and &lsquo;<span class="file">PACKAGES.rds</span>&rsquo; files from
+this information.
+</p>
+<p>For a remote repository there is a tradeoff between download speed and
+time spent by <code><a href="../../utils/html/available.packages.html">available.packages</a></code> processing the
+downloaded file(s).  For large repositories it is likely to be
+beneficial to use <code>rds_compress = "xz"</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Invisibly returns the number of packages described in the resulting
+&lsquo;<span class="file">PACKAGES</span>&rsquo;, &lsquo;<span class="file">PACKAGES.gz</span>&rsquo; and &lsquo;<span class="file">PACKAGES.rds</span>&rsquo; files.  If
+<code>0</code>, no packages were found and no files were written.
+</p>
+
+
+<h3>Note</h3>
+
+<p>Processing &lsquo;<span class="file">.tar.gz</span>&rsquo; archives to extract the &lsquo;<span class="file">DESCRIPTION</span>&rsquo;
+files is quite slow.
+</p>
+<p>This function can be useful on other OSes to prepare a repository to
+be accessed by Windows machines, so <code>type = "win.binary"</code> should
+work on all OSes.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Uwe Ligges and R-core.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>See <code><a href="../../base/html/dcf.html">read.dcf</a></code> and <code><a href="../../base/html/dcf.html">write.dcf</a></code> for reading
+&lsquo;<span class="file">DESCRIPTION</span>&rsquo; files and writing the &lsquo;<span class="file">PACKAGES</span>&rsquo; and
+&lsquo;<span class="file">PACKAGES.gz</span>&rsquo; files. See <code><a href="updatePACKAGES.html">update_PACKAGES</a></code> for
+efficiently updating existing &lsquo;<span class="file">PACKAGES</span>&rsquo; and &lsquo;<span class="file">PACKAGES.gz</span>&rsquo;
+files.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Not run: 
+write_PACKAGES("c:/myFolder/myRepository")  # on Windows
+write_PACKAGES("/pub/RWin/bin/windows/contrib/2.9",
+               type = "win.binary")  # on Linux
+
+## End(Not run)</pre>
+
+<hr /><div style="text-align: center;">[Package <em>tools</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

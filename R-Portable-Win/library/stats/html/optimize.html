@@ -1,0 +1,166 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: One Dimensional Optimization</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for optimize {stats}"><tr><td>optimize {stats}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>One Dimensional Optimization</h2>
+
+<h3>Description</h3>
+
+<p>The function <code>optimize</code> searches the interval from
+<code>lower</code> to <code>upper</code> for a minimum or maximum of
+the function <code>f</code> with respect to its first argument.
+</p>
+<p><code>optimise</code> is an alias for <code>optimize</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+optimize(f, interval, ..., lower = min(interval), upper = max(interval),
+         maximum = FALSE,
+         tol = .Machine$double.eps^0.25)
+optimise(f, interval, ..., lower = min(interval), upper = max(interval),
+         maximum = FALSE,
+         tol = .Machine$double.eps^0.25)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>f</code></td>
+<td>
+<p>the function to be optimized.  The function is
+either minimized or maximized over its first argument
+depending on the value of <code>maximum</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>interval</code></td>
+<td>
+<p>a vector containing the end-points of the interval
+to be searched for the minimum.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>additional named or unnamed arguments to be passed
+to <code>f</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>lower</code></td>
+<td>
+<p>the lower end point of the interval
+to be searched.</p>
+</td></tr>
+<tr valign="top"><td><code>upper</code></td>
+<td>
+<p>the upper end point of the interval
+to be searched.</p>
+</td></tr>
+<tr valign="top"><td><code>maximum</code></td>
+<td>
+<p>logical.  Should we maximize or minimize (the default)?</p>
+</td></tr>
+<tr valign="top"><td><code>tol</code></td>
+<td>
+<p>the desired accuracy.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>Note that arguments after <code>...</code> must be matched exactly.
+</p>
+<p>The method used is a combination of golden section search and
+successive parabolic interpolation, and was designed for use with
+continuous functions.  Convergence is never much slower
+than that for a Fibonacci search.  If <code>f</code> has a continuous second
+derivative which is positive at the minimum (which is not at <code>lower</code> or
+<code>upper</code>), then convergence is superlinear, and usually of the
+order of about 1.324.
+</p>
+<p>The function <code>f</code> is never evaluated at two points closer together
+than <i>eps *</i><i> |x_0| + (tol/3)</i>, where
+<i>eps</i> is approximately <code>sqrt(<a href="../../base/html/zMachine.html">.Machine</a>$double.eps)</code>
+and <i>x_0</i> is the final abscissa <code>optimize()$minimum</code>.<br />
+If <code>f</code> is a unimodal function and the computed values of <code>f</code>
+are always unimodal when separated by at least <i>eps *</i>
+<i> |x| + (tol/3)</i>, then <i>x_0</i> approximates the abscissa of the
+global minimum of <code>f</code> on the interval <code>lower,upper</code> with an
+error less than <i>eps *</i><i> |x_0|+ tol</i>.<br />
+If <code>f</code> is not unimodal, then <code>optimize()</code> may approximate a
+local, but perhaps non-global, minimum to the same accuracy.
+</p>
+<p>The first evaluation of <code>f</code> is always at
+<i>x_1 = a + (1-&phi;)(b-a)</i> where <code>(a,b) = (lower, upper)</code> and
+<i>phi = (sqrt(5) - 1)/2 = 0.61803..</i>
+is the golden section ratio.
+Almost always, the second evaluation is at
+<i>x_2 = a + phi(b-a)</i>.
+Note that a local minimum inside <i>[x_1,x_2]</i> will be found as
+solution, even when <code>f</code> is constant in there, see the last
+example.
+</p>
+<p><code>f</code> will be called as <code>f(<var>x</var>, ...)</code> for a numeric value
+of <var>x</var>.
+</p>
+<p>The argument passed to <code>f</code> has special semantics and used to be
+shared between calls.  The function should not copy it.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list with components <code>minimum</code> (or <code>maximum</code>)
+and <code>objective</code> which give the location of the minimum (or maximum)
+and the value of the function at that point.
+</p>
+
+
+<h3>Source</h3>
+
+<p>A C translation of Fortran code <a href="http://www.netlib.org/fmm/fmin.f">http://www.netlib.org/fmm/fmin.f</a>
+(author(s) unstated)
+based on the Algol 60 procedure <code>localmin</code> given in the reference.
+</p>
+
+
+<h3>References</h3>
+
+<p>Brent, R. (1973)
+<em>Algorithms for Minimization without Derivatives.</em>
+Englewood Cliffs N.J.: Prentice-Hall.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="nlm.html">nlm</a></code>, <code><a href="uniroot.html">uniroot</a></code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+require(graphics)
+
+f &lt;- function (x, a) (x - a)^2
+xmin &lt;- optimize(f, c(0, 1), tol = 0.0001, a = 1/3)
+xmin
+
+## See where the function is evaluated:
+optimize(function(x) x^2*(print(x)-1), lower = 0, upper = 10)
+
+## "wrong" solution with unlucky interval and piecewise constant f():
+f  &lt;- function(x) ifelse(x &gt; -1, ifelse(x &lt; 4, exp(-1/abs(x - 1)), 10), 10)
+fp &lt;- function(x) { print(x); f(x) }
+
+plot(f, -2,5, ylim = 0:1, col = 2)
+optimize(fp, c(-4, 20))   # doesn't see the minimum
+optimize(fp, c(-7, 20))   # ok
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>stats</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

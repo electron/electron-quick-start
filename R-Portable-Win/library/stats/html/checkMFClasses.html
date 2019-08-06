@@ -1,0 +1,104 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Functions to Check the Type of Variables passed to Model...</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for .checkMFClasses {stats}"><tr><td>.checkMFClasses {stats}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Functions to Check the Type of Variables passed to Model Frames</h2>
+
+<h3>Description</h3>
+
+<p><code>.checkMFClasses</code> checks if the variables used in a predict
+method agree in type with those used for fitting.
+</p>
+<p><code>.MFclass</code> categorizes variables for this purpose.
+</p>
+<p><code>.getXlevels()</code> extracts factor levels from <code><a href="../../base/html/factor.html">factor</a></code> or
+<code><a href="../../base/html/character.html">character</a></code> variables.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+.checkMFClasses(cl, m, ordNotOK = FALSE)
+.MFclass(x)
+.getXlevels(Terms, m)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>cl</code></td>
+<td>
+<p>a character vector of class descriptions to match.</p>
+</td></tr>
+<tr valign="top"><td><code>m</code></td>
+<td>
+<p>a model frame (<code><a href="model.frame.html">model.frame</a>()</code> result).</p>
+</td></tr>
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>any <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> object.</p>
+</td></tr>
+<tr valign="top"><td><code>ordNotOK</code></td>
+<td>
+<p>logical: are ordered factors different?</p>
+</td></tr>
+<tr valign="top"><td><code>Terms</code></td>
+<td>
+<p>a <code>terms</code> object (<code><a href="terms.object.html">terms.object</a></code>).</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>For applications involving <code><a href="model.matrix.html">model.matrix</a>()</code> such as linear models
+we do not need to differentiate between <em>ordered</em> factors and factors as
+although these affect the coding, the coding used in the fit is
+already recorded and imposed during prediction.  However, other
+applications may treat ordered factors differently:
+<code><a href="../../rpart/html/rpart.html">rpart</a></code> does, for example.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>.checkMFClasses()</code> checks and either signals an error calling
+<code><a href="../../base/html/stop.html">stop</a>()</code> or returns <code><a href="../../base/html/NULL.html">NULL</a></code> invisibly.
+</p>
+<p><code>.MFclass()</code> returns a character string, one of <code>"logical"</code>,
+<code>"ordered"</code>, <code>"factor"</code>, <code>"numeric"</code>, <code>"nmatrix.*"</code>
+(a numeric matrix with a number of columns appended) or <code>"other"</code>.
+</p>
+<p><code>.getXlevels</code> returns a named <code><a href="../../base/html/list.html">list</a></code> of character
+vectors, possibly empty, or <code><a href="../../base/html/NULL.html">NULL</a></code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+sapply(warpbreaks, .MFclass) # "numeric" plus 2 x "factor"
+sapply(iris,       .MFclass) # 4 x "numeric" plus "factor"
+
+mf &lt;- model.frame(Sepal.Width ~ Species,      iris)
+mc &lt;- model.frame(Sepal.Width ~ Sepal.Length, iris)
+
+.checkMFClasses("numeric", mc) # nothing else
+.checkMFClasses(c("numeric", "factor"), mf)
+
+## simple .getXlevels() cases :
+(xl &lt;- .getXlevels(terms(mf), mf)) # a list with one entry " $ Species" with 3 levels:
+stopifnot(exprs = {
+  identical(xl$Species, levels(iris$Species))
+  identical(.getXlevels(terms(mc), mc), xl[0]) # a empty named list, as no factors
+  is.null(.getXlevels(terms(x~x), list(x=1)))
+})
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>stats</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

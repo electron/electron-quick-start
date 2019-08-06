@@ -1,0 +1,179 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Compute or Estimate the Condition Number of a Matrix</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for kappa {base}"><tr><td>kappa {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Compute or Estimate the Condition Number of a Matrix</h2>
+
+<h3>Description</h3>
+
+<p>The condition number of a regular (square) matrix is the product of
+the <em>norm</em> of the matrix and the norm of its inverse (or
+pseudo-inverse), and hence depends on the kind of matrix-norm.
+</p>
+<p><code>kappa()</code> computes by default (an estimate of) the 2-norm
+condition number of a matrix or of the <i>R</i> matrix of a <i>QR</i>
+decomposition, perhaps of a linear fit.  The 2-norm condition number
+can be shown to be the ratio of the largest to the smallest
+<em>non-zero</em> singular value of the matrix.
+</p>
+<p><code>rcond()</code> computes an approximation of the <b>r</b>eciprocal
+<b>cond</b>ition number, see the details.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+kappa(z, ...)
+## Default S3 method:
+kappa(z, exact = FALSE,
+      norm = NULL, method = c("qr", "direct"), ...)
+## S3 method for class 'lm'
+kappa(z, ...)
+## S3 method for class 'qr'
+kappa(z, ...)
+
+.kappa_tri(z, exact = FALSE, LINPACK = TRUE, norm = NULL, ...)
+
+rcond(x, norm = c("O","I","1"), triangular = FALSE, ...)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>z, x</code></td>
+<td>
+<p>A matrix or a the result of <code><a href="qr.html">qr</a></code> or a fit from
+a class inheriting from <code>"lm"</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>exact</code></td>
+<td>
+<p>logical.  Should the result be exact?</p>
+</td></tr>
+<tr valign="top"><td><code>norm</code></td>
+<td>
+<p>character string, specifying the matrix norm with respect
+to which the condition number is to be computed, see also
+<code><a href="norm.html">norm</a></code>.  For <code>rcond</code>, the default is <code>"O"</code>,
+meaning the <b>O</b>ne- or 1-norm.  The (currently only) other
+possible value is <code>"I"</code> for the infinity norm.</p>
+</td></tr>
+<tr valign="top"><td><code>method</code></td>
+<td>
+<p>a partially matched character string specifying the method to be used;
+<code>"qr"</code> is the default for back-compatibility, mainly.</p>
+</td></tr>
+<tr valign="top"><td><code>triangular</code></td>
+<td>
+<p>logical.  If true, the matrix used is just the lower
+triangular part of <code>z</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>LINPACK</code></td>
+<td>
+<p>logical.  If true and <code>z</code> is not complex, the
+LINPACK routine <code>dtrco()</code> is called; otherwise the relevant
+LAPACK routine is.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>further arguments passed to or from other methods;
+for <code>kappa.*()</code>, notably <code>LINPACK</code> when <code>norm</code> is not
+<code>"2"</code>.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>For <code>kappa()</code>, if <code>exact = FALSE</code> (the default) the 2-norm
+condition number is estimated by a cheap approximation.  However, the
+exact calculation (via <code><a href="svd.html">svd</a></code>) is also likely to be quick
+enough.
+</p>
+<p>Note that the 1- and Inf-norm condition numbers are much faster to
+calculate, and <code>rcond()</code> computes these <em><b>r</b>eciprocal</em>
+condition numbers, also for complex matrices, using standard Lapack
+routines.
+</p>
+<p><code>kappa</code> and <code>rcond</code> are different interfaces to
+<em>partly</em> identical functionality.
+</p>
+<p><code>.kappa_tri</code> is an internal function called by <code>kappa.qr</code> and
+<code>kappa.default</code>.
+</p>
+<p>Unsuccessful results from the underlying LAPACK code will result in an
+error giving a positive error code: these can only be interpreted by
+detailed study of the FORTRAN code.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The condition number, <i>kappa</i>, or an approximation if
+<code>exact = FALSE</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>The design was inspired by (but differs considerably from)
+the S function of the same name described in Chambers (1992).
+</p>
+
+
+<h3>Source</h3>
+
+<p>The LAPACK routines <code>DTRCON</code> and <code>ZTRCON</code> and the LINPACK
+routine <code>DTRCO</code>.
+</p>
+<p>LAPACK and LINPACK are from <a href="http://www.netlib.org/lapack">http://www.netlib.org/lapack</a> and
+<a href="http://www.netlib.org/linpack">http://www.netlib.org/linpack</a> and their guides are listed
+in the references.
+</p>
+
+
+<h3>References</h3>
+
+<p>Anderson. E. and ten others (1999)
+<em>LAPACK Users' Guide</em>. Third Edition. SIAM.<br />
+Available on-line at
+<a href="http://www.netlib.org/lapack/lug/lapack_lug.html">http://www.netlib.org/lapack/lug/lapack_lug.html</a>.
+</p>
+<p>Chambers, J. M. (1992)
+<em>Linear models.</em>
+Chapter 4 of <em>Statistical Models in S</em>
+eds J. M. Chambers and T. J. Hastie, Wadsworth &amp; Brooks/Cole.
+</p>
+<p>Dongarra, J. J., Bunch, J. R., Moler, C. B. and Stewart, G. W. (1978)
+<em>LINPACK Users Guide.</em>  Philadelphia: SIAM Publications.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="norm.html">norm</a></code>;
+<code><a href="svd.html">svd</a></code> for the singular value decomposition and
+<code><a href="qr.html">qr</a></code> for the <i>QR</i> one.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+kappa(x1 &lt;- cbind(1, 1:10)) # 15.71
+kappa(x1, exact = TRUE)        # 13.68
+kappa(x2 &lt;- cbind(x1, 2:11)) # high! [x2 is singular!]
+
+hilbert &lt;- function(n) { i &lt;- 1:n; 1 / outer(i - 1, i, "+") }
+sv9 &lt;- svd(h9 &lt;- hilbert(9))$ d
+kappa(h9)  # pretty high!
+kappa(h9, exact = TRUE) == max(sv9) / min(sv9)
+kappa(h9, exact = TRUE) / kappa(h9)  # 0.677 (i.e., rel.error = 32%)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

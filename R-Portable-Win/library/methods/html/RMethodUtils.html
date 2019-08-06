@@ -1,0 +1,327 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Method Utilities</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for RMethodUtils {methods}"><tr><td>RMethodUtils {methods}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Method Utilities</h2>
+
+<h3>Description</h3>
+
+<p>Utility functions to support the definition and use of formal
+methods.  Most of these functions will not normally be called directly
+by the user.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+getGeneric(f, mustFind=FALSE, where, package)
+
+getGroup(fdef, recursive, where)
+getGroupMembers(group, recursive = FALSE, character = TRUE)
+
+getMethodsMetaData(f, where)
+assignMethodsMetaData (f, value, fdef, where)
+
+makeGeneric(f, fdef, fdefault =, group=list(), valueClass=character(),
+            package =, signature = NULL, genericFunction = NULL,
+            simpleInheritanceOnly = NULL)
+
+makeStandardGeneric(f, fdef)
+
+generic.skeleton(name, fdef, fdefault)
+
+defaultDumpName(generic, signature)
+
+doPrimitiveMethod(name, def, call= sys.call(sys.parent()),
+                  ev = sys.frame(sys.parent(2)))
+
+conformMethod(signature, mnames, fnames, f= , fdef, method)
+
+matchSignature(signature, fun, where)
+
+findUnique(what, message, where)
+
+MethodAddCoerce(method, argName, thisClass, methodClass)
+
+cacheMetaData(where, attach = TRUE, searchWhere = as.environment(where),
+              doCheck = TRUE)
+
+cacheGenericsMetaData(f, fdef, attach = TRUE, where, package, methods)
+
+setPrimitiveMethods(f, fdef, code, generic, mlist)
+
+missingArg(symbol, envir = parent.frame(), eval)
+
+sigToEnv(signature, generic)
+
+rematchDefinition(definition, generic, mnames, fnames, signature)
+unRematchDefinition(definition)
+isRematched(definition)
+
+asMethodDefinition(def, signature, sealed = FALSE, fdef)
+
+addNextMethod(method, f, mlist, optional, envir)
+
+insertClassMethods(methods, Class, value, fieldNames, returnAll)
+
+balanceMethodsList(mlist, args, check = TRUE) # &lt;- deprecated since R 3.2.0
+</pre>
+
+
+<h3>Summary of Functions</h3>
+
+
+<dl>
+<dt><code>getGeneric</code>:</dt><dd>
+<p>returns the definition of the function named <code>f</code> as a generic.
+</p>
+<p>If no definition is found, throws an
+error or returns <code>NULL</code> according to the value of
+<code>mustFind</code>.  By default, searches in the top-level
+environment (normally the global environment, but adjusted to
+work correctly when package code is evaluated from the function
+<code><a href="../../base/html/library.html">library</a></code>).
+</p>
+<p>Primitive functions are dealt with specially, since there is never
+a formal generic definition for them.  The value returned is the
+formal definition used for assigning methods to this primitive.
+Not all primitives can have methods; if this one can't, then
+<code>getGeneric</code> returns <code>NULL</code> or throws an error.
+</p>
+</dd>
+<dt><code>getGroup</code>:</dt><dd>
+<p>returns the groups to which this generic belongs, searching from
+environment <code>where</code> (the global environment normally by default).
+</p>
+<p>If <code>recursive=TRUE</code>, also all the group(s) of these groups.
+</p>
+</dd>
+<dt><code>getGroupMembers</code>:</dt><dd>
+<p>Return all the members of the group generic function named
+<code>group</code>.
+If <code>recursive</code> is <code>TRUE</code>, and some members are group
+generics, includes their members as well.
+If <code>character</code> is <code>TRUE</code>, returns just a character
+vector of the names; otherwise returns a list, whose elements may
+(or may not) include either names with a package attribute or
+actual generic functions.
+</p>
+<p>Note that members that are not defined as generic functions will
+<em>not</em> be included in the returned value.  To see the raw data,
+use <code>getGeneric(group)@groupMembers</code>.
+</p>
+</dd>
+<dt><code>getMethodsMetaData</code>,
+<code>assignMethodsMetaData</code>,
+<code>mlistMetaName</code>:</dt><dd><p>Utilities to get
+(<code>getMethodsMetaData</code>) and assign
+(<code>assignMethodsMetaData</code>) the metadata object recording the
+methods defined in a particular package, or to return the mangled
+name for that object  (<code>mlistMetaName</code>).
+</p>
+<p>The assign function should not be used directly.  The get
+function may be useful if you want explicitly only the outcome of
+the methods assigned in this package.  Otherwise, use
+<code><a href="findMethods.html">getMethods</a></code>.
+</p>
+</dd>
+<dt><code>matchSignature</code>:</dt><dd>
+<p>Matches the signature object (a partially or completely named
+subset of the signature arguments of the generic function object
+<code>fun</code>), and return a vector of all the classes in the order
+specified by <code>fun@signature</code>.  The classes not specified by
+<code>signature</code> will be <code>"ANY"</code> in the value, but extra
+trailing <code>"ANY"</code>'s are removed.  When the input signature is
+empty, the returned signature is a single <code>"ANY"</code> matching
+the first formal argument (so the returned value is always
+non-empty).
+</p>
+<p>Generates an error if any of the supplied signature names are
+not legal; that is, not in the signature slot of the generic
+function.
+</p>
+<p>If argument <code>where</code> is supplied, a warning will be issued
+if any of the classes does not have a formal definition visible
+from <code>where</code>.
+</p>
+</dd>
+<dt><code>MethodAddCoerce</code>:</dt><dd>
+<p>Possibly modify one or more methods to explicitly coerce this
+argument to <code>methodClass</code>, the class for which the method is
+explicitly defined.  Only modifies the method if an explicit
+coerce is required to coerce from <code>thisClass</code> to
+<code>methodClass</code>.
+</p>
+</dd>
+<dt><code>findUnique</code>:</dt><dd>
+<p>Return the list of environments (or equivalent) having an object named
+<code>what</code>, using environment <code>where</code> and its parent
+environments.  If more than one is found, a warning message is
+generated, using <code>message</code> to identify what was being
+searched for, unless <code>message</code> is the empty string.
+</p>
+</dd>
+<dt><code>cacheMetaData</code>,
+<code>cacheGenericsMetaData</code>,
+<code>setPrimitiveMethods</code>:</dt><dd>
+<p>Utilities for ensuring that the internal information about
+class and method definitions is up to date.  Should normally be
+called automatically whenever needed (for example, when a method
+or class definition changes, or when a package is attached or
+detached).  Required primarily because primitive functions are
+dispatched in C code, rather than by the official model.
+</p>
+<p>The <code>setPrimitiveMethods</code> function resets the caching
+information for a particular primitive function.  Don't call it
+directly.
+</p>
+</dd>
+<dt><code>missingArg</code>:</dt><dd>
+<p>Returns <code>TRUE</code> if the symbol supplied is missing <em>from
+the call</em> corresponding to the environment supplied (by default,
+environment of the call to <code>missingArg</code>).  If <code>eval</code> is
+true, the argument is evaluated to get the name of the symbol to
+test.  Note that <code>missingArg</code> is closer to the
+&lsquo;Blue Book&rsquo; sense of the <code><a href="../../base/html/missing.html">missing</a></code> function,
+not that of the current R base package implementation.  But beware
+that it works reliably only if no assignment has yet been made to
+the argument.  (For method dispatch this is fine, because
+computations are done at the beginning of the call.)
+</p>
+</dd>
+<dt><code>balanceMethodsList</code>:</dt><dd>
+<p>Used to be called from <code>setMethod()</code> and is <em>deprecated</em>
+since <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> version 3.2.0.
+
+
+
+
+
+
+
+</p>
+
+
+
+</dd>
+<dt><code>sigToEnv</code>:</dt><dd>
+<p>Turn the signature (a named vector of classes) into an environment
+with the classes assigned to the names.  The environment is then
+suitable for calling <code><a href="MethodsList.html">MethodsListSelect</a></code>, with
+<code>evalArgs=FALSE</code>, to select a method corresponding to the
+signature.  Usually not called directly: see
+<code><a href="getMethod.html">selectMethod</a></code>.
+</p>
+</dd>
+<dt><code>.saveImage</code>:</dt><dd>
+<p>Flag, used in dynamically initializing the methods package from
+<code>.onLoad</code>.
+</p>
+</dd>
+<dt><code>rematchDefinition</code>,
+<code>unRematchDefinition</code>,
+<code>isRematched</code>:</dt><dd>
+<p>If the specified method in a call to <code><a href="setMethod.html">setMethod</a></code>
+specializes the argument list (by replacing ...), then
+<code>rematchDefinition</code> constructs the actual method stored.
+Using knowledge of how <code>rematchDefinition</code> works,
+<code>unRematchDefinition</code> reverses the procedure; if given a
+function or method definition that does not correspond to this
+form, it just returns its argument. <code>isRematched</code> returns a
+logical value indicating whether rematching was used when
+constructing a given method.
+</p>
+</dd>
+<dt><code>asMethodDefinition</code>:</dt><dd>
+<p>Turn a function definition into an object of class
+<code><a href="MethodDefinition-class.html">MethodDefinition</a></code>, corresponding to the
+given <code>signature</code> (by default generates a default method
+with empty signature).  The definition is sealed according to
+the <code>sealed</code> argument.
+</p>
+</dd>
+<dt><code>addNextMethod</code>:</dt><dd>
+<p>A generic function that finds the next method for
+the signature of the method definition <code>method</code>  and caches
+that method in the method definition (promoting the class to
+<code>"MethodWithNext"</code>).  Note that argument <code>mlist</code> is
+obsolete and not used.
+</p>
+</dd>
+<dt><code>makeGeneric</code>:</dt><dd>
+<p>Makes a generic function object corresponding to the given
+function name, optional definition and optional default method.
+Other arguments supply optional elements for the slots of class
+<code><a href="genericFunction-class.html">genericFunction</a></code>.
+</p>
+</dd>
+<dt><code>makeStandardGeneric</code>:</dt><dd>
+<p>a utility function that makes a valid function calling
+<code>standardGeneric</code> for name <code>f</code>.  Works (more or less)
+even if the actual definition, <code>fdef</code>, is not a proper
+function, that is, it's a primitive or internal.
+</p>
+</dd>
+<dt><code>conformMethod</code>:</dt><dd>
+<p>If the formal arguments, <code>mnames</code>, are not identical to the
+formal arguments to the function, <code>fnames</code>,
+<code>conformMethod</code> determines whether the signature and the two
+sets of arguments conform, and returns the signature, possibly
+extended.  The function name, <code>f</code> is supplied for error
+messages. The generic function, <code>fdef</code>, supplies the
+generic signature  for matching purposes.
+</p>
+<p>The method assignment conforms if method and generic function have
+identical formal argument lists.  It can also conform if the
+method omits some of the formal arguments of the function but: (1)
+the non-omitted arguments are a subset of the function arguments,
+appearing in the same order; (2) there are no arguments to the
+method that are not arguments to the function; and (3) the omitted
+formal arguments do not appear as explicit classes in the
+signature.  A future extension hopes to test also that the
+omitted arguments are not assumed by being used as locally assigned
+names or function names in the body of the method.
+</p>
+</dd>
+<dt><code>defaultDumpName</code>:</dt><dd>
+<p>the default name to be used for dumping a method.
+</p>
+</dd>
+<dt><code>doPrimitiveMethod</code>:</dt><dd>
+<p>do a primitive call to builtin function <code>name</code> the definition
+and call provided, and carried out in the environment <code>ev</code>.
+</p>
+<p>A call to <code>doPrimitiveMethod</code> is used when the actual method
+is a .Primitive.  (Because primitives don't behave correctly as
+ordinary functions, not having either formal arguments nor a
+function body).
+</p>
+</dd>
+</dl>
+
+
+
+<h3>See Also</h3>
+
+<p><code><a href="setGeneric.html">setGeneric</a></code>, <code><a href="setClass.html">setClass</a></code>,
+<code><a href="showMethods.html">showMethods</a></code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+getGroup("exp")
+getGroup("==", recursive = TRUE)
+
+getGroupMembers("Arith")
+getGroupMembers("Math")
+getGroupMembers("Ops") # -&gt; its sub groups
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>methods</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

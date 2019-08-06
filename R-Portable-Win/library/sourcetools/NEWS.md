@@ -1,7 +1,19 @@
+# sourcetools 0.1.7
+
+- Ensure tests past on platforms where `char` is unsigned. (#21)
+
+# sourcetools 0.1.6
+
+- Register native routines.
+
+- Ensure that file handles on Windows are properly closed
+  after reading a file.
+
 # sourcetools 0.1.5
 
 - Ensure that symbols included from e.g. `<cstdio>`, `<cstring>`
   are resolved using a `std::` prefix.
+
 # sourcetools 0.1.4
 
 - More work to ensure `sourcetools` can build on Solaris.

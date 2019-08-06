@@ -60,12 +60,12 @@ int Dimension_const( SEXP ia ) {
 
 // [[Rcpp::export]]
 SEXP evaluator_error() {
-    return Rcpp_eval( Rf_lang2( Rf_install("stop"), Rf_mkString( "boom" ) ) );
+    return Rcpp_fast_eval(Rf_lang2(Rf_install("stop"), Rf_mkString("boom")), R_GlobalEnv);
 }
 
 // [[Rcpp::export]]
 SEXP evaluator_ok(SEXP x) {
-    return Rcpp_eval( Rf_lang2( Rf_install("sample"), x ) );
+    return Rcpp_fast_eval(Rf_lang2(Rf_install("sample"), x), R_GlobalEnv);
 }
 
 // [[Rcpp::export]]

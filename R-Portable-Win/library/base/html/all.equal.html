@@ -1,0 +1,228 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Test if Two Objects are (Nearly) Equal</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for all.equal {base}"><tr><td>all.equal {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Test if Two Objects are (Nearly) Equal</h2>
+
+<h3>Description</h3>
+
+<p><code>all.equal(x, y)</code> is a utility to compare <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> objects <code>x</code>
+and <code>y</code> testing &lsquo;near equality&rsquo;.  If they are different,
+comparison is still made to some extent, and a report of the
+differences is returned.    Do not use <code>all.equal</code> directly in
+<code>if</code> expressions&mdash;either use <code>isTRUE(all.equal(....))</code> or
+<code><a href="identical.html">identical</a></code> if appropriate.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+all.equal(target, current, ...)
+
+## S3 method for class 'numeric'
+all.equal(target, current,
+          tolerance = sqrt(.Machine$double.eps), scale = NULL,
+          countEQ = FALSE,
+          formatFUN = function(err, what) format(err),
+          ..., check.attributes = TRUE)
+
+## S3 method for class 'list'
+all.equal(target, current, ...,
+          check.attributes = TRUE, use.names = TRUE)
+
+## S3 method for class 'environment'
+all.equal(target, current, all.names=TRUE, ...)
+
+## S3 method for class 'POSIXt'
+all.equal(target, current, ..., tolerance = 1e-3, scale)
+
+
+attr.all.equal(target, current, ...,
+               check.attributes = TRUE, check.names = TRUE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>target</code></td>
+<td>
+<p><span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> object.</p>
+</td></tr>
+<tr valign="top"><td><code>current</code></td>
+<td>
+<p>other <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> object, to be compared with <code>target</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>further arguments for different methods, notably the
+following two, for numerical comparison:</p>
+</td></tr>
+<tr valign="top"><td><code>tolerance</code></td>
+<td>
+<p>numeric <i>&ge;</i> 0.  Differences smaller than
+<code>tolerance</code> are not reported.  The default value is close to
+<code>1.5e-8</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>scale</code></td>
+<td>
+<p><code>NULL</code> or numeric &gt; 0, typically of length 1 or
+<code>length(target)</code>.  See &lsquo;Details&rsquo;.</p>
+</td></tr>
+<tr valign="top"><td><code>countEQ</code></td>
+<td>
+<p>logical indicating if the <code>target == current</code>
+cases should be counted when computing the mean (absolute or
+relative) differences.  The default, <code>FALSE</code> may seem
+misleading in cases where <code>target</code> and <code>current</code> only
+differ in a few places; see the extensive example.</p>
+</td></tr>
+<tr valign="top"><td><code>formatFUN</code></td>
+<td>
+<p>a <code><a href="function.html">function</a></code> of two arguments,
+<code>err</code>, the relative, absolute or scaled error, and
+<code>what</code>, a character string indicating the <em>kind</em> of error;
+maybe used, e.g., to format relative and absolute errors differently.</p>
+</td></tr>
+<tr valign="top"><td><code>check.attributes</code></td>
+<td>
+<p>logical indicating if the
+<code><a href="attributes.html">attributes</a></code> of <code>target</code> and <code>current</code>
+(other than the names) should be compared.</p>
+</td></tr>
+<tr valign="top"><td><code>use.names</code></td>
+<td>
+<p>logical indicating if <code><a href="list.html">list</a></code> comparison
+should report differing components by name (if matching) instead of
+integer index.  Note that this comes after <code>...</code> and so must
+be specified by its full name.</p>
+</td></tr>
+<tr valign="top"><td><code>all.names</code></td>
+<td>
+<p>logical passed to <code><a href="ls.html">ls</a></code> indicating if
+&ldquo;hidden&rdquo; objects should also be considered in the environments.</p>
+</td></tr>
+<tr valign="top"><td><code>check.names</code></td>
+<td>
+<p>logical indicating if the <code><a href="names.html">names</a>(.)</code>
+of <code>target</code> and <code>current</code> should be compared.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p><code>all.equal</code> is a generic function, dispatching methods on the
+<code>target</code> argument.  To see the available methods, use
+<code><a href="../../utils/html/methods.html">methods</a>("all.equal")</code>, but note that the default method
+also does some dispatching, e.g. using the raw method for logical
+targets.
+</p>
+<p>Remember that arguments which follow <code>...</code> must be specified by
+(unabbreviated) name.  It is inadvisable to pass unnamed arguments in
+<code>...</code> as these will match different arguments in different
+methods.
+</p>
+<p>Numerical comparisons for <code>scale = NULL</code> (the default) are
+typically on <em>relative difference</em> scale unless the target values
+are close to zero:  First, the mean absolute difference of the two
+numerical vectors is computed.  If this is smaller than
+<code>tolerance</code> or not finite, absolute differences are used,
+otherwise relative differences scaled by the mean absolute
+<code>target</code> value.
+Note that these comparisons are computed only for those vector elements
+where <code>target</code> is not <code><a href="NA.html">NA</a></code> and differs from <code>current</code>.
+If <code>countEQ</code> is true, the equal and <code>NA</code> cases are
+<em>counted</em> in determining &ldquo;sample&rdquo; size.
+</p>
+<p>If <code>scale</code> is numeric (and positive), absolute comparisons are
+made after scaling (dividing) by <code>scale</code>.
+</p>
+<p>For complex <code>target</code>, the modulus (<code><a href="complex.html">Mod</a></code>) of the
+difference is used: <code>all.equal.numeric</code> is called so arguments
+<code>tolerance</code> and <code>scale</code> are available.
+</p>
+<p>The <code><a href="list.html">list</a></code> method compares components of
+<code>target</code> and <code>current</code> recursively, passing all other
+arguments, as long as both are &ldquo;list-like&rdquo;, i.e., fulfill
+either <code><a href="vector.html">is.vector</a></code> or <code><a href="list.html">is.list</a></code>.
+</p>
+<p>The <code><a href="environment.html">environment</a></code> method works via the <code>list</code> method,
+and is also used for reference classes (unless a specific
+<code>all.equal</code> method is defined).
+</p>
+<p>The methods for the date-time classes by default allow a tolerance of
+<code>tolerance = 0.001</code> seconds, and ignore <code>scale</code>.
+</p>
+<p><code>attr.all.equal</code> is used for comparing
+<code><a href="attributes.html">attributes</a></code>, returning <code>NULL</code> or a
+<code>character</code> vector.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Either <code>TRUE</code> (<code>NULL</code> for <code>attr.all.equal</code>) or a vector
+of <code><a href="mode.html">mode</a></code> <code>"character"</code> describing the differences
+between <code>target</code> and <code>current</code>.
+</p>
+
+
+<h3>References</h3>
+
+<p>Chambers, J. M. (1998)
+<em>Programming with Data. A Guide to the S Language</em>.
+Springer (for <code>=</code>).
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="identical.html">identical</a></code>, <code><a href="Logic.html">isTRUE</a></code>, <code><a href="Comparison.html">==</a></code>, and
+<code><a href="all.html">all</a></code> for exact equality testing.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+all.equal(pi, 355/113)
+# not precise enough (default tol) &gt; relative error
+
+d45 &lt;- pi*(1/4 + 1:10)
+stopifnot(
+all.equal(tan(d45), rep(1, 10)))          # TRUE, but
+all      (tan(d45) == rep(1, 10))         # FALSE, since not exactly
+all.equal(tan(d45), rep(1, 10), tolerance = 0)  # to see difference
+
+## advanced: equality of environments
+ae &lt;- all.equal(as.environment("package:stats"),
+                asNamespace("stats"))
+stopifnot(is.character(ae), length(ae) &gt; 10,
+          ## were incorrectly "considered equal" in R &lt;= 3.1.1
+          all.equal(asNamespace("stats"), asNamespace("stats")))
+
+## A situation where  'countEQ = TRUE' makes sense:
+x1 &lt;- x2 &lt;- (1:100)/10;  x2[2] &lt;- 1.1*x1[2]
+## 99 out of 100 pairs (x1[i], x2[i]) are equal:
+plot(x1,x2, main = "all.equal.numeric() -- not counting equal parts")
+all.equal(x1,x2) ## "Mean relative difference: 0.1"
+mtext(paste("all.equal(x1,x2) :", all.equal(x1,x2)), line= -2)
+##' extract the 'Mean relative difference' as number:
+all.eqNum &lt;- function(...) as.numeric(sub(".*:", '', all.equal(...)))
+set.seed(17)
+## When x2 is jittered, typically all pairs (x1[i],x2[i]) do differ:
+summary(r &lt;- replicate(100, all.eqNum(x1, x2*(1+rnorm(x1)*1e-7))))
+mtext(paste("mean(all.equal(x1, x2*(1 + eps_k))) {100 x} Mean rel.diff.=",
+            signif(mean(r), 3)), line = -4, adj=0)
+## With argument  countEQ=TRUE, get "the same" (w/o need for jittering):
+mtext(paste("all.equal(x1,x2, countEQ=TRUE) :",
+          signif(all.eqNum(x1,x2, countEQ=TRUE), 3)), line= -6, col=2)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

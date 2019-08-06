@@ -107,7 +107,7 @@
 #undef pt
 #undef ptukey
 #undef punif
-#undef pythag
+/* #undef pythag */
 #undef pweibull
 #undef pwilcox
 #undef qbeta

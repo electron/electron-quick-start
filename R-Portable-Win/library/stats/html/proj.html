@@ -1,0 +1,141 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Projections of Models</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for proj {stats}"><tr><td>proj {stats}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Projections of Models</h2>
+
+<h3>Description</h3>
+
+<p><code>proj</code> returns a matrix or list of matrices giving the projections
+of the data onto the terms of a linear model.  It is most frequently
+used for <code><a href="aov.html">aov</a></code> models.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+proj(object, ...)
+
+## S3 method for class 'aov'
+proj(object, onedf = FALSE, unweighted.scale = FALSE, ...)
+
+## S3 method for class 'aovlist'
+proj(object, onedf = FALSE, unweighted.scale = FALSE, ...)
+
+## Default S3 method:
+proj(object, onedf = TRUE, ...)
+
+## S3 method for class 'lm'
+proj(object, onedf = FALSE, unweighted.scale = FALSE, ...)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>object</code></td>
+<td>
+<p>An object of class <code>"lm"</code> or a class inheriting from
+it, or an object with a similar structure including in particular
+components <code>qr</code> and <code>effects</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>onedf</code></td>
+<td>
+<p>A logical flag. If <code>TRUE</code>, a projection is returned for all
+the columns of the model matrix. If <code>FALSE</code>, the single-column
+projections are collapsed by terms of the model (as represented in
+the analysis of variance table).</p>
+</td></tr>
+<tr valign="top"><td><code>unweighted.scale</code></td>
+<td>
+<p>If the fit producing <code>object</code> used
+weights, this determines if the projections correspond to weighted or
+unweighted observations.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>Swallow and ignore any other arguments.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>A projection is given for each stratum of the object, so for <code>aov</code>
+models with an <code>Error</code> term the result is a list of projections.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A projection matrix or (for multi-stratum objects) a list of
+projection matrices.
+</p>
+<p>Each projection is a matrix with a row for each observations and
+either a column for each term (<code>onedf = FALSE</code>) or for each
+coefficient (<code>onedf = TRUE</code>). Projection matrices from the
+default method have orthogonal columns representing the projection of
+the response onto the column space of the Q matrix from the QR
+decomposition.  The fitted values are the sum of the projections, and
+the sum of squares for each column is the reduction in sum of squares
+from fitting that column (after those to the left of it).
+</p>
+<p>The methods for <code>lm</code> and <code>aov</code> models add a column to the
+projection matrix giving the residuals (the projection of the data
+onto the orthogonal complement of the model space).
+</p>
+<p>Strictly, when <code>onedf = FALSE</code> the result is not a projection,
+but the columns represent sums of projections onto the columns of the
+model matrix corresponding to that term. In this case the matrix does
+not depend on the coding used.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>The design was inspired by the S function of the same name described
+in Chambers <em>et al</em> (1992).
+</p>
+
+
+<h3>References</h3>
+
+<p>Chambers, J. M., Freeny, A and Heiberger, R. M. (1992)
+<em>Analysis of variance; designed experiments.</em>
+Chapter 5 of <em>Statistical Models in S</em>
+eds J. M. Chambers and T. J. Hastie, Wadsworth &amp; Brooks/Cole.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="aov.html">aov</a></code>, <code><a href="lm.html">lm</a></code>, <code><a href="model.tables.html">model.tables</a></code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+N &lt;- c(0,1,0,1,1,1,0,0,0,1,1,0,1,1,0,0,1,0,1,0,1,1,0,0)
+P &lt;- c(1,1,0,0,0,1,0,1,1,1,0,0,0,1,0,1,1,0,0,1,0,1,1,0)
+K &lt;- c(1,0,0,1,0,1,1,0,0,1,0,1,0,1,1,0,0,0,1,1,1,0,1,0)
+yield &lt;- c(49.5,62.8,46.8,57.0,59.8,58.5,55.5,56.0,62.8,55.8,69.5,
+55.0, 62.0,48.8,45.5,44.2,52.0,51.5,49.8,48.8,57.2,59.0,53.2,56.0)
+
+npk &lt;- data.frame(block = gl(6,4), N = factor(N), P = factor(P),
+                  K = factor(K), yield = yield)
+npk.aov &lt;- aov(yield ~ block + N*P*K, npk)
+proj(npk.aov)
+
+## as a test, not particularly sensible
+options(contrasts = c("contr.helmert", "contr.treatment"))
+npk.aovE &lt;- aov(yield ~  N*P*K + Error(block), npk)
+proj(npk.aovE)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>stats</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

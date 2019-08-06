@@ -1,0 +1,121 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Quote Strings for Use in OS Shells</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for shQuote {base}"><tr><td>shQuote {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Quote Strings for Use in OS Shells</h2>
+
+<h3>Description</h3>
+
+<p>Quote a string to be passed to an operating system shell.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+shQuote(string, type = c("sh", "csh", "cmd", "cmd2"))
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>string</code></td>
+<td>
+<p>a character vector, usually of length one.</p>
+</td></tr>
+<tr valign="top"><td><code>type</code></td>
+<td>
+<p>character: the type of shell quoting.  Partial matching is
+supported.  <code>"cmd"</code> and <code>"cmd2"</code> refer to the Windows shell.
+<code>"cmd"</code> is the default under Windows.</p>
+</td></tr> 
+</table>
+
+
+<h3>Details</h3>
+
+<p>The default type of quoting supported under Unix-alikes is that for
+the Bourne shell <code>sh</code>.  If the string does not contain single
+quotes, we can just surround it with single quotes.  Otherwise, the
+string is surrounded in double quotes, which suppresses all special
+meanings of metacharacters except dollar, backquote and backslash, so
+these (and of course double quote) are preceded by backslash.  This
+type of quoting is also appropriate for <code>bash</code>, <code>ksh</code> and
+<code>zsh</code>.
+</p>
+<p>The other type of quoting is for the C-shell (<code>csh</code> and
+<code>tcsh</code>).  Once again, if the string does not contain single
+quotes, we can just surround it with single quotes.  If it does
+contain single quotes, we can use double quotes provided it does not
+contain dollar or backquote (and we need to escape backslash,
+exclamation mark and double quote).  As a last resort, we need to
+split the string into pieces not containing single quotes and surround
+each with single quotes, and the single quotes with double quotes.
+</p>
+<p>In Windows, command line interpretation is done by the application
+as well as the shell.  It may depend on the compiler used:
+Microsoft's rules for the C run-time are given at 
+<a href="https://msdn.microsoft.com/library/ms880421">https://msdn.microsoft.com/library/ms880421</a>. It may depend on
+the whim of the programmer of the application: check its
+documentation.  The <code>type = "cmd"</code> quoting surrounds the string
+by double quotes and escapes internal double quotes by a backslash.
+As Windows path names cannot contain double quotes, this makes
+<code>shQuote</code> safe for use with many applications when used with
+<code><a href="system.html">system</a></code> or <code><a href="system2.html">system2</a></code>.  The Windows
+<code>cmd.exe</code> shell (used by default with <code><a href="shell.html">shell</a></code>)
+uses <code>type = "cmd2"</code> quoting:  special characters are prefixed
+with <code>"^"</code>.  In some cases, two types of quoting should be
+used:  first for the application, and then <code>type = "cmd2"</code> 
+for <code>cmd.exe</code>.  See the examples below.  
+</p>
+
+
+<h3>References</h3>
+
+<p> Loukides, M. <em>et al</em> (2002) <em>Unix Power Tools</em>
+Third Edition. O'Reilly.  Section 27.12.
+</p>
+<p>Discussion in <a href="https://bugs.R-project.org/bugzilla3/show_bug.cgi?id=16636">PR#16636</a>.
+</p>
+
+
+
+
+<h3>See Also</h3>
+
+<p><a href="Quotes.html">Quotes</a> for quoting <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> code.
+</p>
+<p><code><a href="sQuote.html">sQuote</a></code> for quoting English text.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+test &lt;- "abc$def`gh`i\\j"
+cat(shQuote(test), "\n")
+## Not run: system(paste("echo", shQuote(test)))
+test &lt;- "don't do it!"
+cat(shQuote(test), "\n")
+
+tryit &lt;- paste("use the", sQuote("-c"), "switch\nlike this")
+cat(shQuote(tryit), "\n")
+## Not run: system(paste("echo", shQuote(tryit)))
+cat(shQuote(tryit, type = "csh"), "\n")
+
+## Windows-only example, assuming cmd.exe:
+perlcmd &lt;- 'print "Hello World\\n";'
+## Not run: 
+shell(shQuote(paste("perl -e", 
+                    shQuote(perlcmd, type = "cmd")),
+              type = "cmd2"))
+
+## End(Not run)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

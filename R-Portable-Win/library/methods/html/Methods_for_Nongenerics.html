@@ -1,0 +1,341 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Methods for Non-Generic Functions in Other Packages</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for Methods_for_Nongenerics {methods}"><tr><td>Methods_for_Nongenerics {methods}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Methods for Non-Generic Functions in Other Packages</h2>
+
+<h3>Description</h3>
+
+<p>In writing methods for an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> package, it's common for these methods to
+apply to a function (in another package) that is not  generic in that
+package; that is, there are no formal methods for the function in its
+own package, although it may have S3 methods.
+The programming in this case involves one extra step, to call
+<code><a href="setGeneric.html">setGeneric</a>()</code> to declare that the function <em>is</em>
+generic in your package.
+</p>
+<p>Calls to the function in your package will then use all methods
+defined there or in any other loaded package that creates the same
+generic function. Similarly, calls to the function in those packages
+will use your methods.
+</p>
+<p>The original version, however, remains non-generic.  Calls
+in that package or in other packages that use that version will  not dispatch your methods
+except for special circumstances:
+</p>
+
+<ol>
+<li><p> If the function is one of the primitive functions that accept
+methods, the internal C implementation will dispatch methods if one
+of the arguments is an S4 object, as should be the case.
+</p>
+</li>
+<li><p> If the other version of the function dispatches S3 methods
+<em>and</em> your methods are also registered as S3 methods, the
+method will usually be dispatched as that S3 method.
+</p>
+</li>
+<li><p> Otherwise, you will need to ensure that all calls to the
+function come from a package in which the function is generic,
+perhaps by copying code to your package.
+</p>
+</li></ol>
+
+<p>Details and the underlying reasons are discussed in the following sections.
+</p>
+
+
+<h3>Generic and Non-Generic Calls</h3>
+
+<p>Creating methods for a function (any function) in a package means that
+calls to the function in that package will select methods according to
+the actual arguments.
+However, if the function was originally a non-generic in another
+package, calls to the function from that package will <em>not</em>
+dispatch methods.
+In addition, calls from any third package that imports the non-generic version
+will also not dispatch methods.
+This section considers the reason and how one might deal with the
+consequences.
+</p>
+<p>The reason is simply the <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> namespace mechanism and its role in
+evaluating function calls.
+When a name (such as the name of a function) needs to be evaluated in
+a call to a function from some package, the evaluator looks first in the frame of the call,
+then in the namespace of the package and then in the imports to that
+package.
+</p>
+<p>Defining methods for a function in a package ensures that calls to the
+function in that package will select the methods, because a generic
+version of the function is created in the namespace.
+Similarly, calls from another package that has or imports the generic
+version will select methods.
+Because the generic versions are identical, all methods will be
+available in all these packages.
+</p>
+<p>However, calls from any package that imports the old version or just
+selects it from the search list will usually <em>not</em> select methods.
+</p>
+<p>A an example, consider the function
+<code><a href="../../base/html/data.frame.html">data.frame</a>()</code> in the base package.
+This function takes any number of objects as arguments and attempts to combine
+them as variables into a data frame object.
+It does this by calling <code><a href="../../base/html/as.data.frame.html">as.data.frame</a>()</code>, also in the
+base package, for each of the objects.
+</p>
+<p>A reasonable goal would be to extend the classes of objects that can
+be included in a data frame by defining methods for
+<code><a href="../../base/html/as.data.frame.html">as.data.frame</a>()</code>.
+But calls to <code><a href="../../base/html/data.frame.html">data.frame</a>()</code>,
+will still use the version of that function in the base package, which
+continues to call the non-generic <code><a href="../../base/html/as.data.frame.html">as.data.frame</a>()</code> in
+that package.
+</p>
+<p>The details of what happens and options for dealing with it depend on
+the form of the function:  a primitive function; a function that
+dispatches S3 methods; or an ordinary <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> function.
+</p>
+<p>Primitive functions are not actual <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> function objects.
+They go directly to internal C code.
+Some of them, however, have been implemented to recognize methods.
+These functions dispatch both S4 and S3 methods from
+the internal C code.
+There is no explicit generic function, either S3 or S4.
+The internal code looks for S4 methods if the first
+argument, or either of the arguments in the case of a binary operator,
+is an S4 object.
+If no S4 method is found, a search is made for an S3 method.
+So defining methods for these functions works as long as the relevant
+classes have been defined, which should always be the case.
+</p>
+<p>A function dispatches S3 methods by calling
+<code><a href="../../base/html/UseMethod.html">UseMethod</a>()</code>, which does <em>not</em> look for
+formal methods regardless of whether the first argument is an S4
+object or not.
+This applies to the <code><a href="../../base/html/as.data.frame.html">as.data.frame</a>()</code> example above.
+To have methods called in this situation, your package must also define the
+method as an S3 method, if possible. See section &lsquo;S3
+&ldquo;Generic&rdquo; Functions&rsquo;.
+</p>
+<p>In the third possibility, the function is defined with no expectation
+of methods.
+For example, the base package has a number of functions that compute
+numerical decompositions of matrix arguments.
+Some, such as <code><a href="../../base/html/chol.html">chol</a>()</code> and <code><a href="../../base/html/qr.html">qr</a>()</code>
+are implemented to dispatch S3 methods; others, such as
+<code><a href="../../base/html/svd.html">svd</a>()</code> are implemented directly as a specific
+computation.
+A generic version of the latter functions can be written and called
+directly to define formal methods, but no code in another package that
+does not import this generic version will dispatch such methods.
+</p>
+<p>In this case, you need to have the generic version used in all the indirect calls to the
+function supplying arguments that should dispatch methods.
+This may require supplying new functions that dispatch methods and
+then call the function they replace.
+For example, if S3 methods did not work for
+<code><a href="../../base/html/as.data.frame.html">as.data.frame</a>()</code>, one could call a function that
+applied the generic version to all its arguments and then called
+<code><a href="../../base/html/data.frame.html">data.frame</a>()</code> as a replacement for that function.
+If all else fails, it might be necessary to copy over the relevant
+functions so that they would find the generic versions.
+</p>
+
+
+<h3>S3 &ldquo;Generic&rdquo; Functions</h3>
+
+<p>S3 method dispatch looks at the class of the first
+argument.
+S3 methods are ordinary functions with the same arguments as the
+generic function.
+The &ldquo;signature&rdquo; of an S3 method is identified  by the name to
+which the method is assigned, composed of the name of the
+generic function, followed by <code>"."</code>, followed by the name of the class.
+For details, see <code><a href="../../base/html/UseMethod.html">UseMethod</a></code>.
+</p>
+<p>To implement a method for one of these functions corresponding to S4
+classes, there are two possibilities: either an S4 method or an S3 method with the
+S4 class name.
+The S3 method is only possible if the intended signature has the
+first argument and nothing else.
+In this case,
+the recommended approach is to define the S3 method and also supply the
+identical function as the definition of the S4 method.
+If the S3 generic function was <code>f3(x, ...)</code> and the S4 class for
+the new method was
+<code>"myClass"</code>:
+</p>
+<p><code>f3.myClass &lt;- function(x, ...) { ..... }</code>
+</p>
+<p><code>setMethod("f3", "myClass", f3.myClass)</code>
+</p>
+<p>Defining both methods usually ensures that all calls to the original
+function will dispatch the intended method.
+The S4 method alone would not be called from other packages using the
+original version of the function.
+On the other hand,
+an S3 method alone will not be called if there is <em>any</em>
+eligible non-default S4 method.
+</p>
+<p>S4 and S3 method selection are designed to follow compatible rules of
+inheritance, as far as possible.
+S3 classes can be used for any S4 method selection, provided that the
+S3 classes have been registered by a call to
+<code><a href="setOldClass.html">setOldClass</a></code>, with that call specifying the correct S3
+inheritance pattern.
+S4 classes can be used for any S3 method selection; when an S4 object
+is detected, S3 method selection uses the contents of
+<code><a href="is.html">extends</a>(class(x))</code> as the equivalent of the S3
+inheritance (the inheritance is cached after the first call).
+</p>
+<p>An existing S3 method may not behave as desired for an S4 subclass, in
+which case utilities such as <code><a href="../../base/html/isS4.html">asS3</a></code> and
+<code><a href="S3Part.html">S3Part</a></code> may be useful.  If the S3 method fails on the S4
+object, <code>asS3(x)</code> may be passed instead; if the object returned
+by the S3 method needs to be incorporated in the S4 object, the
+replacement function for <code>S3Part</code> may be useful.</p>
+
+
+<h3>References</h3>
+
+<p>Chambers, John M. (2016)
+<em>Extending R</em>,
+Chapman &amp; Hall.
+(Chapters 9 and 10.)
+</p>
+
+
+<h3>See Also</h3>
+
+<p><a href="Methods_for_S3.html">Methods_for_S3</a> for suggested implementation of methods
+that work for both S3 and S4 dispatch.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## A class that extends a registered S3 class inherits that class' S3
+## methods.
+
+setClass("myFrame", contains = "data.frame",
+         slots = c(timestamps = "POSIXt"))
+df1 &lt;- data.frame(x = 1:10, y = rnorm(10), z = sample(letters,10))
+mydf1 &lt;- new("myFrame", df1, timestamps = Sys.time())
+
+## "myFrame" objects inherit "data.frame" S3 methods; e.g., for `[`
+
+
+mydf1[1:2, ] # a data frame object (with extra attributes)
+
+
+## a method explicitly for "myFrame" class
+
+setMethod("[",
+    signature(x = "myFrame"),
+    function (x, i, j, ..., drop = TRUE)
+    {
+        S3Part(x) &lt;- callNextMethod()
+        x@timestamps &lt;- c(Sys.time(), as.POSIXct(x@timestamps))
+        x
+    }
+)
+
+mydf1[1:2, ]
+
+setClass("myDateTime", contains = "POSIXt")
+
+now &lt;- Sys.time() # class(now) is c("POSIXct", "POSIXt")
+nowLt &lt;- as.POSIXlt(now)# class(nowLt) is c("POSIXlt", "POSIXt")
+
+mCt &lt;- new("myDateTime", now)
+mLt &lt;- new("myDateTime", nowLt)
+
+## S3 methods for an S4 object will be selected using S4 inheritance
+## Objects mCt and mLt have different S3Class() values, but this is
+## not used.
+f3 &lt;- function(x)UseMethod("f3") # an S3 generic to illustrate inheritance
+
+f3.POSIXct &lt;- function(x) "The POSIXct result"
+f3.POSIXlt &lt;- function(x) "The POSIXlt result"
+f3.POSIXt &lt;- function(x) "The POSIXt result"
+
+stopifnot(identical(f3(mCt), f3.POSIXt(mCt)))
+stopifnot(identical(f3(mLt), f3.POSIXt(mLt)))
+
+
+
+## An S4 object selects S3 methods according to its S4 "inheritance"
+
+setClass("classA", contains = "numeric",
+         slots = c(realData = "numeric"))
+
+Math.classA &lt;- function(x) { (getFunction(.Generic))(x@realData) }
+setMethod("Math", "classA", Math.classA)
+
+
+x &lt;- new("classA", log(1:10), realData = 1:10)
+
+stopifnot(identical(abs(x), 1:10))
+
+setClass("classB", contains = "classA")
+
+y &lt;- new("classB", x)
+
+stopifnot(identical(abs(y), abs(x))) # (version 2.9.0 or earlier fails here)
+
+## an S3 generic: just for demonstration purposes
+f3 &lt;- function(x, ...) UseMethod("f3")
+
+f3.default &lt;- function(x, ...) "Default f3"
+
+## S3 method (only) for classA
+f3.classA &lt;- function(x, ...) "Class classA for f3"
+
+## S3 and S4 method for numeric
+f3.numeric &lt;- function(x, ...) "Class numeric for f3"
+setMethod("f3", "numeric", f3.numeric)
+
+## The S3 method for classA and the closest inherited S3 method for classB
+## are not found.
+
+f3(x); f3(y) # both choose "numeric" method
+
+## to obtain the natural inheritance, set identical S3 and S4 methods
+setMethod("f3", "classA", f3.classA)
+
+f3(x); f3(y) # now both choose "classA" method
+
+## Need to define an S3 as well as S4 method to use on an S3 object
+## or if called from a package without the S4 generic
+
+MathFun &lt;- function(x) { # a smarter "data.frame" method for Math group
+  for (i in seq(length = ncol(x))[sapply(x, is.numeric)])
+    x[, i] &lt;- (getFunction(.Generic))(x[, i])
+  x
+}
+setMethod("Math", "data.frame", MathFun)
+
+## S4 method works for an S4 class containing data.frame,
+## but not for data.frame objects (not S4 objects)
+
+try(logIris &lt;- log(iris)) #gets an error from the old method
+
+## Define an S3 method with the same computation
+
+Math.data.frame &lt;- MathFun
+
+logIris &lt;- log(iris)
+
+
+
+
+
+
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>methods</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

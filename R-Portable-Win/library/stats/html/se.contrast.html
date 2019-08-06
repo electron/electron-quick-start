@@ -1,0 +1,167 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Standard Errors for Contrasts in Model Terms</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for se.contrast {stats}"><tr><td>se.contrast {stats}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Standard Errors for Contrasts in Model Terms</h2>
+
+<h3>Description</h3>
+
+<p>Returns the standard errors for one or more contrasts in an <code>aov</code>
+object.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+se.contrast(object, ...)
+## S3 method for class 'aov'
+se.contrast(object, contrast.obj,
+           coef = contr.helmert(ncol(contrast))[, 1],
+           data = NULL, ...)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>object</code></td>
+<td>
+<p>A suitable fit, usually from <code>aov</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>contrast.obj</code></td>
+<td>
+<p>The contrasts for which standard errors are
+requested.  This can be specified via a list or via a matrix.  A
+single contrast can be specified by a list of logical vectors giving
+the cells to be contrasted.  Multiple contrasts should be specified
+by a matrix, each column of which is a numerical contrast vector
+(summing to zero).
+</p>
+</td></tr>
+<tr valign="top"><td><code>coef</code></td>
+<td>
+<p>used when <code>contrast.obj</code> is a list; it should be a
+vector of the same length as the list with zero sum.  The default
+value is the first Helmert contrast, which contrasts the first and
+second cell means specified by the list.</p>
+</td></tr>
+<tr valign="top"><td><code>data</code></td>
+<td>
+<p>The data frame used to evaluate <code>contrast.obj</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>further arguments passed to or from other methods.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>Contrasts are usually used to test if certain means are
+significantly different; it can be easier to use <code>se.contrast</code>
+than compute them directly from the coefficients.
+</p>
+<p>In multistratum models, the contrasts can appear in more than one
+stratum, in which case the standard errors are computed in the lowest
+stratum and adjusted for efficiencies and comparisons between
+strata. (See the comments in the note in the help for
+<code><a href="aov.html">aov</a></code> about using orthogonal contrasts.)  Such standard
+errors are often conservative.
+</p>
+<p>Suitable matrices for use with <code>coef</code> can be found by
+calling <code><a href="contrasts.html">contrasts</a></code> and indexing the columns by a factor.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A vector giving the standard errors for each contrast.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="contrasts.html">contrasts</a></code>, <code><a href="model.tables.html">model.tables</a></code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## From Venables and Ripley (2002) p.165.
+N &lt;- c(0,1,0,1,1,1,0,0,0,1,1,0,1,1,0,0,1,0,1,0,1,1,0,0)
+P &lt;- c(1,1,0,0,0,1,0,1,1,1,0,0,0,1,0,1,1,0,0,1,0,1,1,0)
+K &lt;- c(1,0,0,1,0,1,1,0,0,1,0,1,0,1,1,0,0,0,1,1,1,0,1,0)
+yield &lt;- c(49.5,62.8,46.8,57.0,59.8,58.5,55.5,56.0,62.8,55.8,69.5,
+55.0, 62.0,48.8,45.5,44.2,52.0,51.5,49.8,48.8,57.2,59.0,53.2,56.0)
+
+npk &lt;- data.frame(block = gl(6,4), N = factor(N), P = factor(P),
+                  K = factor(K), yield = yield)
+## Set suitable contrasts.
+options(contrasts = c("contr.helmert", "contr.poly"))
+npk.aov1 &lt;- aov(yield ~ block + N + K, data = npk)
+se.contrast(npk.aov1, list(N == "0", N == "1"), data = npk)
+# or via a matrix
+cont &lt;- matrix(c(-1,1), 2, 1, dimnames = list(NULL, "N"))
+se.contrast(npk.aov1, cont[N, , drop = FALSE]/12, data = npk)
+
+## test a multi-stratum model
+npk.aov2 &lt;- aov(yield ~ N + K + Error(block/(N + K)), data = npk)
+se.contrast(npk.aov2, list(N == "0", N == "1"))
+
+
+## an example looking at an interaction contrast
+## Dataset from R.E. Kirk (1995)
+## 'Experimental Design: procedures for the behavioral sciences'
+score &lt;- c(12, 8,10, 6, 8, 4,10,12, 8, 6,10,14, 9, 7, 9, 5,11,12,
+            7,13, 9, 9, 5,11, 8, 7, 3, 8,12,10,13,14,19, 9,16,14)
+A &lt;- gl(2, 18, labels = c("a1", "a2"))
+B &lt;- rep(gl(3, 6, labels = c("b1", "b2", "b3")), 2)
+fit &lt;- aov(score ~ A*B)
+cont &lt;- c(1, -1)[A] * c(1, -1, 0)[B]
+sum(cont)       # 0
+sum(cont*score) # value of the contrast
+se.contrast(fit, as.matrix(cont))
+(t.stat &lt;- sum(cont*score)/se.contrast(fit, as.matrix(cont)))
+summary(fit, split = list(B = 1:2), expand.split = TRUE)
+## t.stat^2 is the F value on the A:B: C1 line (with Helmert contrasts)
+## Now look at all three interaction contrasts
+cont &lt;- c(1, -1)[A] * cbind(c(1, -1, 0), c(1, 0, -1), c(0, 1, -1))[B,]
+se.contrast(fit, cont)  # same, due to balance.
+rm(A, B, score)
+
+
+## multi-stratum example where efficiencies play a role
+## An example from Yates (1932),
+## a 2^3 design in 2 blocks replicated 4 times
+
+Block &lt;- gl(8, 4)
+A &lt;- factor(c(0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,
+              0,1,0,1,0,1,0,1,0,1,0,1))
+B &lt;- factor(c(0,0,1,1,0,0,1,1,0,1,0,1,1,0,1,0,0,0,1,1,
+              0,0,1,1,0,0,1,1,0,0,1,1))
+C &lt;- factor(c(0,1,1,0,1,0,0,1,0,0,1,1,0,0,1,1,0,1,0,1,
+              1,0,1,0,0,0,1,1,1,1,0,0))
+Yield &lt;- c(101, 373, 398, 291, 312, 106, 265, 450, 106, 306, 324, 449,
+           272, 89, 407, 338, 87, 324, 279, 471, 323, 128, 423, 334,
+           131, 103, 445, 437, 324, 361, 302, 272)
+aovdat &lt;- data.frame(Block, A, B, C, Yield)
+fit &lt;- aov(Yield ~ A + B * C + Error(Block), data = aovdat)
+cont1 &lt;- c(-1, 1)[A]/32  # Helmert contrasts
+cont2 &lt;- c(-1, 1)[B] * c(-1, 1)[C]/32
+cont &lt;- cbind(A = cont1, BC = cont2)
+colSums(cont*Yield) # values of the contrasts
+se.contrast(fit, as.matrix(cont))
+# comparison with lme
+library(nlme)
+fit2 &lt;- lme(Yield ~ A + B*C, random = ~1 | Block, data = aovdat)
+summary(fit2)$tTable # same estimates, similar (but smaller) se's.
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>stats</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

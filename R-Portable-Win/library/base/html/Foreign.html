@@ -1,0 +1,256 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Foreign Function Interface</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for Foreign {base}"><tr><td>Foreign {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Foreign Function Interface</h2>
+
+<h3>Description</h3>
+
+<p>Functions to make calls to compiled code that has been loaded into <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+       .C(.NAME, ..., NAOK = FALSE, DUP = TRUE, PACKAGE, ENCODING)
+ .Fortran(.NAME, ..., NAOK = FALSE, DUP = TRUE, PACKAGE, ENCODING)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>.NAME</code></td>
+<td>
+<p>a character string giving the name of a C function or
+Fortran subroutine, or an object of class
+<code>"<a href="getNativeSymbolInfo.html">NativeSymbolInfo</a>"</code>, <code>"<a href="getNativeSymbolInfo.html">RegisteredNativeSymbol</a>"</code>
+or <code>"<a href="getNativeSymbolInfo.html">NativeSymbol</a>"</code> referring to such a name.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>arguments to be passed to the foreign function.  Up to 65.</p>
+</td></tr>
+<tr valign="top"><td><code>NAOK</code></td>
+<td>
+<p>if <code>TRUE</code> then any <code><a href="NA.html">NA</a></code> or
+<code><a href="is.finite.html">NaN</a></code> or <code><a href="is.finite.html">Inf</a></code> values in the arguments are
+passed on to the foreign function.  If <code>FALSE</code>, the presence of
+<code>NA</code> or <code>NaN</code> or <code>Inf</code> values is regarded as an error.</p>
+</td></tr>
+<tr valign="top"><td><code>PACKAGE</code></td>
+<td>
+<p>if supplied, confine the search for a character string
+<code>.NAME</code> to the DLL given by this argument (plus the
+conventional extension, &lsquo;<span class="file">.so</span>&rsquo;, &lsquo;<span class="file">.dll</span>&rsquo;, ...).
+</p>
+<p>This is intended to add safety for packages, which can ensure by
+using this argument that no other package can override their external
+symbols, and also speeds up the search (see &lsquo;Note&rsquo;).</p>
+</td></tr>
+<tr valign="top"><td><code>DUP, ENCODING</code></td>
+<td>
+<p>For back-compatibility, accepted but ignored.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>These functions can be used to make calls to compiled C and Fortran 77
+code.  Later interfaces are <code><a href="CallExternal.html">.Call</a></code> and
+<code><a href="CallExternal.html">.External</a></code> which are more flexible and have better
+performance.
+</p>
+<p>These functions are <a href="Primitive.html">primitive</a>, and <code>.NAME</code> is always
+matched to the first argument supplied (which should not be named).
+The other named arguments follow <code>...</code> and so cannot be
+abbreviated.  For clarity, should avoid using names in the arguments
+passed to <code>...</code> that match or partially match <code>.NAME</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list similar to the <code>...</code> list of arguments passed in
+(including any names given to the arguments), but reflecting any
+changes made by the C or Fortran code.
+</p>
+
+
+<h3>Argument types</h3>
+
+<p>The mapping of the types of <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> arguments to C or Fortran arguments is
+</p>
+
+<table summary="Rd table">
+<tr>
+ <td style="text-align: left;">
+    <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> </td><td style="text-align: left;">     C </td><td style="text-align: left;">     Fortran</td>
+</tr>
+<tr>
+ <td style="text-align: left;">
+    integer </td><td style="text-align: left;"> int * </td><td style="text-align: left;"> integer</td>
+</tr>
+<tr>
+ <td style="text-align: left;">
+    numeric </td><td style="text-align: left;"> double * </td><td style="text-align: left;"> double precision</td>
+</tr>
+<tr>
+ <td style="text-align: left;">
+    -- or -- </td><td style="text-align: left;"> float * </td><td style="text-align: left;"> real</td>
+</tr>
+<tr>
+ <td style="text-align: left;">
+    complex </td><td style="text-align: left;"> Rcomplex * </td><td style="text-align: left;"> double complex</td>
+</tr>
+<tr>
+ <td style="text-align: left;">
+    logical </td><td style="text-align: left;"> int * </td><td style="text-align: left;"> integer </td>
+</tr>
+<tr>
+ <td style="text-align: left;">
+    character </td><td style="text-align: left;"> char ** </td><td style="text-align: left;"> [see below]</td>
+</tr>
+<tr>
+ <td style="text-align: left;">
+    raw </td><td style="text-align: left;"> unsigned char * </td><td style="text-align: left;"> not allowed</td>
+</tr>
+<tr>
+ <td style="text-align: left;">
+    list </td><td style="text-align: left;"> SEXP *</td><td style="text-align: left;"> not allowed</td>
+</tr>
+<tr>
+ <td style="text-align: left;">
+    other </td><td style="text-align: left;"> SEXP</td><td style="text-align: left;"> not allowed</td>
+</tr>
+<tr>
+ <td style="text-align: left;">
+  </td>
+</tr>
+
+</table>
+
+<p><em>Note:</em> The C types corresponding to <code>integer</code> and
+<code>logical</code> are <code>int</code>, not <code>long</code> as in S.  This
+difference matters on most 64-bit platforms, where <code>int</code> is
+32-bit and <code>long</code> is 64-bit (but not on 64-bit Windows).
+</p>
+<p><em>Note:</em> The Fortran type corresponding to <code>logical</code> is
+<code>integer</code>, not <code>logical</code>: the difference matters on some
+Fortran compilers.
+</p>
+<p>Numeric vectors in <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> will be passed as type <code>double *</code> to C
+(and as <code>double precision</code> to Fortran) unless the argument has
+attribute <code>Csingle</code> set to <code>TRUE</code> (use
+<code><a href="double.html">as.single</a></code> or <code><a href="double.html">single</a></code>).  This mechanism is
+only intended to be used to facilitate the interfacing of existing C
+and Fortran code.
+</p>
+<p>The C type <code>Rcomplex</code> is defined in &lsquo;<span class="file">Complex.h</span>&rsquo; as a
+<code>typedef struct {double r; double i;}</code>.  It may or may not be
+equivalent to the C99 <code>double complex</code> type, depending on the
+compiler used.
+</p>
+<p>Logical values are sent as <code>0</code> (<code>FALSE</code>), <code>1</code>
+(<code>TRUE</code>) or <code>INT_MIN = -2147483648</code> (<code>NA</code>, but only if
+<code>NAOK = TRUE</code>), and the compiled code should return one of these
+three values: however non-zero values other than <code>INT_MIN</code> are
+mapped to <code>TRUE</code>.
+</p>
+<p>Missing (<code>NA</code>) string values are passed to <code>.C</code> as the string
+&quot;NA&quot;. As the C <code>char</code> type can represent all possible bit patterns
+there appears to be no way to distinguish missing strings from the
+string <code>"NA"</code>.  If this distinction is important use <code><a href="CallExternal.html">.Call</a></code>.
+</p>
+<p>Using a character string with <code>.Fortran</code> is deprecated and will
+give a warning.  It passes the first (only) character string of a
+character vector as a C character array to Fortran: that may be usable
+as <code>character*255</code> if its true length is passed separately.  Only
+up to 255 characters of the string are passed back.  (How well this
+works, and even if it works at all, depends on the C and Fortran
+compilers and the platform.)
+</p>
+<p>Lists, functions are other <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> objects can (for historical reasons) be
+passed to <code>.C</code>, but the <code><a href="CallExternal.html">.Call</a></code> interface is much
+preferred.  All inputs apart from atomic vectors should be regarded as
+read-only, and all apart from vectors (including lists), functions and
+environments are now deprecated.
+</p>
+
+
+<h3>Fortran symbol names</h3>
+
+<p>All Fortran compilers known to be usable to compile <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> map symbol names
+to lower case, and so does <code>.Fortran</code>.
+</p>
+<p>Symbol names containing underscores are not valid Fortran 77 (although
+they are valid in Fortran 9x).  Many Fortran 77 compilers will allow
+them but may translate them in a different way to names not containing
+underscores.  Such names will often work with <code>.Fortran</code> (since
+how they are translated is detected when <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> is built and the
+information used by <code>.Fortran</code>), but portable code should not use
+Fortran names containing underscores.
+</p>
+<p>Use <code>.Fortran</code> with care for compiled Fortran 9x code: it may not
+work if the Fortran 9x compiler used differs from the Fortran 77
+compiler used when configuring <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>, especially if the subroutine name
+is not lower-case or includes an underscore.  It is possible to use
+<code>.C</code> and do any necessary symbol-name translation yourself.
+</p>
+
+
+<h3>Copying of arguments</h3>
+
+<p>Character vectors are copied before calling the compiled code and to
+collect the results.  For other atomic vectors the argument is copied
+before calling the compiled code if it is otherwise used in the
+calling code.
+</p>
+<p>Non-atomic-vector objects are read-only to the C code and are never
+copied.
+</p>
+<p>This behaviour can be changed by setting
+<code><a href="options.html">options</a>(CBoundsCheck = TRUE)</code>.  In that case raw,
+logical, integer, double and complex vector arguments are copied both
+before and after calling the compiled code.  The first copy made is
+extended at each end by guard bytes, and on return it is checked that
+these are unaltered.  For <code>.C</code>, each element of a character
+vector uses guard bytes.
+</p>
+
+
+<h3>Note</h3>
+
+<p>If one of these functions is to be used frequently, do specify
+<code>PACKAGE</code> (to confine the search to a single DLL) or pass
+<code>.NAME</code> as one of the native symbol objects.  Searching for
+symbols can take a long time, especially when many namespaces are loaded.
+</p>
+<p>You may see <code>PACKAGE = "base"</code> for symbols linked into <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>.  Do
+not use this in your own code: such symbols are not part of the API
+and may be changed without warning.
+</p>
+
+
+<h3>References</h3>
+
+<p>Becker, R. A., Chambers, J. M. and Wilks, A. R. (1988)
+<em>The New S Language</em>.
+Wadsworth &amp; Brooks/Cole.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="dynload.html">dyn.load</a></code>, <code><a href="CallExternal.html">.Call</a></code>.
+</p>
+<p>The &lsquo;Writing R Extensions&rsquo; manual.
+</p>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

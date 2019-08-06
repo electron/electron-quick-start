@@ -1,0 +1,142 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Conditional Element Selection</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for ifelse {base}"><tr><td>ifelse {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Conditional Element Selection</h2>
+
+<h3>Description</h3>
+
+<p><code>ifelse</code> returns a value with the same shape as
+<code>test</code> which is filled with elements selected
+from either <code>yes</code> or <code>no</code>
+depending on whether the element of <code>test</code>
+is <code>TRUE</code> or <code>FALSE</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+ifelse(test, yes, no)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>test</code></td>
+<td>
+<p>an object which can be coerced to logical mode.</p>
+</td></tr>
+<tr valign="top"><td><code>yes</code></td>
+<td>
+<p>return values for true elements of <code>test</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>no</code></td>
+<td>
+<p>return values for false elements of <code>test</code>.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>If <code>yes</code> or <code>no</code> are too short, their elements are recycled.
+<code>yes</code> will be evaluated if and only if any element of <code>test</code>
+is true, and analogously for <code>no</code>.
+</p>
+<p>Missing values in <code>test</code> give missing values in the result.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A vector of the same length and attributes (including dimensions and
+<code>"class"</code>) as <code>test</code> and data values from the values of
+<code>yes</code> or <code>no</code>.  The mode of the answer will be coerced from
+logical to accommodate first any values taken from <code>yes</code> and then
+any values taken from <code>no</code>.
+</p>
+
+
+<h3>Warning</h3>
+
+<p>The mode of the result may depend on the value of <code>test</code> (see the
+examples), and the class attribute (see <code><a href="class.html">oldClass</a></code>) of the
+result is taken from <code>test</code> and may be inappropriate for the
+values selected from <code>yes</code> and <code>no</code>.
+</p>
+<p>Sometimes it is better to use a construction such as
+</p>
+<pre>  (tmp &lt;- yes; tmp[!test] &lt;- no[!test]; tmp)
+</pre><p>, possibly extended to handle missing values in <code>test</code>.
+</p>
+<p>Further note that <code>if(test) yes else no</code>  is much more efficient
+and often much preferable to <code>ifelse(test, yes, no)</code> whenever
+<code>test</code> is a simple true/false result, i.e., when
+<code>length(test) == 1</code>.
+</p>
+<p>The <code>srcref</code> attribute of functions is handled specially: if
+<code>test</code> is a simple true result and <code>yes</code> evaluates to a function
+with <code>srcref</code> attribute, <code>ifelse</code> returns <code>yes</code> including
+its attribute (the same applies to a false <code>test</code> and <code>no</code>
+argument).  This functionality is only for backwards compatibility, the
+form <code>if(test) yes else no</code> should be used whenever <code>yes</code> and
+<code>no</code> are functions.
+</p>
+
+
+<h3>References</h3>
+
+<p>Becker, R. A., Chambers, J. M. and Wilks, A. R. (1988)
+<em>The New S Language</em>.
+Wadsworth &amp; Brooks/Cole.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="Control.html">if</a></code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+x &lt;- c(6:-4)
+sqrt(x)  #- gives warning
+sqrt(ifelse(x &gt;= 0, x, NA))  # no warning
+
+## Note: the following also gives the warning !
+ifelse(x &gt;= 0, sqrt(x), NA)
+
+
+## ifelse() strips attributes
+## This is important when working with Dates and factors
+x &lt;- seq(as.Date("2000-02-29"), as.Date("2004-10-04"), by = "1 month")
+## has many "yyyy-mm-29", but a few "yyyy-03-01" in the non-leap years
+y &lt;- ifelse(as.POSIXlt(x)$mday == 29, x, NA)
+head(y) # not what you expected ... ==&gt; need restore the class attribute:
+class(y) &lt;- class(x)
+y
+## This is a (not atypical) case where it is better *not* to use ifelse(),
+## but rather the more efficient and still clear:
+y2 &lt;- x
+y2[as.POSIXlt(x)$mday != 29] &lt;- NA
+## which gives the same as ifelse()+class() hack:
+stopifnot(identical(y2, y))
+
+
+## example of different return modes (and 'test' alone determining length):
+yes &lt;- 1:3
+no  &lt;- pi^(1:4)
+utils::str( ifelse(NA,    yes, no) ) # logical, length 1
+utils::str( ifelse(TRUE,  yes, no) ) # integer, length 1
+utils::str( ifelse(FALSE, yes, no) ) # double,  length 1
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

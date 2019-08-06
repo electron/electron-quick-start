@@ -1,0 +1,117 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Class '&quot;envRefClass&quot;'</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for envRefClass-class {methods}"><tr><td>envRefClass-class {methods}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Class <code>"envRefClass"</code></h2>
+
+<h3>Description</h3>
+
+<p>Support Class to Implement R Objects using Reference Semantics
+</p>
+
+
+<h3>NOTE:</h3>
+
+<p>The software described here is an initial version.  The eventual goal
+is to support reference-style classes with software in <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> itself
+or using inter-system interfaces.  The current implementation (<span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>
+version 2.12.0) is preliminary and subject to change, and currently
+includes only the <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>-only implementation.  Developers are encouraged
+to experiment with the software, but the description here is more than
+usually subject to change.
+</p>
+
+
+<h3>Purpose of the Class</h3>
+
+<p>This class implements basic reference-style semantics for <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>
+objects.  Objects normally do not come directly from this class, but
+from subclasses defined by a call to <code><a href="refClass.html">setRefClass</a></code>.
+The documentation below is technical background describing the implementation, but applications
+should use the interface documented under <code><a href="refClass.html">setRefClass</a></code>,
+in particular the <code>$</code> operator and field accessor functions as
+described there.
+</p>
+
+
+<h3>A Basic Reference Class</h3>
+
+<p>The design of reference classes for <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> divides those classes up
+according to the mechanism used for implementing references, fields,
+and class methods.
+Each version of this mechanism is defined by a <em>basic reference
+class</em>, which must implement a set of methods and provide some
+further information used by <code><a href="refClass.html">setRefClass</a></code>.
+</p>
+<p>The required methods are for operators <code>$</code> and <code>$&lt;-</code> to
+get and set a field in an object, and for <code><a href="new.html">initialize</a></code> to
+initialize objects.
+</p>
+<p>To support these methods, the basic reference class needs to have some
+implementation mechanism to store and retrieve data from fields in the
+object.
+The mechanism needs to be consistent with reference semantics; that
+is, changes made to the contents of an object are global, seen by any
+code accessing that object, rather than only local to the function
+call where the change takes place.
+As described below, class <code>envRefClass</code> implements reference
+semantics through specialized use of <a href="EnvironmentClass.html">environment</a>
+objects.
+Other basic reference classes may use an interface to a language such
+as Java or C++ using reference semantics for classes.
+</p>
+<p>Usually, the <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>  user will be able to invoke class methods on the
+class, using the <code>$</code> operator.  The basic reference class
+method for <code>$</code> needs to make this possible.  Essentially, the
+operator must return an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> function corresponding to the object and
+the class method name.
+</p>
+<p>Class methods may include an implementation of data abstraction, in
+the sense that fields are accessed by &ldquo;get&rdquo; and &ldquo;set&rdquo;
+methods.  The basic reference class provides this facility by setting
+the <code>"fieldAccessorGenerator"</code> slot in its definition to a
+function of one variable.
+This function will be called by <code><a href="refClass.html">setRefClass</a></code> with the
+vector of field names as arguments.
+The generator function must return a list of defined accessor
+functions.
+An element corresponding to a get operation is invoked with no
+arguments and should extract the corresponding field; an element for a
+set operation will be invoked with a single argument, the value to be
+assigned to the field.
+The implementation needs to supply the object, since that is not an
+argument in the method invocation.
+The mechanism used currently by <code>envRefClass</code> is described below.
+</p>
+
+
+<h3>Support Classes</h3>
+
+<p>Two virtual classes are supplied to test for reference objects:
+<code>is(x, "refClass")</code> tests whether <code>x</code> comes from a class
+defined using the reference class mechanism described here;
+<code>is(x, "refObject")</code> tests whether the object has reference
+semantics generally, including the previous classes and also classes
+inheriting from the <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> types with reference semantics, such as
+<code>"environment"</code>.
+</p>
+<p>Installed class methods are <code>"classMethodDefinition"</code> objects,
+with slots that identify the name of the function as a class method
+and the other class methods called from this method.
+The latter information is determined heuristically when the class is
+defined by using the <code>codetools</code> recommended package.  This
+package must be installed when reference classes are defined, but is
+not needed in order to use existing reference classes.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>John Chambers
+</p>
+
+<hr /><div style="text-align: center;">[Package <em>methods</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

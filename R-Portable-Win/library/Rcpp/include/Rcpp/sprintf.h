@@ -2,7 +2,7 @@
 //
 // sprintf.h: Rcpp R/C++ interface class library -- string formatting
 //
-// Copyright (C) 2010 - 2011 Dirk Eddelbuettel and Romain Francois
+// Copyright (C) 2010 - 2018  Dirk Eddelbuettel and Romain Francois
 //
 // This file is part of Rcpp.
 //
@@ -22,14 +22,14 @@
 #include <cstdio>
 #include <cstdarg>
 
-namespace Rcpp{
+namespace Rcpp {
 
 template <int MAX_SIZE>
 std::string sprintf( const char *format, ...) {
     static char buffer[MAX_SIZE];
-    va_list(ap);
+    va_list ap;
     va_start(ap, format);
-    vsnprintf( buffer, MAX_SIZE, format, ap);
+    vsnprintf(buffer, MAX_SIZE, format, ap);
     va_end(ap);
     return buffer ;
 }

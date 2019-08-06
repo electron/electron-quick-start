@@ -886,12 +886,18 @@ The default curve will be for someone on treatment arm
 which applies to no one,
 and a single set of ``blended'' values of the Karnofsky score, each times
 the three Karnofsky coefficients.
-This is easily rectified by creating a new data set with time intervals.
+This is rectified by creating a new data set with time intervals.
+We create two hypothetical subjects labeled as ``curve 1'' and ``curve 2''.
+One has a Karnofsky of 40 and the other a Karnofsky of 75, both on
+treatment 1 and with no prior therapy.
+Each has the appropriate values for the time dependent covariate \code{tgroup},
+which is 1, 2, 3 over 0--90, 90--180 and 180+ days, respectively.
+We will draw curves for the first year.
 
 <<split4>>=
 quantile(veteran$karno)
-cdata <- data.frame(tstart= rep(c(0,30,60), 2),
-                    time =  rep(c(30,60, 100), 2),
+cdata <- data.frame(tstart= rep(c(0,90,180), 2),
+                    time =  rep(c(90,180, 365), 2),
                     status= rep(0,6),   #necessary, but ignored
                     tgroup= rep(1:3, 2),
                     trt  =  rep(1,6),
@@ -901,12 +907,11 @@ cdata <- data.frame(tstart= rep(c(0,30,60), 2),
 cdata
 sfit <- survfit(vfit2, newdata=cdata, id=curve)
 km <- survfit(Surv(time, status) ~ I(karno>60), veteran)
-plot(km, xmax=120, col=1:2, lwd=2, 
+plot(km, xmax= 365, col=1:2, lwd=2, 
      xlab="Days from enrollment", ylab="Survival")
 lines(sfit, col=1:2, lty=2, lwd=2)
 @ 
-In the new data set the \code{tgroup} variable correctly tracks time
-intervals. 
+
 The default behavior for survival curves based on a coxph model is to
 create one curve for each line in the input data; the \code{id}
 option causes it to use a set of lines for each curve.
@@ -914,7 +919,7 @@ Karnofsky scores at the 25th and 75th percentiles roughly represent the
 average score for the lower half of the subjects and that for the upper half,
 respectively, and are plotted over the top of the Kaplan-Meier
 curves for those below and above the median.
-At 30 days the Cox model curves essentially become parallel.
+
 
 \subsection{Continuous time-dependent coefficients}
 If $\beta(t)$ is assumed to have a simple functional form we can 
@@ -944,7 +949,7 @@ for the covariate \code{time}; no differently than if we had
 constructed the variable outside of a \code{coxph} call.
 This variable most definitely breaks the rule about not looking into the
 future, and one would quickly find the circularity: large values of 
-\code{time} predict long survival,  because long survival leads to 
+\code{time} appear to predict long survival because long survival leads to 
 large values for \code{time}.
 
 A true time-dependent covariate can be constructed using the 
@@ -976,10 +981,54 @@ This same coding dichotomy exists in SAS phreg, by the way.  Adding
 the time-fixed (incorrect) variable,
 while a programming statement within phreg that 
 uses \code{time} as a variable will generate time-dependent objects.
-The error is less likely there because phreg's model statement has no
-equivalent to the \code{I()} function, i.e., you cannot simply write
+The error is less likely there because phreg's model statement is less
+flexible than R, i.e., you cannot simply write
 ``log(time)'' on the right hand side.
 
+The use of programming statements to create a yes/no variable deserves
+extra comment because of a common error.
+Assume one has a data set with two time variables: the time from enrollment
+to last follow up and the time to diabetes, say, and we want to use the
+presence of diabetes as time dependent covariate.
+Here is a small made up example.
+<<ties1>>=
+data1 <- read.table(col.names=c("id", "diabetes", "lfu", "status"),
+                          header=FALSE, text="
+1   5 30  1
+2  10 15  1
+3  NA 60  0
+4  NA 80  1
+5  10 80  0
+6  NA 90  1
+7  30 95  1
+")
+
+data1$d2 <- pmin(data1$diabetes, 300, na.rm=TRUE) #replace NA with 300
+fit1 <- coxph(Surv(lfu, status) ~ tt(d2), data=data1,
+              tt = function(d2, t, ...) ifelse(t > d2, 1, 0))
+fit2 <- coxph(Surv(lfu, status) ~ tt(d2), data=data1,
+              tt = function(d2, t, ...) ifelse(t < d2, 0, 1))
+c(coef(fit1), coef(fit2))
+@
+
+One might have expected fit1 and fit2 to give the same coefficient but 
+they are completely different. 
+The issue is subject 7 whose time to diabetes falls exactly at one of the
+event times.  In fit1 their diabetes covariate effectively changes just 
+after the event at time 30,
+in fit2 it changes before the event.  The second is incorrect.
+Stated in the gambling context, all bets must be placed
+\emph{before} the roulette ball lands.
+
+When a data set is expanded into a start, stop format using the
+\code{tmerge} function ties are dealt with correctly.
+<<ties2>>=
+data2 <- tmerge(data1, data1, id=id, dstat=event(lfu, status),
+                diab = tdc(diabetes))
+subset(data2, id %in% c(1,7), c(id, tstart:diab))               
+fit3 <- coxph(Surv(tstart, tstop, dstat) ~ diab, data2)
+c(coef(fit1), coef(fit2), coef(fit3))
+@ 
 
 
 \section{Predictable time-dependent covariates}
@@ -1003,7 +1052,7 @@ However, if the effect of age on risk is \emph{non-linear}, this
 cancellation does not occur.
 
 Since age changes continuously, we would in theory need a very large
-data set to completely capture the effect, an interval
+data set to completely capture the effect, one interval
 per day to match the usual resolution for death times.
 In practice this level of resolution is not necessary; though we all
 grow older, risk does not increase so rapidly that we need to know
@@ -1032,7 +1081,7 @@ anova(pfit2)
 2*(pfit2$loglik - pfit1$loglik)[2]
 @ 
 Since initial age is in years and time is in days, it was important
-to scale within the pspline function.
+to scale within the tt function.
 The likelihood ratio of 10.8 on 2 degrees of freedom shows that the additional
 terms are mildly significant.
 
@@ -1047,18 +1096,26 @@ A user-defined function is called with arguments of
     time occurs in two of them, they can be treated separately
   \item the weight for the observation, if the call used weights
 \end{itemize}
-There is a single call to the function with a large $x$ vector, 
+The underlying code constructs a single call to the function with a 
+large $x$ vector, 
 it contains an element for each subject at risk at each event time.
 If there are multiple tt() terms in the formula, then the tt argument
 should be a list of functions with the requisite number of elements.
+One footnote to this, however, is that you cannot have a formula like
+\code{log(bili) + tt(age) + tt(age)}.
+The reason is that the R formula parser removes redundant terms before the
+result even gets to the \code{coxph} function.  
+(This is a convenience for users so that \code{y ~ x1 + x2 + x1} won't generate
+redundant columns in an X matrix.) 
 
 An alternate way to fit the above model is to create the expanded data
 set directly and then do an ordinary \code{coxph} call on the expanded
 data. The disadvantage of this is the very large data set, of course, but
-an advantage is that further processing of the model is available, such as
-residuals or survival curves.  
-A reasonable strategy is to use \code{tt()} expressions for initial analysis
-and then expanded data sets to follow up on selected models.
+it is no larger than the internal one created by the \code{tt} call.
+An advantage is that further processing of the model is available, such as
+residuals or survival curves. 
+The following reprises the above \code{tt} call.
+
 <<expand>>=
 dtimes <- sort(unique(with(pbc, time[status==2])))
 tdata <- survSplit(Surv(time, status==2) ~., pbc, cut=dtimes)
@@ -1068,13 +1125,53 @@ pfit3 <- coxph(Surv(tstart, time, event) ~ log(bili) + ascites + c.age +
 rbind(coef(pfit2), coef(pfit3))
 @ 
 
+The above expansion has resulted in a data set of 
+\Sexpr{nrow(tdata)} observations, as compared to the \Sexpr{nrow(pbc)}
+observations of the starting \code{pbc} data.
+A sensible fit can often be obtained with a coarser time grid: in the pbc data
+there is an event on day 41 and 43, is it really necessary to update all the
+subject ages by 2/365 at the second of these to reflect an increased risk?
+Instead divide the \code{max(dtimes)/365.25} = 11.5 years of total follow
+up into years.
+
+<<expand2>>=
+dtime2 <- 1:11 * 365.25
+tdata2 <-survSplit(Surv(time, status==2) ~., pbc, cut=dtime2)
+tdata2$c.age <- tdata2$age + tdata2$time/365.25 -50  #current age, centered at 50
+pfit4 <- coxph(Surv(tstart, time, event) ~ log(bili) + ascites + c.age + 
+    I(c.age^2) + I(c.age^3), data=tdata2)
+rbind('1 day grid'= coef(pfit3), '1 year grid'= coef(pfit4))
+#
+c(tdata=nrow(tdata), tdata2=nrow(tdata2)) 
+@ 
+
+We have almost the same result but at 1/20th the data set size.  
+This can make a substantial difference in compute time for large data sets.
+Exactly how much to `thin down' the list of cutpoints can be based on 
+subject specific knowledge, one could choose selected points based on a
+\code{cox.zph} plot, or start with a very coarse time grid and then sequentially 
+refine it.
+In this data set we reasoned that although risk increases with age, a
+age change of less than one year would have minimal impact.
+
+The Cox model requires computation of a weighted mean and variance of
+the covariates at each event time, a process that is inherently 
+$O(ndp^2)$ where $n$ = the sample size, $d$ = the number of events and $p$=
+the number of covariates.  
+Much of the algorithmic effort in the underlying code is to use 
+updating methods for
+the mean and variance matrices, reducing the compute time to $O((n+d) p^2)$.
+Updating is not possible across a time split and the compuatation starts
+anew, for a \code{tt} term we never update at all; for even moderate size
+data sets the impact of $nd$ versus $n+d$ can be surprising.
+
 There are other interesting uses for the time-transform capability.
 One example is O'Brien's logit-rank test procedure \cite{obrien78}.
 He proposed replacing the covariate at each event time with a logit
 transform of its ranks.  
 This removes the influence of any outliers in the predictor $x$.
 For this case we ignore the event time argument and concentrate on the
-groupings.
+groupings to create the following tt function.
 <<>>=
 function(x, t, riskset, weights){ 
     obrien <- function(x) {
@@ -1100,30 +1197,11 @@ The score statistic for this model is $(C-D)/2$, where $C$ and $D$ are the
 number of concordant and discordant pairs, see the
 survConcordance function.  
 The score statistic from this fit is then a test for significance of the
-concordance statistics, and is in fact the basis for the standard error
+concordance statistic, and is in fact the basis for the standard error
 reported by survConcordance.  
 The O'Brien test can be viewed as concordance statistic that gives equal  %'
 weight to each event time, whereas the standard concordance weights each
 event proportionally to the size of the risk set.
-(The Cox score statistic depends on the mean $x$ at each event time;
-since ranks go from 1 to number at risk the mean also scales.)
-
-Although handy, the computational impact of the tt argument should be
-considered before using it.
-The Cox model requires computation of a weighted mean and variance of
-the covariates at each event time, a process that is inherently 
-$O(ndp^2)$ where $n$ = the sample size, $d$ = the number of events and $p$=
-the number of covariates.  
-Much of the algorithmic effort in coxph() is to use updating methods for
-the mean and variance matrices, reducing the compute time to $O((n+d) p^2)$.
-When a tt term appears updating is not possible; for even moderate size
-data sets the impact of $nd$ versus $n+d$ can be surprising.
-
-The time-transform is a newer addition and still has some rough edges.
-At this moment the $x=TRUE$ argument is needed to get proper residuals and
-predicted values, and termplot is unable to properly reconstruct the
-data to plot a fit.
-Please communicate any concerns or interesting examples to the author.
 
 \begin{thebibliography}{9}
   \bibitem{Anderson83} Anderson JR, Cain KC, and Gelber RD. 

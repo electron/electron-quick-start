@@ -612,6 +612,12 @@ Rcpp::CharacterVector runit_unique_ch(Rcpp::CharacterVector x) {
 }
 
 // [[Rcpp::export]]
+Rcpp::CharacterVector runit_sort_unique_ch(Rcpp::CharacterVector x,
+                                           bool decreasing = false) {
+    return Rcpp::sort_unique(x, decreasing);
+}
+
+// [[Rcpp::export]]
 IntegerVector runit_table( CharacterVector x){
     return table( x ) ;
 }
@@ -1218,4 +1224,27 @@ CharacterMatrix mtrimws(CharacterMatrix x, const char* which = "both") {
 // [[Rcpp::export]]
 String strimws(String x, const char* which = "both") {
     return trimws(x, which);
+}
+
+
+// 21 Jul 2018 min/max tests for int and double
+
+// [[Rcpp::export]]
+int intmin(IntegerVector v) {
+    return min(v);
+}
+
+// [[Rcpp::export]]
+int intmax(IntegerVector v) {
+    return max(v);
+}
+
+// [[Rcpp::export]]
+double doublemin(NumericVector v) {
+    return min(v);
+}
+
+// [[Rcpp::export]]
+double doublemax(NumericVector v) {
+    return max(v);
 }

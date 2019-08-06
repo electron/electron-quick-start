@@ -1,0 +1,95 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Finalization of Objects</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for reg.finalizer {base}"><tr><td>reg.finalizer {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Finalization of Objects</h2>
+
+<h3>Description</h3>
+
+<p>Registers an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> function to be called upon garbage collection of
+object or (optionally) at the end of an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> session.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+  reg.finalizer(e, f, onexit = FALSE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>e</code></td>
+<td>
+<p>Object to finalize.  Must be an environment or an external pointer.</p>
+</td></tr>
+<tr valign="top"><td><code>f</code></td>
+<td>
+<p>Function to call on finalization. Must accept a single argument,
+which will be the object to finalize.</p>
+</td></tr>
+<tr valign="top"><td><code>onexit</code></td>
+<td>
+<p>logical: should the finalizer be run if the object is
+still uncollected at the end of the <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> session?</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>The main purpose of this function is to allow objects that refer to
+external items (a temporary file, say) to perform cleanup actions when
+they are no longer referenced from within <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>.  This only makes sense
+for objects that are never copied on assignment, hence the restriction
+to environments and external pointers.
+</p>
+<p><em>Inter alia</em>, it provides a way to program code to be run at
+the end of an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> session without manipulating <code><a href="quit.html">.Last</a></code>.
+For use in a package, it is often a good idea to set a finalizer on an
+object in the namespace: then it will be called at the end of the
+session, or soon after the namespace is unloaded if that is done
+during the session.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>NULL</code>.
+</p>
+
+
+<h3>Note</h3>
+
+<p><span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>'s interpreter is not re-entrant and the finalizer could be run in
+the middle of a computation.  So there are many functions which it is
+potentially unsafe to call from <code>f</code>: one example which caused
+trouble is <code><a href="options.html">options</a></code>.  Finalizers are
+scheduled at garbage collection but only run at a relatively safe time
+thereafter.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="gc.html">gc</a></code> and <code><a href="Memory.html">Memory</a></code> for garbage collection and
+memory management.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+f &lt;- function(e) print("cleaning....")
+g &lt;- function(x){ e &lt;- environment(); reg.finalizer(e, f) }
+g()
+invisible(gc()) # trigger cleanup
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

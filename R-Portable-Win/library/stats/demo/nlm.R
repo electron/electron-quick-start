@@ -1,9 +1,9 @@
-#  Copyright (C) 1997-2009 The R Core Team
+#  Copyright (C) 1997-2009, 2017 The R Core Team
 
 ### Helical Valley Function
 ### Page 362 Dennis + Schnabel
 
-require(stats); require(graphics)
+require(stats); require(graphics); require(utils)
 
 theta <- function(x1,x2) (atan(x2/x1) + (if(x1 <= 0) pi else 0))/ (2*pi)
 ## but this is easier :
@@ -13,7 +13,7 @@ f <- function(x) {
     f1 <- 10*(x[3] - 10*theta(x[1],x[2]))
     f2 <- 10*(sqrt(x[1]^2+x[2]^2)-1)
     f3 <- x[3]
-    return(f1^2+f2^2+f3^2)
+    return(f1^2 + f2^2 + f3^2)
 }
 
 ## explore surface {at x3 = 0}
@@ -23,6 +23,7 @@ z <- apply(as.matrix(expand.grid(x, y)), 1, function(x) f(c(x, 0)))
 contour(x, y, matrix(log10(z), 50, 50))
 str(nlm.f <- nlm(f, c(-1,0,0), hessian = TRUE))
 points(rbind(nlm.f$estim[1:2]), col = "red", pch = 20)
+stopifnot(all.equal(nlm.f$estimate, c(1, 0, 0)))
 
 ### the Rosenbrock banana valley function
 
@@ -55,28 +56,35 @@ contour(x, y, matrix(log10(z), length(x)))
 mtext("zoomed in");box(col = "orange")
 points(rbind(nlm.f2$estim[1:2]), col = "red", pch = 20)
 par(op)
-
+with(nlm.f2,
+     stopifnot(all.equal(estimate, c(1,1), tol = 1e-5),
+               minimum < 1e-11, abs(gradient) < 1e-6, code %in% 1:2))
 
 fg <- function(x)
 {
-    gr <- function(x1, x2) {
+    gr <- function(x1, x2)
         c(-400*x1*(x2 - x1*x1)-2*(1-x1), 200*(x2 - x1*x1))
-    }
     x1 <- x[1]; x2 <- x[2]
-    res<- 100*(x2 - x1*x1)^2 + (1-x1)^2
-    attr(res, "gradient") <- gr(x1, x2)
-    return(res)
+    structure(100*(x2 - x1*x1)^2 + (1-x1)^2,
+              gradient = gr(x1, x2))
 }
 
-nlm(fg, c(-1.2, 1), hessian = TRUE)
+nfg <- nlm(fg, c(-1.2, 1), hessian = TRUE)
+str(nfg)
+with(nfg,
+     stopifnot(minimum < 1e-17, all.equal(estimate, c(1,1)),
+               abs(gradient) < 1e-7, code %in% 1:2))
 
 ## or use deriv to find the derivatives
 
 fd <- deriv(~ 100*(x2 - x1*x1)^2 + (1-x1)^2, c("x1", "x2"))
 fdd <- function(x1, x2) {}
 body(fdd) <- fd
-nlm(function(x) fdd(x[1], x[2]), c(-1.2,1), hessian = TRUE)
-
+nlfd <- nlm(function(x) fdd(x[1], x[2]), c(-1.2,1), hessian = TRUE)
+str(nlfd)
+with(nlfd,
+     stopifnot(minimum < 1e-17, all.equal(estimate, c(1,1)),
+               abs(gradient) < 1e-7, code %in% 1:2))
 
 fgh <- function(x)
 {
@@ -88,10 +96,15 @@ fgh <- function(x)
         matrix(c(a11, a21, a21, 200), 2, 2)
     }
     x1 <- x[1]; x2 <- x[2]
-    res<- 100*(x2 - x1*x1)^2 + (1-x1)^2
-    attr(res, "gradient") <- gr(x1, x2)
-    attr(res, "hessian") <- h(x1, x2)
-    return(res)
+    structure(100*(x2 - x1*x1)^2 + (1-x1)^2,
+              gradient = gr(x1, x2),
+              hessian  =  h(x1, x2))
 }
 
-nlm(fgh, c(-1.2,1), hessian = TRUE)
+nlfgh <- nlm(fgh, c(-1.2,1), hessian = TRUE)
+str(nlfgh)
+## NB: This did _NOT_ converge for R version <= 3.4.0
+with(nlfgh,
+     stopifnot(minimum < 1e-15, # see 1.13e-17 .. slightly worse than above
+	       all.equal(estimate, c(1,1), tol=9e-9), # see 1.236e-9
+	       abs(gradient) < 7e-7, code %in% 1:2)) # g[1] = 1.3e-7

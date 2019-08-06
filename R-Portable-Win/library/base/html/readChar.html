@@ -1,0 +1,156 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Transfer Character Strings To and From Connections</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for readChar {base}"><tr><td>readChar {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Transfer Character Strings To and From Connections</h2>
+
+<h3>Description</h3>
+
+<p>Transfer character strings to and from connections, without assuming
+they are null-terminated on the connection.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+readChar(con, nchars, useBytes = FALSE)
+
+writeChar(object, con, nchars = nchar(object, type = "chars"),
+          eos = "", useBytes = FALSE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>con</code></td>
+<td>
+<p>A <a href="connections.html">connection</a> object, or a character string naming a file,
+or a raw vector.</p>
+</td></tr>
+<tr valign="top"><td><code>nchars</code></td>
+<td>
+<p>integer vector, giving the lengths in characters of
+(unterminated) character strings to be read or written.  Elements
+must be &gt;= 0 and not <code>NA</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>useBytes</code></td>
+<td>
+<p>logical: For <code>readChar</code>, should <code>nchars</code> be
+regarded as a number of bytes not characters in a multi-byte
+locale?  For <code>writeChar</code>, see <code><a href="writeLines.html">writeLines</a></code>.</p>
+</td></tr>
+<tr valign="top"><td><code>object</code></td>
+<td>
+<p>A character vector to be written to the connection, at
+least as long as <code>nchars</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>eos</code></td>
+<td>
+<p>&lsquo;end of string&rsquo;: character string.  The terminator
+to be written after each string, followed by an ASCII <code>nul</code>;
+use <code>NULL</code> for no terminator at all.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>These functions complement <code><a href="readBin.html">readBin</a></code> and
+<code><a href="readBin.html">writeBin</a></code> which read and write C-style zero-terminated
+character strings.  They are for strings of known length, and
+can optionally write an end-of-string mark.  They are intended only
+for character strings valid in the current locale.
+</p>
+<p>These functions are intended to be used with binary-mode connections.
+If <code>con</code> is a character string, the functions call
+<code><a href="connections.html">file</a></code> to obtain a binary-mode file connection which is
+opened for the duration of the function call.
+</p>
+<p>If the connection is open it is read/written from its current
+position.  If it is not open, it is opened for the duration of the
+call in an appropriate mode (binary read or write) and then closed
+again.  An open connection must be in binary mode.
+</p>
+<p>If <code>readChar</code> is called with <code>con</code> a raw vector, the data in
+the vector is used as input.  If <code>writeChar</code> is called with
+<code>con</code> a raw vector, it is just an indication that a raw vector
+should be returned.
+</p>
+<p>Character strings containing ASCII <code>nul</code>(s) will be read
+correctly by <code>readChar</code> but truncated at the first
+<code>nul</code> with a warning.
+</p>
+<p>If the character length requested for <code>readChar</code> is longer than
+the data available on the connection, what is available is
+returned.  For <code>writeChar</code> if too many characters are requested
+the output is zero-padded, with a warning.
+</p>
+<p>Missing strings are written as <code>NA</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>For <code>readChar</code>, a character vector of length the number of
+items read (which might be less than <code>length(nchars)</code>).
+</p>
+<p>For <code>writeChar</code>, a raw vector (if <code>con</code> is a raw vector) or
+invisibly <code>NULL</code>.
+</p>
+
+
+<h3>Note</h3>
+
+<p>Earlier versions of <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> allowed embedded nul bytes within character
+strings, but not <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> &gt;= 2.8.0.  <code>readChar</code> was commonly used to
+read fixed-size zero-padded byte fields for which <code>readBin</code> was
+unsuitable.  <code>readChar</code> can still be used for such fields if
+there are no embedded nuls: otherwise <code>readBin(what = "raw")</code>
+provides an alternative.
+</p>
+<p><code>nchars</code> will be interpreted in bytes not characters in a
+non-UTF-8 multi-byte locale, with a warning.
+</p>
+<p>There is little validity checking of UTF-8 reads.
+</p>
+<p>Using these functions on a text-mode connection may work but should
+not be mixed with text-mode access to the connection, especially if
+the connection was opened with an <code>encoding</code> argument.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>The &lsquo;R Data Import/Export&rsquo; manual.
+</p>
+<p><code><a href="connections.html">connections</a></code>, <code><a href="readLines.html">readLines</a></code>,
+<code><a href="writeLines.html">writeLines</a></code>, <code><a href="readBin.html">readBin</a></code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## test fixed-length strings
+zzfil &lt;- tempfile("testchar")
+zz &lt;- file(zzfil, "wb")
+x &lt;- c("a", "this will be truncated", "abc")
+nc &lt;- c(3, 10, 3)
+writeChar(x, zz, nc, eos = NULL)
+writeChar(x, zz, eos = "\r\n")
+close(zz)
+
+zz &lt;- file(zzfil, "rb")
+readChar(zz, nc)
+readChar(zz, nchar(x)+3) # need to read the terminator explicitly
+close(zz)
+unlink(zzfil)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

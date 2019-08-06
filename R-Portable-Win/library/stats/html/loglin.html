@@ -1,0 +1,194 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Fitting Log-Linear Models</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for loglin {stats}"><tr><td>loglin {stats}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Fitting Log-Linear Models</h2>
+
+<h3>Description</h3>
+
+<p><code>loglin</code> is used to fit log-linear models to multidimensional
+contingency tables by Iterative Proportional Fitting.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+loglin(table, margin, start = rep(1, length(table)), fit = FALSE,
+       eps = 0.1, iter = 20, param = FALSE, print = TRUE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>table</code></td>
+<td>
+<p>a contingency table to be fit, typically the output from
+<code>table</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>margin</code></td>
+<td>
+<p>a list of vectors with the marginal totals to be fit.
+</p>
+<p>(Hierarchical) log-linear models can be specified in terms of these
+marginal totals which give the &lsquo;maximal&rsquo; factor subsets contained
+in the model.  For example, in a three-factor model,
+<code>list(c(1, 2), c(1, 3))</code> specifies a model which contains
+parameters for the grand mean, each factor, and the 1-2 and 1-3
+interactions, respectively (but no 2-3 or 1-2-3 interaction), i.e.,
+a model where factors 2 and 3 are independent conditional on factor
+1 (sometimes represented as &lsquo;[12][13]&rsquo;).
+</p>
+<p>The names of factors (i.e., <code>names(dimnames(table))</code>) may be
+used rather than numeric indices.
+</p>
+</td></tr>
+<tr valign="top"><td><code>start</code></td>
+<td>
+<p>a starting estimate for the fitted table.  This optional
+argument is important for incomplete tables with structural zeros
+in <code>table</code> which should be preserved in the fit.  In this
+case, the corresponding entries in <code>start</code> should be zero and
+the others can be taken as one.</p>
+</td></tr>
+<tr valign="top"><td><code>fit</code></td>
+<td>
+<p>a logical indicating whether the fitted values should be
+returned.</p>
+</td></tr>
+<tr valign="top"><td><code>eps</code></td>
+<td>
+<p>maximum deviation allowed between observed and fitted
+margins.</p>
+</td></tr>
+<tr valign="top"><td><code>iter</code></td>
+<td>
+<p>maximum number of iterations.</p>
+</td></tr>
+<tr valign="top"><td><code>param</code></td>
+<td>
+<p>a logical indicating whether the parameter values should
+be returned.</p>
+</td></tr>
+<tr valign="top"><td><code>print</code></td>
+<td>
+<p>a logical.  If <code>TRUE</code>, the number of iterations and
+the final deviation are printed.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>The Iterative Proportional Fitting algorithm as presented in
+Haberman (1972) is used for fitting the model.  At most <code>iter</code>
+iterations are performed, convergence is taken to occur when the
+maximum deviation between observed and fitted margins is less than
+<code>eps</code>.  All internal computations are done in double precision;
+there is no limit on the number of factors (the dimension of the
+table) in the model.
+</p>
+<p>Assuming that there are no structural zeros, both the Likelihood
+Ratio Test and Pearson test statistics have an asymptotic chi-squared
+distribution with <code>df</code> degrees of freedom.
+</p>
+<p>Note that the IPF steps are applied to the factors in the order given
+in <code>margin</code>.  Hence if the model is decomposable and the order
+given in <code>margin</code> is a running intersection property ordering
+then IPF will converge in one iteration.
+</p>
+<p>Package <a href="https://CRAN.R-project.org/package=MASS"><span class="pkg">MASS</span></a> contains <code>loglm</code>, a front-end to
+<code>loglin</code> which allows the log-linear model to be specified and
+fitted in a formula-based manner similar to that of other fitting
+functions such as <code>lm</code> or <code>glm</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list with the following components.
+</p>
+<table summary="R valueblock">
+<tr valign="top"><td><code>lrt</code></td>
+<td>
+<p>the Likelihood Ratio Test statistic.</p>
+</td></tr>
+<tr valign="top"><td><code>pearson</code></td>
+<td>
+<p>the Pearson test statistic (X-squared).</p>
+</td></tr>
+<tr valign="top"><td><code>df</code></td>
+<td>
+<p>the degrees of freedom for the fitted model.  There is no
+adjustment for structural zeros.</p>
+</td></tr>
+<tr valign="top"><td><code>margin</code></td>
+<td>
+<p>list of the margins that were fit.  Basically the same
+as the input <code>margin</code>, but with numbers replaced by names
+where possible.</p>
+</td></tr>
+<tr valign="top"><td><code>fit</code></td>
+<td>
+<p>An array like <code>table</code> containing the fitted values.
+Only returned if <code>fit</code> is <code>TRUE</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>param</code></td>
+<td>
+<p>A list containing the estimated parameters of the
+model.  The &lsquo;standard&rsquo; constraints of zero marginal sums
+(e.g., zero row and column sums for a two factor parameter) are
+employed.  Only returned if <code>param</code> is <code>TRUE</code>.</p>
+</td></tr>
+</table>
+
+
+<h3>Author(s)</h3>
+
+<p>Kurt Hornik</p>
+
+
+<h3>References</h3>
+
+<p>Becker, R. A., Chambers, J. M. and Wilks, A. R. (1988).
+<em>The New S Language</em>.
+Wadsworth &amp; Brooks/Cole.
+</p>
+<p>Haberman, S. J. (1972).
+Algorithm AS 51: Log-linear fit for contingency tables.
+<em>Applied Statistics</em>, <b>21</b>, 218&ndash;225.
+doi: <a href="https://doi.org/10.2307/2346506">10.2307/2346506</a>.
+</p>
+<p>Agresti, A. (1990).
+<em>Categorical data analysis</em>.
+New York: Wiley.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="../../base/html/table.html">table</a></code>.
+</p>
+<p><code><a href="../../MASS/html/loglm.html">loglm</a></code> in package <a href="https://CRAN.R-project.org/package=MASS"><span class="pkg">MASS</span></a> for a
+user-friendly wrapper.
+</p>
+<p><code><a href="glm.html">glm</a></code> for another way to fit log-linear models.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Model of joint independence of sex from hair and eye color.
+fm &lt;- loglin(HairEyeColor, list(c(1, 2), c(1, 3), c(2, 3)))
+fm
+1 - pchisq(fm$lrt, fm$df)
+## Model with no three-factor interactions fits well.
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>stats</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

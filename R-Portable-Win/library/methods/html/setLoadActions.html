@@ -1,0 +1,194 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Set Actions For Package Loading</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for setLoadActions {methods}"><tr><td>setLoadActions {methods}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>
+Set Actions For Package Loading
+</h2>
+
+<h3>Description</h3>
+
+<p>These functions provide a mechanism for packages to specify
+computations to be done during the loading of a package namespace.
+Such actions are a flexible way to provide information only available at
+load time (such as locations in a dynamically linked library).
+</p>
+<p>A call to <code>setLoadAction()</code> or <code>setLoadActions()</code> specifies
+one or more functions to be called when the corresponding namespace is
+loaded, with the ... argument names being used as identifying
+names for the actions.
+</p>
+<p><code>getLoadActions</code> reports the currently defined load actions,
+given a package's namespace as its argument.
+</p>
+<p><code>hasLoadAction</code> returns <code>TRUE</code> if a load action
+corresponding to the given name has previously been set for the
+<code>where</code> namespace.
+</p>
+<p><code>evalOnLoad()</code> and <code>evalqOnLoad()</code> schedule a specific
+expression for evaluation at load time.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+setLoadAction(action, aname=, where=)
+
+setLoadActions(..., .where=)
+
+getLoadActions(where=)
+
+hasLoadAction(aname, where=)
+
+evalOnLoad(expr, where=, aname=)
+
+evalqOnLoad(expr, where=, aname=)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>action, ...</code></td>
+<td>
+
+<p>functions of one or more arguments, to be called when this package is
+loaded. The functions will be called with one argument (the package
+namespace) so all following arguments must have default values.
+</p>
+<p>If the elements of ... are named, these names will be used for the
+corresponding load metadata.
+</p>
+</td></tr>
+<tr valign="top"><td><code>where, .where</code></td>
+<td>
+
+<p>the namespace of the package for which the list of load actions are
+defined. This argument is normally omitted if the call comes from the
+source code for the package itself, but will be needed if a package
+supplies load actions for another package.
+</p>
+</td></tr>
+<tr valign="top"><td><code>aname</code></td>
+<td>
+<p>the name for the action.  If an action is set without
+supplying a name,  the default uses the position in the sequence of
+actions specified (<code>".1"</code>, etc.).
+</p>
+</td></tr>
+<tr valign="top"><td><code>expr</code></td>
+<td>
+<p>an expression to be evaluated in a load action in
+environment <code>where</code>.  In the case of <code>evalqOnLoad()</code>,
+the expression is interpreted literally, in that of
+<code>evalOnLoad()</code> it must be precomputed, typically as an object
+of type <code>"language"</code>.
+</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>The <code>evalOnLoad()</code> and <code>evalqOnLoad()</code> functions are for
+convenience.  They construct a function to evaluate the expression and
+call <code>setLoadAction()</code> to schedule a call to that function.
+</p>
+<p>Each of the functions supplied as an argument to <code>setLoadAction()</code>
+or <code>setLoadActions()</code> is saved as metadata in the namespace,
+typically that of the package containing the call to
+<code>setLoadActions()</code>.  When this package's namespace is loaded, each
+of these functions will be called.  Action functions are called in the
+order they are supplied to <code>setLoadActions()</code>.  The objects
+assigned have metadata names constructed from the names supplied in the
+call; unnamed arguments are taken to be named by their position in the
+list of actions (<code>".1"</code>, etc.).
+</p>
+<p>Multiple calls to <code>setLoadAction()</code> or <code>setLoadActions()</code>
+can be used in a package's code; the actions will be scheduled after any
+previously specified, except if the name given to <code>setLoadAction()</code>
+is that of an existing action.  In typical applications,
+<code>setLoadActions()</code> is more convenient when calling from the
+package's own code to set several actions.  Calls to
+<code>setLoadAction()</code> are more convenient if the action name is to be
+constructed, which is more typical when one package constructs load
+actions for another package.
+</p>
+<p>Actions can be revised by assigning with the same name, actual or
+constructed, in a subsequent call.  The replacement must still be a
+valid function, but can of course do nothing if the intention was to
+remove a previously specified action.
+</p>
+<p>The functions must have at least one argument.  They will be called with
+one argument, the namespace of the package.  The functions will be
+called at the end of processing of S4 metadata, after dynamically
+linking any compiled code, the call to <code>.onLoad()</code>, if any, and
+caching method and class definitions, but before the namespace is
+sealed.  (Load actions are only called if methods dispatch is on.)
+</p>
+<p>Functions may therefore assign or modify objects in the namespace
+supplied as the argument in the call.  The mechanism allows packages
+to save information not available until load time, such as values
+obtained from a dynamically linked library.
+</p>
+<p>Load actions should be contrasted with user load hooks supplied by
+<code><a href="../../base/html/userhooks.html">setHook</a>()</code>.  User hooks are generally provided from
+outside the package and are run after the namespace has been sealed.
+Load actions are normally part of the package code, and the list of
+actions is normally established when the package is installed.
+</p>
+<p>Load actions can be supplied directly in the source code for a
+package.  It is also possible and useful to provide facilities in one
+package to create load actions in another package.  The software needs
+to be careful to assign the action functions in the correct
+environment, namely the namespace of the target package.
+</p>
+
+
+<h3>Value</h3>
+
+  
+<p><code>setLoadAction()</code> and <code>setLoadActions()</code> are called for
+their side effect and return no useful value.
+</p>
+<p><code>getLoadActions()</code> returns a named list of the actions in the
+supplied namespace.
+</p>
+<p><code>hasLoadAction()</code> returns <code>TRUE</code> if the specified action
+name appears in the actions for this package.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="../../base/html/userhooks.html">setHook</a></code> for safer (since they are run after the
+namespace is sealed) and more comprehensive versions in the
+base package.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Not run: 
+## in the code for some package
+
+## ... somewhere else
+setLoadActions(function(ns)
+   cat("Loaded package", sQuote(getNamespaceName(ns)),
+       "at", format(Sys.time()), "\n"),
+  setCount = function(ns) assign("myCount", 1, envir = ns),
+  function(ns) assign("myPointer", getMyExternalPointer(), envir = ns))
+  ... somewhere later
+if(countShouldBe0)
+  setLoadAction(function(ns) assign("myCount", 0, envir = ns), "setCount")
+
+## End(Not run)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>methods</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

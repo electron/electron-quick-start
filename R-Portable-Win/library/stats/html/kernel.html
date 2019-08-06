@@ -1,0 +1,151 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Smoothing Kernel Objects</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for kernel {stats}"><tr><td>kernel {stats}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Smoothing Kernel Objects</h2>
+
+<h3>Description</h3>
+
+<p>The <code>"tskernel"</code> class is designed to represent discrete
+symmetric normalized smoothing kernels.  These kernels can be used to
+smooth vectors, matrices, or time series objects.
+</p>
+<p>There are <code><a href="../../base/html/print.html">print</a></code>, <code><a href="../../graphics/html/plot.html">plot</a></code> and <code><a href="../../base/html/Extract.html">[</a></code>
+methods for these kernel objects.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+kernel(coef, m = 2, r, name)
+
+df.kernel(k)
+bandwidth.kernel(k)
+is.tskernel(k)
+
+## S3 method for class 'tskernel'
+plot(x, type = "h", xlab = "k", ylab = "W[k]",
+     main = attr(x,"name"), ...)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>coef</code></td>
+<td>
+<p>the upper half of the smoothing kernel coefficients
+(including coefficient zero) <em>or</em> the name of a kernel
+(currently <code>"daniell"</code>, <code>"dirichlet"</code>, <code>"fejer"</code> or
+<code>"modified.daniell"</code>).</p>
+</td></tr>
+<tr valign="top"><td><code>m</code></td>
+<td>
+<p>the kernel dimension(s) if <code>coef</code> is a name.  When <code>m</code>
+has length larger than one, it means the convolution of
+kernels of dimension <code>m[j]</code>, for <code>j in 1:length(m)</code>.
+Currently this is supported only for the named &quot;*daniell&quot; kernels.</p>
+</td></tr>
+<tr valign="top"><td><code>name</code></td>
+<td>
+<p>the name the kernel will be called.</p>
+</td></tr>
+<tr valign="top"><td><code>r</code></td>
+<td>
+<p>the kernel order for a Fejer kernel.</p>
+</td></tr>
+<tr valign="top"><td><code>k, x</code></td>
+<td>
+<p>a <code>"tskernel"</code> object.</p>
+</td></tr>
+<tr valign="top"><td><code>type, xlab, ylab, main, ...</code></td>
+<td>
+<p>arguments passed to
+<code><a href="../../graphics/html/plot.default.html">plot.default</a></code>.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p><code>kernel</code> is used to construct a general kernel or named specific
+kernels.  The modified Daniell kernel halves the end coefficients (as
+used by S-PLUS).
+</p>
+<p>The <code><a href="../../base/html/Extract.html">[</a></code> method allows natural indexing of kernel objects
+with indices in <code>(-m) : m</code>.  The normalization is such that for
+<code>k &lt;- kernel(*)</code>, <code>sum(k[ -k$m : k$m ])</code> is one.
+</p>
+<p><code>df.kernel</code> returns the &lsquo;equivalent degrees of freedom&rsquo; of
+a smoothing kernel as defined in Brockwell and Davis (1991), page
+362, and <code>bandwidth.kernel</code> returns the equivalent bandwidth as
+defined in Bloomfield (1976), p. 201, with a continuity correction.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>kernel()</code> returns an object of class <code>"tskernel"</code> which is
+basically a list with the two components <code>coef</code> and the kernel
+dimension <code>m</code>.  An additional attribute is <code>"name"</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>A. Trapletti; modifications by B.D. Ripley</p>
+
+
+<h3>References</h3>
+
+<p>Bloomfield, P. (1976)
+<em>Fourier Analysis of Time Series: An Introduction.</em>
+Wiley.
+</p>
+<p>Brockwell, P.J. and Davis, R.A. (1991)
+<em>Time Series: Theory and Methods.</em>
+Second edition. Springer, pp. 350&ndash;365.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="kernapply.html">kernapply</a></code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+require(graphics)
+
+## Demonstrate a simple trading strategy for the
+## financial time series German stock index DAX.
+x &lt;- EuStockMarkets[,1]
+k1 &lt;- kernel("daniell", 50)  # a long moving average
+k2 &lt;- kernel("daniell", 10)  # and a short one
+plot(k1)
+plot(k2)
+x1 &lt;- kernapply(x, k1)
+x2 &lt;- kernapply(x, k2)
+plot(x)
+lines(x1, col = "red")    # go long if the short crosses the long upwards
+lines(x2, col = "green")  # and go short otherwise
+
+## More interesting kernels
+kd &lt;- kernel("daniell", c(3, 3))
+kd # note the unusual indexing
+kd[-2:2]
+plot(kernel("fejer", 100, r = 6))
+plot(kernel("modified.daniell", c(7,5,3)))
+
+# Reproduce example 10.4.3 from Brockwell and Davis (1991)
+spectrum(sunspot.year, kernel = kernel("daniell", c(11,7,3)), log = "no")
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>stats</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

@@ -44,7 +44,7 @@ class __CLASS__ : public std::exception {                                       
 
 template <typename... Args>
 inline void warning(const char* fmt, Args&&... args ) {
-    Rf_warning( tfm::format(fmt, std::forward<Args>(args)... ).c_str() );
+    Rf_warning("%s", tfm::format(fmt, std::forward<Args>(args)... ).c_str());
 }
 
 template <typename... Args>

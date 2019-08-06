@@ -1,0 +1,130 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Extract or Replace Matched Substrings</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for regmatches {base}"><tr><td>regmatches {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Extract or Replace Matched Substrings</h2>
+
+<h3>Description</h3>
+
+<p>Extract or replace matched substrings from match data obtained by
+<code><a href="grep.html">regexpr</a></code>, <code><a href="grep.html">gregexpr</a></code> or
+<code><a href="grep.html">regexec</a></code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+regmatches(x, m, invert = FALSE)
+regmatches(x, m, invert = FALSE) &lt;- value
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>a character vector</p>
+</td></tr>
+<tr valign="top"><td><code>m</code></td>
+<td>
+<p>an object with match data</p>
+</td></tr>
+<tr valign="top"><td><code>invert</code></td>
+<td>
+<p>a logical: if <code>TRUE</code>, extract or replace the
+non-matched substrings.</p>
+</td></tr>
+<tr valign="top"><td><code>value</code></td>
+<td>
+<p>an object with suitable replacement values for the
+matched or non-matched substrings (see <code>Details</code>).</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>If <code>invert</code> is <code>FALSE</code> (default), <code>regmatches</code> extracts
+the matched substrings as specified by the match data.  For vector
+match data (as obtained from <code><a href="grep.html">regexpr</a></code>), empty matches are
+dropped; for list match data, empty matches give empty components
+(zero-length character vectors).
+</p>
+<p>If <code>invert</code> is <code>TRUE</code>, <code>regmatches</code> extracts the
+non-matched substrings, i.e., the strings are split according to the
+matches similar to <code><a href="strsplit.html">strsplit</a></code> (for vector match data, at
+most a single split is performed).
+</p>
+<p>If <code>invert</code> is <code>NA</code>, <code>regmatches</code> extracts both
+non-matched and matched substrings, always starting and ending with a
+non-match (empty if the match occurred at the beginning or the end,
+respectively).
+</p>
+<p>Note that the match data can be obtained from regular expression
+matching on a modified version of <code>x</code> with the same numbers of
+characters.
+</p>
+<p>The replacement function can be used for replacing the matched or
+non-matched substrings.  For vector match data, if <code>invert</code> is
+<code>FALSE</code>, <code>value</code> should be a character vector with length the
+number of matched elements in <code>m</code>.  Otherwise, it should be a
+list of character vectors with the same length as <code>m</code>, each as
+long as the number of replacements needed.  Replacement coerces values
+to character or list and generously recycles values as needed.
+Missing replacement values are not allowed.
+</p>
+
+
+<h3>Value</h3>
+
+<p>For <code>regmatches</code>, a character vector with the matched substrings
+if <code>m</code> is a vector and <code>invert</code> is <code>FALSE</code>.  Otherwise,
+a list with the matched or/and non-matched substrings.
+</p>
+<p>For <code>regmatches&lt;-</code>, the updated character vector.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+x &lt;- c("A and B", "A, B and C", "A, B, C and D", "foobar")
+pattern &lt;- "[[:space:]]*(,|and)[[:space:]]"
+## Match data from regexpr()
+m &lt;- regexpr(pattern, x)
+regmatches(x, m)
+regmatches(x, m, invert = TRUE)
+## Match data from gregexpr()
+m &lt;- gregexpr(pattern, x)
+regmatches(x, m)
+regmatches(x, m, invert = TRUE)
+
+## Consider
+x &lt;- "John (fishing, hunting), Paul (hiking, biking)"
+## Suppose we want to split at the comma (plus spaces) between the
+## persons, but not at the commas in the parenthesized hobby lists.
+## One idea is to "blank out" the parenthesized parts to match the
+## parts to be used for splitting, and extract the persons as the
+## non-matched parts.
+## First, match the parenthesized hobby lists.
+m &lt;- gregexpr("\\([^)]*\\)", x)
+## Create blank strings with given numbers of characters.
+blanks &lt;- function(n) strrep(" ", n)
+## Create a copy of x with the parenthesized parts blanked out.
+s &lt;- x
+regmatches(s, m) &lt;- Map(blanks, lapply(regmatches(s, m), nchar))
+s
+## Compute the positions of the split matches (note that we cannot call
+## strsplit() on x with match data from s).
+m &lt;- gregexpr(", *", s)
+## And finally extract the non-matched parts.
+regmatches(x, m, invert = TRUE)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

@@ -1,0 +1,129 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Scatter Plot Smoothing</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for lowess {stats}"><tr><td>lowess {stats}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Scatter Plot Smoothing</h2>
+
+<h3>Description</h3>
+
+<p>This function performs the computations for the
+<em>LOWESS</em> smoother which uses locally-weighted polynomial
+regression (see the references).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+lowess(x, y = NULL, f = 2/3, iter = 3, delta = 0.01 * diff(range(x)))
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x, y</code></td>
+<td>
+<p>vectors giving the coordinates of the points in the scatter plot.
+Alternatively a single plotting structure can be specified &ndash; see
+<code><a href="../../grDevices/html/xy.coords.html">xy.coords</a></code>.</p>
+</td></tr>
+<tr valign="top"><td><code>f</code></td>
+<td>
+<p>the smoother span. This gives the proportion of points in
+the plot which influence the smooth at each value.
+Larger values give more smoothness.</p>
+</td></tr>
+<tr valign="top"><td><code>iter</code></td>
+<td>
+<p>the number of &lsquo;robustifying&rsquo; iterations which should be
+performed.
+Using smaller values of <code>iter</code> will make <code>lowess</code> run faster.</p>
+</td></tr>
+<tr valign="top"><td><code>delta</code></td>
+<td>
+<p>See &lsquo;Details&rsquo;.  Defaults to 1/100th of the range
+of <code>x</code>.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p><code>lowess</code> is defined by a complex algorithm, the Ratfor original
+of which (by W. S. Cleveland) can be found in the <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> sources as file
+&lsquo;<span class="file">src/appl/lowess.doc</span>&rsquo;.  Normally a local linear polynomial fit is
+used, but under some circumstances (see the file) a local constant fit
+can be used.  &lsquo;Local&rsquo; is defined by the distance to the
+<code>floor(f*n)</code>th nearest neighbour, and tricubic weighting is used
+for <code>x</code> which fall within the neighbourhood.
+</p>
+<p>The initial fit is done using weighted least squares.  If
+<code>iter &gt; 0</code>, further weighted fits are done using the product of
+the weights from the proximity of the <code>x</code> values and case weights
+derived from the residuals at the previous iteration.  Specifically,
+the case weight is Tukey's biweight, with cutoff 6 times the MAD of the
+residuals.  (The current <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> implementation differs from the original
+in stopping iteration if the MAD is effectively zero since the
+algorithm is highly unstable in that case.)
+</p>
+<p><code>delta</code> is used to speed up computation: instead of computing the
+local polynomial fit at each data point it is not computed for points
+within <code>delta</code> of the last computed point, and linear
+interpolation is used to fill in the fitted values for the skipped
+points.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>lowess</code> returns a list containing components
+<code>x</code> and <code>y</code> which give the coordinates of the smooth.
+The smooth can be added to a plot of the original
+points with the function <code>lines</code>: see the examples.
+</p>
+
+
+<h3>References</h3>
+
+<p>Becker, R. A., Chambers, J. M. and Wilks, A. R. (1988).
+<em>The New S Language</em>.
+Wadsworth &amp; Brooks/Cole.
+</p>
+<p>Cleveland, W. S. (1979).
+Robust locally weighted regression and smoothing scatterplots.
+<em>Journal of the American Statistical Association</em>, <b>74</b>,
+829&ndash;836.
+doi: <a href="https://doi.org/10.1080/01621459.1979.10481038">10.1080/01621459.1979.10481038</a>.
+</p>
+<p>Cleveland, W. S. (1981)
+LOWESS: A program for smoothing scatterplots by robust locally
+weighted regression.
+<em>The American Statistician</em>, <b>35</b>, 54.
+doi: <a href="https://doi.org/10.2307/2683591">10.2307/2683591</a>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="loess.html">loess</a></code>, a newer
+formula based version of <code>lowess</code> (with different defaults!).
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+require(graphics)
+
+plot(cars, main = "lowess(cars)")
+lines(lowess(cars), col = 2)
+lines(lowess(cars, f = .2), col = 3)
+legend(5, 120, c(paste("f = ", c("2/3", ".2"))), lty = 1, col = 2:3)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>stats</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

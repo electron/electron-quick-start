@@ -1,0 +1,226 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: References to Source Files and Code</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for srcfile {base}"><tr><td>srcfile {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>References to Source Files and Code</h2>
+
+<h3>Description</h3>
+
+<p>These functions are for working with source files and more generally
+with &ldquo;source references&rdquo; (<code>"srcref"</code>), i.e., references to
+source code.  The resulting data is used for printing and source level
+debugging, and is typically available in interactive <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> sessions,
+namely when <code><a href="options.html">options</a>(keep.source = TRUE)</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+srcfile(filename, encoding = getOption("encoding"), Enc = "unknown")
+srcfilecopy(filename, lines, timestamp = Sys.time(), isFile = FALSE)
+srcfilealias(filename, srcfile)
+getSrcLines(srcfile, first, last)
+srcref(srcfile, lloc)
+## S3 method for class 'srcfile'
+print(x, ...)
+## S3 method for class 'srcfile'
+summary(object, ...)
+## S3 method for class 'srcfile'
+open(con, line, ...)
+## S3 method for class 'srcfile'
+close(con, ...)
+## S3 method for class 'srcref'
+print(x, useSource = TRUE, ...)
+## S3 method for class 'srcref'
+summary(object, useSource = FALSE, ...)
+## S3 method for class 'srcref'
+as.character(x, useSource = TRUE, to = x, ...)
+.isOpen(srcfile)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>filename</code></td>
+<td>
+<p> The name of a file. </p>
+</td></tr>
+<tr valign="top"><td><code>encoding</code></td>
+<td>
+<p> The character encoding to assume for the file. </p>
+</td></tr>
+<tr valign="top"><td><code>Enc</code></td>
+<td>
+<p> The encoding with which to make strings: see the
+<code>encoding</code> argument of <code><a href="parse.html">parse</a></code>.</p>
+</td></tr>
+<tr valign="top"><td><code>lines</code></td>
+<td>
+<p> A character vector of source lines.  Other <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> objects
+will be coerced to character. </p>
+</td></tr>
+<tr valign="top"><td><code>timestamp</code></td>
+<td>
+<p> The timestamp to use on a copy of a file. </p>
+</td></tr>
+<tr valign="top"><td><code>isFile</code></td>
+<td>
+<p> Is this <code>srcfilecopy</code> known to come from a file system file? </p>
+</td></tr>
+<tr valign="top"><td><code>srcfile</code></td>
+<td>
+<p> A <code>srcfile</code> object. </p>
+</td></tr>
+<tr valign="top"><td><code>first, last, line</code></td>
+<td>
+<p> Line numbers. </p>
+</td></tr>
+<tr valign="top"><td><code>lloc</code></td>
+<td>
+<p> A vector of four, six or eight values giving a source location; see
+&lsquo;Details&rsquo;.</p>
+</td></tr>
+<tr valign="top"><td><code>x, object, con</code></td>
+<td>
+<p> An object of the appropriate class. </p>
+</td></tr>
+<tr valign="top"><td><code>useSource</code></td>
+<td>
+<p> Whether to read the <code>srcfile</code> to obtain the
+text of a <code>srcref</code>. </p>
+</td></tr>
+<tr valign="top"><td><code>to</code></td>
+<td>
+<p> An optional second <code>srcref</code> object to mark the end
+of the character range. </p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p> Additional arguments to the methods; these will be ignored. </p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>These functions and classes handle source code references.
+</p>
+<p>The <code>srcfile</code> function produces an object of class
+<code>srcfile</code>, which contains the name and directory of a source code
+file, along with its timestamp, for use in source level debugging (not
+yet implemented) and source echoing.  The encoding of the file is
+saved; see <code><a href="connections.html">file</a></code> for a discussion of encodings, and
+<code><a href="iconv.html">iconvlist</a></code> for a list of allowable encodings on your platform.
+</p>
+<p>The <code>srcfilecopy</code> function produces an object of the descendant
+class <code>srcfilecopy</code>, which saves the source lines in a character
+vector.  It copies the value of the <code>isFile</code> argument, to help
+debuggers identify whether this text comes from a real file in the
+file system.
+</p>
+<p>The <code>srcfilealias</code> function produces an object of the descendant
+class <code>srcfilealias</code>, which gives an alternate name to another
+srcfile.  This is produced by the parser when a <code>#line</code> directive
+is used.
+</p>
+<p>The <code>getSrcLines</code> function reads the specified lines from
+<code>srcfile</code>.
+</p>
+<p>The <code>srcref</code> function produces an object of class
+<code>srcref</code>, which describes a range of characters in a
+<code>srcfile</code>.
+The <code>lloc</code> value gives the following values:
+</p>
+<pre>c(first_line, first_byte, last_line, last_byte, first_column,
+  last_column, first_parsed, last_parsed)
+</pre>
+<p>Bytes (elements 2, 4) and
+columns (elements 5, 6) may be different due to multibyte
+characters.  If only four values are given, the columns and bytes
+are assumed to match.  Lines (elements 1, 3) and parsed lines
+(elements 7, 8) may differ if a <code>#line</code> directive is used in
+code:  the former will respect the directive, the latter will just
+count lines.  If only 4 or 6 elements are given, the parsed lines
+will be assumed to match the lines.
+</p>
+<p>Methods are defined for <code>print</code>, <code>summary</code>, <code>open</code>,
+and <code>close</code> for classes <code>srcfile</code> and <code>srcfilecopy</code>.
+The <code>open</code> method opens its internal <code><a href="connections.html">file</a></code> connection at
+a particular line; if it was already open, it will be repositioned
+to that line.
+</p>
+<p>Methods are defined for <code>print</code>, <code>summary</code> and
+<code>as.character</code> for class <code>srcref</code>.  The <code>as.character</code>
+method will read the associated source file to obtain the text
+corresponding to the reference.  If the <code>to</code> argument is given,
+it should be a second <code>srcref</code> that follows the first, in the
+same file; they will be treated as one reference to the whole
+range.  The exact behaviour depends on the
+class of the source file.  If the source file inherits from
+class <code>srcfilecopy</code>, the lines are taken from the saved copy
+using the &ldquo;parsed&rdquo; line counts.  If not, an attempt
+is made to read the file, and the original line numbers of the
+<code>srcref</code> record (i.e., elements 1 and 3) are used.  If an error
+occurs (e.g., the file no longer exists), text like
+<code>&lt;srcref: "file" chars 1:1 to 2:10&gt;</code> will be returned instead,
+indicating the <code>line:column</code> ranges of the first and last
+character.  The <code>summary</code> method defaults to this type of
+display.
+</p>
+<p>Lists of <code>srcref</code> objects may be attached to expressions as the
+<code>"srcref"</code> attribute.  (The list of <code>srcref</code> objects should be the same
+length as the expression.)  By default, expressions are printed by
+<code><a href="print.default.html">print.default</a></code> using the associated <code>srcref</code>.  To
+see deparsed code instead, call <code><a href="print.html">print</a></code> with argument
+<code>useSource = FALSE</code>.  If a <code>srcref</code> object
+is printed with <code>useSource = FALSE</code>, the <code>&lt;srcref: ...&gt;</code>
+record will be printed.
+</p>
+<p><code>.isOpen</code> is intended for internal use:  it checks whether the
+connection associated with a <code>srcfile</code> object is open.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>srcfile</code> returns a <code>srcfile</code> object.
+</p>
+<p><code>srcfilecopy</code> returns a <code>srcfilecopy</code> object.
+</p>
+<p><code>getSrcLines</code> returns a character vector of source code lines.
+</p>
+<p><code>srcref</code> returns a <code>srcref</code> object.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Duncan Murdoch</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="../../utils/html/sourceutils.html">getSrcFilename</a></code> for extracting information from a source
+reference, or <code><a href="../../utils/html/removeSource.html">removeSource</a></code> to remove it from a
+(non-primitive) function (aka &lsquo;closure&rsquo;).
+</p>
+
+
+<h3>Examples</h3>
+
+<pre> # has timestamp
+src &lt;- srcfile(system.file("DESCRIPTION", package = "base"))
+summary(src)
+getSrcLines(src, 1, 4)
+ref &lt;- srcref(src, c(1, 1, 2, 1000))
+ref
+print(ref, useSource = FALSE)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

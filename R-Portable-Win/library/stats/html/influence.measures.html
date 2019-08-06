@@ -1,0 +1,286 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Regression Deletion Diagnostics</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for influence.measures {stats}"><tr><td>influence.measures {stats}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Regression Deletion Diagnostics</h2>
+
+<h3>Description</h3>
+
+<p>This suite of functions can be used to compute some of the regression
+(leave-one-out deletion) diagnostics for linear and generalized linear
+models discussed in Belsley, Kuh and Welsch (1980), Cook and Weisberg (1982),
+etc.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+influence.measures(model, infl = influence(model))
+
+rstandard(model, ...)
+## S3 method for class 'lm'
+rstandard(model, infl = lm.influence(model, do.coef = FALSE),
+          sd = sqrt(deviance(model)/df.residual(model)),
+          type = c("sd.1", "predictive"), ...)
+## S3 method for class 'glm'
+rstandard(model, infl = influence(model, do.coef = FALSE),
+          type = c("deviance", "pearson"), ...)
+
+rstudent(model, ...)
+## S3 method for class 'lm'
+rstudent(model, infl = lm.influence(model, do.coef = FALSE),
+         res = infl$wt.res, ...)
+## S3 method for class 'glm'
+rstudent(model, infl = influence(model, do.coef = FALSE), ...)
+
+dffits(model, infl = , res = )
+
+dfbeta(model, ...)
+## S3 method for class 'lm'
+dfbeta(model, infl = lm.influence(model, do.coef = TRUE), ...)
+
+dfbetas(model, ...)
+## S3 method for class 'lm'
+dfbetas(model, infl = lm.influence(model, do.coef = TRUE), ...)
+
+covratio(model, infl = lm.influence(model, do.coef = FALSE),
+         res = weighted.residuals(model))
+
+cooks.distance(model, ...)
+## S3 method for class 'lm'
+cooks.distance(model, infl = lm.influence(model, do.coef = FALSE),
+               res = weighted.residuals(model),
+               sd = sqrt(deviance(model)/df.residual(model)),
+               hat = infl$hat, ...)
+## S3 method for class 'glm'
+cooks.distance(model, infl = influence(model, do.coef = FALSE),
+               res = infl$pear.res,
+               dispersion = summary(model)$dispersion,
+               hat = infl$hat, ...)
+
+hatvalues(model, ...)
+## S3 method for class 'lm'
+hatvalues(model, infl = lm.influence(model, do.coef = FALSE), ...)
+
+hat(x, intercept = TRUE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>model</code></td>
+<td>
+<p>an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> object, typically returned by <code><a href="lm.html">lm</a></code> or
+<code><a href="glm.html">glm</a></code>.</p>
+</td></tr>
+<tr valign="top"><td><code>infl</code></td>
+<td>
+<p>influence structure as returned by
+<code><a href="lm.influence.html">lm.influence</a></code> or <code><a href="lm.influence.html">influence</a></code> (the latter
+only for the <code>glm</code> method of <code>rstudent</code> and
+<code>cooks.distance</code>).</p>
+</td></tr>
+<tr valign="top"><td><code>res</code></td>
+<td>
+<p>(possibly weighted) residuals, with proper default.</p>
+</td></tr>
+<tr valign="top"><td><code>sd</code></td>
+<td>
+<p>standard deviation to use, see default.</p>
+</td></tr>
+<tr valign="top"><td><code>dispersion</code></td>
+<td>
+<p>dispersion (for <code><a href="glm.html">glm</a></code> objects) to use,
+see default.</p>
+</td></tr>
+<tr valign="top"><td><code>hat</code></td>
+<td>
+<p>hat values <i>H[i,i]</i>, see default.</p>
+</td></tr>
+<tr valign="top"><td><code>type</code></td>
+<td>
+<p>type of residuals for <code>rstandard</code>, with different
+options and meanings for <code>lm</code> and <code>glm</code>.  Can be
+abbreviated.</p>
+</td></tr>
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>the <i>X</i> or design matrix.</p>
+</td></tr>
+<tr valign="top"><td><code>intercept</code></td>
+<td>
+<p>should an intercept column be prepended to <code>x</code>?</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>further arguments passed to or from other methods.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>The primary high-level function is <code>influence.measures</code> which produces a
+class <code>"infl"</code> object tabular display showing the DFBETAS for
+each model variable, DFFITS, covariance ratios, Cook's distances and
+the diagonal elements of the hat matrix.  Cases which are influential
+with respect to any of these measures are marked with an asterisk.
+</p>
+<p>The functions <code>dfbetas</code>, <code>dffits</code>,
+<code>covratio</code> and <code>cooks.distance</code> provide direct access to the
+corresponding diagnostic quantities.  Functions <code>rstandard</code> and
+<code>rstudent</code> give the standardized and Studentized residuals
+respectively. (These re-normalize the residuals to have unit variance,
+using an overall and leave-one-out measure of the error variance
+respectively.)
+</p>
+<p>Note that for <em>multivariate</em> <code>lm()</code> models (of class
+<code>"mlm"</code>), these functions return 3d arrays instead of matrices,
+or matrices instead of vectors.
+</p>
+<p>Values for generalized linear models are approximations, as described
+in Williams (1987) (except that Cook's distances are scaled as
+<i>F</i> rather than as chi-square values).  The approximations can be
+poor when some cases have large influence.
+</p>
+<p>The optional <code>infl</code>, <code>res</code> and <code>sd</code> arguments are there
+to encourage the use of these direct access functions, in situations
+where, e.g., the underlying basic influence measures (from
+<code><a href="lm.influence.html">lm.influence</a></code> or the generic <code><a href="lm.influence.html">influence</a></code>) are
+already available.
+</p>
+<p>Note that cases with <code>weights == 0</code> are <em>dropped</em> from all
+these functions, but that if a linear model has been fitted with
+<code>na.action = na.exclude</code>, suitable values are filled in for the
+cases excluded during fitting.
+</p>
+<p>For linear models, <code>rstandard(*, type = "predictive")</code> provides
+leave-one-out cross validation residuals, and the &ldquo;PRESS&rdquo;
+statistic (<b>PRE</b>dictive <b>S</b>um of <b>S</b>quares, the same as
+the CV score) of model <code>model</code> is </p>
+<pre>   PRESS &lt;- sum(rstandard(model, type="pred")^2)</pre>
+<p>The function <code>hat()</code> exists mainly for S (version 2)
+compatibility; we recommend using <code>hatvalues()</code> instead.
+</p>
+
+
+<h3>Note</h3>
+
+<p>For <code>hatvalues</code>, <code>dfbeta</code>, and <code>dfbetas</code>, the method
+for linear models also works for generalized linear models.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Several R core team members and John Fox, originally in his &lsquo;<span class="file">car</span>&rsquo;
+package.
+</p>
+
+
+<h3>References</h3>
+
+<p>Belsley, D. A., Kuh, E. and Welsch, R. E. (1980).
+<em>Regression Diagnostics</em>.
+New York: Wiley.
+</p>
+<p>Cook, R. D. and Weisberg, S. (1982).
+<em>Residuals and Influence in Regression</em>.
+London: Chapman and Hall.
+</p>
+<p>Williams, D. A. (1987).
+Generalized linear model diagnostics using the deviance and single
+case deletions.
+<em>Applied Statistics</em>, <b>36</b>, 181&ndash;191.
+doi: <a href="https://doi.org/10.2307/2347550">10.2307/2347550</a>.
+</p>
+<p>Fox, J. (1997).
+<em>Applied Regression, Linear Models, and Related Methods</em>.
+Sage.
+</p>
+<p>Fox, J. (2002)
+<em>An R and S-Plus Companion to Applied Regression</em>.
+Sage Publ.
+</p>
+<p>Fox, J. and Weisberg, S. (2011).
+<em>An R Companion to Applied Regression</em>, second edition.
+Sage Publ;
+<a href="http://socserv.socsci.mcmaster.ca/jfox/Books/Companion/">http://socserv.socsci.mcmaster.ca/jfox/Books/Companion/</a>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="lm.influence.html">influence</a></code> (containing <code><a href="lm.influence.html">lm.influence</a></code>).
+</p>
+<p>&lsquo;<a href="../../grDevices/html/plotmath.html">plotmath</a>&rsquo; for the use of <code>hat</code> in plot annotation.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+require(graphics)
+
+## Analysis of the life-cycle savings data
+## given in Belsley, Kuh and Welsch.
+lm.SR &lt;- lm(sr ~ pop15 + pop75 + dpi + ddpi, data = LifeCycleSavings)
+
+inflm.SR &lt;- influence.measures(lm.SR)
+which(apply(inflm.SR$is.inf, 1, any))
+# which observations 'are' influential
+summary(inflm.SR) # only these
+inflm.SR          # all
+plot(rstudent(lm.SR) ~ hatvalues(lm.SR)) # recommended by some
+plot(lm.SR, which = 5) # an enhanced version of that via plot(&lt;lm&gt;)
+
+## The 'infl' argument is not needed, but avoids recomputation:
+rs &lt;- rstandard(lm.SR)
+iflSR &lt;- influence(lm.SR)
+identical(rs, rstandard(lm.SR, infl = iflSR))
+## to "see" the larger values:
+1000 * round(dfbetas(lm.SR, infl = iflSR), 3)
+cat("PRESS :"); (PRESS &lt;- sum( rstandard(lm.SR, type = "predictive")^2 ))
+stopifnot(all.equal(PRESS, sum( (residuals(lm.SR) / (1 - iflSR$hat))^2)))
+
+## Show that "PRE-residuals"  ==  L.O.O. Crossvalidation (CV) errors:
+X &lt;- model.matrix(lm.SR)
+y &lt;- model.response(model.frame(lm.SR))
+## Leave-one-out CV least-squares prediction errors (relatively fast)
+rCV &lt;- vapply(seq_len(nrow(X)), function(i)
+              y[i] - X[i,] %*% .lm.fit(X[-i,], y[-i])$coef,
+              numeric(1))
+## are the same as the *faster* rstandard(*, "pred") :
+stopifnot(all.equal(rCV, unname(rstandard(lm.SR, type = "predictive"))))
+
+
+## Huber's data [Atkinson 1985]
+xh &lt;- c(-4:0, 10)
+yh &lt;- c(2.48, .73, -.04, -1.44, -1.32, 0)
+lmH &lt;- lm(yh ~ xh)
+summary(lmH)
+im &lt;- influence.measures(lmH)
+ im 
+plot(xh,yh, main = "Huber's data: L.S. line and influential obs.")
+abline(lmH); points(xh[im$is.inf], yh[im$is.inf], pch = 20, col = 2)
+
+## Irwin's data [Williams 1987]
+xi &lt;- 1:5
+yi &lt;- c(0,2,14,19,30)    # number of mice responding to dose xi
+mi &lt;- rep(40, 5)         # number of mice exposed
+glmI &lt;- glm(cbind(yi, mi -yi) ~ xi, family = binomial)
+summary(glmI)
+signif(cooks.distance(glmI), 3)   # ~= Ci in Table 3, p.184
+imI &lt;- influence.measures(glmI)
+ imI 
+stopifnot(all.equal(imI$infmat[,"cook.d"],
+          cooks.distance(glmI)))
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>stats</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

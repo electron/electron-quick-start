@@ -1,0 +1,119 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Design Matrix for B-splines</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for splineDesign {splines}"><tr><td>splineDesign {splines}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Design Matrix for B-splines</h2>
+
+<h3>Description</h3>
+
+<p>Evaluate the design matrix for the B-splines defined by <code>knots</code>
+at the values in <code>x</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+splineDesign(knots, x, ord = 4, derivs, outer.ok = FALSE,
+             sparse = FALSE)
+spline.des  (knots, x, ord = 4, derivs, outer.ok = FALSE,
+             sparse = FALSE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>knots</code></td>
+<td>
+<p>a numeric vector of knot positions (which will be sorted
+increasingly if needed).</p>
+</td></tr>
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>a numeric vector of values at which to evaluate the B-spline
+functions or derivatives.  Unless <code>outer.ok</code> is true, the
+values in <code>x</code> must be between the &ldquo;inner&rdquo; knots
+<code>knots[ord]</code> and <code>knots[ length(knots) - (ord-1)]</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>ord</code></td>
+<td>
+<p>a positive integer giving the order of the spline function.
+This is the number of coefficients in each piecewise polynomial
+segment, thus a cubic spline has order 4.  Defaults to 4.</p>
+</td></tr>
+<tr valign="top"><td><code>derivs</code></td>
+<td>
+<p>an integer vector with values between <code>0</code> and
+<code>ord - 1</code>, conceptually recycled to the length of <code>x</code>.
+The derivative of the given order is evaluated at the <code>x</code>
+positions.  Defaults to zero (or a vector of zeroes of the same
+length as <code>x</code>).</p>
+</td></tr>
+<tr valign="top"><td><code>outer.ok</code></td>
+<td>
+<p>logical indicating if <code>x</code> should be allowed
+outside the <em>inner</em> knots, see the <code>x</code> argument.</p>
+</td></tr>
+<tr valign="top"><td><code>sparse</code></td>
+<td>
+<p>logical indicating if the result should inherit from class
+<code>"<a href="../../Matrix/html/sparseMatrix-class.html">sparseMatrix</a>"</code> (from package <a href="https://CRAN.R-project.org/package=Matrix"><span class="pkg">Matrix</span></a>).</p>
+</td></tr>
+</table>
+
+
+
+<h3>Value</h3>
+
+<p>A matrix with <code>length(x)</code> rows and <code>length(knots) - ord</code>
+columns.  The i'th row of the matrix contains the coefficients of the
+B-splines (or the indicated derivative of the B-splines) defined by
+the <code>knot</code> vector and evaluated at the i'th value of <code>x</code>.
+Each B-spline is defined by a set of <code>ord</code> successive knots so
+the total number of B-splines is <code>length(knots) - ord</code>.
+</p>
+
+
+<h3>Note</h3>
+
+<p>The older <code>spline.des</code> function takes the same arguments but
+returns a list with several components including <code>knots</code>,
+<code>ord</code>, <code>derivs</code>, and <code>design</code>.  The <code>design</code>
+component is the same as the value of the <code>splineDesign</code>
+function.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Douglas Bates and Bill Venables</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+require(graphics)
+splineDesign(knots = 1:10, x = 4:7)
+splineDesign(knots = 1:10, x = 4:7, deriv = 1)
+## visualize band structure
+Matrix::drop0(zapsmall(6*splineDesign(knots = 1:40, x = 4:37, sparse = TRUE)))
+
+knots &lt;- c(1,1.8,3:5,6.5,7,8.1,9.2,10)  # 10 =&gt; 10-4 = 6 Basis splines
+x &lt;- seq(min(knots)-1, max(knots)+1, length.out = 501)
+bb &lt;- splineDesign(knots, x = x, outer.ok = TRUE)
+
+plot(range(x), c(0,1), type = "n", xlab = "x", ylab = "",
+     main =  "B-splines - sum to 1 inside inner knots")
+mtext(expression(B[j](x) *"  and "* sum(B[j](x), j == 1, 6)), adj = 0)
+abline(v = knots, lty = 3, col = "light gray")
+abline(v = knots[c(4,length(knots)-3)], lty = 3, col = "gray10")
+lines(x, rowSums(bb), col = "gray", lwd = 2)
+matlines(x, bb, ylim = c(0,1), lty = 1)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>splines</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

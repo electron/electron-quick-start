@@ -1,0 +1,157 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Abbreviate Strings</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for abbreviate {base}"><tr><td>abbreviate {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Abbreviate Strings</h2>
+
+<h3>Description</h3>
+
+<p>Abbreviate strings to at least <code>minlength</code> characters,
+such that they remain <em>unique</em> (if they were),
+unless <code>strict = TRUE</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+abbreviate(names.arg, minlength = 4, use.classes = TRUE,
+           dot = FALSE, strict = FALSE,
+           method = c("left.kept", "both.sides"), named = TRUE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>names.arg</code></td>
+<td>
+<p>a character vector of names to be abbreviated, or an
+object to be coerced to a character vector by <code><a href="character.html">as.character</a></code>.</p>
+</td></tr>
+<tr valign="top"><td><code>minlength</code></td>
+<td>
+<p>the minimum length of the abbreviations.</p>
+</td></tr>
+<tr valign="top"><td><code>use.classes</code></td>
+<td>
+<p>logical: should lowercase characters be removed first?</p>
+</td></tr>
+<tr valign="top"><td><code>dot</code></td>
+<td>
+<p>logical: should a dot (<code>"."</code>) be appended?</p>
+</td></tr>
+<tr valign="top"><td><code>strict</code></td>
+<td>
+<p>logical: should <code>minlength</code> be observed strictly?
+Note that setting <code>strict = TRUE</code> may return <em>non</em>-unique
+strings.</p>
+</td></tr>
+<tr valign="top"><td><code>method</code></td>
+<td>
+<p>a character string specifying the method used with default
+<code>"left.kept"</code>, see &lsquo;Details&rsquo; below.  Partial matches
+allowed.</p>
+</td></tr>
+<tr valign="top"><td><code>named</code></td>
+<td>
+<p>logical: should <code>names</code> (with original vector) be returned.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>The default algorithm (<code>method = "left.kept"</code>) used is similar
+to that of S.  For a single string it works as follows.
+First spaces at the ends of the string are stripped.
+Then (if necessary) any other spaces are stripped.
+Next, lower case vowels are removed followed by lower case consonants.
+Finally if the abbreviation is still longer than <code>minlength</code>
+upper case letters and symbols are stripped.
+</p>
+<p>Characters are always stripped from the end of the strings first.  If
+an element of <code>names.arg</code> contains more than one word (words are
+separated by spaces) then at least one letter from each word will be
+retained.
+</p>
+<p>Missing (<code>NA</code>) values are unaltered.
+</p>
+<p>If <code>use.classes</code> is <code>FALSE</code> then the only distinction is to
+be between letters and space.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A character vector containing abbreviations for the character strings
+in its first argument.  Duplicates in the original <code>names.arg</code>
+will be given identical abbreviations.  If any non-duplicated elements
+have the same <code>minlength</code> abbreviations then, if <code>method =
+  "both.sides"</code> the basic internal <code>abbreviate()</code> algorithm is
+applied to the characterwise <em>reversed</em> strings; if there are
+still duplicated abbreviations and if <code>strict = FALSE</code> as by
+default, <code>minlength</code> is incremented by one and new abbreviations
+are found for those elements only.  This process is repeated until all
+unique elements of <code>names.arg</code> have unique abbreviations.
+</p>
+<p>If <code>names</code> is true, the character version of <code>names.arg</code> is
+attached to the returned value as a <code><a href="names.html">names</a></code> attribute: no
+other attributes are retained.
+</p>
+<p>If a input element contains non-ASCII characters, the corresponding
+value will be in UTF-8 and marked as such (see <code><a href="Encoding.html">Encoding</a></code>).
+</p>
+
+
+<h3>Warning</h3>
+
+<p>If <code>use.classes</code> is true (the default), this is really only
+suitable for English, and prior to <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> 3.3.0 did not work correctly
+with non-ASCII characters in multibyte locales.  It will warn if used
+with non-ASCII characters (and required to reduce the length).
+</p>
+<p>As from <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> 3.3.0 the concept of &lsquo;vowel&rsquo; is extended from
+English vowels by including characters which are accented versions of
+lower-case English vowels (including &lsquo;o with stroke&rsquo;).  Of
+course, there are languages (even Western European languages such as
+Welsh) with other vowels.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="substr.html">substr</a></code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+x &lt;- c("abcd", "efgh", "abce")
+abbreviate(x, 2)
+abbreviate(x, 2, strict = TRUE) # &gt;&gt; 1st and 3rd are == "ab"
+
+(st.abb &lt;- abbreviate(state.name, 2))
+stopifnot(identical(unname(st.abb),
+           abbreviate(state.name, 2, named=FALSE)))
+table(nchar(st.abb)) # out of 50, 3 need 4 letters :
+as &lt;- abbreviate(state.name, 3, strict = TRUE)
+as[which(as == "Mss")]
+
+## and without distinguishing vowels:
+st.abb2 &lt;- abbreviate(state.name, 2, FALSE)
+cbind(st.abb, st.abb2)[st.abb2 != st.abb, ]
+
+## method = "both.sides" helps:  no 4-letters, and only 4 3-letters:
+st.ab2 &lt;- abbreviate(state.name, 2, method = "both")
+table(nchar(st.ab2))
+## Compare the two methods:
+cbind(st.abb, st.ab2)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

@@ -3,8 +3,8 @@
 ###################################################
 ### code chunk number 1: multi.Rnw:32-75
 ###################################################
-require(survival)
-#require(Rcolorbrewer)
+library(survival)
+#library(Rcolorbrewer)
 #brewer.pal(5, "Dark2")
 palette(c("#000000", "#D95F02", "#1B9E77", "#7570B3", "#E7298A", "#66A61E"))
 options(continue=' ')

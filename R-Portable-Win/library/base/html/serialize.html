@@ -1,0 +1,149 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Simple Serialization Interface</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for serialize {base}"><tr><td>serialize {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Simple Serialization Interface</h2>
+
+<h3>Description</h3>
+
+<p>A simple low-level interface for serializing to connections.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+serialize(object, connection, ascii, xdr = TRUE,
+          version = NULL, refhook = NULL)
+
+unserialize(connection, refhook = NULL)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>object</code></td>
+<td>
+<p><span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> object to serialize.</p>
+</td></tr>
+<tr valign="top"><td><code>connection</code></td>
+<td>
+<p>an open <a href="connections.html">connection</a> or (for <code>serialize</code>)
+<code>NULL</code> or (for <code>unserialize</code>) a raw vector
+(see &lsquo;Details&rsquo;).</p>
+</td></tr>
+<tr valign="top"><td><code>ascii</code></td>
+<td>
+<p>a logical.  If <code>TRUE</code> or <code>NA</code>, an ASCII
+representation is written; otherwise (default) a binary one.
+See also the comments in the help for <code><a href="save.html">save</a></code>.</p>
+</td></tr>
+<tr valign="top"><td><code>xdr</code></td>
+<td>
+<p>a logical: if a binary representation is used, should a
+big-endian one (XDR) be used?</p>
+</td></tr>
+<tr valign="top"><td><code>version</code></td>
+<td>
+<p>the workspace format version to use.  <code>NULL</code>
+specifies the current default version (3). The only other supported
+value is 2, the default from <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> 1.4.0 to <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> 3.5.0.</p>
+</td></tr>
+<tr valign="top"><td><code>refhook</code></td>
+<td>
+<p>a hook function for handling reference objects.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>The function <code>serialize</code> serializes <code>object</code> to the specified
+connection.  If <code>connection</code> is <code>NULL</code> then <code>object</code> is
+serialized to a raw vector, which is returned as the result of
+<code>serialize</code>.
+</p>
+<p>Sharing of reference objects is preserved within the object but not
+across separate calls to <code>serialize</code>.
+</p>
+<p><code>unserialize</code> reads an object (as written by <code>serialize</code>)
+from <code>connection</code> or a raw vector.
+</p>
+<p>The <code>refhook</code> functions can be used to customize handling of
+non-system reference objects (all external pointers and weak
+references, and all environments other than namespace and package
+environments and <code>.GlobalEnv</code>).  The hook function for
+<code>serialize</code> should return a character vector for references it
+wants to handle; otherwise it should return <code>NULL</code>.  The hook for
+<code>unserialize</code> will be called with character vectors supplied to
+<code>serialize</code> and should return an appropriate object.
+</p>
+<p>For a text-mode connection, the default value of <code>ascii</code> is set
+to <code>TRUE</code>: only ASCII representations can be written to text-mode
+connections and attempting to use <code>ascii = FALSE</code> will throw an
+error.
+</p>
+<p>The format consists of a single line followed by the data: the first
+line contains a single character: <code>X</code> for binary serialization
+and <code>A</code> for ASCII serialization, followed by a new line.  (The
+format used is identical to that used by <code><a href="readRDS.html">readRDS</a></code>.)
+</p>
+<p>As almost all systems in current use are little-endian, <code>xdr =
+  FALSE</code> can be used to avoid byte-shuffling at both ends when
+transferring data from one little-endian machine to another (or
+between processes on the same machine).  Depending on the system, this
+can speed up serialization and unserialization by a factor of up to
+3x.
+</p>
+
+
+<h3>Value</h3>
+
+<p>For <code>serialize</code>, <code>NULL</code> unless <code>connection = NULL</code>, when
+the result is returned in a raw vector.
+</p>
+<p>For <code>unserialize</code> an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> object.
+</p>
+
+
+<h3>Warning</h3>
+
+<p>These functions have provided a stable interface since <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> 2.4.0 (when
+the storage of serialized objects was changed from character to raw
+vectors).  However, the serialization format may change in future
+versions of <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>, so this interface should not be used for long-term
+storage of <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> objects.
+</p>
+<p>On 32-bit platforms a raw vector is limited to <i>2^31 -
+  1</i> bytes, but <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> objects can exceed this and their serializations will
+normally be larger than the objects.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="readRDS.html">saveRDS</a></code> for a more convenient interface to serialize an
+object to a file or connection.
+</p>
+<p><code><a href="save.html">save</a></code> and <code><a href="load.html">load</a></code> to serialize and restore one
+or more named objects.
+</p>
+<p>The &lsquo;R Internals&rsquo; manual for details of the format used.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+x &lt;- serialize(list(1,2,3), NULL)
+unserialize(x)
+
+## see also the examples for saveRDS
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

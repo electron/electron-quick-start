@@ -1,0 +1,288 @@
+---
+title: "dplyr compatibility"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{dplyr compatibility}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+library(dplyr)
+knitr::opts_chunk$set(collapse = T, comment = "#>")
+```
+
+This vignette is aimed at package authors who need to update their code because of a backward incompatible change to dplyr. We do try and minimise backward incompatible changes as much as possible, but sometimes they are necessary in order to radically simplify existing code, or unlock a lot of potential value in the future.
+
+This vignette starts with some general advice on writing package code that works with multiple version of dplyr, then continues to discuss specific changes in dplyr versions.
+
+## Working with multiple dplyr versions
+
+Ideally, you want to make sure that your package works with both the released version and the development version of dplyr. This is typically a little bit more work, but has two big advantages:
+
+1. It's more convenient for your users, since they're not forced to update
+   dplyr if they don't want to)
+
+1. It's easier on CRAN since it doesn't require a massive coordinated release
+   of multiple packages.
+
+To make code work with multiple versions of a package, your first tool is the simple if statement:
+
+```{r, results = "hide"}
+if (utils::packageVersion("dplyr") > "0.5.0") {
+  # code for new version
+} else {
+  # code for old version
+}
+```
+
+Always condition on `> current-version`, not `>= next-version` because this will ensure that this branch is also used for the development version of the package. For example, if the current release is version "0.5.0", the development version will be "0.5.0.9000".
+
+Occasionally, you'll run into a situation where the `NAMESPACE` has changed and you need to conditionally import different functions. This typically occurs when functions are moved from one package to another. We try out best to provide automatic fallbacks, but this is not always possible. Often you can work around the problem by avoiding `importFrom` and using `::` instead. Do this where possible:
+
+```{r, eval = FALSE}
+if (utils::packageVersion("dplyr") > "0.5.0") {
+  dbplyr::build_sql(...)
+} else {
+  dplyr::build_sql(...)
+}
+```
+
+This will generate an `R CMD check` NOTE (because the one of the functions will always be missing), but this is ok. Simply explain that you get the note because you have written a wrapper to make sure your code is backward compatible.
+
+Sometimes it's not possible to avoid `importFrom()`. For example you might be importing a generic so that you can define a method for it. In this case, you can take advantage of a little-known feature in the `NAMESPACE` file: you can include `if` statements. 
+
+```{r}
+#' @rawNamespace
+#' if (utils::packageVersion("dplyr") > "0.5.0") {
+#'   importFrom("dbplyr", "build_sql")
+#' } else {
+#'   importFrom("dplyr", "build_sql")
+#' }
+```
+
+## dplyr 0.6.0
+
+### Database code moves to dbplyr
+
+Almost all database related code has been moved out of dplyr and into a new package, [dbplyr](http://github.com/hadley/dbplyr/). This makes dplyr simpler, and will make it easier to release fixes for bugs that only affect databases.  If you've implemented a database backend for dplyr, please read the [backend news](https://github.com/hadley/dbplyr/blob/master/NEWS.md#backends) on the backend.
+
+Depending on what generics you use, and what generics you provide methods for you, you may need to write some conditional code. To help make this easier we've written `wrap_dbplyr_obj()` which will write the helper code for you:
+
+```{r, eval = FALSE}
+wrap_dbplyr_obj("build_sql")
+
+wrap_dbplyr_obj("base_agg")
+```
+
+Simply copy the results of this function in your package.
+
+These will generate `R CMD check` NOTES, so make sure to tell CRAN that this is to ensure backward compatibility.
+
+
+### Deprecation of underscored `verbs_()`
+
+Because the tidyeval framework allows us to combine SE and NSE
+semantics within the same functions, the underscored verbs have been
+softly deprecated.
+
+
+#### For users of SE_ verbs
+
+The legacy underscored versions take objects for which a
+`lazyeval::as.lazy()` method is defined. This includes symbols and
+calls, strings, and formulas. All of these objects have been replaced
+with quosures and you can call tidyeval verbs with unquoted quosures:
+
+```{r, eval = FALSE}
+quo <- quo(cyl)
+select(mtcars, !! quo)
+```
+
+Symbolic expressions are also supported, but note that bare symbols
+and calls do not carry scope information. If you're referring to
+objects in the data frame, it's safe to omit specifying an enclosure:
+
+```{r, results = "hide"}
+sym <- quote(cyl)
+select(mtcars, !! sym)
+
+call <- quote(mean(cyl))
+summarise(mtcars, !! call)
+```
+
+Transforming objects into quosures is generally straightforward. To
+enclose with the current environment, you can unquote directly in
+`quo()` or you can use `as_quosure()`:
+
+```{r}
+quo(!! sym)
+quo(!! call)
+
+rlang::as_quosure(sym)
+rlang::as_quosure(call)
+```
+
+Note that while formulas and quosures are very similar objects (and in
+the most general sense, formulas are quosures), they can't be used
+interchangeably in tidyeval functions. Early implementations did treat
+bare formulas as quosures, but this created compatibility issues with
+modelling functions of the stats package. Fortunately, it's easy to
+transform formulas to quosures that will self-evaluate in tidyeval
+functions:
+
+```{r}
+f <- ~cyl
+f
+rlang::as_quosure(f)
+```
+
+Finally, and perhaps most importantly, **strings are not and should
+not be parsed**. As developers, it is tempting to try and solve
+problems using strings because we have been trained to work with
+strings rather than quoted expressions. However it's almost always the
+wrong way to approach the problem. The exception is for creating
+symbols. In that case it is perfectly legitimate to use strings:
+
+```{r}
+rlang::sym("cyl")
+rlang::syms(letters[1:3])
+```
+
+But you should never use strings to create calls. Instead you can use
+quasiquotation:
+
+```{r}
+syms <- rlang::syms(c("foo", "bar", "baz"))
+quo(my_call(!!! syms))
+
+fun <- rlang::sym("my_call")
+quo((!!fun)(!!! syms))
+```
+
+Or create the call with `call2()`:
+
+```{r}
+call <- rlang::call2("my_call", !!! syms)
+call
+
+rlang::as_quosure(call)
+
+# Or equivalently:
+quo(!! rlang::call2("my_call", !!! syms))
+```
+
+Note that idioms based on `interp()` should now generally be avoided
+and replaced with quasiquotation. Where you used to interpolate:
+
+```{r, eval=FALSE}
+lazyeval::interp(~ mean(var), var = rlang::sym("mpg"))
+```
+
+You would now unquote:
+
+```{r, eval=FALSE}
+var <- "mpg"
+quo(mean(!! rlang::sym(var)))
+```
+
+See also `vignette("programming")` for more about quasiquotation and
+quosures.
+
+
+#### For package authors
+
+For package authors, rlang provides a
+[compatibility file](https://github.com/hadley/rlang/blob/master/R/compat-lazyeval.R) that
+you can copy to your package. `compat_lazy()` and `compat_lazy_dots()`
+turn lazy-able objects into proper quosures. This helps providing an
+underscored version to your users for backward compatibility. For
+instance, here is how we defined the underscored version of `filter()`
+in dplyr 0.6:
+
+```{r, eval = FALSE}
+filter_.tbl_df <- function(.data, ..., .dots = list()) {
+  dots <- compat_lazy_dots(.dots, caller_env(), ...)
+  filter(.data, !!! dots)
+}
+```
+
+With tidyeval, S3 dispatch to the correct method might be an issue. In
+the past, the genericity of dplyr verbs was accomplished by
+dispatching in the underscored versions. Now that those are
+deprecated, we've turned the non-underscored verbs into S3 generics.
+
+We maintain backward compatibility by redispatching to old underscored
+verbs in the default methods of the new S3 generics. For example, here
+is how we redispatch `filter()`:
+
+```{r, eval = FALSE}
+filter.default <- function(.data, ...) {
+  filter_(.data, .dots = compat_as_lazy_dots(...))
+}
+```
+
+This gets the job done in most cases. However, the default method will
+not be called for objects inheriting from one of the classes for which
+we provide non-underscored methods: `data.frame`, `tbl_df`, `tbl_cube`
+and `grouped_df`. An example of this is the `sf` package whose objects
+have classes `c("sf", "data.frame")`. Authors of such packages should
+provide a method for the non-underscored generic in order to be
+compatible with dplyr:
+
+```{r, eval = FALSE}
+filter.sf <- function(.data, ...) {
+  st_as_sf(NextMethod())
+}
+```
+
+If you need help with this, please let us know!
+
+
+### Deprecation of `mutate_each()` and `summarise_each()`
+
+These functions have been replaced by a more complete family of
+functions. This family has suffixes `_if`, `_at` and `_all` and
+includes more verbs than just `mutate` `summarise`.
+
+If you need to update your code to the new family, there are two
+relevant functions depending on which variables you apply `funs()` to.
+If you called `mutate_each()` without supplying a selection of
+variables, `funs` is applied to all variables. In this case, you
+should update your code to use `mutate_all()` instead:
+
+```{r, eval = FALSE}
+mutate_each(starwars, funs(as.character))
+mutate_all(starwars, funs(as.character))
+```
+
+Note that the new verbs support bare functions as well, so you don't
+necessarily need to wrap with `funs()`:
+
+```{r, eval = FALSE}
+mutate_all(starwars, as.character)
+```
+
+
+On the other hand, if you supplied a variable selection, you should
+use `mutate_at()`. The variable selection should be wrapped with
+`vars()`.
+
+```{r, eval = FALSE}
+mutate_each(starwars, funs(as.character), height, mass)
+mutate_at(starwars, vars(height, mass), as.character)
+```
+
+`vars()` supports all the selection helpers that you usually use with
+`select()`:
+
+```{r, eval = FALSE}
+summarise_at(mtcars, vars(starts_with("d")), mean)
+```
+
+Note that intead of a `vars()` selection, you can also supply
+character vectors of column names:
+
+```{r, eval = FALSE}
+mutate_at(starwars, c("height", "mass"), as.character)
+```

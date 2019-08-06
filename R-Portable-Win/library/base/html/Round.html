@@ -1,0 +1,155 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Rounding of Numbers</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for Round {base}"><tr><td>Round {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Rounding of Numbers</h2>
+
+<h3>Description</h3>
+
+<p><code>ceiling</code> takes a single numeric argument <code>x</code> and returns a
+numeric vector containing the smallest integers not less than the
+corresponding elements of <code>x</code>.
+</p>
+<p><code>floor</code> takes a single numeric argument <code>x</code> and returns a
+numeric vector containing the largest integers not greater than the
+corresponding elements of <code>x</code>.
+</p>
+<p><code>trunc</code> takes a single numeric argument <code>x</code> and returns a
+numeric vector containing the integers formed by truncating the values in
+<code>x</code> toward <code>0</code>.
+</p>
+<p><code>round</code> rounds the values in its first argument to the specified
+number of decimal places (default 0).  See &lsquo;Details&rsquo; about
+&ldquo;round to even&rdquo; when rounding off a 5.
+</p>
+<p><code>signif</code> rounds the values in its first argument to the specified
+number of significant digits.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+ceiling(x)
+floor(x)
+trunc(x, ...)
+
+round(x, digits = 0)
+signif(x, digits = 6)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>a numeric vector.  Or, for <code>round</code> and <code>signif</code>, a
+complex vector.</p>
+</td></tr>
+<tr valign="top"><td><code>digits</code></td>
+<td>
+<p>integer indicating the number of decimal places
+(<code>round</code>) or significant digits (<code>signif</code>) to be used.
+Negative values are allowed (see &lsquo;Details&rsquo;).</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>arguments to be passed to methods.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>These are generic functions: methods can be defined for them
+individually or via the <code><a href="groupGeneric.html">Math</a></code> group
+generic.
+</p>
+<p>Note that for rounding off a 5, the IEC 60559 standard (see also
+&lsquo;IEEE 754&rsquo;) is expected to be used, &lsquo;<em>go to the even digit</em>&rsquo;.
+Therefore <code>round(0.5)</code> is <code>0</code> and <code>round(-1.5)</code> is
+<code>-2</code>.  However, this is dependent on OS services and on
+representation error (since e.g. <code>0.15</code> is not represented
+exactly, the rounding rule applies to the represented number and not
+to the printed number, and so <code>round(0.15, 1)</code> could be either
+<code>0.1</code> or <code>0.2</code>).
+</p>
+<p>Rounding to a negative number of digits means rounding to a power of
+ten, so for example <code>round(x, digits = -2)</code> rounds to the nearest
+hundred.
+</p>
+<p>For <code>signif</code> the recognized values of <code>digits</code> are
+<code>1...22</code>, and non-missing values are rounded to the nearest
+integer in that range.  Complex numbers are rounded to retain the
+specified number of digits in the larger of the components.  Each
+element of the vector is rounded individually, unlike printing.
+</p>
+<p>These are all primitive functions.
+</p>
+
+
+<h3>S4 methods</h3>
+
+<p>These are all (internally) S4 generic.
+</p>
+<p><code>ceiling</code>, <code>floor</code> and <code>trunc</code> are members of the
+<code><a href="../../methods/html/S4groupGeneric.html">Math</a></code> group generic.  As an S4
+generic, <code>trunc</code> has only one argument.
+</p>
+<p><code>round</code> and <code>signif</code> are members of the
+<code><a href="../../methods/html/S4groupGeneric.html">Math2</a></code> group generic.
+</p>
+
+
+<h3>Warning</h3>
+
+<p>The realities of computer arithmetic can cause unexpected results,
+especially with <code>floor</code> and <code>ceiling</code>.  For example, we
+&lsquo;know&rsquo; that <code>floor(log(x, base = 8))</code> for <code>x = 8</code> is
+<code>1</code>, but <code>0</code> has been seen on an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> platform.  It is
+normally necessary to use a tolerance.
+</p>
+
+
+<h3>References</h3>
+
+<p>Becker, R. A., Chambers, J. M. and Wilks, A. R. (1988)
+<em>The New S Language</em>.  Wadsworth &amp; Brooks/Cole.
+</p>
+<p>The ISO/IEC/IEEE 60559:2011 standard is available for money from
+<a href="https://www.iso.org">https://www.iso.org</a>.
+</p>
+<p>The IEEE 745:2008 standard is more openly documented, e.g, at
+<a href="https://en.wikipedia.org/wiki/IEEE_754">https://en.wikipedia.org/wiki/IEEE_754</a>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="integer.html">as.integer</a></code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+round(.5 + -2:4) # IEEE / IEC rounding: -2  0  0  2  2  4  4
+## (this is *good* behaviour -- do *NOT* report it as bug !)
+
+( x1 &lt;- seq(-2, 4, by = .5) )
+round(x1) #-- IEEE / IEC rounding !
+x1[trunc(x1) != floor(x1)]
+x1[round(x1) != floor(x1 + .5)]
+(non.int &lt;- ceiling(x1) != floor(x1))
+
+x2 &lt;- pi * 100^(-1:3)
+round(x2, 3)
+signif(x2, 3)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

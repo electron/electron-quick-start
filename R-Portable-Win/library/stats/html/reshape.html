@@ -1,0 +1,233 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Reshape Grouped Data</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for reshape {stats}"><tr><td>reshape {stats}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Reshape Grouped Data</h2>
+
+<h3>Description</h3>
+
+<p>This function reshapes a data frame between &lsquo;wide&rsquo; format with
+repeated measurements in separate columns of the same record and
+&lsquo;long&rsquo; format with the repeated measurements in separate
+records.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+reshape(data, varying = NULL, v.names = NULL, timevar = "time",
+        idvar = "id", ids = 1:NROW(data),
+        times = seq_along(varying[[1]]),
+        drop = NULL, direction, new.row.names = NULL,
+        sep = ".",
+        split = if (sep == "") {
+            list(regexp = "[A-Za-z][0-9]", include = TRUE)
+        } else {
+            list(regexp = sep, include = FALSE, fixed = TRUE)}
+        )
+
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>data</code></td>
+<td>
+<p>a data frame</p>
+</td></tr>
+<tr valign="top"><td><code>varying</code></td>
+<td>
+<p>names of sets of variables in the wide format that
+correspond to single variables in long format
+(&lsquo;time-varying&rsquo;).  This is canonically a list of vectors of
+variable names, but it can optionally be a matrix of names, or a
+single vector of names.  In each case, the names can be replaced by
+indices which are interpreted as referring to <code>names(data)</code>.
+See &lsquo;Details&rsquo; for more details and options.</p>
+</td></tr>
+<tr valign="top"><td><code>v.names</code></td>
+<td>
+<p>names of variables in the long format that correspond
+to multiple variables in the wide format.  See &lsquo;Details&rsquo;.</p>
+</td></tr>
+<tr valign="top"><td><code>timevar</code></td>
+<td>
+<p>the variable in long format that differentiates multiple
+records from the same group or individual.  If more than one record
+matches, the first will be taken (with a warning). </p>
+</td></tr>
+<tr valign="top"><td><code>idvar</code></td>
+<td>
+<p>Names of one or more variables in long format that
+identify multiple records from the same group/individual.  These
+variables may also be present in wide format.</p>
+</td></tr>
+<tr valign="top"><td><code>ids</code></td>
+<td>
+<p>the values to use for a newly created <code>idvar</code>
+variable in long format.</p>
+</td></tr>
+<tr valign="top"><td><code>times</code></td>
+<td>
+<p>the values to use for a newly created <code>timevar</code>
+variable in long format.  See &lsquo;Details&rsquo;.</p>
+</td></tr>
+<tr valign="top"><td><code>drop</code></td>
+<td>
+<p>a vector of names of variables to drop before reshaping.</p>
+</td></tr>
+<tr valign="top"><td><code>direction</code></td>
+<td>
+<p>character string, partially matched to either
+<code>"wide"</code> to reshape to wide format, or <code>"long"</code> to reshape
+to long format.</p>
+</td></tr>
+<tr valign="top"><td><code>new.row.names</code></td>
+<td>
+<p>character or <code>NULL</code>: a non-null value will be
+used for the row names of the result.</p>
+</td></tr>
+<tr valign="top"><td><code>sep</code></td>
+<td>
+<p>A character vector of length 1, indicating a separating
+character in the variable names in the wide format.  This is used for
+guessing <code>v.names</code> and <code>times</code> arguments based on the
+names in <code>varying</code>.  If <code>sep == ""</code>, the split is just before
+the first numeral that follows an alphabetic character.  This is
+also used to create variable names when reshaping to wide format.</p>
+</td></tr>
+<tr valign="top"><td><code>split</code></td>
+<td>
+<p>A list with three components, <code>regexp</code>,
+<code>include</code>, and (optionally) <code>fixed</code>.  This allows an
+extended interface to variable name splitting.  See &lsquo;Details&rsquo;.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>The arguments to this function are described in terms of longitudinal
+data, as that is the application motivating the functions.  A
+&lsquo;wide&rsquo; longitudinal dataset will have one record for each
+individual with some time-constant variables that occupy single
+columns and some time-varying variables that occupy a column for each
+time point.  In &lsquo;long&rsquo; format there will be multiple records
+for each individual, with some variables being constant across these
+records and others varying across the records.  A &lsquo;long&rsquo; format
+dataset also needs a &lsquo;time&rsquo; variable identifying which time
+point each record comes from and an &lsquo;id&rsquo; variable showing which
+records refer to the same person.
+</p>
+<p>If the data frame resulted from a previous <code>reshape</code> then the
+operation can be reversed simply by <code>reshape(a)</code>.  The
+<code>direction</code> argument is optional and the other arguments are
+stored as attributes on the data frame.
+</p>
+<p>If <code>direction = "wide"</code> and no <code>varying</code> or <code>v.names</code>
+arguments are supplied it is assumed that all variables except
+<code>idvar</code> and <code>timevar</code> are time-varying.  They are all
+expanded into multiple variables in wide format.
+</p>
+<p>If <code>direction = "long"</code> the <code>varying</code> argument can be a vector
+of column names (or a corresponding index).  The function will attempt
+to guess the <code>v.names</code> and <code>times</code> from these names.  The
+default is variable names like <code>x.1</code>, <code>x.2</code>, where
+<code>sep = "."</code> specifies to split at the dot and drop it from the
+name.  To have alphabetic followed by numeric times use <code>sep = ""</code>.
+</p>
+<p>Variable name splitting as described above is only attempted in the
+case where <code>varying</code> is an atomic vector, if it is a list or a
+matrix, <code>v.names</code> and <code>times</code> will generally need to be
+specified, although they will default to, respectively, the first
+variable name in each set, and sequential times.
+</p>
+<p>Also, guessing is not attempted if <code>v.names</code> is given
+explicitly.  Notice that the order of variables in <code>varying</code> is
+like <code>x.1</code>,<code>y.1</code>,<code>x.2</code>,<code>y.2</code>.
+</p>
+<p>The <code>split</code> argument should not usually be necessary.  The
+<code>split$regexp</code> component is passed to either
+<code><a href="../../base/html/strsplit.html">strsplit</a></code> or <code><a href="../../base/html/grep.html">regexpr</a></code>, where the latter is
+used if <code>split$include</code> is <code>TRUE</code>, in which case the
+splitting occurs after the first character of the matched string.  In
+the <code><a href="../../base/html/strsplit.html">strsplit</a></code> case, the separator is not included in the
+result, and it is possible to specify fixed-string matching using
+<code>split$fixed</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The reshaped data frame with added attributes to simplify reshaping
+back to the original form.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="../../utils/html/stack.html">stack</a></code>, <code><a href="../../base/html/aperm.html">aperm</a></code>;
+<code><a href="../../utils/html/relist.html">relist</a></code> for reshaping the result of <code><a href="../../base/html/unlist.html">unlist</a></code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+summary(Indometh)
+wide &lt;- reshape(Indometh, v.names = "conc", idvar = "Subject",
+                timevar = "time", direction = "wide")
+wide
+
+reshape(wide, direction = "long")
+reshape(wide, idvar = "Subject", varying = list(2:12),
+        v.names = "conc", direction = "long")
+
+## times need not be numeric
+df &lt;- data.frame(id = rep(1:4, rep(2,4)),
+                 visit = I(rep(c("Before","After"), 4)),
+                 x = rnorm(4), y = runif(4))
+df
+reshape(df, timevar = "visit", idvar = "id", direction = "wide")
+## warns that y is really varying
+reshape(df, timevar = "visit", idvar = "id", direction = "wide", v.names = "x")
+
+
+##  unbalanced 'long' data leads to NA fill in 'wide' form
+df2 &lt;- df[1:7, ]
+df2
+reshape(df2, timevar = "visit", idvar = "id", direction = "wide")
+
+## Alternative regular expressions for guessing names
+df3 &lt;- data.frame(id = 1:4, age = c(40,50,60,50), dose1 = c(1,2,1,2),
+                  dose2 = c(2,1,2,1), dose4 = c(3,3,3,3))
+reshape(df3, direction = "long", varying = 3:5, sep = "")
+
+
+## an example that isn't longitudinal data
+state.x77 &lt;- as.data.frame(state.x77)
+long &lt;- reshape(state.x77, idvar = "state", ids = row.names(state.x77),
+                times = names(state.x77), timevar = "Characteristic",
+                varying = list(names(state.x77)), direction = "long")
+
+reshape(long, direction = "wide")
+
+reshape(long, direction = "wide", new.row.names = unique(long$state))
+
+## multiple id variables
+df3 &lt;- data.frame(school = rep(1:3, each = 4), class = rep(9:10, 6),
+                  time = rep(c(1,1,2,2), 3), score = rnorm(12))
+wide &lt;- reshape(df3, idvar = c("school","class"), direction = "wide")
+wide
+## transform back
+reshape(wide)
+
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>stats</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

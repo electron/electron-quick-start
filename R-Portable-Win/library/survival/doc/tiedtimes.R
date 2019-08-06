@@ -30,7 +30,7 @@ table(match(age.interval, sort(unique(age.interval))))
 
 
 ###################################################
-### code chunk number 4: tiedtimes.Rnw:81-95
+### code chunk number 4: tiedtimes.Rnw:82-96
 ###################################################
 ndata <- data.frame(id=1:30, 
                       birth.dt = rep(as.Date("1953/03/10"), 30),

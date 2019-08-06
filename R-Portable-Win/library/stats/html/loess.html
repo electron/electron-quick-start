@@ -1,0 +1,213 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Local Polynomial Regression Fitting</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for loess {stats}"><tr><td>loess {stats}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Local Polynomial Regression Fitting</h2>
+
+<h3>Description</h3>
+
+<p>Fit a polynomial surface determined by one or more numerical
+predictors, using local fitting.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+loess(formula, data, weights, subset, na.action, model = FALSE,
+      span = 0.75, enp.target, degree = 2,
+      parametric = FALSE, drop.square = FALSE, normalize = TRUE,
+      family = c("gaussian", "symmetric"),
+      method = c("loess", "model.frame"),
+      control = loess.control(...), ...)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>formula</code></td>
+<td>
+<p>a <a href="formula.html">formula</a> specifying the numeric response and
+one to four numeric predictors (best specified via an interaction,
+but can also be specified additively).  Will be coerced to a formula
+if necessary.</p>
+</td></tr>
+<tr valign="top"><td><code>data</code></td>
+<td>
+<p>an optional data frame, list or environment (or object
+coercible by <code><a href="../../base/html/as.data.frame.html">as.data.frame</a></code> to a data frame) containing
+the variables in the model.  If not found in <code>data</code>, the
+variables are taken from <code>environment(formula)</code>,
+typically the environment from which <code>loess</code> is called.</p>
+</td></tr>
+<tr valign="top"><td><code>weights</code></td>
+<td>
+<p>optional weights for each case.</p>
+</td></tr>
+<tr valign="top"><td><code>subset</code></td>
+<td>
+<p>an optional specification of a subset of the data to be
+used.</p>
+</td></tr>
+<tr valign="top"><td><code>na.action</code></td>
+<td>
+<p>the action to be taken with missing values in the
+response or predictors.  The default is given by
+<code>getOption("na.action")</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>model</code></td>
+<td>
+<p>should the model frame be returned?</p>
+</td></tr>
+<tr valign="top"><td><code>span</code></td>
+<td>
+<p>the parameter <i>&alpha;</i> which controls the degree of
+smoothing.</p>
+</td></tr>
+<tr valign="top"><td><code>enp.target</code></td>
+<td>
+<p>an alternative way to specify <code>span</code>, as the
+approximate equivalent number of parameters to be used.</p>
+</td></tr>
+<tr valign="top"><td><code>degree</code></td>
+<td>
+<p>the degree of the polynomials to be used, normally 1 or
+2. (Degree 0 is also allowed, but see the &lsquo;Note&rsquo;.)</p>
+</td></tr>
+<tr valign="top"><td><code>parametric</code></td>
+<td>
+<p>should any terms be fitted globally rather than
+locally?  Terms can be specified by name, number or as a logical
+vector of the same length as the number of predictors.</p>
+</td></tr>
+<tr valign="top"><td><code>drop.square</code></td>
+<td>
+<p>for fits with more than one predictor and
+<code>degree = 2</code>, should the quadratic term be dropped for particular
+predictors?  Terms are specified in the same way as for
+<code>parametric</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>normalize</code></td>
+<td>
+<p>should the predictors be normalized to a common scale
+if there is more than one?  The normalization used is to set the
+10% trimmed standard deviation to one.  Set to false for spatial
+coordinate predictors and others known to be on a common scale.</p>
+</td></tr>
+<tr valign="top"><td><code>family</code></td>
+<td>
+<p>if <code>"gaussian"</code> fitting is by least-squares, and if
+<code>"symmetric"</code> a re-descending M estimator is used with Tukey's
+biweight function.  Can be abbreviated.</p>
+</td></tr>
+<tr valign="top"><td><code>method</code></td>
+<td>
+<p>fit the model or just extract the model frame.  Can be abbreviated.</p>
+</td></tr>
+<tr valign="top"><td><code>control</code></td>
+<td>
+<p>control parameters: see <code><a href="loess.control.html">loess.control</a></code>.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>control parameters can also be supplied directly
+(<em>if</em> <code>control</code> is not specified).</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>Fitting is done locally.  That is, for the fit at point <i>x</i>, the
+fit is made using points in a neighbourhood of <i>x</i>, weighted by
+their distance from <i>x</i> (with differences in &lsquo;parametric&rsquo;
+variables being ignored when computing the distance).  The size of the
+neighbourhood is controlled by <i>&alpha;</i> (set by <code>span</code> or
+<code>enp.target</code>).  For <i>&alpha; &lt; 1</i>, the
+neighbourhood includes proportion <i>&alpha;</i> of the points,
+and these have tricubic weighting (proportional to <i>(1 - (dist/maxdist)^3)^3</i>).  For
+<i>&alpha; &gt; 1</i>, all points are used, with the
+&lsquo;maximum distance&rsquo; assumed to be <i>&alpha;^(1/p)</i>
+times the actual maximum distance for <i>p</i> explanatory variables.
+</p>
+<p>For the default family, fitting is by (weighted) least squares.  For
+<code>family="symmetric"</code> a few iterations of an M-estimation
+procedure with Tukey's biweight are used.  Be aware that as the initial
+value is the least-squares fit, this need not be a very resistant fit.
+</p>
+<p>It can be important to tune the control list to achieve acceptable
+speed.  See <code><a href="loess.control.html">loess.control</a></code> for details.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class <code>"loess"</code>.
+</p>
+
+
+<h3>Note</h3>
+
+<p>As this is based on <code>cloess</code>, it is similar to but not identical to
+the <code>loess</code> function of S.  In particular, conditioning is not
+implemented.
+</p>
+<p>The memory usage of this implementation of <code>loess</code> is roughly
+quadratic in the number of points, with 1000 points taking about 10Mb.
+</p>
+<p><code>degree = 0</code>, local constant fitting, is allowed in this
+implementation but not documented in the reference.  It seems very little
+tested, so use with caution.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>B. D. Ripley, based on the <code>cloess</code> package of Cleveland,
+Grosse and Shyu.
+</p>
+
+
+<h3>Source</h3>
+
+<p>The 1998 version of <code>cloess</code> package of Cleveland,
+Grosse and Shyu.  A later version is available as <code>dloess</code> at
+<a href="http://www.netlib.org/a">http://www.netlib.org/a</a>.
+</p>
+
+
+<h3>References</h3>
+
+<p>W. S. Cleveland, E. Grosse and W. M. Shyu (1992) Local regression
+models. Chapter 8 of <em>Statistical Models in S</em> eds J.M. Chambers
+and T.J. Hastie, Wadsworth &amp; Brooks/Cole.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="loess.control.html">loess.control</a></code>,
+<code><a href="predict.loess.html">predict.loess</a></code>.
+</p>
+<p><code><a href="lowess.html">lowess</a></code>, the ancestor of <code>loess</code> (with
+different defaults!).
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+cars.lo &lt;- loess(dist ~ speed, cars)
+predict(cars.lo, data.frame(speed = seq(5, 30, 1)), se = TRUE)
+# to allow extrapolation
+cars.lo2 &lt;- loess(dist ~ speed, cars,
+  control = loess.control(surface = "direct"))
+predict(cars.lo2, data.frame(speed = seq(5, 30, 1)), se = TRUE)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>stats</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

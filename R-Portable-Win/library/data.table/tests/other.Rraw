@@ -1,0 +1,193 @@
+
+# Usage: require(data.table); test.data.table(with.other.packages=TRUE)
+
+if (exists("test.data.table",.GlobalEnv,inherits=FALSE)) {
+  warning("This is dev where with.other.packages should not be run. Instead, use a fresh R session with data.table installed. ",
+          "Not doing so in dev can be the cause of both false errors and false passes.")
+}
+if (!"package:data.table" %in% search()) stop("data.table should be already attached. Usage: require(data.table); test.data.table(with.other.packages=TRUE)")
+
+test = data.table:::test
+INT = data.table:::INT
+
+pkgs = c("ggplot2", "hexbin", "plyr", "caret", "xts", "gdata", "zoo", "nlme", "bit64", "knitr", "plm", "parallel")
+if (any(duplicated(pkgs))) stop("Packages defined to be loaded for integration tests in 'inst/tests/other.Rraw' contains duplicates.")
+
+is.require = function(pkg) suppressWarnings(suppressMessages(isTRUE(require(pkg, character.only=TRUE, quietly=TRUE, warn.conflicts=FALSE))))
+loaded = sapply(pkgs, is.require)
+
+if (sum(!loaded)) {
+  if (as.logical(Sys.getenv("_R_CHECK_FORCE_SUGGESTS_", "TRUE"))) {
+    stop(sprintf("Package (extended) suggested but not available: %s\n\nThe (extended) suggested packages are required for a complete check of data.table integration tests.\nChecking can be attempted without them by setting the environment variable _R_CHECK_FORCE_SUGGESTS_ to a false value.\nList of extended suggested packages used for integration tests can be found in `system.file(file.path('tests','tests-DESCRIPTION'), package='data.table')`.", paste("'", names(loaded)[!loaded], "'", sep="", collapse=", ")))
+  } else {
+    invisible(sapply(names(loaded)[!loaded], function(s) cat("\n**** Other package",s,"is not installed. Tests using it will be skipped.\n")))
+  }
+}
+
+cat("\n")
+print(data.table(pkg=pkgs, loaded)[loaded==TRUE, version:=as.character(sapply(pkg, function(p) format(packageVersion(p))))][])
+cat("\n")
+print(sessionInfo())
+cat("\n")
+
+if (all(c("package:reshape","package:reshape2") %in% search())) {
+  warning("Packages 'reshape' and 'reshape2' are both loaded. There have been problems before when you don't use the :: namespace prefix to disambiguate. Probably best to either remove.packages('reshape') and use reshape2 instead, or always use :: when packages mask non-generic names.")
+}
+
+if (loaded[["ggplot2"]]) {
+  DT = data.table( a=1:5, b=11:50, d=c("A","B","C","D"), f=1:5, grp=1:5 )
+  test(1.1, names(print(ggplot(DT,aes(b,f))+geom_point()))[c(1,3)], c("data","scales")) # update as described in #3047
+  test(1.2, DT[,print(ggplot(.SD,aes(b,f))+geom_point()),by=list(grp%%2L)],data.table(grp=integer()))  # %%2 to reduce time needed for ggplot2 to plot
+  if (loaded[["hexbin"]]) {
+    # Test reported by C Neff on 11 Oct 2011
+    test(1.3, names(print(ggplot(DT) + geom_hex(aes(b, f)) + facet_wrap(~grp)))[c(1,3)], c("data","scales"))
+  }
+  # Test plotting ITime with ggplot2 which seems to require an as.data.frame method for ITime, #1713
+  datetimes = c("2011 NOV18 09:29:16", "2011 NOV18 10:42:40", "2011 NOV18 23:47:12",
+                "2011 NOV19 01:06:01", "2011 NOV19 11:35:34", "2011 NOV19 11:51:09")
+  DT = IDateTime(strptime(datetimes,"%Y %b%d %H:%M:%S"))
+
+  # without as.POSIXct() there is a message but if it gets solved and goes away in future then i) don't fail and ii) restore
+  #   test without as.POSIXct needed and without message
+  # test(1.4, print(DT[,qplot(idate,itime)])$ranges,
+  #           message="Don't know how to automatically pick scale for object of type ITime. Defaulting to continuous")
+
+  test(1.5, print(DT[,qplot(idate,as.POSIXct(itime,tzone=""))])$ranges, print(qplot(idate,as.POSIXct(itime,tzone=""),data=DT))$ranges)
+  try(graphics.off(),silent=TRUE)
+}
+
+if (loaded[["plyr"]]) {
+  # Test key is dropped when non-dt-aware packages (here, plyr) reorders rows of data.table.
+  DT = data.table(a=1:10,b=1:2,key="a")
+  test(2, arrange(DT,b), data.table(a=INT(1,3,5,7,9,2,4,6,8,10),b=INT(1,1,1,1,1,2,2,2,2,2), key=NULL))
+}
+
+if (FALSE) {  # loaded[["reshape"]]
+  # Fix for #825
+  # The bug was that names(DT) changed, hence testing DT here not ans. Same fix tested next with caret, so we now just rely on the caret test.
+  # When running this test on 13 Mar 2018, I noticed that reshape::cast doesn't retain the Date class and returns just numbers. So I copied
+  # this test to the reshape2 section in main tests.Rraw, changed it to use dcast instead and tested the result explicitly.
+  DT = data.table(ID = c(611557L, 611557L, 611557L, 894125L, 894125L, 894125L, 894125L, 894125L, 898856L, 898856L, 898856L, 898856L, 898856L, 898856L, 898899L, 898899L, 898899L), DATUM = structure(c(16101, 16071, 16261, 16104, 16133, 16167, 16201, 16236, 16089, 16118, 16147, 16176, 16236, 16208, 16163, 16125, 16209), class = "Date"), N = c(25L, 9L, 23L, 29L, 26L, 26L, 27L, 28L, 39L, 39L, 38L, 36L, 40L, 39L, 19L, 20L, 19L), rank = c(2, 1, 3, 1, 2, 3, 4, 5, 1, 2, 3, 4, 6, 5, 2, 1, 3))
+  ans = cast(DT, ID ~ rank, value = "DATUM")
+  test(3, names(DT), c("ID", "DATUM", "N", "rank"))
+}
+
+if (loaded[["caret"]]) {
+  # Fix for #476
+  # caret seems heavy (plyr, reshape2 and withr). win-builder halts at this point consistently, but we pass on Travis and locally.
+  # So I put the win-builder fail down to resource issues and moved this test into test.data.table(with.other.packages=TRUE).
+  DT = data.table(x = rnorm(10), y = rnorm(10))
+  cv.ctrl = trainControl(method = 'repeatedcv', number = 5, repeats = 1)
+  fit = train(y ~ x, data = DT, 'lm', trControl = cv.ctrl)
+  test(4, names(DT), c("x", "y"))
+}
+
+if (loaded[["xts"]]) {
+  # xts's last returns a one row data.table ok (setDT is needed to pass strict selfrefok(), but if not, no matter, the first subsequent := heals it (if any).
+  # Not true when DT is a one column data.table/data.frame, see below.
+  # Potentially, we could unload and reload xts in different orders.
+  # But users should be using :: to disambiguate (like Python forces you to always).
+  # This does not apply to code within packages because the NAMESPACE file in a package requires you to disambiguate functions like first() and
+  # last() which are non-S3 function names in several packages.
+  x = xts(1:100, Sys.Date()+1:100)
+  test(5, last(x,10), x[91:100,])
+  # The important thing this tests is that data.table's last() dispatches to xts's method when data.table is loaded above xts.
+  # But this might not be the case, depending on whether xts was already loaded before loading data.table.
+  # So to make this test relevant, in a fresh R session type: "require(xts);require(data.table);test.data.table(with.other.packages=TRUE)"
+  #                                              rather than: "require(data.table);require(xts);test.data.table(with.other.packages=TRUE)"
+  # Which was the main thrust of bug#2312 fixed in v1.8.3
+}
+
+if (loaded[["gdata"]]) {
+  if (!loaded[["xts"]]) warning("The gdata test expects xts loaded as well since all 3 have a last() function.")
+  x = list("a",1:2,89)
+  test(6.1, xts::last(x), list(89))   # would prefer 89 here like data.table does, since "last" means the last one (never more than one) so why retain the one-item list() level?
+  test(6.2, gdata::last(x), list(89))
+  test(6.3, data.table::last(x), 89)
+  DT = data.table(a=7:9)
+  test(6.4, setDT(xts::last(DT)), data.table(a=9L))        # xts 0.11-0 changes from 9L to data.table(a=9L), setDT added due to "Test 6.4 ran without errors but selfrefok(x) is FALSE", see #3047
+  test(6.5, data.table::last(DT), DT[3L])
+}
+
+if (loaded[["zoo"]]) {
+  # as.Date.IDate won't change the class if xts package loaded #1500
+  x = as.IDate("2016-01-15")
+  test(6, class(as.Date(x)), "Date")
+}
+
+if (loaded[["nlme"]]) {
+  # commented out to be consistent with base R, as #1078 and #1128 are more common cases..
+  # until we can find a workaround for this, Arun disabled this one.
+  # Search for "Fix for #1078" for the tests..
+  # These were tests 527 and 528 in tests.Rraw
+  # test(7.1, {x=Orthodont;tt=lme(distance ~ age, data=x); tt[["data"]]=NULL; tt},
+  #           {x=as.data.table(Orthodont);tt=lme(distance ~ age, data=x);tt[["data"]]=NULL;tt})
+  test(7.2, {x=iris;tt=groupedData( Sepal.Length ~ Sepal.Width | Species, data=x);attr(tt,"class")=NULL;attr(tt,"FUN")=NULL;tt},
+            {x=as.data.table(iris);tt=groupedData( Sepal.Length ~ Sepal.Width | Species, data=x);attr(tt,"class")=NULL;attr(tt,"FUN")=NULL;attr(tt,".internal.selfref")=NULL;tt})
+}
+
+if (loaded[["bit64"]]) {
+  # these don't pass UBSAN/USAN because of the overflow, so just here in other.Rraw
+  test(8.1, as.character((as.integer64(2^62)-1)*2+1), "9223372036854775807")
+  test(8.2, as.character((as.integer64(2^62)-1)*2+2), NA_character_, warning="integer64 overflow")
+  test(8.3, as.character(-(as.integer64(2^62)-1)*2-1), "-9223372036854775807")
+  test(8.4, as.character(-(as.integer64(2^62)-1)*2-2), NA_character_, warning="integer64.*flow")
+}
+
+if (loaded[["gdata"]]) {
+  # fix for bug #5069
+  DT <- data.table(a = c('asdfasdf','asdf','asdgasdgasdgasdg','sdg'), b = runif(4,0,1))
+  test(9, write.fwf(DT, f<-tempfile()), NULL)
+  unlink(f)
+}
+
+if (loaded[["knitr"]]) {
+  # That data.table-unaware code in packages like knitr still work
+  # kable in knitr v1.6 uses DF[...] syntax inside it but the user might have passed a data.table.
+  # Which is fine and works thanks to cedta().
+  DT = data.table(x=1, y=2)
+  test(10, kable(DT), output="x.*y.*1.*2")
+}
+
+# for plm package
+if (loaded[["plm"]]) {
+  set.seed(45L)
+  x  = data.table(V1=c(1L,2L), V2=LETTERS[1:3], V3=round(rnorm(4),4), V4=1:12)
+  px = pdata.frame(x, index=c("V2", "V4"), drop.index=FALSE, row.names=TRUE)
+  test(11.1, class(as.data.table(px)), class(x))
+  test(11.2, class(setDT(px)), class(x))
+}
+
+if (loaded[["parallel"]]) {
+  #1745 and #1727
+  if (.Platform$OS.type=="windows") {
+    warning("This test of auto fallback to single threaded mode when data.table is used from package parallel, does not run on Windows because 'mc.cores'>1 is not supported on Windows; i.e., parallel package isn't parallel on Windows, IIUC. Whereas data.table is parallel built-in on Windows for some functions (fwrite/fread/fsort and expanding) using OpenMP.")
+  } else {
+    setDTthreads(2)
+    if (getDTthreads()!=2) {
+      # Under UBSAN and ASAN, threads are limited to 1, so only run this test when we have 2 threads.
+      cat("\n**** Can't get 2 OpenMP threads so unable to test auto fall back to single threaded mode when called from package parallel. Tests using it will be skipped.\n\n> getDTthreads(verbose = TRUE)\n")
+      getDTthreads(verbose = TRUE)
+      cat("\n")
+    } else {
+      lx <- replicate(4, runif(1e5), simplify=FALSE)
+      f <- function(mc.cores = 2, threads = 2) {
+        setDTthreads(threads)
+        invisible(mclapply(lx, function(x) fsort(x), mc.cores = mc.cores))
+      }
+      threadsBefore = getDTthreads()
+      f(1, 1) # was always ok
+      f(2, 1) # was always ok
+      f(1, 2) # was always ok
+      f(2, 2) # Used to hang. Now should not because data.table auto switches to single threaded
+              # Commenting out avoid_openmp_hang_within_fork() confirms this test catches catches the hang
+      test(12.1, getDTthreads()==threadsBefore)  # User returned to multithreaded after fork, form v1.12.0 (see news item)
+      setDTthreads(2)
+      test(12.2, getDTthreads()==2)
+    }
+  }
+}
+
+###################################
+#  Add new tests above this line  #
+###################################

@@ -1,0 +1,174 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Text Connections</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for textConnection {base}"><tr><td>textConnection {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Text Connections</h2>
+
+<h3>Description</h3>
+
+<p>Input and output text connections.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+textConnection(object, open = "r", local = FALSE,
+               encoding = c("", "bytes", "UTF-8"))
+
+textConnectionValue(con)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>object</code></td>
+<td>
+<p>character.  A description of the <a href="connections.html">connection</a>.
+For an input this is an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> character vector object, and for an output
+connection the name for the <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> character vector to receive the
+output, or <code>NULL</code> (for none).
+</p>
+</td></tr>
+<tr valign="top"><td><code>open</code></td>
+<td>
+<p>character string.  Either <code>"r"</code> (or equivalently <code>""</code>)
+for an input connection or <code>"w"</code> or <code>"a"</code> for an output
+connection.</p>
+</td></tr>
+<tr valign="top"><td><code>local</code></td>
+<td>
+<p>logical.  Used only for output connections.  If <code>TRUE</code>,
+output is assigned to a variable in the calling environment.  Otherwise
+the global environment is used.</p>
+</td></tr>
+<tr valign="top"><td><code>encoding</code></td>
+<td>
+<p>character string, partially matched.  Used only for input connections.  How
+marked strings in <code>object</code> should be handled: converted to the
+current locale, used byte-by-byte or translated to UTF-8.</p>
+</td></tr>
+<tr valign="top"><td><code>con</code></td>
+<td>
+<p>An output text connection.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>An input text connection is opened and the character vector is copied
+at time the connection object is created, and <code>close</code> destroys
+the copy.  <code>object</code> should be the name of a character vector:
+however, short expressions will be accepted provided they <a href="deparse.html">deparse</a> to
+less than 60 bytes.
+</p>
+<p>An output text connection is opened and creates an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> character vector
+of the given name in the user's workspace or in the calling environment,
+depending on the value of the <code>local</code> argument.  This object will at all
+times hold the completed lines of output to the connection, and
+<code><a href="connections.html">isIncomplete</a></code> will indicate if there is an incomplete
+final line.  Closing the connection will output the final line,
+complete or not.  (A line is complete once it has been terminated by
+end-of-line, represented by <code>"\n"</code> in <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>.)   The output character
+vector has locked bindings (see <code><a href="bindenv.html">lockBinding</a></code>) until
+<code>close</code> is called on the connection.  The character vector can
+also be retrieved <em>via</em> <code>textConnectionValue</code>, which is the
+only way to do so if <code>object = NULL</code>.  If the current locale is
+detected as Latin-1 or UTF-8, non-ASCII elements of the character vector
+will be marked accordingly (see <code>Encoding</code>).
+</p>
+<p>Opening a text connection with <code>mode = "a"</code> will attempt to
+append to an existing character vector with the given name in the
+user's workspace or the calling environment.  If none is found (even
+if an object exists of the right name but the wrong type) a new
+character vector will be created, with a warning.
+</p>
+<p>You cannot <code>seek</code> on a text connection, and <code>seek</code> will
+always return zero as the position.
+</p>
+<p>Text connections have slightly unusual semantics: they are always
+open, and throwing away an input text connection without closing it
+(so it get garbage-collected) does not give a warning.
+</p>
+
+
+<h3>Value</h3>
+
+<p>For <code>textConnection</code>, a connection object of class
+<code>"textConnection"</code> which inherits from class <code>"connection"</code>.
+</p>
+<p>For <code>textConnectionValue</code>, a character vector.
+</p>
+
+
+<h3>Note</h3>
+
+<p>As output text connections keep the character vector up to date
+line-by-line, they are relatively expensive to use, and it is often
+better to use an anonymous <code><a href="connections.html">file</a>()</code> connection to collect
+output.
+</p>
+<p>On (rare) platforms where <code>vsnprintf</code> does not return the needed
+length of output there is a 100,000 character limit on the length of
+line for output connections: longer lines will be truncated with a
+warning.
+</p>
+
+
+<h3>References</h3>
+
+<p>Chambers, J. M. (1998)
+<em>Programming with Data.  A Guide to the S Language.</em> Springer.<br />
+[S has input text connections only.]
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="connections.html">connections</a></code>, <code><a href="showConnections.html">showConnections</a></code>,
+<code><a href="pushBack.html">pushBack</a></code>, <code><a href="../../utils/html/capture.output.html">capture.output</a></code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+zz &lt;- textConnection(LETTERS)
+readLines(zz, 2)
+scan(zz, "", 4)
+pushBack(c("aa", "bb"), zz)
+scan(zz, "", 4)
+close(zz)
+
+zz &lt;- textConnection("foo", "w")
+writeLines(c("testit1", "testit2"), zz)
+cat("testit3 ", file = zz)
+isIncomplete(zz)
+cat("testit4\n", file = zz)
+isIncomplete(zz)
+close(zz)
+foo
+
+# capture R output: use part of example from help(lm)
+zz &lt;- textConnection("foo", "w")
+ctl &lt;- c(4.17, 5.58, 5.18, 6.11, 4.5, 4.61, 5.17, 4.53, 5.33, 5.14)
+trt &lt;- c(4.81, 4.17, 4.41, 3.59, 5.87, 3.83, 6.03, 4.89, 4.32, 4.69)
+group &lt;- gl(2, 10, 20, labels = c("Ctl", "Trt"))
+weight &lt;- c(ctl, trt)
+sink(zz)
+anova(lm.D9 &lt;- lm(weight ~ group))
+cat("\nSummary of Residuals:\n\n")
+summary(resid(lm.D9))
+sink()
+close(zz)
+cat(foo, sep = "\n")
+
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

@@ -1,0 +1,154 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Compact PDF Files</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for compactPDF {tools}"><tr><td>compactPDF {tools}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>
+Compact PDF Files
+</h2>
+
+<h3>Description</h3>
+
+<p>Re-save PDF files (especially vignettes) more compactly.
+Support function for <code>R CMD build --compact-vignettes</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+compactPDF(paths,
+           qpdf = Sys.which(Sys.getenv("R_QPDF", "qpdf")),
+           gs_cmd = Sys.getenv("R_GSCMD", ""),
+           gs_quality = Sys.getenv("GS_QUALITY", "none"),
+           gs_extras = character())
+
+## S3 method for class 'compactPDF'
+format(x, ratio = 0.9, diff = 1e4, ...)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>paths</code></td>
+<td>
+<p>A character vector of paths to PDF files, or a length-one
+character vector naming a directory, when all &lsquo;<span class="file">.pdf</span>&rsquo; files in
+that directory will be used.</p>
+</td></tr>
+<tr valign="top"><td><code>qpdf</code></td>
+<td>
+<p>Character string giving the path to the <code>qpdf</code>
+command.  If empty, <code>qpdf</code> will not be used.</p>
+</td></tr>
+<tr valign="top"><td><code>gs_cmd</code></td>
+<td>
+<p>Character string giving the path to the GhostScript
+executable, if that is to be used.  On Windows this is the path to
+&lsquo;<span class="file">gswin32c.exe</span>&rsquo; or &lsquo;<span class="file">gswin64c.exe</span>&rsquo;.  If <code>""</code> (the
+default), the function will try to find a platform-specific path to
+GhostScript where required.</p>
+</td></tr>
+<tr valign="top"><td><code>gs_quality</code></td>
+<td>
+<p>A character string indicating the quality required:
+the options are <code>"none"</code> (so GhostScript is not used),
+<code>"printer"</code> (300dpi), <code>"ebook"</code> (150dpi) and
+<code>"screen"</code> (72dpi).  Can be abbreviated.</p>
+</td></tr>
+<tr valign="top"><td><code>gs_extras</code></td>
+<td>
+<p>An optional character vector of further options to be
+passed to GhostScript.</p>
+</td></tr>
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>An object of class <code>"compactPDF"</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>ratio, diff</code></td>
+<td>
+<p>Limits for reporting: files are only reported whose
+sizes are reduced both by a factor of <code>ratio</code> and by
+<code>diff</code> bytes.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>Further arguments to be passed to or from other methods.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>This by default makes use of <code>qpdf</code>, available from
+<a href="http://qpdf.sourceforge.net/">http://qpdf.sourceforge.net/</a> (including as a Windows binary) and
+included with the CRAN macOS distribution of <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>.  If <code>gs_cmd</code>
+is non-empty and <code>gs_quality != "none"</code>, GhostScript will used
+first, then <code>qpdf</code> if it is available.  If
+<code>gs_quality != "none"</code> and <code>gs_cmd</code> is <code>""</code>, an attempt
+will be made to find a GhostScript executable.
+</p>
+<p><code>qpdf</code> and/or <code>gs_cmd</code> are run on all PDF files found,
+and those which are reduced in size by at least 10% and 10Kb are
+replaced.
+</p>
+<p>The strategy of our use of <code>qpdf</code> is to (losslessly) compress
+both PDF streams and objects.  GhostScript compresses streams and more
+(including downsampling and compressing embedded images) and
+consequently is much slower and may lose quality (but can also produce
+much smaller PDF files).  However, quality <code>"ebook"</code> is perfectly
+adequate for screen viewing and printing on laser printers.
+</p>
+<p>Where PDF files are changed they will become PDF version 1.5 files:
+these have been supported by Acrobat Reader since version 6 in 2003,
+so this is very unlikely to cause difficulties.
+</p>
+<p>Stream compression is what most often has large gains.  Most PDF
+documents are generated with object compression, but this does not
+seem to be the default for MiKTeX's <code>pdflatex</code>.  For some PDF
+files (and especially package vignettes), using GhostScript can
+dramatically reduce the space taken by embedded images (often
+screenshots).
+</p>
+<p>Where both GhostScript and <code>qpdf</code> are selected (when
+<code>gs_quality != "none"</code> and both executables are found), they are
+run in that order and the size reductions apply to the total
+compression achieved.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class <code>c("compactPDF", "data.frame")</code>.
+This has two columns, the old and new sizes in bytes for the files
+that were changed.
+</p>
+<p>There are <code>format</code> and <code>print</code> methods: the latter passes
+<code>...</code> to the format method, so will accept <code>ratio</code> and
+<code>diff</code> arguments.
+</p>
+
+
+<h3>Note</h3>
+
+<p>The external tools used may change in future releases.
+</p>
+<p>Versions of GhostScript 9.06 and later give several times better
+compression than 9.05 on some vignettes in CRAN packages.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="checkRdaFiles.html">resaveRdaFiles</a></code>.
+</p>
+<p>Many other (and sometimes more effective) tools to compact PDF files
+are available, including Adobe Acrobat (not Reader).
+See the &lsquo;Writing R Extensions&rsquo; manual.
+</p>
+
+<hr /><div style="text-align: center;">[Package <em>tools</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

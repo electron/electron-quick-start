@@ -312,7 +312,9 @@ add.simpleDimnames <- function(m, named=FALSE) {
 
 as.mat <- function(m) {
     ## as(., "matrix")	but with no extraneous empty dimnames
+    d0 <- dim(m)
     m <- as(m, "matrix")
+    if(!length(m) && is.null(d0)) dim(m) <- c(0L, 0L) # rather than (0, 1)
     if(identical(dimnames(m), list(NULL,NULL)))
 	dimnames(m) <- NULL
     m

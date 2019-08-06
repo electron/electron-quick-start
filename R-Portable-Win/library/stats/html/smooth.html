@@ -1,0 +1,157 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Tukey's (Running Median) Smoothing</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for smooth {stats}"><tr><td>smooth {stats}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Tukey's (Running Median) Smoothing</h2>
+
+<h3>Description</h3>
+
+<p>Tukey's smoothers, <em>3RS3R</em>, <em>3RSS</em>, <em>3R</em>, etc.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+smooth(x, kind = c("3RS3R", "3RSS", "3RSR", "3R", "3", "S"),
+       twiceit = FALSE, endrule = c("Tukey", "copy"), do.ends = FALSE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>a vector or time series</p>
+</td></tr>
+<tr valign="top"><td><code>kind</code></td>
+<td>
+<p>a character string indicating the kind of smoother required;
+defaults to <code>"3RS3R"</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>twiceit</code></td>
+<td>
+<p>logical, indicating if the result should be &lsquo;twiced&rsquo;.
+Twicing a smoother <i>S(y)</i> means <i>S(y) + S(y - S(y))</i>, i.e.,
+adding smoothed residuals to the smoothed values.  This decreases
+bias (increasing variance).</p>
+</td></tr>
+<tr valign="top"><td><code>endrule</code></td>
+<td>
+<p>a character string indicating the rule for smoothing at the
+boundary.  Either <code>"Tukey"</code> (default) or <code>"copy"</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>do.ends</code></td>
+<td>
+<p>logical, indicating if the 3-splitting of ties should
+also happen at the boundaries (ends).  This is only used for
+<code>kind = "S"</code>.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p><em><code>3</code></em> is Tukey's short notation for running <code><a href="median.html">median</a></code>s
+of length <b>3</b>,
+<br />
+<em><code>3R</code></em> stands for <b>R</b>epeated <em><code>3</code></em> until
+convergence, and
+<br />
+<em><code>S</code></em> for <b>S</b>plitting of horizontal stretches of length 2 or 3.
+</p>
+<p>Hence, <em><code>3RS3R</code></em> is a concatenation of <code>3R</code>, <code>S</code>
+and <code>3R</code>, <em><code>3RSS</code></em> similarly,
+whereas <em><code>3RSR</code></em> means first <code>3R</code>
+and then <code>(S and 3)</code> <b>R</b>epeated until convergence &ndash; which
+can be bad.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class <code>"tukeysmooth"</code> (which has <code>print</code> and
+<code>summary</code> methods) and is a vector or time series containing the
+smoothed values with additional attributes.
+</p>
+
+
+<h3>Note</h3>
+
+<p>S and S-PLUS use a different (somewhat better) Tukey smoother in
+<code>smooth(*)</code>.
+Note that there are other smoothing methods which provide
+rather better results.  These were designed for hand calculations
+and may be used mainly for didactical purposes.
+</p>
+<p>Since <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> version 1.2, <code>smooth</code> <em>does</em> really implement
+Tukey's end-point rule correctly (see argument <code>endrule</code>).
+</p>
+<p><code>kind = "3RSR"</code> has been the default till <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>-1.1,
+but it can have very bad properties, see the examples.
+</p>
+<p>Note that repeated application of <code>smooth(*)</code> <em>does</em>
+smooth more, for the <code>"3RS*"</code> kinds.
+</p>
+
+
+<h3>References</h3>
+
+<p>Tukey, J. W. (1977).
+<em>Exploratory Data Analysis</em>,
+Reading Massachusetts: Addison-Wesley.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="runmed.html">runmed</a></code> for running medians;
+<code><a href="lowess.html">lowess</a></code> and <code><a href="loess.html">loess</a></code>;
+<code><a href="supsmu.html">supsmu</a></code> and
+<code><a href="smooth.spline.html">smooth.spline</a></code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+require(graphics)
+
+## see also   demo(smooth) !
+
+x1 &lt;- c(4, 1, 3, 6, 6, 4, 1, 6, 2, 4, 2) # very artificial
+(x3R &lt;- smooth(x1, "3R")) # 2 iterations of "3"
+smooth(x3R, kind = "S")
+
+sm.3RS &lt;- function(x, ...)
+   smooth(smooth(x, "3R", ...), "S", ...)
+
+y &lt;- c(1, 1, 19:1)
+plot(y, main = "misbehaviour of \"3RSR\"", col.main = 3)
+lines(sm.3RS(y))
+lines(smooth(y))
+lines(smooth(y, "3RSR"), col = 3, lwd = 2)  # the horror
+
+x &lt;- c(8:10, 10, 0, 0, 9, 9)
+plot(x, main = "breakdown of  3R  and  S  and hence  3RSS")
+matlines(cbind(smooth(x, "3R"), smooth(x, "S"), smooth(x, "3RSS"), smooth(x)))
+
+presidents[is.na(presidents)] &lt;- 0 # silly
+summary(sm3 &lt;- smooth(presidents, "3R"))
+summary(sm2 &lt;- smooth(presidents,"3RSS"))
+summary(sm  &lt;- smooth(presidents))
+
+all.equal(c(sm2), c(smooth(smooth(sm3, "S"), "S")))  # 3RSS  === 3R S S
+all.equal(c(sm),  c(smooth(smooth(sm3, "S"), "3R"))) # 3RS3R === 3R S 3R
+
+plot(presidents, main = "smooth(presidents0, *) :  3R and default 3RS3R")
+lines(sm3, col = 3, lwd = 1.5)
+lines(sm, col = 2, lwd = 1.25)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>stats</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

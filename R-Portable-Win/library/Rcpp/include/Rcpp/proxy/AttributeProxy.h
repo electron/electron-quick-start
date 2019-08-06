@@ -49,7 +49,7 @@ public:
             return Rf_getAttrib( parent, attr_name ) ;
         }
         void set(SEXP x ){
-            Rf_setAttrib( parent, attr_name, x ) ;
+            Rf_setAttrib( parent, attr_name, Shield<SEXP>(x) ) ;
         }
     } ;
 

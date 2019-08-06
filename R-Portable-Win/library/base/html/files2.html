@@ -1,0 +1,162 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Manipulation of Directories and File Permissions</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for files2 {base}"><tr><td>files2 {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Manipulation of Directories and File Permissions</h2>
+
+<h3>Description</h3>
+
+<p>These functions provide a low-level interface to the computer's
+file system.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+dir.exists(paths)
+dir.create(path, showWarnings = TRUE, recursive = FALSE, mode = "0777")
+Sys.chmod(paths, mode = "0777", use_umask = TRUE)
+Sys.umask(mode = NA)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>path</code></td>
+<td>
+<p>a character vector containing a single path name.  Tilde
+expansion (see <code><a href="path.expand.html">path.expand</a></code>) is done.</p>
+</td></tr>
+<tr valign="top"><td><code>paths</code></td>
+<td>
+<p>character vectors containing file or directory paths.  Tilde
+expansion (see <code><a href="path.expand.html">path.expand</a></code>) is done.</p>
+</td></tr>
+<tr valign="top"><td><code>showWarnings</code></td>
+<td>
+<p>logical; should the warnings on failure be shown?</p>
+</td></tr>
+<tr valign="top"><td><code>recursive</code></td>
+<td>
+<p>logical. Should elements of the path other than the
+last be created?  If true, like the Unix command <code>mkdir -p</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>mode</code></td>
+<td>
+<p>the mode to be used on Unix-alikes: it will be
+coerced by <code><a href="octmode.html">as.octmode</a></code>.  For <code>Sys.chmod</code> it is
+recycled along <code>paths</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>use_umask</code></td>
+<td>
+<p>logical: should the mode be restricted by the
+<code>umask</code> setting?</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p><code>dir.create</code> creates the last element of the path, unless
+<code>recursive = TRUE</code>.  Trailing path separators are discarded.
+On Windows drives are allowed in the path specification and unless
+the path is rooted, it will be interpreted relative to the current
+directory on that drive.  <code>mode</code> is ignored on Windows.
+</p>
+<p>One of the idiosyncrasies of Windows is that directory creation may
+report success but create a directory with a different name, for
+example <code>dir.create("G.S.")</code> creates &lsquo;<span class="file">&quot;G.S&quot;</span>&rsquo;.  This is
+undocumented, and what are the precise circumstances is unknown (and
+might depend on the version of Windows).  Also avoid directory names
+with a trailing space.
+
+
+</p>
+<p><code>Sys.chmod</code> sets the file permissions of one or more files.
+The interpretation of <code>mode</code> in the Windows system functions is
+non-POSIX and only supports setting the read-only attribute of the
+file.  So <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> interprets <code>mode</code> to mean set read-only if and only
+if <code>(mode &amp; 0200) == 0</code> (interpreted in octal).  Windows has a much
+more extensive system of file permissions on some file systems
+(e.g., versions of NTFS) which are unrelated to this system call.
+</p>
+<p><code>Sys.umask</code> sets the <code>umask</code> and returns the previous value:
+as a special case <code>mode = NA</code> just returns the current value.
+All files on Windows are regarded as readable, and files being
+executable is not a Windows concept.  So <code>umask</code> only controls
+whether a file is writable: a setting of <code>"200"</code> makes files (but
+not directories) created subsequently read-only.
+
+</p>
+<p>How modes are handled depends on the file system, even on Unix-alikes
+(although their documentation is often written assuming a POSIX file
+system).  So treat documentation cautiously if you are using, say, a
+FAT/FAT32 or network-mounted file system.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>dir.exists</code> returns a logical vector of <code>TRUE</code> or
+<code>FALSE</code> values (without names).
+</p>
+<p><code>dir.create</code> and <code>Sys.chmod</code> return invisibly a logical vector
+indicating if the operation succeeded for each of the files attempted.
+Using a missing value for a path name will always be regarded as a
+failure.  <code>dir.create</code> indicates failure if the directory already
+exists.  If <code>showWarnings = TRUE</code>, <code>dir.create</code> will give a
+warning for an unexpected failure (e.g., not for a missing value nor
+for an already existing component for <code>recursive = TRUE</code>).
+</p>
+<p><code>Sys.umask</code> returns the previous value of the <code>umask</code>,
+as a length-one object of class <code>"<a href="octmode.html">octmode</a>"</code>: the
+visibility flag is off unless <code>mode</code> is <code>NA</code>.
+</p>
+<p>See also the section in the help for <code><a href="files.html">file.exists</a></code> on
+case-insensitive file systems for the interpretation of <code>path</code>
+and <code>paths</code>.
+</p>
+
+
+<h3>Note</h3>
+
+<p>There is no guarantee that these functions will handle Windows
+relative paths of the form &lsquo;<span class="file">d:path</span>&rsquo;: try &lsquo;<span class="file">d:./path</span>&rsquo;
+instead.  In particular, &lsquo;<span class="file">d:</span>&rsquo; is not recognized as a directory.
+Nor are <span class="samp">\\?\</span> prefixes (and similar) supported.
+</p>
+<p>UTF-8-encoded dirnames not valid in the current locale can be used.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Ross Ihaka, Brian Ripley
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="file.info.html">file.info</a></code>, <code><a href="files.html">file.exists</a></code>, <code><a href="file.path.html">file.path</a></code>,
+<code><a href="list.files.html">list.files</a></code>, <code><a href="unlink.html">unlink</a></code>,
+<code><a href="basename.html">basename</a></code>, <code><a href="path.expand.html">path.expand</a></code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>## Not run: 
+## Fix up maximal allowed permissions in a file tree
+Sys.chmod(list.dirs("."), "777")
+f &lt;- list.files(".", all.files = TRUE, full.names = TRUE, recursive = TRUE)
+Sys.chmod(f, (file.info(f)$mode | "664"))
+
+## End(Not run)</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

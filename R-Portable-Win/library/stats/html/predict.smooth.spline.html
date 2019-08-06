@@ -1,0 +1,108 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Predict from Smoothing Spline Fit</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for predict.smooth.spline {stats}"><tr><td>predict.smooth.spline {stats}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Predict from Smoothing Spline Fit</h2>
+
+<h3>Description</h3>
+
+<p>Predict a smoothing spline fit at new points, return the derivative if
+desired. The predicted fit is linear beyond the original data.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+## S3 method for class 'smooth.spline'
+predict(object, x, deriv = 0, ...)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>object</code></td>
+<td>
+<p>a fit from <code>smooth.spline</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>the new values of x.</p>
+</td></tr>
+<tr valign="top"><td><code>deriv</code></td>
+<td>
+<p>integer; the order of the derivative required.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>further arguments passed to or from other methods.</p>
+</td></tr>
+</table>
+
+
+<h3>Value</h3>
+
+<p>A list with components
+</p>
+<table summary="R valueblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>The input <code>x</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>y</code></td>
+<td>
+<p>The fitted values or derivatives at <code>x</code>.</p>
+</td></tr>
+</table>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="smooth.spline.html">smooth.spline</a></code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+require(graphics)
+
+attach(cars)
+cars.spl &lt;- smooth.spline(speed, dist, df = 6.4)
+
+
+## "Proof" that the derivatives are okay, by comparing with approximation
+diff.quot &lt;- function(x, y) {
+  ## Difference quotient (central differences where available)
+  n &lt;- length(x); i1 &lt;- 1:2; i2 &lt;- (n-1):n
+  c(diff(y[i1]) / diff(x[i1]), (y[-i1] - y[-i2]) / (x[-i1] - x[-i2]),
+    diff(y[i2]) / diff(x[i2]))
+}
+
+xx &lt;- unique(sort(c(seq(0, 30, by = .2), kn &lt;- unique(speed))))
+i.kn &lt;- match(kn, xx)   # indices of knots within xx
+op &lt;- par(mfrow = c(2,2))
+plot(speed, dist, xlim = range(xx), main = "Smooth.spline &amp; derivatives")
+lines(pp &lt;- predict(cars.spl, xx), col = "red")
+points(kn, pp$y[i.kn], pch = 3, col = "dark red")
+mtext("s(x)", col = "red")
+for(d in 1:3){
+  n &lt;- length(pp$x)
+  plot(pp$x, diff.quot(pp$x,pp$y), type = "l", xlab = "x", ylab = "",
+       col = "blue", col.main = "red",
+       main = paste0("s" ,paste(rep("'", d), collapse = ""), "(x)"))
+  mtext("Difference quotient approx.(last)", col = "blue")
+  lines(pp &lt;- predict(cars.spl, xx, deriv = d), col = "red")
+
+  points(kn, pp$y[i.kn], pch = 3, col = "dark red")
+  abline(h = 0, lty = 3, col = "gray")
+}
+detach(); par(op)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>stats</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

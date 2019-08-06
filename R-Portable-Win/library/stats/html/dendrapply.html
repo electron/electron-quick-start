@@ -1,0 +1,113 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Apply a Function to All Nodes of a Dendrogram</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for dendrapply {stats}"><tr><td>dendrapply {stats}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Apply a Function to All Nodes of a Dendrogram</h2>
+
+<h3>Description</h3>
+
+<p>Apply function <code>FUN</code> to each node of a <code><a href="dendrogram.html">dendrogram</a></code>
+recursively.  When  <code>y &lt;- dendrapply(x, fn)</code>, then <code>y</code> is a
+dendrogram of the same graph structure as <code>x</code> and for each node,
+<code>y.node[j] &lt;- FUN( x.node[j], ...)</code> (where <code>y.node[j]</code> is an
+(invalid!) notation for the j-th node of y).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+dendrapply(X, FUN, ...)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>X</code></td>
+<td>
+<p>an object of class <code>"<a href="dendrogram.html">dendrogram</a>"</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>FUN</code></td>
+<td>
+<p>an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> function to be applied to each dendrogram node,
+typically working on its <code><a href="../../base/html/attributes.html">attributes</a></code> alone, returning an
+altered version of the same node.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>potential further arguments passed to <code>FUN</code>.</p>
+</td></tr>
+</table>
+
+
+<h3>Value</h3>
+
+<p>Usually a dendrogram of the same (graph) structure as <code>X</code>.
+For that, the function must be conceptually of the form
+<code>FUN &lt;- function(X) { attributes(X) &lt;- .....;  X }</code>,
+i.e., returning the node with some attributes added or changed.
+</p>
+
+
+<h3>Note</h3>
+
+<p>The implementation is somewhat experimental and suggestions for
+enhancements (or nice examples of usage) are very welcome.  The
+current implementation is <em>recursive</em> and inefficient for
+dendrograms with many non-leaves.  See the &lsquo;Warning&rsquo; in
+<code><a href="dendrogram.html">dendrogram</a></code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Martin Maechler</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="dendrogram.html">as.dendrogram</a></code>, <code><a href="../../base/html/lapply.html">lapply</a></code> for applying
+a function to each component of a <code>list</code>, <code><a href="../../base/html/rapply.html">rapply</a></code>
+for doing so to each non-list component of a nested list.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+require(graphics)
+
+## a smallish simple dendrogram
+dhc &lt;- as.dendrogram(hc &lt;- hclust(dist(USArrests), "ave"))
+(dhc21 &lt;- dhc[[2]][[1]])
+
+## too simple:
+dendrapply(dhc21, function(n) utils::str(attributes(n)))
+
+## toy example to set colored leaf labels :
+local({
+  colLab &lt;&lt;- function(n) {
+      if(is.leaf(n)) {
+        a &lt;- attributes(n)
+        i &lt;&lt;- i+1
+        attr(n, "nodePar") &lt;-
+            c(a$nodePar, list(lab.col = mycols[i], lab.font = i%%3))
+      }
+      n
+  }
+  mycols &lt;- grDevices::rainbow(attr(dhc21,"members"))
+  i &lt;- 0
+ })
+dL &lt;- dendrapply(dhc21, colLab)
+op &lt;- par(mfrow = 2:1)
+ plot(dhc21)
+ plot(dL) ## --&gt; colored labels!
+par(op)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>stats</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

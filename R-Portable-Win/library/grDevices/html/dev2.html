@@ -1,0 +1,183 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Copy Graphics Between Multiple Devices</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for dev2 {grDevices}"><tr><td>dev2 {grDevices}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Copy Graphics Between Multiple Devices</h2>
+
+<h3>Description</h3>
+
+<p><code>dev.copy</code> copies the graphics contents of the current device
+to the device specified by <code>which</code> or to a new device which has
+been created by the function specified by <code>device</code> (it is an
+error to specify both <code>which</code> and <code>device</code>).  (If recording
+is off on the current device, there are no contents to copy: this will
+result in no plot or an empty plot.)
+The device copied to becomes the current device.
+</p>
+<p><code>dev.print</code> copies the graphics contents of the current device
+to a new device which has been created by the function specified by
+<code>device</code> and then shuts the new device.
+</p>
+<p><code>dev.copy2eps</code> is similar to <code>dev.print</code> but produces an
+EPSF output file in portrait orientation (<code>horizontal = FALSE</code>).
+<code>dev.copy2pdf</code> is the analogue for PDF output.
+</p>
+<p><code>dev.control</code> allows the user to control the recording of
+graphics operations in a device.  If <code>displaylist</code> is <code>"inhibit"</code>
+(<code>"enable"</code>) then recording is turned off (on). It is only safe
+to change this at the beginning of a plot (just before or just after a
+new page).  Initially recording is on for screen devices, and off for
+print devices.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+dev.copy(device, ..., which = dev.next())
+dev.print(device = postscript, ...)
+dev.copy2eps(...)
+dev.copy2pdf(..., out.type = "pdf")
+dev.control(displaylist = c("inhibit", "enable"))
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>device</code></td>
+<td>
+<p>A device function (e.g., <code>x11</code>,
+<code>postscript</code>, ...)</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>Arguments to the <code>device</code> function above: for
+<code>dev.copy2eps</code> arguments to <code><a href="postscript.html">postscript</a></code> and for
+<code>dev.copy2pdf</code>, arguments to <code><a href="pdf.html">pdf</a></code>.
+For <code>dev.print</code>, this includes <code>which</code> and by default any
+<code><a href="postscript.html">postscript</a></code> arguments.</p>
+</td></tr>
+<tr valign="top"><td><code>which</code></td>
+<td>
+<p>A device number specifying the device to copy to.</p>
+</td></tr>
+<tr valign="top"><td><code>out.type</code></td>
+<td>
+<p>The name of the output device: can be <code>"pdf"</code>, or
+<code>"quartz"</code> (some macOS builds) or <code>"cairo"</code> (Windows
+and some Unix-alikes, see <code><a href="cairo.html">cairo_pdf</a></code>).</p>
+</td></tr>
+<tr valign="top"><td><code>displaylist</code></td>
+<td>
+<p>A character string: the only valid values are
+<code>"inhibit"</code> and <code>"enable"</code>.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>Note that these functions copy the <em>device region</em> and not a
+plot: the background colour of the device surface is part of what is
+copied.  Most screen devices default to a transparent background, which
+is probably not what is needed when copying to a device such as
+<code><a href="png.html">png</a></code>.
+</p>
+<p>For <code>dev.copy2eps</code> and <code>dev.copy2pdf</code>, <code>width</code> and
+<code>height</code> are taken from the current device unless otherwise
+specified.  If just one of <code>width</code> and <code>height</code> is
+specified, the other is adjusted to preserve the aspect ratio of the
+device being copied.  The default file name is <code>Rplot.eps</code> or
+<code>Rplot.pdf</code>, and can be overridden by specifying a <code>file</code>
+argument.
+</p>
+<p>Copying to devices such as <code><a href="postscript.html">postscript</a></code> and
+<code><a href="pdf.html">pdf</a></code> which need font families pre-specified needs extra
+care &ndash; <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> is unaware of which families were used in a plot and so
+they will need to manually specified by the <code>fonts</code> argument
+passed as part of <code>...</code>.  Similarly, if the device to be copied
+from was opened with a <code>family</code> argument, a suitable
+<code>family</code> argument will need to be included in <code>...</code>.
+</p>
+<p>The default for <code>dev.print</code> is to produce and print a postscript
+copy.  This will not work unless <code><a href="../../base/html/options.html">options</a>("printcmd")</code> is
+set suitably and you have a PostScript printing system: see
+<code><a href="postscript.html">postscript</a></code> for how to set this up.  Windows users may
+prefer to use <code>dev.print(win.print)</code>.
+</p>
+<p><code>dev.print</code> is most useful for producing a postscript print
+(its default) when the following applies.  Unless
+<code>file</code> is specified, the plot will be printed.  Unless
+<code>width</code>, <code>height</code> and <code>pointsize</code> are specified
+the plot dimensions will be taken from the current device, shrunk
+if necessary to fit on the paper. (<code>pointsize</code> is rescaled if the
+plot is shrunk.)  If <code>horizontal</code> is not specified and the plot
+can be printed at full size by switching its value this is done
+instead of shrinking the plot region.
+</p>
+<p>If <code>dev.print</code> is used with a specified <code>device</code> (even
+<code>postscript</code>) it sets the width and height in the same way as
+<code>dev.copy2eps</code>.  This will not be appropriate unless the device
+specifies dimensions in inches, in particular not for
+<code>png</code>, <code>jpeg</code>, <code>tiff</code> and <code>bmp</code> unless
+<code>units = "inches"</code> is specified.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>dev.copy</code> returns the name and number of the device which has
+been copied to.
+</p>
+<p><code>dev.print</code>, <code>dev.copy2eps</code> and <code>dev.copy2pdf</code> return
+the name and number of the device which has been copied from.
+</p>
+
+
+<h3>Note</h3>
+
+<p>Most devices (including all screen devices) have a display list
+which records all of the graphics operations that occur in the device.
+<code>dev.copy</code> copies graphics contents by copying the display list
+from one device to another device.  Also, automatic redrawing of
+graphics contents following the resizing of a device depends on the
+contents of the display list.
+</p>
+<p>After the command <code>dev.control("inhibit")</code>, graphics operations
+are not recorded in the display list so that <code>dev.copy</code> and
+<code>dev.print</code> will not copy anything and the contents of a device
+will not be redrawn automatically if the device is resized.
+</p>
+<p>The recording of graphics operations is relatively expensive in
+terms of memory so the command <code>dev.control("inhibit")</code> can be
+useful if memory usage is an issue.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="dev.html">dev.cur</a></code> and other <code>dev.xxx</code> functions.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Not run: 
+x11() # on a Unix-alike
+plot(rnorm(10), main = "Plot 1")
+dev.copy(device = x11)
+mtext("Copy 1", 3)
+dev.print(width = 6, height = 6, horizontal = FALSE) # prints it
+dev.off(dev.prev())
+dev.off()
+
+## End(Not run)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>grDevices</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

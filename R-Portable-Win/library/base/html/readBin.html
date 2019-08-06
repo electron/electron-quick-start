@@ -1,0 +1,226 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Transfer Binary Data To and From Connections</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for readBin {base}"><tr><td>readBin {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Transfer Binary Data To and From Connections</h2>
+
+<h3>Description</h3>
+
+<p>Read binary data from or write binary data to a connection or raw vector.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+readBin(con, what, n = 1L, size = NA_integer_, signed = TRUE,
+        endian = .Platform$endian)
+
+writeBin(object, con, size = NA_integer_,
+         endian = .Platform$endian, useBytes = FALSE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>con</code></td>
+<td>
+<p>A <a href="connections.html">connection</a> object or a character string naming a file or
+a raw vector.</p>
+</td></tr>
+<tr valign="top"><td><code>what</code></td>
+<td>
+<p>Either an object whose mode will give the mode of the
+vector to be read, or a character vector of length one describing
+the mode: one of <code>"numeric"</code>, <code>"double"</code>,
+<code>"integer"</code>, <code>"int"</code>, <code>"logical"</code>, <code>"complex"</code>,
+<code>"character"</code>, <code>"raw"</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>n</code></td>
+<td>
+<p>numeric.  The (maximal) number of records to be
+read.  You can use an over-estimate here, but not too large as
+storage is reserved for <code>n</code> items.</p>
+</td></tr>
+<tr valign="top"><td><code>size</code></td>
+<td>
+<p>integer.  The number of bytes per element in the byte
+stream.  The default, <code>NA_integer_</code>, uses the natural size.
+Size changing is not supported for raw and complex vectors.</p>
+</td></tr>
+<tr valign="top"><td><code>signed</code></td>
+<td>
+<p>logical.  Only used for integers of sizes 1 and 2,
+when it determines if the quantity on file
+should be regarded as a signed or unsigned integer.</p>
+</td></tr>
+<tr valign="top"><td><code>endian</code></td>
+<td>
+<p>The endian-ness (<code>"big"</code> or <code>"little"</code>) of the
+target system for the file.  Using <code>"swap"</code> will force swapping
+endian-ness.</p>
+</td></tr>
+<tr valign="top"><td><code>object</code></td>
+<td>
+<p>An <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> object to be written to the connection.</p>
+</td></tr>
+<tr valign="top"><td><code>useBytes</code></td>
+<td>
+<p>See <code><a href="writeLines.html">writeLines</a></code>.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>These functions can only be used with binary-mode connections.
+If <code>con</code> is a character string, the functions call
+<code><a href="connections.html">file</a></code> to obtain a binary-mode file connection which is
+opened for the duration of the function call.
+</p>
+<p>If the connection is open it is read/written from its current
+position.  If it is not open, it is opened for the duration of the
+call in an appropriate mode (binary read or write) and then closed
+again.  An open connection must be in binary mode.
+</p>
+<p>If <code>readBin</code> is called with <code>con</code> a raw vector, the data in
+the vector is used as input.  If <code>writeBin</code> is called with
+<code>con</code> a raw vector, it is just an indication that a raw vector
+should be returned.
+</p>
+<p>If <code>size</code> is specified and not the natural size of the object,
+each element of the vector is coerced to an appropriate type before
+being written or as it is read.  Possible sizes are 1, 2, 4 and
+possibly 8 for integer or logical vectors, and 4, 8 and possibly 12/16
+for numeric vectors.  (Note that coercion occurs as signed types
+except if <code>signed = FALSE</code> when reading integers of sizes 1 and 2.)
+Changing sizes is unlikely to preserve <code>NA</code>s, and the extended
+precision sizes are unlikely to be portable across platforms.
+</p>
+<p><code>readBin</code> and <code>writeBin</code> read and write C-style
+zero-terminated character strings.  Input strings are limited to 10000
+characters.  <code><a href="readChar.html">readChar</a></code> and <code><a href="readChar.html">writeChar</a></code> can
+be used to read and write fixed-length strings.  No check is made that
+the string is valid in the current locale's encoding.
+</p>
+<p>Handling <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>'s missing and special (<code>Inf</code>, <code>-Inf</code> and
+<code>NaN</code>) values is discussed in the &lsquo;R Data Import/Export&rsquo; manual.
+</p>
+<p>Only <i>2^31 - 1</i> bytes can be written in a single
+call (and that is the maximum capacity of a raw vector on 32-bit
+platforms).
+</p>
+<p>&lsquo;Endian-ness&rsquo; is relevant for <code>size &gt; 1</code>, and should
+always be set for portable code (the default is only appropriate when
+writing and then reading files on the same platform).
+</p>
+
+
+<h3>Value</h3>
+
+<p>For <code>readBin</code>, a vector of appropriate mode and length the number of
+items read (which might be less than <code>n</code>).
+</p>
+<p>For <code>writeBin</code>, a raw vector (if <code>con</code> is a raw vector) or
+invisibly <code>NULL</code>.
+</p>
+
+
+<h3>Note</h3>
+
+<p>Integer read/writes of size 8 will be available if either C type
+<code>long</code> is of size 8 bytes or C type <code>long long</code> exists and
+is of size 8 bytes.
+</p>
+<p>Real read/writes of size <code>sizeof(long double)</code> (usually 12 or 16
+bytes) will be available only if that type is available and different
+from <code>double</code>.
+</p>
+<p>If <code>readBin(what = character())</code> is used incorrectly on a file
+which does not contain C-style character strings, warnings (usually
+many) are given.  From a file or connection, the input will be broken
+into pieces of length 10000 with any final part being discarded.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>The &lsquo;R Data Import/Export&rsquo; manual.
+</p>
+<p><code>readChar</code> to read/write fixed-length strings.
+</p>
+<p><code><a href="connections.html">connections</a></code>, <code><a href="readLines.html">readLines</a></code>,
+<code><a href="writeLines.html">writeLines</a></code>.
+</p>
+<p><code><a href="zMachine.html">.Machine</a></code> for the sizes of <code>long</code>, <code>long long</code>
+and <code>long double</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+zzfil &lt;- tempfile("testbin")
+zz &lt;- file(zzfil, "wb")
+writeBin(1:10, zz)
+writeBin(pi, zz, endian = "swap")
+writeBin(pi, zz, size = 4)
+writeBin(pi^2, zz, size = 4, endian = "swap")
+writeBin(pi+3i, zz)
+writeBin("A test of a connection", zz)
+z &lt;- paste("A very long string", 1:100, collapse = " + ")
+writeBin(z, zz)
+if(.Machine$sizeof.long == 8 || .Machine$sizeof.longlong == 8)
+    writeBin(as.integer(5^(1:10)), zz, size = 8)
+if((s &lt;- .Machine$sizeof.longdouble) &gt; 8)
+    writeBin((pi/3)^(1:10), zz, size = s)
+close(zz)
+
+zz &lt;- file(zzfil, "rb")
+readBin(zz, integer(), 4)
+readBin(zz, integer(), 6)
+readBin(zz, numeric(), 1, endian = "swap")
+readBin(zz, numeric(), size = 4)
+readBin(zz, numeric(), size = 4, endian = "swap")
+readBin(zz, complex(), 1)
+readBin(zz, character(), 1)
+z2 &lt;- readBin(zz, character(), 1)
+if(.Machine$sizeof.long == 8 || .Machine$sizeof.longlong == 8)
+    readBin(zz, integer(), 10,  size = 8)
+if((s &lt;- .Machine$sizeof.longdouble) &gt; 8)
+    readBin(zz, numeric(), 10, size = s)
+close(zz)
+unlink(zzfil)
+stopifnot(z2 == z)
+
+## signed vs unsigned ints
+zzfil &lt;- tempfile("testbin")
+zz &lt;- file(zzfil, "wb")
+x &lt;- as.integer(seq(0, 255, 32))
+writeBin(x, zz, size = 1)
+writeBin(x, zz, size = 1)
+x &lt;- as.integer(seq(0, 60000, 10000))
+writeBin(x, zz, size = 2)
+writeBin(x, zz, size = 2)
+close(zz)
+zz &lt;- file(zzfil, "rb")
+readBin(zz, integer(), 8, size = 1)
+readBin(zz, integer(), 8, size = 1, signed = FALSE)
+readBin(zz, integer(), 7, size = 2)
+readBin(zz, integer(), 7, size = 2, signed = FALSE)
+close(zz)
+unlink(zzfil)
+
+## use of raw
+z &lt;- writeBin(pi^{1:5}, raw(), size = 4)
+readBin(z, numeric(), 5, size = 4)
+z &lt;- writeBin(c("a", "test", "of", "character"), raw())
+readBin(z, character(), 4)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

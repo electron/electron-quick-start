@@ -1,5 +1,5 @@
 /* This file is part of the 'stringi' package for R.
- * Copyright (c) 2013-2017, Marek Gagolewski and other contributors.
+ * Copyright (c) 2013-2019, Marek Gagolewski and other contributors.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -68,7 +68,8 @@ SEXP stri_escape_unicode(SEXP str);
 SEXP stri_unescape_unicode(SEXP str);
 
 // join.cpp:
-SEXP stri_flatten(SEXP str, SEXP collapse=Rf_mkString(""));
+SEXP stri_flatten(SEXP str, SEXP collapse=Rf_mkString(""),
+   SEXP na_empty=Rf_ScalarLogical(FALSE), SEXP omit_empty=Rf_ScalarLogical(FALSE));
 SEXP stri_join(SEXP strlist, SEXP sep=Rf_mkString(""),
    SEXP collapse=R_NilValue, SEXP ignore_null=Rf_ScalarLogical(FALSE));
 SEXP stri_join_list(SEXP x, SEXP sep=Rf_mkString(""),
@@ -88,6 +89,8 @@ SEXP stri_reverse(SEXP s);
 // sub.cpp
 SEXP stri_sub(SEXP str, SEXP from, SEXP to, SEXP length);
 SEXP stri_sub_replacement(SEXP str, SEXP from, SEXP to, SEXP length, SEXP omit_na, SEXP value);
+SEXP stri_sub_all(SEXP str, SEXP from, SEXP to, SEXP length);
+SEXP stri_sub_replacement_all(SEXP str, SEXP from, SEXP to, SEXP length, SEXP omit_na, SEXP value);
 
 // encoding_management.cpp:
 SEXP stri_enc_list();
@@ -179,7 +182,9 @@ SEXP stri_split_lines1(SEXP str);
 
 SEXP stri_replace_na(SEXP str, SEXP replacement=Rf_mkString("NA"));
 
-SEXP stri_detect_coll(SEXP str, SEXP pattern, SEXP negate=Rf_ScalarLogical(FALSE), SEXP opts_collator=R_NilValue);
+SEXP stri_detect_coll(SEXP str, SEXP pattern,
+    SEXP negate=Rf_ScalarLogical(FALSE), SEXP max_count=Rf_ScalarInteger(-1),
+    SEXP opts_collator=R_NilValue);
 SEXP stri_count_coll(SEXP str, SEXP pattern, SEXP opts_collator=R_NilValue);
 SEXP stri_locate_all_coll(SEXP str, SEXP pattern,
    SEXP omit_no_match=Rf_ScalarLogical(FALSE), SEXP opts_collator=R_NilValue);
@@ -207,7 +212,9 @@ SEXP stri_subset_coll(SEXP str, SEXP pattern,
    SEXP omit_na=Rf_ScalarLogical(FALSE), SEXP negate=Rf_ScalarLogical(FALSE), SEXP opts_collator=R_NilValue);
 SEXP stri_subset_coll_replacement(SEXP str, SEXP pattern, SEXP negate, SEXP opts_collator, SEXP value);
 
-SEXP stri_detect_fixed(SEXP str, SEXP pattern, SEXP negate=Rf_ScalarLogical(FALSE), SEXP opts_fixed=R_NilValue);
+SEXP stri_detect_fixed(SEXP str, SEXP pattern,
+    SEXP negate=Rf_ScalarLogical(FALSE), SEXP max_count=Rf_ScalarInteger(-1),
+    SEXP opts_fixed=R_NilValue);
 SEXP stri_count_fixed(SEXP str, SEXP pattern, SEXP opts_fixed=R_NilValue);
 SEXP stri_locate_all_fixed(SEXP str, SEXP pattern,
    SEXP omit_no_match=Rf_ScalarLogical(FALSE), SEXP opts_fixed=R_NilValue);
@@ -235,7 +242,9 @@ SEXP stri_startswith_fixed(SEXP str, SEXP pattern, SEXP from=Rf_ScalarInteger(1)
    SEXP opts_fixed=R_NilValue);
 SEXP stri_subset_fixed_replacement(SEXP str, SEXP pattern, SEXP negate, SEXP opts_fixed, SEXP value);
 
-SEXP stri_detect_regex(SEXP str, SEXP pattern, SEXP negate=Rf_ScalarLogical(FALSE), SEXP opts_regex=R_NilValue);
+SEXP stri_detect_regex(SEXP str, SEXP pattern,
+    SEXP negate=Rf_ScalarLogical(FALSE), SEXP max_count=Rf_ScalarInteger(-1),
+    SEXP opts_regex=R_NilValue);
 SEXP stri_count_regex(SEXP str, SEXP pattern, SEXP opts_regex=R_NilValue);
 SEXP stri_locate_all_regex(SEXP str, SEXP pattern,
    SEXP omit_no_match=Rf_ScalarLogical(FALSE), SEXP opts_regex=R_NilValue);
@@ -266,8 +275,9 @@ SEXP stri_match_all_regex(SEXP str, SEXP pattern,
    SEXP cg_missing=Rf_ScalarString(NA_STRING), SEXP opts_regex=R_NilValue);
 SEXP stri_subset_regex_replacement(SEXP str, SEXP pattern, SEXP negate, SEXP opts_regex, SEXP value);
 
+SEXP stri_detect_charclass(SEXP str, SEXP pattern,
+    SEXP negate=Rf_ScalarLogical(FALSE), SEXP max_count=Rf_ScalarInteger(-1));
 SEXP stri_count_charclass(SEXP str, SEXP pattern);
-SEXP stri_detect_charclass(SEXP str, SEXP pattern, SEXP negate=Rf_ScalarLogical(FALSE));
 SEXP stri_extract_first_charclass(SEXP str, SEXP pattern);
 SEXP stri_extract_last_charclass(SEXP str, SEXP pattern);
 SEXP stri_extract_all_charclass(SEXP str, SEXP pattern,

@@ -1,0 +1,182 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Comparisons between Multivariate Linear Models</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for anova.mlm {stats}"><tr><td>anova.mlm {stats}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Comparisons between Multivariate Linear Models</h2>
+
+<h3>Description</h3>
+
+<p>Compute a (generalized) analysis of variance table for one or more
+multivariate linear models.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+## S3 method for class 'mlm'
+anova(object, ...,
+      test = c("Pillai", "Wilks", "Hotelling-Lawley", "Roy",
+               "Spherical"),
+      Sigma = diag(nrow = p), T = Thin.row(proj(M) - proj(X)),
+      M = diag(nrow = p), X = ~0,
+      idata = data.frame(index = seq_len(p)), tol = 1e-7)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>object</code></td>
+<td>
+<p>an object of class <code>"mlm"</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>further objects of class <code>"mlm"</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>test</code></td>
+<td>
+<p>choice of test statistic (see below).  Can be abbreviated.</p>
+</td></tr>
+<tr valign="top"><td><code>Sigma</code></td>
+<td>
+<p>(only relevant if  <code>test == "Spherical"</code>).  Covariance
+matrix assumed proportional to <code>Sigma</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>T</code></td>
+<td>
+<p>transformation matrix.  By default computed from <code>M</code> and
+<code>X</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>M</code></td>
+<td>
+<p>formula or matrix describing the outer projection (see below).</p>
+</td></tr>
+<tr valign="top"><td><code>X</code></td>
+<td>
+<p>formula or matrix describing the inner projection (see below).</p>
+</td></tr>
+<tr valign="top"><td><code>idata</code></td>
+<td>
+<p>data frame describing intra-block design.</p>
+</td></tr>
+</table>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>tol</code></td>
+<td>
+<p>tolerance to be used in deciding if the residuals are
+rank-deficient: see <code><a href="../../base/html/qr.html">qr</a></code>.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>The <code>anova.mlm</code> method uses either a multivariate test statistic for
+the summary table, or a test based on sphericity assumptions (i.e.
+that the covariance is proportional to a given matrix).
+</p>
+<p>For the multivariate test, Wilks' statistic is most popular in the
+literature, but the default Pillai&ndash;Bartlett statistic is
+recommended by Hand and Taylor (1987).  See
+<code><a href="summary.manova.html">summary.manova</a></code> for further details.
+</p>
+<p>For the <code>"Spherical"</code> test, proportionality is usually with the
+identity matrix but a different matrix can be specified using <code>Sigma</code>.
+Corrections for asphericity known as the Greenhouse&ndash;Geisser,
+respectively Huynh&ndash;Feldt, epsilons are given and adjusted <i>F</i> tests are
+performed.
+</p>
+<p>It is common to transform the observations prior to testing. This
+typically involves
+transformation to intra-block differences, but more complicated
+within-block designs can be encountered,
+making more elaborate transformations necessary.  A
+transformation matrix <code>T</code> can be given directly or specified as
+the difference between two projections onto the spaces spanned by
+<code>M</code> and <code>X</code>, which in turn can be given as matrices or as
+model formulas with respect to <code>idata</code> (the tests will be
+invariant to parametrization of the quotient space <code>M/X</code>).
+</p>
+<p>As with <code>anova.lm</code>, all test statistics use the SSD matrix from
+the largest model considered as the (generalized) denominator.
+</p>
+<p>Contrary to other <code>anova</code> methods, the intercept is not excluded
+from the display in the single-model case.  When contrast
+transformations are involved, it often makes good sense to test for a
+zero intercept.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class <code>"anova"</code> inheriting from class <code>"data.frame"</code>
+</p>
+
+
+<h3>Note</h3>
+
+<p>The Huynh&ndash;Feldt epsilon differs from that calculated by SAS (as of
+v. 8.2) except when the DF is equal to the number of observations
+minus one.  This is believed to be a bug in SAS, not in <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>.
+</p>
+
+
+<h3>References</h3>
+
+<p>Hand, D. J. and Taylor, C. C.  (1987)
+<em>Multivariate Analysis of Variance and Repeated Measures.</em>
+Chapman and Hall.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="summary.manova.html">summary.manova</a></code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+require(graphics)
+utils::example(SSD) # Brings in the mlmfit and reacttime objects
+
+mlmfit0 &lt;- update(mlmfit, ~0)
+
+### Traditional tests of intrasubj. contrasts
+## Using MANOVA techniques on contrasts:
+anova(mlmfit, mlmfit0, X = ~1)
+
+## Assuming sphericity
+anova(mlmfit, mlmfit0, X = ~1, test = "Spherical")
+
+
+### tests using intra-subject 3x2 design
+idata &lt;- data.frame(deg = gl(3, 1, 6, labels = c(0, 4, 8)),
+                    noise = gl(2, 3, 6, labels = c("A", "P")))
+
+anova(mlmfit, mlmfit0, X = ~ deg + noise,
+      idata = idata, test = "Spherical")
+anova(mlmfit, mlmfit0, M = ~ deg + noise, X = ~ noise,
+      idata = idata, test = "Spherical" )
+anova(mlmfit, mlmfit0, M = ~ deg + noise, X = ~ deg,
+      idata = idata, test = "Spherical" )
+
+f &lt;- factor(rep(1:2, 5)) # bogus, just for illustration
+mlmfit2 &lt;- update(mlmfit, ~f)
+anova(mlmfit2, mlmfit, mlmfit0, X = ~1, test = "Spherical")
+anova(mlmfit2, X = ~1, test = "Spherical")
+# one-model form, eqiv. to previous
+
+### There seems to be a strong interaction in these data
+plot(colMeans(reacttime))
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>stats</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

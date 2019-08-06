@@ -1,0 +1,140 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Combine two Objects by Columns or Rows</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for cbind2 {methods}"><tr><td>cbind2 {methods}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Combine two Objects by Columns or Rows</h2>
+
+<h3>Description</h3>
+
+<p>Combine two matrix-like <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> objects by columns (<code>cbind2</code>)
+or rows (<code>rbind2</code>).  These are (S4) generic functions with default
+methods.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+cbind2(x, y, ...)
+rbind2(x, y, ...)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>any <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> object, typically matrix-like.</p>
+</td></tr>
+<tr valign="top"><td><code>y</code></td>
+<td>
+<p>any <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> object, typically similar to <code>x</code>, or missing
+completely.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>optional arguments for methods.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>The main use of <code>cbind2</code> (<code>rbind2</code>) is to be called
+recursively by <code><a href="../../base/html/cbind.html">cbind</a>()</code> (<code>rbind()</code>) when both of
+these requirements are met:
+</p>
+
+<ul>
+<li><p>There is at least one argument that is an S4 object,
+and
+</p>
+</li>
+<li><p>S3 dispatch fails (see the Dispatch section under <a href="../../base/html/cbind.html">cbind</a>).
+</p>
+</li></ul>
+
+<p>The methods on <code>cbind2</code> and <code>rbind2</code> effectively define the
+type promotion policy when combining a heterogeneous set of
+arguments.  The homogeneous case, where all objects derive from some S4
+class, can be handled via S4 dispatch on the <code>...</code> argument via
+an externally defined S4 <code>cbind</code> (<code>rbind</code>) generic.
+</p>
+<p>Since (for legacy reasons) S3 dispatch is attempted first, it is
+generally a good idea to additionally define an S3 method on
+<code>cbind</code> (<code>rbind</code>) for the S4 class.  The S3 method will be
+invoked when the arguments include objects of the S4 class, along with
+arguments of classes for which no S3 method exists.  Also, in case there
+is an argument that selects a different S3 method (like the one for
+<code>data.frame</code>), this S3 method serves to introduce an ambiguity in
+dispatch that triggers the recursive fallback to <code>cbind2</code>
+(<code>rbind2</code>). Otherwise, the other S3 method would be called, which
+may not be appropriate.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A matrix (or matrix like object) combining the columns (or rows) of
+<code>x</code> and <code>y</code>.  Note that methods must construct
+<code><a href="../../base/html/colnames.html">colnames</a></code> and <code><a href="../../base/html/colnames.html">rownames</a></code> from the
+corresponding column and row names of <code>x</code> and <code>y</code> (but not
+from deparsing argument names such as in <code><a href="../../base/html/cbind.html">cbind</a>(...,
+    deparse.level = d)</code> for <i>d &gt;= 1</i>).
+</p>
+
+
+<h3>Methods</h3>
+
+
+<dl>
+<dt><code>signature(x = "ANY", y = "ANY")</code></dt><dd><p>the default method
+using <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>'s internal code.</p>
+</dd>
+<dt><code>signature(x = "ANY", y = "missing")</code></dt><dd><p>the default method
+for one argument using <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>'s internal code.</p>
+</dd>
+</dl>
+
+
+
+<h3>See Also</h3>
+
+<p><code><a href="../../base/html/cbind.html">cbind</a></code>, <code><a href="../../base/html/cbind.html">rbind</a></code>;
+further, <code><a href="../../Matrix/html/cBind.html">cBind</a></code>, <code><a href="../../Matrix/html/rBind.html">rBind</a></code> in
+the <a href="https://CRAN.R-project.org/package=Matrix"><span class="pkg">Matrix</span></a> package.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+cbind2(1:3, 4)
+m &lt;- matrix(3:8, 2,3, dimnames=list(c("a","b"), LETTERS[1:3]))
+cbind2(1:2, m) # keeps dimnames from m
+
+## rbind() and cbind() now make use of rbind2()/cbind2() methods
+setClass("Num", contains="numeric")
+setMethod("cbind2", c("Num", "missing"),
+          function(x,y, ...) { cat("Num-miss--meth\n"); as.matrix(x)})
+setMethod("cbind2", c("Num","ANY"), function(x,y, ...) {
+    cat("Num-A.--method\n") ; cbind(getDataPart(x), y, ...) })
+setMethod("cbind2", c("ANY","Num"), function(x,y, ...) {
+    cat("A.-Num--method\n") ; cbind(x, getDataPart(y), ...) })
+
+a &lt;- new("Num", 1:3)
+trace("cbind2")
+cbind(a)
+cbind(a, four=4, 7:9)# calling cbind2() twice
+
+cbind(m,a, ch=c("D","E"), a*3)
+cbind(1,a, m) # ok with a warning
+untrace("cbind2")
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>methods</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

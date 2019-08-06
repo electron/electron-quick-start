@@ -1,0 +1,124 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: In-memory Compression and Decompression</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for memCompress {base}"><tr><td>memCompress {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>In-memory Compression and Decompression</h2>
+
+<h3>Description</h3>
+
+<p>In-memory compression or decompression for raw vectors.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+memCompress(from, type = c("gzip", "bzip2", "xz", "none"))
+
+memDecompress(from,
+              type = c("unknown", "gzip", "bzip2", "xz", "none"),
+              asChar = FALSE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>from</code></td>
+<td>
+<p>A raw vector.  For <code>memCompress</code> a character vector
+will be converted to a raw vector with character strings separated
+by <code>"\n"</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>type</code></td>
+<td>
+<p>character string, the type of compression.  May be
+abbreviated to a single letter, defaults to the first of the alternatives.</p>
+</td></tr>
+<tr valign="top"><td><code>asChar</code></td>
+<td>
+<p>logical: should the result be converted to a character
+string?</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p><code>type = "none"</code> passes the input through unchanged, but may be
+useful if <code>type</code> is a variable.
+</p>
+<p><code>type = "unknown"</code> attempts to detect the type of compression
+applied (if any): this will always succeed for <code>bzip2</code>
+compression, and will succeed for other forms if there is a suitable
+header.  It will auto-detect the &lsquo;magic&rsquo; header
+(<code>"\x1f\x8b"</code>) added to files by the <code>gzip</code> program (and
+to files written by <code><a href="connections.html">gzfile</a></code>), but <code>memCompress</code> does
+not add such a header.
+</p>
+<p><code>bzip2</code> compression always adds a header (<code>"BZh"</code>).
+</p>
+<p>Compressing with <code>type = "xz"</code> is equivalent to compressing a
+file with <code>xz -9e</code> (including adding the &lsquo;magic&rsquo;
+header): decompression should cope with the contents of any file
+compressed with <code>xz</code> version 4.999 and some versions of
+<code>lzma</code>.  There are other versions, in particular &lsquo;raw&rsquo;
+streams, that are not currently handled.
+</p>
+<p>All the types of compression can expand the input: for <code>"gzip"</code>
+and <code>"bzip2"</code> the maximum expansion is known and so
+<code>memCompress</code> can always allocate sufficient space.  For
+<code>"xz"</code> it is possible (but extremely unlikely) that compression
+will fail if the output would have been too large.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A raw vector or a character string (if <code>asChar = TRUE</code>).
+</p>
+
+
+<h3>See Also</h3>
+
+<p><a href="connections.html">connections</a>.
+</p>
+<p><code><a href="extSoftVersion.html">extSoftVersion</a></code> for the versions of the <code>zlib</code>,
+<code>bzip2</code> and <code>xz</code> libraries in use.
+</p>
+<p><a href="https://en.wikipedia.org/wiki/Data_compression">https://en.wikipedia.org/wiki/Data_compression</a> for background on
+data compression, <a href="http://zlib.net/">http://zlib.net/</a>,
+<a href="https://en.wikipedia.org/wiki/Gzip">https://en.wikipedia.org/wiki/Gzip</a>, <a href="http://www.bzip.org/">http://www.bzip.org/</a>,
+<a href="https://en.wikipedia.org/wiki/Bzip2">https://en.wikipedia.org/wiki/Bzip2</a>, <a href="http://tukaani.org/xz/">http://tukaani.org/xz/</a>
+and <a href="https://en.wikipedia.org/wiki/Xz">https://en.wikipedia.org/wiki/Xz</a> for references about the
+particular schemes used.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+txt &lt;- readLines(file.path(R.home("doc"), "COPYING"))
+sum(nchar(txt))
+txt.gz &lt;- memCompress(txt, "g")
+length(txt.gz)
+txt2 &lt;- strsplit(memDecompress(txt.gz, "g", asChar = TRUE), "\n")[[1]]
+stopifnot(identical(txt, txt2))
+txt.bz2 &lt;- memCompress(txt, "b")
+length(txt.bz2)
+## can auto-detect bzip2:
+txt3 &lt;- strsplit(memDecompress(txt.bz2, asChar = TRUE), "\n")[[1]]
+stopifnot(identical(txt, txt3))
+
+## xz compression is only worthwhile for large objects
+txt.xz &lt;- memCompress(txt, "x")
+length(txt.xz)
+txt3 &lt;- strsplit(memDecompress(txt.xz, asChar = TRUE), "\n")[[1]]
+stopifnot(identical(txt, txt3))
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

@@ -1,0 +1,266 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Extract or Replace Parts of a Data Frame</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for Extract.data.frame {base}"><tr><td>Extract.data.frame {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Extract or Replace Parts of a Data Frame</h2>
+
+<h3>Description</h3>
+
+<p>Extract or replace subsets of data frames.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+## S3 method for class 'data.frame'
+x[i, j, drop = ]
+## S3 replacement method for class 'data.frame'
+x[i, j] &lt;- value
+## S3 method for class 'data.frame'
+x[[..., exact = TRUE]]
+## S3 replacement method for class 'data.frame'
+x[[i, j]] &lt;- value
+
+## S3 replacement method for class 'data.frame'
+x$name &lt;- value
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>data frame.</p>
+</td></tr>
+<tr valign="top"><td><code>i, j, ...</code></td>
+<td>
+<p>elements to extract or replace.  For <code>[</code> and
+<code>[[</code>, these are <code>numeric</code> or <code>character</code> or, for
+<code>[</code> only, empty.  Numeric values are coerced to integer as if
+by <code><a href="integer.html">as.integer</a></code>.  For replacement by <code>[</code>, a logical
+matrix is allowed.</p>
+</td></tr>
+<tr valign="top"><td><code>name</code></td>
+<td>
+
+<p>A literal character string or a <a href="name.html">name</a> (possibly <a href="Quotes.html">backtick</a>
+quoted).</p>
+</td></tr>
+<tr valign="top"><td><code>drop</code></td>
+<td>
+<p>logical.  If <code>TRUE</code> the result is coerced to the
+lowest possible dimension.  The default is to drop if only one
+column is left, but <b>not</b> to drop if only one row is left.</p>
+</td></tr>
+<tr valign="top"><td><code>value</code></td>
+<td>
+<p>A suitable replacement value: it will be repeated a whole
+number of times if necessary and it may be coerced: see the
+Coercion section.  If <code>NULL</code>, deletes the column if a single
+column is selected.</p>
+</td></tr>
+<tr valign="top"><td><code>exact</code></td>
+<td>
+<p>logical: see <code><a href="Extract.html">[</a></code>, and applies to column names.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>Data frames can be indexed in several modes.  When <code>[</code> and
+<code>[[</code> are used with a single vector index (<code>x[i]</code> or
+<code>x[[i]]</code>), they index the data frame as if it were a list.  In
+this usage a <code>drop</code> argument is ignored, with a warning.
+</p>
+<p>There is no <code>data.frame</code> method for <code>$</code>, so <code>x$name</code>
+uses the default method which treats <code>x</code> as a list (with partial
+matching of column names if the match is unique, see
+<code><a href="Extract.html">Extract</a></code>).  The replacement method (for <code>$</code>) checks
+<code>value</code> for the correct number of rows, and replicates it if necessary.
+</p>
+<p>When <code>[</code> and <code>[[</code> are used with two indices (<code>x[i, j]</code>
+and <code>x[[i, j]]</code>) they act like indexing a matrix:  <code>[[</code> can
+only be used to select one element.  Note that for each selected
+column, <code>xj</code> say, typically (if it is not matrix-like), the
+resulting column will be <code>xj[i]</code>, and hence rely on the
+corresponding <code>[</code> method, see the examples section.
+</p>
+<p>If <code>[</code> returns a data frame it will have unique (and non-missing)
+row names, if necessary transforming the row names using
+<code><a href="make.unique.html">make.unique</a></code>.  Similarly, if columns are selected column
+names will be transformed to be unique if necessary (e.g., if columns
+are selected more than once, or if more than one column of a given
+name is selected if the data frame has duplicate column names).
+</p>
+<p>When <code>drop = TRUE</code>, this is applied to the subsetting of any
+matrices contained in the data frame as well as to the data frame itself.
+</p>
+<p>The replacement methods can be used to add whole column(s) by specifying
+non-existent column(s), in which case the column(s) are added at the
+right-hand edge of the data frame and numerical indices must be
+contiguous to existing indices.  On the other hand, rows can be added
+at any row after the current last row, and the columns will be
+in-filled with missing values.  Missing values in the indices are not
+allowed for replacement.
+</p>
+<p>For <code>[</code> the replacement value can be a list: each element of the
+list is used to replace (part of) one column, recycling the list as
+necessary.  If columns specified by number are created, the names
+(if any) of the corresponding list elements are used to name the
+columns.  If the replacement is not selecting rows, list values can
+contain <code>NULL</code> elements which will cause the corresponding
+columns to be deleted.  (See the Examples.)
+</p>
+<p>Matrix indexing (<code>x[i]</code> with a logical or a 2-column integer
+matrix <code>i</code>) using <code>[</code> is not recommended.  For extraction,
+<code>x</code> is first coerced to a matrix. For replacement, logical
+matrix indices must be of the same dimension as <code>x</code>.
+Replacements are done one column at a time, with multiple type
+coercions possibly taking place.
+</p>
+<p>Both <code>[</code> and <code>[[</code> extraction methods partially match row
+names.  By default neither partially match column names, but <code>[[</code>
+will if <code>exact = FALSE</code> (and with a warning if <code>exact =
+  NA</code>).  If you want to exact matching on row names use
+<code><a href="match.html">match</a></code>, as in the examples.
+</p>
+
+
+<h3>Value</h3>
+
+<p>For <code>[</code> a data frame, list or a single column (the latter two
+only when dimensions have been dropped).  If matrix indexing is used for
+extraction a vector results.  If the result would be a data frame an
+error results if undefined columns are selected (as there is no general
+concept of a 'missing' column in a data frame).  Otherwise if a single
+column is selected and this is undefined the result is <code>NULL</code>.
+</p>
+<p>For <code>[[</code> a column of the data frame or <code>NULL</code>
+(extraction with one index)
+or a length-one vector (extraction with two indices).
+</p>
+<p>For <code>$</code>, a column of the data frame (or <code>NULL</code>).
+</p>
+<p>For <code>[&lt;-</code>, <code>[[&lt;-</code> and <code>$&lt;-</code>, a data frame.
+</p>
+
+
+<h3>Coercion</h3>
+
+<p>The story over when replacement values are coerced is a complicated
+one, and one that has changed during <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>'s development.  This section
+is a guide only.
+</p>
+<p>When <code>[</code> and <code>[[</code> are used to add or replace a whole column,
+no coercion takes place but <code>value</code> will be
+replicated (by calling the generic function <code><a href="rep.html">rep</a></code>) to the
+right length if an exact number of repeats can be used.
+</p>
+<p>When <code>[</code> is used with a logical matrix, each value is coerced to
+the type of the column into which it is to be placed.
+</p>
+<p>When  <code>[</code> and <code>[[</code> are used with two indices, the
+column will be coerced as necessary to accommodate the value.
+</p>
+<p>Note that when the replacement value is an array (including a matrix)
+it is <em>not</em> treated as a series of columns (as
+<code><a href="data.frame.html">data.frame</a></code> and <code><a href="as.data.frame.html">as.data.frame</a></code> do) but
+inserted as a single column.
+</p>
+
+
+<h3>Warning</h3>
+
+<p>The default behaviour when only one <em>row</em> is left is equivalent to
+specifying <code>drop = FALSE</code>.  To drop from a data frame to a list,
+<code>drop = TRUE</code> has to be specified explicitly.
+</p>
+<p>Arguments other than <code>drop</code> and <code>exact</code> should not be named:
+there is a warning if they are and the behaviour differs from the
+description here.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="subset.html">subset</a></code> which is often easier for extraction,
+<code><a href="data.frame.html">data.frame</a></code>, <code><a href="Extract.html">Extract</a></code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+sw &lt;- swiss[1:5, 1:4]  # select a manageable subset
+
+sw[1:3]      # select columns
+sw[, 1:3]    # same
+sw[4:5, 1:3] # select rows and columns
+sw[1]        # a one-column data frame
+sw[, 1, drop = FALSE]  # the same
+sw[, 1]      # a (unnamed) vector
+sw[[1]]      # the same
+sw$Fert      # the same (possibly w/ warning, see ?Extract)
+
+sw[1,]       # a one-row data frame
+sw[1,, drop = TRUE]  # a list
+
+sw["C", ] # partially matches
+sw[match("C", row.names(sw)), ] # no exact match
+try(sw[, "Ferti"]) # column names must match exactly
+
+
+swiss[ c(1, 1:2), ]   # duplicate row, unique row names are created
+
+sw[sw &lt;= 6] &lt;- 6  # logical matrix indexing
+sw
+
+## adding a column
+sw["new1"] &lt;- LETTERS[1:5]   # adds a character column
+sw[["new2"]] &lt;- letters[1:5] # ditto
+sw[, "new3"] &lt;- LETTERS[1:5] # ditto
+sw$new4 &lt;- 1:5
+sapply(sw, class)
+sw$new  # -&gt; NULL: no unique partial match
+sw$new4 &lt;- NULL              # delete the column
+sw
+sw[6:8] &lt;- list(letters[10:14], NULL, aa = 1:5)
+# update col. 6, delete 7, append
+sw
+
+## matrices in a data frame
+A &lt;- data.frame(x = 1:3, y = I(matrix(4:9, 3, 2)),
+                         z = I(matrix(letters[1:9], 3, 3)))
+A[1:3, "y"] # a matrix
+A[1:3, "z"] # a matrix
+A[, "y"]    # a matrix
+stopifnot(identical(colnames(A), c("x", "y", "z")), ncol(A) == 3L,
+          identical(A[,"y"], A[1:3, "y"]),
+          inherits (A[,"y"], "AsIs"))
+
+## keeping special attributes: use a class with a
+## "as.data.frame" and "[" method;
+## "avector" := vector that keeps attributes.   Could provide a constructor
+##  avector &lt;- function(x) { class(x) &lt;- c("avector", class(x)); x }
+as.data.frame.avector &lt;- as.data.frame.vector
+
+`[.avector` &lt;- function(x,i,...) {
+  r &lt;- NextMethod("[")
+  mostattributes(r) &lt;- attributes(x)
+  r
+}
+
+d &lt;- data.frame(i = 0:7, f = gl(2,4),
+                u = structure(11:18, unit = "kg", class = "avector"))
+str(d[2:4, -1]) # 'u' keeps its "unit"
+
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

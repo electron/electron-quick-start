@@ -1,0 +1,142 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Character Translation and Casefolding</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for chartr {base}"><tr><td>chartr {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Character Translation and Casefolding</h2>
+
+<h3>Description</h3>
+
+<p>Translate characters in character vectors, in particular from upper to
+lower case or vice versa.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+chartr(old, new, x)
+tolower(x)
+toupper(x)
+casefold(x, upper = FALSE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>a character vector, or an object that can be coerced to
+character by <code><a href="character.html">as.character</a></code>.</p>
+</td></tr>
+<tr valign="top"><td><code>old</code></td>
+<td>
+<p>a character string specifying the characters to be
+translated.  If a character vector of length 2 or more is supplied,
+the first element is used with a warning.</p>
+</td></tr>
+<tr valign="top"><td><code>new</code></td>
+<td>
+<p>a character string specifying the translations. If a
+character vector of length 2 or more is supplied, the first element
+is used with a warning.</p>
+</td></tr>
+<tr valign="top"><td><code>upper</code></td>
+<td>
+<p>logical: translate to upper or lower case?.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p><code>chartr</code> translates each character in <code>x</code> that is specified
+in <code>old</code> to the corresponding character specified in <code>new</code>.
+Ranges are supported in the specifications, but character classes and
+repeated characters are not.  If <code>old</code> contains more characters
+than new, an error is signaled; if it contains fewer characters, the
+extra characters at the end of <code>new</code> are ignored.
+</p>
+<p><code>tolower</code> and <code>toupper</code> convert upper-case characters in a
+character vector to lower-case, or vice versa.  Non-alphabetic
+characters are left unchanged.
+</p>
+<p><code>casefold</code> is a wrapper for <code>tolower</code> and <code>toupper</code>
+provided for compatibility with S-PLUS.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A character vector of the same length and with the same attributes as
+<code>x</code> (after possible coercion).
+</p>
+<p>Elements of the result will be have the encoding declared as that of
+the current locale (see <code><a href="Encoding.html">Encoding</a></code>) if the corresponding
+input had a declared encoding and the current locale is either Latin-1
+or UTF-8.  The result will be in the current locale's encoding unless
+the corresponding input was in UTF-8, when it will be in UTF-8 when
+the system has Unicode wide characters.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="grep.html">sub</a></code> and <code><a href="grep.html">gsub</a></code> for other
+substitutions in strings.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+x &lt;- "MiXeD cAsE 123"
+chartr("iXs", "why", x)
+chartr("a-cX", "D-Fw", x)
+tolower(x)
+toupper(x)
+
+## "Mixed Case" Capitalizing - toupper( every first letter of a word ) :
+
+.simpleCap &lt;- function(x) {
+    s &lt;- strsplit(x, " ")[[1]]
+    paste(toupper(substring(s, 1, 1)), substring(s, 2),
+          sep = "", collapse = " ")
+}
+.simpleCap("the quick red fox jumps over the lazy brown dog")
+## -&gt;  [1] "The Quick Red Fox Jumps Over The Lazy Brown Dog"
+
+## and the better, more sophisticated version:
+capwords &lt;- function(s, strict = FALSE) {
+    cap &lt;- function(s) paste(toupper(substring(s, 1, 1)),
+                  {s &lt;- substring(s, 2); if(strict) tolower(s) else s},
+                             sep = "", collapse = " " )
+    sapply(strsplit(s, split = " "), cap, USE.NAMES = !is.null(names(s)))
+}
+capwords(c("using AIC for model selection"))
+## -&gt;  [1] "Using AIC For Model Selection"
+capwords(c("using AIC", "for MODEL selection"), strict = TRUE)
+## -&gt;  [1] "Using Aic"  "For Model Selection"
+##                ^^^        ^^^^^
+##               'bad'       'good'
+
+## -- Very simple insecure crypto --
+rot &lt;- function(ch, k = 13) {
+   p0 &lt;- function(...) paste(c(...), collapse = "")
+   A &lt;- c(letters, LETTERS, " '")
+   I &lt;- seq_len(k); chartr(p0(A), p0(c(A[-I], A[I])), ch)
+}
+
+pw &lt;- "my secret pass phrase"
+(crypw &lt;- rot(pw, 13)) #-&gt; you can send this off
+
+## now ``decrypt'' :
+rot(crypw, 54 - 13) # -&gt; the original:
+stopifnot(identical(pw, rot(crypw, 54 - 13)))
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

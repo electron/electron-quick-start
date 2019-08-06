@@ -1,0 +1,384 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Utilities for Managing Class Definitions</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for RClassUtils {methods}"><tr><td>RClassUtils {methods}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Utilities for Managing Class Definitions</h2>
+
+<h3>Description</h3>
+
+<p>These are various functions to support the definition and use of
+formal classes.  Most of them are rarely suitable to be called
+directly.
+</p>
+<p>Others are somewhat experimental and/or partially implemented only. Do
+refer to <code><a href="setClass.html">setClass</a></code> for normal code development.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+classLabel(Class)
+.classEnv(Class, default = .requirePackage("methods"), mustFind = TRUE)
+
+testVirtual(properties, extends, prototype, where)
+
+makePrototypeFromClassDef(slots, ClassDef, extends, where)
+
+newEmptyObject()
+
+completeClassDefinition(Class, ClassDef, where, doExtends)
+
+getAllSuperClasses(ClassDef, simpleOnly = TRUE)
+
+superClassDepth(ClassDef, soFar, simpleOnly = TRUE)
+
+isVirtualClass(Class, where)
+
+newBasic(Class, ...)
+
+makeExtends(Class, to, coerce, test, replace, by, package, slots,
+            classDef1, classDef2)
+
+reconcilePropertiesAndPrototype(name, properties, prototype,
+                                superClasses, where)
+tryNew(Class, where)
+
+empty.dump()
+
+showClass(Class, complete=TRUE, propertiesAreCalled="Slots")
+
+showExtends(ext, printTo = stdout())
+
+possibleExtends(class1, class2,
+                ClassDef1 = getClassDef(class1),
+                ClassDef2 = getClassDef(class2, where = .classEnv(ClassDef1)))
+
+completeExtends(ClassDef, class2, extensionDef, where)
+
+classMetaName(name)
+
+methodsPackageMetaName(prefix, name, package = "")
+
+metaNameUndo(strings, prefix, searchForm = FALSE)
+
+requireMethods(functions, signature, message, where)
+
+checkAtAssignment(cl, name, valueClass)
+checkSlotAssignment(obj, name, value)
+
+defaultPrototype()
+
+isClassDef(object)
+
+validSlotNames(names)
+
+getDataPart(object, NULL.for.none = FALSE)
+setDataPart(object, value, check = TRUE)
+</pre>
+
+
+<h3>Summary of Functions</h3>
+
+
+<dl>
+<dt><code>testVirtual</code>:</dt><dd>
+<p>Test for a Virtual Class.
+Figures out, as well as possible, whether the class with these
+properties, extension, and prototype is a virtual class.
+Can be forced to be virtual by extending <code>"VIRTUAL"</code>.
+</p>
+<p>Otherwise, a class is virtual only if it has no slots, extends no
+non-virtual classes, and has a <code>NULL</code> Prototype.
+</p>
+</dd>
+<dt><code>makePrototypeFromClassDef</code>:</dt><dd>
+<p>Makes the prototype implied by the class definition.
+</p>
+<p>The following three rules are applied in this order.
+</p>
+
+<ol>
+<li><p> If the class has slots, then the prototype for each slot
+is used by default, but a corresponding element in the
+explicitly supplied prototype in <code>ClassDef</code>, if there is
+one, is used instead (but it must be coercible to the class of
+the slot). This includes the data part (<code>".Data"</code> slot) if
+there is one.
+</p>
+</li>
+<li><p> If there are no slots but a non-null prototype was
+specified, this is returned.
+</p>
+</li>
+<li><p> If there is a non-virtual superclass (a class in the
+extends list), then its prototype is used.  The data part is
+extracted if needed (it is allowed to have two superclasses
+with a data part; the first is used and a warning issued on
+any others).
+</p>
+</li></ol>
+
+<p>If all three of the above fail, the prototype is <code>NULL</code>.
+</p>
+</dd>
+<dt><code>newEmptyObject</code>:</dt><dd>
+<p>Utility function to create an empty object into which slots can be
+set.
+</p>
+<p>Currently just creates an empty list with class <code>"NULL"</code>.
+</p>
+<p>Later version should create a special object reference that marks
+an object currently with no slots and no data.
+</p>
+</dd>
+<dt><code>completeClassDefinition</code>:</dt><dd>
+<p>Completes the definition of <code>Class</code>, relative to the class
+definitions visible from environment <code>where</code>.  If
+<code>doExtends</code> is <code>TRUE</code>, complete the super- and
+sub-class information.
+</p>
+<p>This function is called when a class is defined or re-defined.
+</p>
+</dd>
+<dt><code>getFromClassDef</code>:</dt><dd>
+<p>Extracts one of the intrinsically defined class definition
+properties (&quot;.Properties&quot;, etc.)  Strictly a utility function.
+</p>
+</dd>
+</dl>
+
+<dl>
+<dt><code>getSlots</code>:</dt><dd>
+<p>Returns a named character vector.  The names are the names of the
+slots, the values are the classes of the corresponding slots.
+The argument <code>x</code> can either be the name of
+a class or the class definition object.
+</p>
+</dd>
+<dt><code>getAllSuperClasses</code>, <code>superClassDepth</code>:</dt><dd>
+<p>Get the names of all the classes that this class definition
+extends.
+</p>
+<p><code>getAllSuperClasses</code> is a utility function used to complete a
+class definition.  It returns all the superclasses reachable from
+this class, in breadth-first order (which is the order used for
+matching methods); that is, the first direct superclass followed
+by all its superclasses, then the next, etc.  (The order is
+relevant only in the case that some of the superclasses have
+multiple inheritance.)
+</p>
+<p><code>superClassDepth</code>, which is called from
+<code>getAllSuperClasses</code>, returns the same information, but as a
+list with components <code>label</code> and <code>depth</code>, the latter for
+the number of generations back each class is in the inheritance
+tree.  The argument <code>soFar</code> is used to avoid loops in the
+network of class relationships.
+</p>
+</dd>
+<dt><code>isVirtualClass</code>:</dt><dd>
+<p>Is the named class a virtual class?
+</p>
+<p>A class is virtual if explicitly declared to be, and also if the
+class is not formally defined.
+</p>
+</dd>
+</dl>
+
+<dl>
+<dt><code>assignClassDef</code>:</dt><dd>
+<p>assign the definition of the class to the specially named object
+</p>
+</dd>
+<dt><code>newBasic</code>:</dt><dd>
+<p>the implementation of the function <code>new</code> for basic classes
+that don't have a formal definition.
+</p>
+<p>Any of these could have a formal definition, except for
+<code>Class="NULL"</code> (disallowed because <code>NULL</code> can't have
+attributes).  For all cases except <code>"NULL"</code>, the class of the
+result will be set to <code>Class</code>.
+</p>
+<p>See <code>new</code> for the interpretation of the arguments.
+</p>
+</dd>
+<dt><code>makeExtends</code>:</dt><dd>
+<p>convert the argument to a list defining the extension mechanism.
+</p>
+</dd>
+<dt><code>reconcilePropertiesAndPrototype</code>:</dt><dd>
+<p>makes a list or a structure look like a prototype for the given
+class.
+</p>
+<p>Specifically, returns a structure with attributes corresponding to
+the slot names in properties and values taken from prototype if
+they exist there, from <code>new(classi)</code> for the class,
+<code>classi</code> of the slot if that succeeds, and <code>NULL</code>
+otherwise.
+</p>
+<p>The prototype may imply slots not in the properties list, since
+properties does not include inherited slots (these are left
+unresolved until the class is used in a session).
+</p>
+</dd>
+<dt><code>tryNew</code>:</dt><dd>
+<p>Tries to generate a new element from this class, but if the attempt
+fails (as, e.g., when the class is undefined or virtual) just
+returns <code>NULL</code>.
+</p>
+<p>This is inefficient and also not a good idea when actually
+generating objects, but is useful in the initial definition of
+classes.
+</p>
+</dd>
+<dt><code>showClass</code>:</dt><dd>
+<p>Print the information about a class definition.
+</p>
+<p>If <code>complete</code> is <code>TRUE</code>, include the indirect
+information about extensions.
+</p>
+<p>It is the utility called from <code><a href="show.html">show</a>(<a href="getClass.html">getClass</a>(.))</code>,
+and the user should typically use <code>getClass(.)</code> for looking
+at class definitions.
+</p>
+</dd>
+<dt><code>showExtends</code>:</dt><dd>
+<p>Print the elements of the list of extensions; for <code>printTo = FALSE</code>,
+returns a list with components <code>what</code> and <code>how</code>; this is
+used e.g., by <code><a href="promptClass.html">promptClass</a>()</code>.
+</p>
+</dd>
+<dt><code>possibleExtends</code>:</dt><dd>
+<p>Find the information that says whether class1 extends class2,
+directly or indirectly.
+</p>
+<p>This can be either a logical value or an object of class
+<code><a href="SClassExtension-class.html">SClassExtension</a></code> containing various
+functions to test and/or coerce the relationship.
+</p>
+</dd>
+<dt><code>classLabel</code>: </dt><dd>
+<p>Returns an informative character string identifying the class
+and, if appropriate, the package from which the class came.
+</p>
+</dd>
+<dt><code>.classEnv</code>: </dt><dd>
+<p>Returns the environment, typically a namespace, in which the
+<code>Class</code> has been defined.  <code>Class</code> should typically be
+the result of <code><a href="../../base/html/class.html">class</a>()</code> (and hence contain a
+<code>"package"</code> attribute) or <code><a href="getClass.html">getClass</a></code> (or
+<code><a href="getClass.html">getClassDef</a></code>).
+</p>
+</dd>
+<dt><code>completeExtends</code>:</dt><dd>
+<p>complete the extends information in the class definition, by
+following transitive chains.
+</p>
+<p>If <code>class2</code> and <code>extensionDef</code> are included, this
+class relation is to be added.  Otherwise just use the current
+<code>ClassDef</code>.
+</p>
+<p>Both the <code>contains</code> and <code>subclasses</code> slots are
+completed with any indirect relations visible.
+</p>
+</dd>
+<dt><code>classMetaName</code>:</dt><dd>
+<p>a name for the object storing this class's definition
+</p>
+</dd>
+<dt><code>methodsPackageMetaName</code>:</dt><dd>
+<p>a name mangling device to hide metadata defining method and
+class information.
+</p>
+</dd>
+<dt><code>metaNameUndo</code></dt><dd>
+<p>As its name implies, this function undoes the
+name-mangling used to produce meta-data object names, and
+returns a object of class <code><a href="ObjectsWithPackage-class.html">ObjectsWithPackage</a></code>.
+</p>
+</dd>
+<dt><code>requireMethods</code>:</dt><dd>
+<p>Require a subclass to implement methods for the generic functions,
+for this signature.
+</p>
+<p>For each generic, <code>setMethod</code> will be called to define a
+method that throws an error, with the supplied message.
+</p>
+<p>The <code>requireMethods</code> function allows virtual classes to
+require actual classes that extend them to implement methods for
+certain functions, in effect creating an API for the virtual class.
+</p>
+<p>Otherwise, default methods for the corresponding function would be
+called, resulting in less helpful error messages or (worse still)
+silently incorrect results.
+</p>
+</dd>
+<dt><code>checkSlotAssignment</code>, <code>checkAtAssignment</code>:</dt><dd>
+<p>Check that the value provided is allowed for this slot, by
+consulting the definition of the class.  Called from the C code
+that assigns slots.
+</p>
+<p>For privileged slots (those that can only be set by accessor
+functions defined along with the class itself), the class designer
+may choose to improve efficiency by validating the value to be
+assigned in the accessor function and then calling <code>slot&lt;-</code>
+with the argument <code>check=FALSE</code>, to prevent the call to
+<code>checkSlotAssignment</code>.
+</p>
+</dd>
+<dt><code>defaultPrototype</code>:</dt><dd>
+<p>The prototype for a class which will have slots, is not a virtual
+class, and does not extend one of the basic classes. Both its
+<code><a href="../../base/html/class.html">class</a></code> and its (<span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> internal) type,
+<code><a href="../../base/html/typeof.html">typeof</a>()</code>, are <code>"S4"</code>.
+</p>
+</dd>
+<dt><code>.InitBasicClasses</code>, <code>.InitMethodsListClass</code>, <code>.setCoerceGeneric</code>:</dt><dd>
+<p>These functions perform part of the initialization of classes and
+methods, and are called (only!) from <code>.onLoad</code>.
+</p>
+</dd>
+<dt><code>isClassDef</code>:</dt><dd>
+<p>Is <code>object</code> a representation of a class?
+</p>
+</dd>
+<dt><code>validSlotNames</code>:</dt><dd>
+<p>Returns <code>names</code> unless one of the names is reserved, in which
+case there is an error.  (As of writing, <code>"class"</code> is the
+only reserved slot name.)
+</p>
+</dd>
+<dt><code>getDataPart</code>, <code>setDataPart</code>:</dt><dd>
+<p>Utilities called to implement
+<code>object@.Data</code>.  Calls to <code>setDataPart</code> are also used
+to merge the data part of a superclass prototype.
+</p>
+</dd>
+</dl>
+
+
+
+<h3>Examples</h3>
+
+<pre>
+typeof(defaultPrototype()) #-&gt; "S4"
+
+## .classEnv()
+meth.ns &lt;- asNamespace("methods")
+if(get4 &lt;- !any("package:stats4" == search()))
+   require("stats4")
+stopifnot(TRUE
+ , identical(.classEnv("data.frame"), meth.ns)
+ , identical(.classEnv(class(new("data.frame"))), meth.ns)
+ , identical(.classEnv(     "mle"       ), meth.ns) # &lt;- *not* 'stats4'
+ , identical(.classEnv(class(new("mle"))), asNamespace("stats4"))
+ , identical(.classEnv(getClass ("mle") ), asNamespace("stats4"))
+ )
+if(get4) detach("package:stats4")
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>methods</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

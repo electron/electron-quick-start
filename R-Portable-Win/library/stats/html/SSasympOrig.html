@@ -1,0 +1,109 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Self-Starting Nls Asymptotic Regression Model through the...</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for SSasympOrig {stats}"><tr><td>SSasympOrig {stats}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Self-Starting Nls Asymptotic Regression Model through the Origin</h2>
+
+<h3>Description</h3>
+
+<p>This <code><a href="selfStart.html">selfStart</a></code> model evaluates the asymptotic regression
+function through the origin and its gradient.  It has an
+<code>initial</code> attribute that will evaluate initial estimates of the
+parameters <code>Asym</code> and <code>lrc</code> for a given set of data.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+SSasympOrig(input, Asym, lrc)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>input</code></td>
+<td>
+<p>a numeric vector of values at which to evaluate the model.</p>
+</td></tr>
+<tr valign="top"><td><code>Asym</code></td>
+<td>
+<p>a numeric parameter representing the horizontal asymptote.</p>
+</td></tr>
+<tr valign="top"><td><code>lrc</code></td>
+<td>
+<p>a numeric parameter representing the natural logarithm of
+the rate constant.</p>
+</td></tr>
+</table>
+
+
+<h3>Value</h3>
+
+<p>a numeric vector of the same length as <code>input</code>.  It is the value of
+the expression <code>Asym*(1 - exp(-exp(lrc)*input))</code>.  If all of
+the arguments <code>Asym</code> and <code>lrc</code> are
+names of objects, the gradient matrix with respect to these names is
+attached as an attribute named <code>gradient</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>José Pinheiro and Douglas Bates</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="nls.html">nls</a></code>, <code><a href="selfStart.html">selfStart</a></code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+Lob.329 &lt;- Loblolly[ Loblolly$Seed == "329", ]
+SSasympOrig(Lob.329$age, 100, -3.2)  # response only
+local({   Asym &lt;- 100; lrc &lt;- -3.2
+  SSasympOrig(Lob.329$age, Asym, lrc) # response and gradient
+})
+getInitial(height ~ SSasympOrig(age, Asym, lrc), data = Lob.329)
+## Initial values are in fact the converged values
+fm1 &lt;- nls(height ~ SSasympOrig(age, Asym, lrc), data = Lob.329)
+summary(fm1)
+
+
+## Visualize the SSasympOrig()  model  parametrization :
+
+  xx &lt;- seq(0, 5, len = 101)
+  yy &lt;- 5 * (1- exp(-xx * log(2)))
+  stopifnot( all.equal(yy, SSasympOrig(xx, Asym = 5, lrc = log(log(2)))) )
+
+  require(graphics)
+  op &lt;- par(mar = c(0, 0, 3.5, 0))
+  plot(xx, yy, type = "l", axes = FALSE, ylim = c(0,5), xlim = c(-1/4, 5),
+       xlab = "", ylab = "", lwd = 2,
+       main = quote("Parameters in the SSasympOrig model"~~ f[phi](x)))
+  mtext(quote(list(phi[1] == "Asym", phi[2] == "lrc")))
+  usr &lt;- par("usr")
+  arrows(usr[1], 0, usr[2], 0, length = 0.1, angle = 25)
+  arrows(0, usr[3], 0, usr[4], length = 0.1, angle = 25)
+  text(usr[2] - 0.2, 0.1, "x", adj = c(1, 0))
+  text(   -0.1,   usr[4], "y", adj = c(1, 1))
+  abline(h = 5, lty = 3)
+  axis(2, at = 5*c(1/2,1), labels= expression(frac(phi[1],2), phi[1]), pos=0, las=1)
+  arrows(c(.3,.7), 5/2,
+         c(0, 1 ), 5/2, length = 0.08, angle = 25)
+  text(   0.5,     5/2, quote(t[0.5]))
+  text(   1 +.4,   5/2,
+       quote({f(t[0.5]) == frac(phi[1],2)}~{} %=&gt;% {}~~{t[0.5] == frac(log(2), e^{phi[2]})}),
+       adj = c(0, 0.5))
+  par(op)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>stats</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

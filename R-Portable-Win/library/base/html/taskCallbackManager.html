@@ -1,0 +1,157 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Create an R-level Task Callback Manager</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for taskCallbackManager {base}"><tr><td>taskCallbackManager {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Create an R-level Task Callback Manager</h2>
+
+<h3>Description</h3>
+
+<p>This provides an entirely S-language mechanism
+for managing callbacks or actions  that are invoked at
+the conclusion of each top-level task.  Essentially,
+we register a single R function from this manager
+with the underlying, native
+task-callback mechanism and this function handles invoking the other
+R callbacks under the control of the manager.
+The manager consists of a collection of functions that access shared
+variables to manage the list of user-level callbacks.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+taskCallbackManager(handlers = list(), registered = FALSE,
+                    verbose = FALSE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>handlers</code></td>
+<td>
+<p>this can be a list of callbacks in which each element
+is a list with  an element  named <code>"f"</code>
+which is a callback function, and an optional
+element named <code>"data"</code> which is the 5-th argument to be
+supplied  to the callback when it is invoked.
+Typically this argument is not specified, and one uses <code>add</code> to
+register callbacks after the manager is created.</p>
+</td></tr>
+<tr valign="top"><td><code>registered</code></td>
+<td>
+<p>a logical value indicating whether
+the <code>evaluate</code> function has already been registered
+with the internal task callback mechanism.
+This is usually <code>FALSE</code> and
+the first time a callback is added
+via the <code>add</code> function, the
+<code>evaluate</code> function is automatically registered.
+One can control when the function is registered
+by specifying <code>TRUE</code> for this argument
+and calling <code><a href="taskCallback.html">addTaskCallback</a></code> manually.
+</p>
+</td></tr>
+<tr valign="top"><td><code>verbose</code></td>
+<td>
+<p>a logical value, which if <code>TRUE</code>,
+causes information to be printed to the console
+about certain activities this dispatch manager performs.
+This is useful for debugging callbacks and the handler
+itself.
+</p>
+</td></tr>
+</table>
+
+
+<h3>Value</h3>
+
+<p>A <code><a href="list.html">list</a></code> containing 6 functions:
+</p>
+<table summary="R valueblock">
+<tr valign="top"><td><code><code>add()</code></code></td>
+<td>
+<p>register a callback with this manager, giving the
+function, an optional 5-th argument, an optional name
+by which the callback is stored in the list,
+and a <code>register</code> argument which controls whether
+the <code>evaluate</code> function is registered with the internal
+C-level dispatch mechanism if necessary.</p>
+</td></tr>
+<tr valign="top"><td><code><code>remove()</code></code></td>
+<td>
+<p>remove an element from the manager's collection
+of callbacks, either by name or position/index.</p>
+</td></tr>
+<tr valign="top"><td><code><code>evaluate()</code></code></td>
+<td>
+<p>the &lsquo;real&rsquo; callback function that is registered
+with the C-level dispatch mechanism and which invokes each of the
+R-level callbacks within this manager's control.</p>
+</td></tr>
+<tr valign="top"><td><code><code>suspend()</code></code></td>
+<td>
+<p>a function to set the suspend state
+of the manager.  If it is suspended, none of the callbacks will be
+invoked when a task is completed.  One sets the state by specifying
+a logical value for the <code>status</code> argument.
+</p>
+</td></tr>
+<tr valign="top"><td><code><code>register()</code></code></td>
+<td>
+<p>a function to register the <code>evaluate</code>
+function with the internal C-level dispatch mechanism.  This is
+done automatically by the <code>add</code> function, but can be called
+manually.</p>
+</td></tr>
+<tr valign="top"><td><code><code>callbacks()</code></code></td>
+<td>
+<p>returns the list of callbacks being maintained
+by this manager.</p>
+</td></tr>
+</table>
+
+
+<h3>References</h3>
+
+<p>Duncan Temple Lang (2001)
+<em>Top-level Task Callbacks in R</em>, 
+<a href="https://developer.r-project.org/TaskHandlers.pdf">https://developer.r-project.org/TaskHandlers.pdf</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="taskCallback.html">addTaskCallback</a></code>,
+<code><a href="taskCallback.html">removeTaskCallback</a></code>,
+<code><a href="taskCallbackNames.html">getTaskCallbackNames</a></code> and the reference.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+# create the manager
+h &lt;- taskCallbackManager()
+
+# add a callback
+h$add(function(expr, value, ok, visible) {
+                       cat("In handler\n")
+                       return(TRUE)
+                     }, name = "simpleHandler")
+
+# look at the internal callbacks.
+getTaskCallbackNames()
+
+# look at the R-level callbacks
+names(h$callbacks())
+
+removeTaskCallback("R-taskCallbackManager")
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

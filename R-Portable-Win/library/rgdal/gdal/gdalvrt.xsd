@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
 /******************************************************************************
- * $Id: gdalvrt.xsd 29326 2015-06-10 20:36:31Z rouault $
+ * $Id: gdalvrt.xsd 35479 2016-09-16 20:34:58Z rouault $
  *
  * Project:  GDAL/OGR
  * Purpose:  XML Schema for GDAL VRT files.
@@ -43,6 +43,7 @@
                     <xs:element name="VRTRasterBand" type="VRTRasterBandType"/> <!-- may be repeated -->
                     <xs:element name="MaskBand" type="MaskBandType"/>
                     <xs:element name="GDALWarpOptions" type="GDALWarpOptionsType"/> <!-- only if subClass="VRTWarpedDataset" -->
+                    <xs:element name="PansharpeningOptions" type="PansharpeningOptionsType"/> <!-- only if subClass="VRTPansharpenedDataset" -->
                 </xs:choice>
             </xs:sequence>
             <xs:attribute name="subClass" type="xs:string"/>
@@ -92,6 +93,45 @@
         </xs:sequence>
     </xs:complexType>
 
+    <xs:complexType name="PansharpeningOptionsType">
+        <xs:sequence>
+            <xs:element name="Algorithm" type="xs:string" minOccurs="0" maxOccurs="1"/>
+            <xs:element name="AlgorithmOptions" type="AlgorithmOptionsType" minOccurs="0" maxOccurs="1"/>
+            <xs:element name="Resampling" type="xs:string" minOccurs="0" maxOccurs="1"/>
+            <xs:element name="NumThreads" type="xs:string" minOccurs="0" maxOccurs="1"/>
+            <xs:element name="BitDepth" type="xs:string" minOccurs="0" maxOccurs="1"/>
+            <xs:element name="NoData" type="NoDataOrNoneType" minOccurs="0" maxOccurs="1"/>
+            <xs:element name="SpatialExtentAdjustment" type="xs:string" minOccurs="0" maxOccurs="1"/>
+            <xs:element name="PanchroBand" type="PanchroBandType" minOccurs="1" maxOccurs="1"/>
+            <xs:element name="SpectralBand" type="SpectralBandType" minOccurs="1" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:simpleType name="NoDataOrNoneType">
+        <xs:union memberTypes="xs:double xs:string" />
+    </xs:simpleType>
+
+    <xs:complexType name="PanchroBandType">
+        <xs:sequence>
+            <xs:element name="SourceFilename" type="SourceFilenameType"/>
+            <xs:element name="SourceBand" type="xs:string"/>  <!-- should be refined into xs:nonNegativeInteger or mask,xs:nonNegativeInteger -->
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="SpectralBandType">
+        <xs:sequence>
+            <xs:element name="SourceFilename" type="SourceFilenameType"/>
+            <xs:element name="SourceBand" type="xs:string"/>  <!-- should be refined into xs:nonNegativeInteger or mask,xs:nonNegativeInteger -->
+        </xs:sequence>
+        <xs:attribute name="dstBand" type="xs:nonNegativeInteger"/>
+    </xs:complexType>
+
+    <xs:complexType name="AlgorithmOptionsType">
+        <xs:sequence>
+            <xs:any processContents="skip" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
     <xs:complexType name="MDIType">
         <xs:simpleContent>
             <xs:extension base="xs:string">
@@ -127,6 +167,14 @@
                 <!-- for a VRTDerivedRasterBand -->
                 <xs:element name="PixelFunctionType" type="xs:string"/>
                 <xs:element name="SourceTransferType" type="DataTypeType"/>
+                <xs:element name="PixelFunctionLanguage" type="xs:string"/>
+                <xs:element name="PixelFunctionCode" type="xs:string"/>
+                <xs:element name="PixelFunctionArguments">
+                    <xs:complexType>
+                        <xs:anyAttribute processContents="lax"/>
+                    </xs:complexType>
+                </xs:element>
+                <xs:element name="BufferRadius" type="xs:nonNegativeInteger"/>
 
                 <!-- for a VRTRawRasterBand -->
                 <xs:element name="SourceFilename" type="SourceFilenameType"/>
@@ -156,6 +204,7 @@
             <xs:enumeration value="VRTWarpedRasterBand"/>
             <xs:enumeration value="VRTDerivedRasterBand"/>
             <xs:enumeration value="VRTRawRasterBand"/>
+            <xs:enumeration value="VRTPansharpenedRasterBand"/>
         </xs:restriction>
     </xs:simpleType>
 
@@ -361,6 +410,8 @@
             <xs:enumeration value="FALSE"/>
             <xs:enumeration value="true"/>
             <xs:enumeration value="false"/>
+            <xs:enumeration value="True"/>
+            <xs:enumeration value="False"/>
         </xs:restriction>
     </xs:simpleType>
 
@@ -373,10 +424,16 @@
     </xs:complexType>
 
     <xs:complexType name="RectType">
-        <xs:attribute name="xOff" type="xs:int" />
-        <xs:attribute name="yOff" type="xs:int" />
-        <xs:attribute name="xSize" type="xs:unsignedInt" />
-        <xs:attribute name="ySize" type="xs:unsignedInt" />
+        <xs:attribute name="xOff" type="xs:double" />
+        <xs:attribute name="yOff" type="xs:double" />
+        <xs:attribute name="xSize" type="nonNegativeDouble" />
+        <xs:attribute name="ySize" type="nonNegativeDouble" />
     </xs:complexType>
+
+    <xs:simpleType name="nonNegativeDouble">
+        <xs:restriction base="xs:double">
+            <xs:minExclusive value="0.0"/>
+        </xs:restriction>
+    </xs:simpleType>
 
 </xs:schema>

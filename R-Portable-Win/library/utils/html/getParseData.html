@@ -1,0 +1,197 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Get Detailed Parse Information from Object</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for getParseData {utils}"><tr><td>getParseData {utils}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Get Detailed Parse Information from Object</h2>
+
+<h3>Description</h3>
+
+<p>If the <code>"keep.source"</code> option is <code>TRUE</code>, <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>'s parser
+will attach detailed information on the object it has parsed.  These
+functions retrieve that information.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+getParseData(x, includeText = NA)
+getParseText(parseData, id)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+
+<p>an expression returned from <code><a href="../../base/html/parse.html">parse</a></code>, or a function or other
+object with source reference information
+</p>
+</td></tr>
+<tr valign="top"><td><code>includeText</code></td>
+<td>
+
+<p>logical; whether to include the text of parsed items in the result
+</p>
+</td></tr>
+<tr valign="top"><td><code>parseData</code></td>
+<td>
+
+<p>a data frame returned from <code>getParseData</code>
+</p>
+</td></tr>
+<tr valign="top"><td><code>id</code></td>
+<td>
+
+<p>a vector of item identifiers whose text is to be retrieved
+</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>In version 3.0.0, the <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> parser was modified to include code written
+by Romain Francois in his <span class="pkg">parser</span> package.  This constructs a
+detailed table of information about every token and higher level
+construct in parsed code.  This table is stored in the
+<code><a href="../../base/html/srcfile.html">srcfile</a></code> record associated with source references in the
+parsed code, and retrieved by the <code>getParseData</code> function.
+</p>
+
+
+<h3>Value</h3>
+
+<p>For <code>getParseData</code>:<br />
+If parse data is not present, <code>NULL</code>.  Otherwise
+a data frame is returned, containing the following columns:
+</p>
+<table summary="R valueblock">
+<tr valign="top"><td><code>line1</code></td>
+<td>
+<p>integer. The line number where the item starts.  This is the
+parsed line number called <code>"parse"</code> in <code><a href="sourceutils.html">getSrcLocation</a></code>,
+which ignores <code style="white-space: pre;">#line</code> directives.</p>
+</td></tr>
+<tr valign="top"><td><code>col1</code></td>
+<td>
+<p>integer. The column number where the item starts.  The first character
+is column 1.  This corresponds to <code>"column"</code> in <code><a href="sourceutils.html">getSrcLocation</a></code>.</p>
+</td></tr>
+<tr valign="top"><td><code>line2</code></td>
+<td>
+<p>integer. The line number where the item ends.</p>
+</td></tr>
+<tr valign="top"><td><code>col2</code></td>
+<td>
+<p>integer. The column number where the item ends.</p>
+</td></tr>
+<tr valign="top"><td><code>id</code></td>
+<td>
+<p>integer. An identifier associated with this item.</p>
+</td></tr>
+<tr valign="top"><td><code>parent</code></td>
+<td>
+<p>integer. The <code>id</code> of the parent of this item.</p>
+</td></tr>
+<tr valign="top"><td><code>token</code></td>
+<td>
+<p>character string. The type of the token.</p>
+</td></tr>
+<tr valign="top"><td><code>terminal</code></td>
+<td>
+<p>logical.  Whether the token is &ldquo;terminal&rdquo;, i.e.
+a leaf in the parse tree.</p>
+</td></tr>
+<tr valign="top"><td><code>text</code></td>
+<td>
+<p>character string. If <code>includeText</code> is <code>TRUE</code>, the
+text of all tokens; if it is <code>NA</code> (the default), the text of terminal
+tokens.  If <code>includeText == FALSE</code>, this column is not included.
+Very long strings (with source of 1000 characters or more) will not be stored;
+a message giving their length and delimiter will be included instead.</p>
+</td></tr>
+</table>
+<p>The rownames of the data frame will be equal to the <code>id</code> values,
+and the data frame will have a <code>"srcfile"</code> attribute containing
+the <code><a href="../../base/html/srcfile.html">srcfile</a></code> record which was used.  The rows will be
+ordered by starting position within the source file, with parent items
+occurring before their children.
+</p>
+<p>For <code>getParseText</code>:<br />
+A character vector of the same length as <code>id</code> containing the associated
+text items.  If they are not included in <code>parseData</code>, they will be
+retrieved from the original file.
+</p>
+
+
+<h3>Note</h3>
+
+<p>There are a number of differences in the results returned by
+<code>getParseData</code> relative to those in the original <span class="pkg">parser</span>
+code:
+</p>
+
+<ul>
+<li><p> Fewer columns are kept.
+</p>
+</li>
+<li><p> The internal token number is not returned.
+</p>
+</li>
+<li> <p><code>col1</code> starts counting at 1, not 0.
+</p>
+</li>
+<li><p> The <code>id</code> values are not attached to the elements of the parse
+tree, they are only retained in the table returned by <code>getParseData</code>.
+</p>
+</li>
+<li> <p><code style="white-space: pre;">#line</code> directives are identified, but other comment
+markup (e.g., <a href="https://CRAN.R-project.org/package=roxygen"><span class="pkg">roxygen</span></a> comments) are not.
+</p>
+</li></ul>
+
+
+
+<h3>Author(s)</h3>
+
+<p>Duncan Murdoch
+</p>
+
+
+<h3>References</h3>
+
+<p>Romain Francois (2012). parser: Detailed R source code parser. R
+package version 0.0-16. <a href="https://github.com/halpo/parser">https://github.com/halpo/parser</a>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="../../base/html/parse.html">parse</a></code>, <code><a href="../../base/html/srcfile.html">srcref</a></code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+fn &lt;- function(x) {
+  x + 1 # A comment, kept as part of the source
+}
+
+d &lt;- getParseData(fn)
+if (!is.null(d)) {
+  plus &lt;- which(d$token == "'+'")
+  sum &lt;- d$parent[plus]
+  print(d[as.character(sum),])
+  print(getParseText(d, sum))
+}
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>utils</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

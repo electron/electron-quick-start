@@ -1,0 +1,178 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Specifying Complex Plot Arrangements</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for layout {graphics}"><tr><td>layout {graphics}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Specifying Complex Plot Arrangements</h2>
+
+<h3>Description</h3>
+
+<p><code>layout</code> divides the device up into as many rows and columns as
+there are in matrix <code>mat</code>, with the column-widths and the
+row-heights specified in the respective arguments.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+layout(mat, widths = rep.int(1, ncol(mat)),
+       heights = rep.int(1, nrow(mat)), respect = FALSE)
+
+layout.show(n = 1)
+lcm(x)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>mat</code></td>
+<td>
+<p>a matrix object specifying the location of the next
+<i>N</i> figures on the output device.  Each value in the matrix must
+be <code>0</code> or a positive integer.  If <i>N</i> is the largest
+positive integer in the matrix, then the integers
+<i>{1, &hellip;, N-1}</i> must also appear at least once in the matrix.</p>
+</td></tr>
+<tr valign="top"><td><code>widths</code></td>
+<td>
+<p>a vector of values for the widths of columns on the
+device.  Relative widths are specified with numeric values.    Absolute
+widths (in centimetres) are specified with the <code>lcm()</code> function (see
+examples).</p>
+</td></tr>
+<tr valign="top"><td><code>heights</code></td>
+<td>
+<p>a vector of values for the heights of rows on the device.
+Relative and absolute heights can be specified, see <code>widths</code> above.</p>
+</td></tr>
+<tr valign="top"><td><code>respect</code></td>
+<td>
+<p>either a logical value or a matrix object.  If the
+latter, then it must have the same dimensions as <code>mat</code> and
+each value in the matrix must be either <code>0</code> or <code>1</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>n</code></td>
+<td>
+<p>number of figures to plot.</p>
+</td></tr>
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>a dimension to be interpreted as a number of centimetres.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>Figure <i>i</i> is allocated a region composed from a subset
+of these rows and columns, based on the rows and columns
+in which <i>i</i> occurs in <code>mat</code>.
+</p>
+<p>The <code>respect</code> argument controls whether a unit column-width is
+the same physical measurement on the device as a unit row-height.
+</p>
+<p>There is a limit (currently 200) for the numbers of rows and columns
+in the layout, and also for the total number of cells (10007).
+</p>
+<p><code>layout.show(n)</code> plots (part of) the current layout, namely the
+outlines of the next <code>n</code> figures.
+</p>
+<p><code>lcm</code> is a trivial function, to be used as <em>the</em> interface
+for specifying absolute dimensions for the <code>widths</code> and
+<code>heights</code> arguments of <code>layout()</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>layout</code> returns the number of figures, <i>N</i>, see above.
+</p>
+
+
+<h3>Warnings</h3>
+
+<p>These functions are totally incompatible with the other mechanisms for
+arranging plots on a device: <code><a href="par.html">par</a>(mfrow)</code>,
+<code>par(mfcol)</code> and <code><a href="screen.html">split.screen</a></code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Paul R. Murrell</p>
+
+
+<h3>References</h3>
+
+<p>Murrell, P. R. (1999).
+Layouts: A mechanism for arranging plots on a page.
+<em>Journal of Computational and Graphical Statistics</em>,
+<b>8</b>, 121&ndash;134.
+doi: <a href="https://doi.org/10.2307/1390924">10.2307/1390924</a>.
+</p>
+<p>Chapter 5 of Paul Murrell's Ph.D. thesis.
+</p>
+<p>Murrell, P. (2005).
+<em>R Graphics</em>.
+Chapman &amp; Hall/CRC Press.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="par.html">par</a></code> with arguments <code>mfrow</code>, <code>mfcol</code>, or
+<code>mfg</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+def.par &lt;- par(no.readonly = TRUE) # save default, for resetting...
+
+## divide the device into two rows and two columns
+## allocate figure 1 all of row 1
+## allocate figure 2 the intersection of column 2 and row 2
+layout(matrix(c(1,1,0,2), 2, 2, byrow = TRUE))
+## show the regions that have been allocated to each plot
+layout.show(2)
+
+## divide device into two rows and two columns
+## allocate figure 1 and figure 2 as above
+## respect relations between widths and heights
+nf &lt;- layout(matrix(c(1,1,0,2), 2, 2, byrow = TRUE), respect = TRUE)
+layout.show(nf)
+
+## create single figure which is 5cm square
+nf &lt;- layout(matrix(1), widths = lcm(5), heights = lcm(5))
+layout.show(nf)
+
+
+##-- Create a scatterplot with marginal histograms -----
+
+x &lt;- pmin(3, pmax(-3, stats::rnorm(50)))
+y &lt;- pmin(3, pmax(-3, stats::rnorm(50)))
+xhist &lt;- hist(x, breaks = seq(-3,3,0.5), plot = FALSE)
+yhist &lt;- hist(y, breaks = seq(-3,3,0.5), plot = FALSE)
+top &lt;- max(c(xhist$counts, yhist$counts))
+xrange &lt;- c(-3, 3)
+yrange &lt;- c(-3, 3)
+nf &lt;- layout(matrix(c(2,0,1,3),2,2,byrow = TRUE), c(3,1), c(1,3), TRUE)
+layout.show(nf)
+
+par(mar = c(3,3,1,1))
+plot(x, y, xlim = xrange, ylim = yrange, xlab = "", ylab = "")
+par(mar = c(0,3,1,1))
+barplot(xhist$counts, axes = FALSE, ylim = c(0, top), space = 0)
+par(mar = c(3,0,1,1))
+barplot(yhist$counts, axes = FALSE, xlim = c(0, top), space = 0, horiz = TRUE)
+
+par(def.par)  #- reset to default
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>graphics</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

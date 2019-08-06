@@ -25,7 +25,7 @@
 namespace Rcpp{
 
 template <typename T>
-class Generator : public RNGScope {
+class Generator {
 public:
     typedef T r_generator ;
 };

@@ -1,5 +1,19 @@
 \name{NEWS}
 \title{NEWS file for the rpart package}
+\section{Changes in version 4.1-14}{
+  \itemize{
+    \item Changed example data solder to solder.balance.  The full
+    version of the data is available in the survival package.
+ }}
+\section{Changes in version 4.1-10}{
+  \itemize{
+    \item Rpart would fail with a formula having  ~. - x on the right hand
+    side. A simple bookkeeping error in creating an index.
+
+    \item Added a section to the vignette on user written functions,
+    which explains why and when one can avoid checking all 2^k
+    splits for a categorical predictor with k levels.
+}} 
 
 \section{Changes in version 4.1-0}{
   \itemize{

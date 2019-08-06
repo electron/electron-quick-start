@@ -64,15 +64,6 @@ namespace plog
             const char* funcBegin = func;
             const char* funcEnd = ::strchr(funcBegin, '(');
 
-            for (const char* i = funcEnd - 1; i >= funcBegin; --i)
-            {
-                if (*i == ' ')
-                {
-                    funcBegin = i + 1;
-                    break;
-                }
-            }
-
             return std::string(funcBegin, funcEnd);
 #endif
         }

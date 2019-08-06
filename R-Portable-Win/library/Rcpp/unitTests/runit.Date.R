@@ -1,7 +1,7 @@
 #!/usr/bin/env r
 # -*- mode: R; tab-width: 4; -*-
 #
-# Copyright (C) 2010 - 2016   Dirk Eddelbuettel and Romain Francois
+# Copyright (C) 2010 - 2017   Dirk Eddelbuettel and Romain Francois
 #
 # This file is part of Rcpp.
 #
@@ -263,5 +263,17 @@ if (.runThisTest) {
 
         checkEquals(test_gmtime(-489024000), as.Date("1954-07-04"), msg="Date.test_gmtime.1954")
         Sys.setenv(TZ=oldTZ)
+    }
+
+    test.NA <- function() {
+        dv <- Sys.Date() + 0:2
+        checkTrue(has_na_dv(dv) == FALSE, msg="DateVector.NAtest.withoutNA")
+        dv[1] <- NA
+        checkTrue(has_na_dv(dv) == TRUE, msg="DateVector.NAtest.withNA")
+
+        dvt <- Sys.time() + 0:2
+        checkTrue(has_na_dtv(dvt) == FALSE, msg="DatetimeVector.NAtest.withoutNA")
+        dvt[1] <- NA
+        checkTrue(has_na_dtv(dvt) == TRUE, msg="DatetimeVector.NAtest.withNA")
     }
 }

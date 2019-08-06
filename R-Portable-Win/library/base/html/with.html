@@ -1,0 +1,175 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Evaluate an Expression in a Data Environment</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for with {base}"><tr><td>with {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Evaluate an Expression in a Data Environment</h2>
+
+<h3>Description</h3>
+
+<p>Evaluate an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> expression in an environment constructed from data,
+possibly modifying (a copy of) the original data.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+with(data, expr, ...)
+within(data, expr, ...)
+## S3 method for class 'list'
+within(data, expr, keepAttrs = TRUE, ...)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>data</code></td>
+<td>
+<p>data to use for constructing an environment. For the
+default <code>with</code> method this may be an environment, a list, a
+data frame, or an integer as in <code>sys.call</code>. For <code>within</code>,
+it can be a list or a data frame.</p>
+</td></tr>
+<tr valign="top"><td><code>expr</code></td>
+<td>
+<p>expression to evaluate; particularly for <code>within()</code>
+often a &ldquo;compound&rdquo; expression, i.e., of the form </p>
+<pre>   {
+     a &lt;- somefun()
+     b &lt;- otherfun()
+     .....
+     rm(unused1, temp)
+   }
+</pre></td></tr>
+<tr valign="top"><td><code>keepAttrs</code></td>
+<td>
+<p>for the <code><a href="list.html">list</a></code> method of <code>within()</code>,
+a <code><a href="logical.html">logical</a></code> specifying if the resulting list should keep
+the <code><a href="attributes.html">attributes</a></code> from <code>data</code> and have its
+<code><a href="names.html">names</a></code> in the same order.  Often this is unneeded as
+the result is a <em>named</em> list anyway, and then <code>keepAttrs =
+      FALSE</code> is more efficient.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>arguments to be passed to (future) methods.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p><code>with</code> is a generic function that evaluates <code>expr</code> in a
+local environment constructed from <code>data</code>.  The environment has
+the caller's environment as its parent.  This is useful for
+simplifying calls to modeling functions.  (Note: if <code>data</code> is
+already an environment then this is used with its existing parent.)
+</p>
+<p>Note that assignments within <code>expr</code> take place in the constructed
+environment and not in the user's workspace.
+</p>
+<p><code>within</code> is similar, except that it examines the environment
+after the evaluation of <code>expr</code> and makes the corresponding
+modifications to a copy of <code>data</code> (this may fail in the data
+frame case if objects are created which cannot be stored in a data
+frame), and returns it.  <code>within</code> can be used as an alternative
+to <code>transform</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>For <code>with</code>, the value of the evaluated <code>expr</code>.  For
+<code>within</code>, the modified object.
+</p>
+
+
+<h3>Note</h3>
+
+<p>For <em>interactive</em> use this is very effective and nice to read.  For
+<em>programming</em> however, i.e., in one's functions, more care is
+needed, and typically one should refrain from using <code>with()</code>, as,
+e.g., variables in <code>data</code> may accidentally override local
+variables, see the reference.
+</p>
+<p>Further, when using modeling or graphics functions with an explicit
+<code>data</code> argument (and typically using <code><a href="../../stats/html/formula.html">formula</a></code>s),
+it is typically preferred to use the <code>data</code> argument of that
+function rather than to use <code>with(data, ...)</code>.
+</p>
+
+
+<h3>References</h3>
+
+<p>Thomas Lumley (2003)  <em>Standard nonstandard evaluation rules</em>.
+<a href="http://developer.r-project.org/nonstandard-eval.pdf">http://developer.r-project.org/nonstandard-eval.pdf</a>
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="eval.html">evalq</a></code>, <code><a href="attach.html">attach</a></code>, <code><a href="assign.html">assign</a></code>,
+<code><a href="transform.html">transform</a></code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+with(mtcars, mpg[cyl == 8  &amp;  disp &gt; 350])
+    # is the same as, but nicer than
+mtcars$mpg[mtcars$cyl == 8  &amp;  mtcars$disp &gt; 350]
+
+require(stats); require(graphics)
+
+# examples from glm:
+with(data.frame(u = c(5,10,15,20,30,40,60,80,100),
+                lot1 = c(118,58,42,35,27,25,21,19,18),
+                lot2 = c(69,35,26,21,18,16,13,12,12)),
+    list(summary(glm(lot1 ~ log(u), family = Gamma)),
+         summary(glm(lot2 ~ log(u), family = Gamma))))
+
+aq &lt;- within(airquality, {     # Notice that multiple vars can be changed
+    lOzone &lt;- log(Ozone)
+    Month &lt;- factor(month.abb[Month])
+    cTemp &lt;- round((Temp - 32) * 5/9, 1) # From Fahrenheit to Celsius
+    S.cT &lt;- Solar.R / cTemp  # using the newly created variable
+    rm(Day, Temp)
+})
+head(aq)
+
+
+
+
+# example from boxplot:
+with(ToothGrowth, {
+    boxplot(len ~ dose, boxwex = 0.25, at = 1:3 - 0.2,
+            subset = (supp == "VC"), col = "yellow",
+            main = "Guinea Pigs' Tooth Growth",
+            xlab = "Vitamin C dose mg",
+            ylab = "tooth length", ylim = c(0, 35))
+    boxplot(len ~ dose, add = TRUE, boxwex = 0.25, at = 1:3 + 0.2,
+            subset = supp == "OJ", col = "orange")
+    legend(2, 9, c("Ascorbic acid", "Orange juice"),
+           fill = c("yellow", "orange"))
+})
+
+# alternate form that avoids subset argument:
+with(subset(ToothGrowth, supp == "VC"),
+     boxplot(len ~ dose, boxwex = 0.25, at = 1:3 - 0.2,
+             col = "yellow", main = "Guinea Pigs' Tooth Growth",
+             xlab = "Vitamin C dose mg",
+             ylab = "tooth length", ylim = c(0, 35)))
+with(subset(ToothGrowth,  supp == "OJ"),
+     boxplot(len ~ dose, add = TRUE, boxwex = 0.25, at = 1:3 + 0.2,
+             col = "orange"))
+legend(2, 9, c("Ascorbic acid", "Orange juice"),
+       fill = c("yellow", "orange"))
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

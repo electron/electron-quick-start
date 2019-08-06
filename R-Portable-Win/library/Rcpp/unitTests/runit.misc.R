@@ -1,6 +1,6 @@
 #!/usr/bin/env r
 #
-# Copyright (C) 2010 - 2017  Dirk Eddelbuettel and Romain Francois
+# Copyright (C) 2010 - 2019  Dirk Eddelbuettel and Romain Francois
 #
 # This file is part of Rcpp.
 #
@@ -212,6 +212,13 @@ if (.runThisTest) {
 
     test.bib <- function() {
         checkTrue(nchar(Rcpp:::bib()) > 0, msg="bib file")
+    }
+
+    test.getRcppVersion <- function() {
+        checkTrue(inherits(getRcppVersion(), "package_version"),
+                  msg="package_version object")
+        checkTrue(getRcppVersion(devel=TRUE) >= getRcppVersion(devel=FALSE),
+                  msg="dev greater equal release")
     }
 
 }

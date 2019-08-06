@@ -1,0 +1,408 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Formatting Using C-style Formats</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for formatC {base}"><tr><td>formatC {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Formatting Using C-style Formats</h2>
+
+<h3>Description</h3>
+
+<p><code>formatC()</code> formats numbers individually and flexibly using
+<code>C</code> style format specifications.
+</p>
+<p><code>prettyNum()</code> is used for &ldquo;prettifying&rdquo; (possibly
+formatted) numbers, also in <code><a href="format.html">format.default</a></code>.
+</p>
+<p><code>.format.zeros(x)</code>, an auxiliary function of <code>prettyNum()</code>,
+re-formats the zeros in a vector <code>x</code> of formatted numbers.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+formatC(x, digits = NULL, width = NULL,
+        format = NULL, flag = "", mode = NULL,
+        big.mark = "", big.interval = 3L,
+        small.mark = "", small.interval = 5L,
+        decimal.mark = getOption("OutDec"),
+        preserve.width = "individual",
+        zero.print = NULL, replace.zero = TRUE,
+        drop0trailing = FALSE)
+
+prettyNum(x, big.mark = "",   big.interval = 3L,
+          small.mark  = "", small.interval = 5L,
+          decimal.mark = getOption("OutDec"), input.d.mark = decimal.mark,
+          preserve.width = c("common", "individual", "none"),
+          zero.print = NULL, replace.zero = FALSE,
+          drop0trailing = FALSE, is.cmplx = NA,
+          ...)
+
+.format.zeros(x, zero.print, nx = suppressWarnings(as.numeric(x)),
+              replace = FALSE, warn.non.fitting = TRUE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>an atomic numerical or character object, possibly
+<code><a href="complex.html">complex</a></code> only for <code>prettyNum()</code>, typically a
+vector of real numbers.  Any class is discarded, with a warning.</p>
+</td></tr>
+<tr valign="top"><td><code>digits</code></td>
+<td>
+<p>the desired number of digits after the decimal
+point (<code>format = "f"</code>) or <em>significant</em> digits
+(<code>format = "g"</code>, <code>= "e"</code> or <code>= "fg"</code>).
+</p>
+<p>Default: 2 for integer, 4 for real numbers.  If less than 0,
+the C default of 6 digits is used.  If specified as more than 50, 50
+will be used with a warning unless <code>format = "f"</code> where it is
+limited to typically 324. (Not more than 15&ndash;21 digits need be
+accurate, depending on the OS and compiler used.  This limit is
+just a precaution against segfaults in the underlying C runtime.)
+</p>
+</td></tr>
+<tr valign="top"><td><code>width</code></td>
+<td>
+<p>the total field width; if both <code>digits</code> and
+<code>width</code> are unspecified, <code>width</code> defaults to 1,
+otherwise to <code>digits + 1</code>.  <code>width = 0</code> will use
+<code>width = digits</code>, <code>width &lt; 0</code> means left
+justify the number in this field (equivalent to <code>flag = "-"</code>).
+If necessary, the result will have more characters than
+<code>width</code>.  For character data this is interpreted in characters
+(not bytes nor display width).
+</p>
+</td></tr>
+<tr valign="top"><td><code>format</code></td>
+<td>
+<p>equal to <code>"d"</code>  (for integers), <code>"f"</code>,
+<code>"e"</code>, <code>"E"</code>, <code>"g"</code>, <code>"G"</code>, <code>"fg"</code> (for
+reals), or <code>"s"</code> (for strings).  Default is <code>"d"</code> for
+integers, <code>"g"</code> for reals.
+</p>
+<p><code>"f"</code> gives numbers in the usual
+<code>xxx.xxx</code> format;  <code>"e"</code> and <code>"E"</code> give <code>n.ddde+nn</code> or
+<code>n.dddE+nn</code> (scientific format); <code>"g"</code> and <code>"G"</code> put
+<code>x[i]</code> into scientific format only if it saves space to do so
+<em>and</em> drop trailing zeros and decimal point - unless <code>flag</code>
+contains <code>"#"</code> which keeps trailing zeros for the <code>"g", "G"</code>
+formats.
+</p>
+<p><code>"fg"</code> (our own hybrid format) uses fixed format as <code>"f"</code>,
+but <code>digits</code> as the minimum number of <em>significant</em> digits.
+This can lead to quite long result strings, see examples below.  Note
+that unlike <code><a href="Round.html">signif</a></code> this prints large numbers with
+more significant digits than <code>digits</code>.  Trailing zeros are
+<em>dropped</em> in this format, unless <code>flag</code> contains
+<code>"#"</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>flag</code></td>
+<td>
+<p>for <code>formatC</code>, a character string giving a
+format modifier as in Kernighan and Ritchie (1988, page 243) or the
+C+99 standard.</p>
+
+<dl>
+<dt><code>"0"</code></dt><dd><p>pads leading zeros;</p>
+</dd>
+<dt><code>"-"</code></dt><dd><p>does left adjustment,</p>
+</dd>
+<dt><code>"+"</code></dt><dd><p>ensures a sign in all cases, i.e., <code>"+"</code> for
+positive numbers ,</p>
+</dd>
+<dt><code>" "</code></dt><dd><p>if the first character is not a sign, the space
+character <code>" "</code> will be used instead.</p>
+</dd>
+<dt><code>"#"</code></dt><dd><p>specifies &ldquo;an alternative output form&rdquo;,
+specifically depending on <code>format</code>.</p>
+</dd>
+<dt><code>"'"</code></dt><dd><p>on some platform&ndash;locale combination, activates
+&ldquo;thousands' grouping&rdquo; for decimal conversion,</p>
+</dd>
+<dt><code>"I"</code></dt><dd><p>in some versions of &lsquo;<span class="file">glibc</span>&rsquo; allow for integer
+conversion to use the locale's alternative output digits, if any.</p>
+</dd>
+</dl>
+
+<p>There can be more than one of these flags, in any order.  Other characters
+used to have no effect for <code>character</code> formatting, but signal
+an error since <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> 3.4.0.
+</p>
+</td></tr>
+<tr valign="top"><td><code>mode</code></td>
+<td>
+<p><code>"double"</code> (or <code>"real"</code>), <code>"integer"</code> or
+<code>"character"</code>.
+Default: Determined from the storage mode of <code>x</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>big.mark</code></td>
+<td>
+<p>character; if not empty used as mark between every
+<code>big.interval</code> decimals <em>before</em> (hence <code>big</code>) the
+decimal point.</p>
+</td></tr>
+<tr valign="top"><td><code>big.interval</code></td>
+<td>
+<p>see <code>big.mark</code> above; defaults to 3.</p>
+</td></tr>
+<tr valign="top"><td><code>small.mark</code></td>
+<td>
+<p>character; if not empty used as mark between every
+<code>small.interval</code> decimals <em>after</em> (hence <code>small</code>) the
+decimal point.</p>
+</td></tr>
+<tr valign="top"><td><code>small.interval</code></td>
+<td>
+<p>see <code>small.mark</code> above; defaults to 5.</p>
+</td></tr>
+<tr valign="top"><td><code>decimal.mark</code></td>
+<td>
+<p>the character to be used to indicate the numeric
+decimal point.</p>
+</td></tr>
+<tr valign="top"><td><code>input.d.mark</code></td>
+<td>
+<p>if <code>x</code> is <code><a href="character.html">character</a></code>, the
+character known to have been used as the numeric decimal point in
+<code>x</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>preserve.width</code></td>
+<td>
+<p>string specifying if the string widths should
+be preserved where possible in those cases where marks
+(<code>big.mark</code> or <code>small.mark</code>) are added.  <code>"common"</code>,
+the default, corresponds to <code><a href="format.html">format</a></code>-like behavior
+whereas <code>"individual"</code> is the default in
+<code>formatC()</code>. Value can be abbreviated.</p>
+</td></tr>
+<tr valign="top"><td><code>zero.print</code></td>
+<td>
+<p>logical, character string or <code>NULL</code> specifying
+if and how <em>zeros</em> should be formatted specially.  Useful for
+pretty printing &lsquo;sparse&rsquo; objects.</p>
+</td></tr>
+<tr valign="top"><td><code>replace.zero, replace</code></td>
+<td>
+<p>logical; if <code>zero.print</code> is a
+character string, indicates if the exact zero entries in <code>x</code>
+should be simply replaced by <code>zero.print</code>.  Otherwise,
+depending on the widths of the respective strings, the (formatted)
+zeroes are <em>partly</em> replaced by <code>zero.print</code> and then
+padded with <code>" "</code> to the right were applicable.  In that case
+(false <code>replace[.zero]</code>), if the <code>zero.print</code> string does
+not fit, a warning is produced (if <code>warn.non.fitting</code> is true).
+</p>
+<p>This works via <code>prettyNum()</code>, which calls <code>.format.zeros(*,
+    replace=replace.zero)</code> three times in this case, see the &lsquo;Details&rsquo;.
+</p>
+</td></tr>
+<tr valign="top"><td><code>warn.non.fitting</code></td>
+<td>
+<p>logical; if it is true, <code>replace[.zero]</code> is
+false and the <code>zero.print</code> string does not fit, a
+<code><a href="warning.html">warning</a></code> is signalled.</p>
+</td></tr>
+<tr valign="top"><td><code>drop0trailing</code></td>
+<td>
+<p>logical, indicating if trailing zeros,
+i.e., <code>"0"</code> <em>after</em> the decimal mark, should be removed;
+also drops <code>"e+00"</code> in exponential formats.  This is simply passed
+to <code>prettyNum()</code>, see the &lsquo;Details&rsquo;.</p>
+</td></tr>
+<tr valign="top"><td><code>is.cmplx</code></td>
+<td>
+<p>optional logical, to be used when <code>x</code> is
+<code>"<a href="character.html">character</a>"</code> to indicate if it stems from
+<code><a href="complex.html">complex</a></code> vector or not.  By default (<code>NA</code>),
+<code>x</code> is checked to &lsquo;look like&rsquo; complex.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>arguments passed to <code>format</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>nx</code></td>
+<td>
+<p>numeric vector of the same length as <code>x</code>, typically the
+numbers of which the character vector <code>x</code> is the pre-format.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>For numbers, <code>formatC()</code> calls <code>prettyNum()</code> when needed
+which itself calls <code>.format.zeros(*, replace=replace.zero)</code>.
+(<em>&ldquo;when needed&rdquo;</em>: when <code>zero.print</code> is not
+<code>NULL</code>, <code>drop0trailing</code> is true, or one of <code>big.mark</code>,
+<code>small.mark</code>, or <code>decimal.mark</code> is not at default.)
+</p>
+<p>If you set <code>format</code> it overrides the setting of <code>mode</code>, so
+<code>formatC(123.45, mode = "double", format = "d")</code> gives <code>123</code>.
+</p>
+<p>The rendering of scientific format is platform-dependent: some systems
+use <code>n.ddde+nnn</code> or <code>n.dddenn</code> rather than <code>n.ddde+nn</code>.
+</p>
+<p><code>formatC</code> does not necessarily align the numbers on the decimal
+point, so <code>formatC(c(6.11, 13.1), digits = 2, format = "fg")</code> gives
+<code>c("6.1", " 13")</code>.  If you want common formatting for several
+numbers, use <code><a href="format.html">format</a></code>.
+</p>
+<p><code>prettyNum</code> is the utility function for prettifying <code>x</code>.
+<code>x</code> can be complex (or <code><a href="format.html">format</a>(&lt;complex&gt;)</code>), here.  If
+<code>x</code> is not a character, <code>format(x[i], ...)</code> is applied to
+each element, and then it is left unchanged if all the other arguments
+are at their defaults.  Use the <code>input.d.mark</code> argument for
+<code>prettyNum(x)</code> when <code>x</code> is a <code>character</code> vector not
+resulting from something like <code>format(&lt;number&gt;)</code> with a period as
+decimal mark.
+</p>
+<p>Because <code><a href="grep.html">gsub</a></code> is used to insert the <code>big.mark</code>
+and <code>small.mark</code>, special characters need escaping.  In particular,
+to insert a single backslash, use <code>"\\\\"</code>.
+</p>
+<p>The C doubles used for <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> numerical vectors have signed zeros, which
+<code>formatC</code> may output as <code>-0</code>, <code>-0.000</code> ....
+</p>
+<p>There is a warning if <code>big.mark</code> and <code>decimal.mark</code> are the
+same: that would be confusing to those reading the output.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A character object of same size and attributes as <code>x</code> (after
+discarding any class), in the current locale's encoding.
+</p>
+<p>Unlike <code><a href="format.html">format</a></code>, each number is formatted individually.
+Looping over each element of <code>x</code>, the C function
+<code>sprintf(...)</code> is called for numeric inputs (inside the C
+function <code>str_signif</code>).
+</p>
+<p><code>formatC</code>: for character <code>x</code>, do simple (left or right)
+padding with white space.
+</p>
+
+
+<h3>Note</h3>
+
+<p>The default for <code>decimal.mark</code> in <code>formatC()</code> was changed in
+<span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> 3.2.0: for use within <code><a href="print.html">print</a></code> methods in packages which might
+be used with earlier versions: use <code>decimal.mark = getOption("OutDec")</code>
+explicitly.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p><code>formatC</code> was originally written by Bill Dunlap for S-PLUS, later
+much improved by Martin Maechler.
+</p>
+<p>It was first adapted for <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> by Friedrich Leisch and since much
+improved by the R Core team.
+</p>
+
+
+
+
+<h3>References</h3>
+
+<p>Kernighan, B. W. and Ritchie, D. M. (1988)
+<em>The C Programming Language.</em>  Second edition.  Prentice Hall.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="format.html">format</a></code>.
+</p>
+<p><code><a href="sprintf.html">sprintf</a></code> for more general C-like formatting.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+xx &lt;- pi * 10^(-5:4)
+cbind(format(xx, digits = 4), formatC(xx))
+cbind(formatC(xx, width = 9, flag = "-"))
+cbind(formatC(xx, digits = 5, width = 8, format = "f", flag = "0"))
+cbind(format(xx, digits = 4), formatC(xx, digits = 4, format = "fg"))
+
+f &lt;- (-2:4); f &lt;- f*16^f
+# Default ("g") format:
+formatC(pi*f)
+# Fixed ("f") format, more than one flag ('width' partly "enlarged"):
+cbind(formatC(pi*f, digits = 3, width=9, format = "f", flag = "0+"))
+
+formatC(    c("a", "Abc", "no way"), width = -7)  # &lt;=&gt; flag = "-"
+formatC(c((-1:1)/0,c(1,100)*pi), width = 8, digits = 1)
+
+## note that some of the results here depend on the implementation
+## of long-double arithmetic, which is platform-specific.
+xx &lt;- c(1e-12,-3.98765e-10,1.45645e-69,1e-70,pi*1e37,3.44e4)
+##       1        2             3        4      5       6
+formatC(xx)
+formatC(xx, format = "fg")       # special "fixed" format.
+formatC(xx[1:4], format = "f", digits = 75) #&gt;&gt; even longer strings
+
+formatC(c(3.24, 2.3e-6), format = "f", digits = 11)
+formatC(c(3.24, 2.3e-6), format = "f", digits = 11, drop0trailing = TRUE)
+
+r &lt;- c("76491283764.97430", "29.12345678901", "-7.1234", "-100.1","1123")
+## American:
+prettyNum(r, big.mark = ",")
+## Some Europeans:
+prettyNum(r, big.mark = "'", decimal.mark = ",")
+
+(dd &lt;- sapply(1:10, function(i) paste((9:0)[1:i], collapse = "")))
+prettyNum(dd, big.mark = "'")
+
+## examples of 'small.mark'
+pN &lt;- stats::pnorm(1:7, lower.tail = FALSE)
+cbind(format (pN, small.mark = " ", digits = 15))
+cbind(formatC(pN, small.mark = " ", digits = 17, format = "f"))
+
+cbind(ff &lt;- format(1.2345 + 10^(0:5), width = 11, big.mark = "'"))
+## all with same width (one more than the specified minimum)
+
+## individual formatting to common width:
+fc &lt;- formatC(1.234 + 10^(0:8), format = "fg", width = 11, big.mark = "'")
+cbind(fc)
+## Powers of two, stored exactly, formatted individually:
+pow.2 &lt;- formatC(2^-(1:32), digits = 24, width = 1, format = "fg")
+## nicely printed (the last line showing 5^32 exactly):
+noquote(cbind(pow.2))
+
+## complex numbers:
+r &lt;- 10.0000001; rv &lt;- (r/10)^(1:10)
+(zv &lt;- (rv + 1i*rv))
+op &lt;- options(digits = 7) ## (system default)
+(pnv &lt;- prettyNum(zv))
+stopifnot(pnv == "1+1i", pnv == format(zv),
+          pnv == prettyNum(zv, drop0trailing = TRUE))
+## more digits change the picture:
+options(digits = 8)
+head(fv &lt;- format(zv), 3)
+prettyNum(fv)
+prettyNum(fv, drop0trailing = TRUE) # a bit nicer
+options(op)
+
+## The  '  flag :
+doLC &lt;- FALSE # &lt;= R warns, so change to TRUE manually if you want see the effect
+if(doLC)
+  oldLC &lt;- Sys.setlocale("LC_NUMERIC", "de_CH.UTF-8")
+formatC(1.234 + 10^(0:4), format = "fg", width = 11, flag = "'")
+## --&gt;  .....  "      1'001" "     10'001"   on supported platforms
+if(doLC) ## revert, typically to  "C"  :
+  Sys.setlocale("LC_NUMERIC", oldLC)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

@@ -1,0 +1,157 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Path Drawing</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for polypath {graphics}"><tr><td>polypath {graphics}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Path Drawing</h2>
+
+<h3>Description</h3>
+
+<p><code>path</code> draws a path whose vertices are
+given in <code>x</code> and <code>y</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+polypath(x, y = NULL,
+         border = NULL, col = NA, lty = par("lty"),
+         rule = "winding", ...)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x, y</code></td>
+<td>
+<p>vectors containing the coordinates of the vertices
+of the path.</p>
+</td></tr>
+<tr valign="top"><td><code>col</code></td>
+<td>
+<p>the color for filling the path. The default,
+<code>NA</code>, is to leave paths unfilled, unless <code>density</code> is
+specified.  (For back-compatibility, <code>NULL</code> is equivalent to
+<code>NA</code>.)  If <code>density</code> is specified with a positive value
+this gives the color of the shading lines.</p>
+</td></tr>
+<tr valign="top"><td><code>border</code></td>
+<td>
+<p>the color to draw the border.  The default, <code>NULL</code>,
+means to use <code><a href="par.html">par</a>("fg")</code>.  Use <code>border = NA</code> to
+omit borders.
+</p>
+<p>For compatibility with S, <code>border</code> can also be logical, in
+which case <code>FALSE</code> is equivalent to <code>NA</code> (borders omitted)
+and <code>TRUE</code> is equivalent to <code>NULL</code> (use the foreground colour),
+</p>
+</td></tr>
+<tr valign="top"><td><code>lty</code></td>
+<td>
+<p>the line type to be used, as in <code><a href="par.html">par</a></code>.</p>
+</td></tr>
+<tr valign="top"><td><code>rule</code></td>
+<td>
+<p>character value specifying the path fill mode: either
+<code>"winding"</code> or <code>"evenodd"</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p><a href="par.html">graphical parameters</a> such as <code>xpd</code>, <code>lend</code>,
+<code>ljoin</code> and <code>lmitre</code> can be given as arguments.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>The coordinates can be passed in a plotting structure
+(a list with <code>x</code> and <code>y</code> components), a two-column matrix,
+....  See <code><a href="../../grDevices/html/xy.coords.html">xy.coords</a></code>.
+</p>
+<p>It is assumed that the path is to be closed by joining the last point to
+the first point.
+</p>
+<p>The coordinates can contain missing values.  The behaviour is similar
+to that of <code><a href="polygon.html">polygon</a></code>, except that instead of breaking a
+polygon into several polygons, <code>NA</code> values break the path into
+several sub-paths (including closing the last point to the first point
+in each sub-path).  See the examples below.
+</p>
+<p>The distinction between a path and a polygon is that the former
+can contain holes, as interpreted by the fill rule; these fill a region if
+the path border encircles it an odd or non-zero number of times,
+respectively.
+</p>
+<p>Hatched shading (as implemented for <code>polygon()</code>) is not
+(currently) supported.
+</p>
+<p>Not all graphics devices support this function: for example
+<code>xfig</code> and <code>pictex</code> do not.
+</p>
+
+
+<h3>References</h3>
+
+<p>Becker, R. A., Chambers, J. M. and Wilks, A. R. (1988)
+<em>The New S Language</em>.
+Wadsworth &amp; Brooks/Cole.
+</p>
+<p>Murrell, P. (2005) <em>R Graphics</em>. Chapman &amp; Hall/CRC Press.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="segments.html">segments</a></code> for even more flexibility, <code><a href="lines.html">lines</a></code>,
+<code><a href="rect.html">rect</a></code>, <code><a href="box.html">box</a></code>, <code><a href="polygon.html">polygon</a></code>.
+</p>
+<p><code><a href="par.html">par</a></code> for how to specify colors.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+plotPath &lt;- function(x, y, col = "grey", rule = "winding") {
+    plot.new()
+    plot.window(range(x, na.rm = TRUE), range(y, na.rm = TRUE))
+    polypath(x, y, col = col, rule = rule)
+    if (!is.na(col))
+        mtext(paste("Rule:", rule), side = 1, line = 0)
+}
+
+plotRules &lt;- function(x, y, title) {
+    plotPath(x, y)
+    plotPath(x, y, rule = "evenodd")
+    mtext(title, side = 3, line = 0)
+    plotPath(x, y, col = NA)
+}
+
+op &lt;- par(mfrow = c(5, 3), mar = c(2, 1, 1, 1))
+
+plotRules(c(.1, .1, .9, .9, NA, .2, .2, .8, .8),
+          c(.1, .9, .9, .1, NA, .2, .8, .8, .2),
+          "Nested rectangles, both clockwise")
+plotRules(c(.1, .1, .9, .9, NA, .2, .8, .8, .2),
+          c(.1, .9, .9, .1, NA, .2, .2, .8, .8),
+          "Nested rectangles, outer clockwise, inner anti-clockwise")
+plotRules(c(.1, .1, .4, .4, NA, .6, .9, .9, .6),
+          c(.1, .4, .4, .1, NA, .6, .6, .9, .9),
+          "Disjoint rectangles")
+plotRules(c(.1, .1, .6, .6, NA, .4, .4, .9, .9),
+          c(.1, .6, .6, .1, NA, .4, .9, .9, .4),
+          "Overlapping rectangles, both clockwise")
+plotRules(c(.1, .1, .6, .6, NA, .4, .9, .9, .4),
+          c(.1, .6, .6, .1, NA, .4, .4, .9, .9),
+          "Overlapping rectangles, one clockwise, other anti-clockwise")
+
+par(op)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>graphics</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

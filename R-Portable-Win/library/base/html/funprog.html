@@ -1,0 +1,193 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Common Higher-Order Functions in Functional Programming...</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for funprog {base}"><tr><td>funprog {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Common Higher-Order Functions in Functional Programming Languages</h2>
+
+<h3>Description</h3>
+
+<p><code>Reduce</code> uses a binary function to successively combine the
+elements of a given vector and a possibly given initial value.
+<code>Filter</code> extracts the elements of a vector for which a predicate
+(logical) function gives true.  <code>Find</code> and <code>Position</code> give
+the first or last such element and its position in the vector,
+respectively.  <code>Map</code> applies a function to the corresponding
+elements of given vectors.  <code>Negate</code> creates the negation of a
+given function.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+Reduce(f, x, init, right = FALSE, accumulate = FALSE)
+Filter(f, x)
+Find(f, x, right = FALSE, nomatch = NULL)
+Map(f, ...)
+Negate(f)
+Position(f, x, right = FALSE, nomatch = NA_integer_)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>f</code></td>
+<td>
+<p>a function of the appropriate arity (binary for
+<code>Reduce</code>, unary for <code>Filter</code>, <code>Find</code> and
+<code>Position</code>, <i>k</i>-ary for <code>Map</code> if this is called with
+<i>k</i> arguments).  An arbitrary predicate function for
+<code>Negate</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>a vector.</p>
+</td></tr>
+<tr valign="top"><td><code>init</code></td>
+<td>
+<p>an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> object of the same kind as the elements of
+<code>x</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>right</code></td>
+<td>
+<p>a logical indicating whether to proceed from left to
+right (default) or from right to left.</p>
+</td></tr>
+<tr valign="top"><td><code>accumulate</code></td>
+<td>
+<p>a logical indicating whether the successive reduce
+combinations should be accumulated.  By default, only the final
+combination is used.</p>
+</td></tr>
+<tr valign="top"><td><code>nomatch</code></td>
+<td>
+<p>the value to be returned in the case when
+&ldquo;no match&rdquo; (no element satisfying the predicate) is found.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>vectors.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>If <code>init</code> is given, <code>Reduce</code> logically adds it to the start
+(when proceeding left to right) or the end of <code>x</code>, respectively.
+If this possibly augmented vector <i>v</i> has <i>n &gt; 1</i> elements,
+<code>Reduce</code> successively applies <i>f</i> to the elements of <i>v</i>
+from left to right or right to left, respectively.  I.e., a left
+reduce computes <i>l_1 = f(v_1, v_2)</i>, <i>l_2 = f(l_1, v_3)</i>, etc.,
+and returns <i>l_{n-1} = f(l_{n-2}, v_n)</i>, and a right reduce does
+<i>r_{n-1} = f(v_{n-1}, v_n)</i>, <i>r_{n-2} = f(v_{n-2}, r_{n-1})</i>
+and returns <i>r_1 = f(v_1, r_2)</i>.  (E.g., if <i>v</i> is the
+sequence (2, 3, 4) and <i>f</i> is division, left and right reduce give
+<i>(2 / 3) / 4 = 1/6</i> and <i>2 / (3 / 4) = 8/3</i>, respectively.)
+If <i>v</i> has only a single element, this is returned; if there are
+no elements, <code>NULL</code> is returned.  Thus, it is ensured that
+<code>f</code> is always called with 2 arguments.
+</p>
+<p>The current implementation is non-recursive to ensure stability and
+scalability.
+</p>
+<p><code>Reduce</code> is patterned after Common Lisp's <code>reduce</code>.  A
+reduce is also known as a fold (e.g., in Haskell) or an accumulate
+(e.g., in the C++ Standard Template Library).  The accumulative
+version corresponds to Haskell's scan functions.
+</p>
+<p><code>Filter</code> applies the unary predicate function <code>f</code> to each
+element of <code>x</code>, coercing to logical if necessary, and returns the
+subset of <code>x</code> for which this gives true.  Note that possible
+<code>NA</code> values are currently always taken as false; control over
+<code>NA</code> handling may be added in the future.  <code>Filter</code>
+corresponds to <code>filter</code> in Haskell or <code>remove-if-not</code> in
+Common Lisp.
+</p>
+<p><code>Find</code> and <code>Position</code> are patterned after Common Lisp's
+<code>find-if</code> and <code>position-if</code>, respectively.  If there is an
+element for which the predicate function gives true, then the first or
+last such element or its position is returned depending on whether
+<code>right</code> is false (default) or true, respectively.  If there is no
+such element, the value specified by <code>nomatch</code> is returned.  The
+current implementation is not optimized for performance.
+</p>
+<p><code>Map</code> is a simple wrapper to <code><a href="mapply.html">mapply</a></code> which does not
+attempt to simplify the result, similar to Common Lisp's <code>mapcar</code>
+(with arguments being recycled, however).  Future versions may allow
+some control of the result type.
+</p>
+<p><code>Negate</code> corresponds to Common Lisp's <code>complement</code>.  Given a
+(predicate) function <code>f</code>, it creates a function which returns the
+logical negation of what <code>f</code> returns.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Function <code><a href="../../parallel/html/clusterApply.html">clusterMap</a></code> and <code><a href="../../parallel/html/mcdummies.html">mcmapply</a></code> (not
+Windows) in package <span class="pkg">parallel</span> provide parallel versions of <code>Map</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## A general-purpose adder:
+add &lt;- function(x) Reduce("+", x)
+add(list(1, 2, 3))
+## Like sum(), but can also used for adding matrices etc., as it will
+## use the appropriate '+' method in each reduction step.
+## More generally, many generics meant to work on arbitrarily many
+## arguments can be defined via reduction:
+FOO &lt;- function(...) Reduce(FOO2, list(...))
+FOO2 &lt;- function(x, y) UseMethod("FOO2")
+## FOO() methods can then be provided via FOO2() methods.
+
+## A general-purpose cumulative adder:
+cadd &lt;- function(x) Reduce("+", x, accumulate = TRUE)
+cadd(seq_len(7))
+
+## A simple function to compute continued fractions:
+cfrac &lt;- function(x) Reduce(function(u, v) u + 1 / v, x, right = TRUE)
+## Continued fraction approximation for pi:
+cfrac(c(3, 7, 15, 1, 292))
+## Continued fraction approximation for Euler's number (e):
+cfrac(c(2, 1, 2, 1, 1, 4, 1, 1, 6, 1, 1, 8))
+
+## Iterative function application:
+Funcall &lt;- function(f, ...) f(...)
+## Compute log(exp(acos(cos(0))))
+Reduce(Funcall, list(log, exp, acos, cos), 0, right = TRUE)
+## n-fold iterate of a function, functional style:
+Iterate &lt;- function(f, n = 1)
+    function(x) Reduce(Funcall, rep.int(list(f), n), x, right = TRUE)
+## Continued fraction approximation to the golden ratio:
+Iterate(function(x) 1 + 1 / x, 30)(1)
+## which is the same as
+cfrac(rep.int(1, 31))
+## Computing square root approximations for x as fixed points of the
+## function t |-&gt; (t + x / t) / 2, as a function of the initial value:
+asqrt &lt;- function(x, n) Iterate(function(t) (t + x / t) / 2, n)
+asqrt(2, 30)(10) # Starting from a positive value =&gt; +sqrt(2)
+asqrt(2, 30)(-1) # Starting from a negative value =&gt; -sqrt(2)
+
+## A list of all functions in the base environment:
+funs &lt;- Filter(is.function, sapply(ls(baseenv()), get, baseenv()))
+## Functions in base with more than 10 arguments:
+names(Filter(function(f) length(formals(f)) &gt; 10, funs))
+## Number of functions in base with a '...' argument:
+length(Filter(function(f)
+              any(names(formals(f)) %in% "..."),
+              funs))
+
+## Find all objects in the base environment which are *not* functions:
+Filter(Negate(is.function),  sapply(ls(baseenv()), get, baseenv()))
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

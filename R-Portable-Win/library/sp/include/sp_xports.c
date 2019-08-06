@@ -14,7 +14,7 @@ SEXP SP_PREFIX(sp_linkingTo_version)(void) {
 
 SEXP SP_PREFIX(Polygon_c)(const SEXP coords, const SEXP n, const SEXP ihole) {
 
-    SEXP SPans, labpt, Area, ringDir, hole;
+    SEXP SPans, labpt, Area, ringDir, hole, cls;
     double area, xc, yc;
     double *x, *y;
     int pc=0, rev=FALSE;
@@ -46,7 +46,7 @@ SEXP SP_PREFIX(Polygon_c)(const SEXP coords, const SEXP n, const SEXP ihole) {
         INTEGER_POINTER(dim1)[1] = 2;
         setAttrib(ccopy, R_DimSymbol, dim1);
     } else {
-		if (NAMED(coords)) {
+		if (MAYBE_REFERENCED(coords)) {
 			PROTECT(ccopy = duplicate(coords)); 
 			pc++;
 		} else 
@@ -74,8 +74,9 @@ SEXP SP_PREFIX(Polygon_c)(const SEXP coords, const SEXP n, const SEXP ihole) {
         }
     }
 
-    PROTECT(SPans = NEW_OBJECT(MAKE_CLASS("Polygon"))); pc++;
-
+// rchk MAKE_CLASS allocates RSB 180602
+    PROTECT(cls = MAKE_CLASS("Polygon")); pc++;
+    PROTECT(SPans = NEW_OBJECT(cls)); pc++; 
     PROTECT(ringDir = NEW_INTEGER(1)); pc++;
     INTEGER_POINTER(ringDir)[0] = (area > 0.0) ? -1 : 1;
 // -1 cw hole, 1 ccw not-hole
@@ -179,24 +180,24 @@ SEXP SP_PREFIX(Polygon_validate_c)(const SEXP obj) {
 
 SEXP SP_PREFIX(Polygons_c)(const SEXP pls, const SEXP ID) {
 
-    SEXP ans, labpt, Area, plotOrder, crds, pl, n, hole, pls1, ID1;
+    SEXP ans, labpt, Area, plotOrder, crds, pl, n, hole, pls1, ID1, cls;
     int nps, i, pc=0, sumholes;
     double *areas, *areaseps, fuzz;
     int *po, *holes;
     SEXP valid;
 
-	if (NAMED(pls)) {
+	if (MAYBE_REFERENCED(pls)) {
 		PROTECT(pls1 = duplicate(pls)); 
 		pc++;
 	} else 
 		pls1 = pls; 
-    // PROTECT(pls1 = NAMED(pls) ? duplicate(pls) : pls); pc++;
-	if (NAMED(ID)) {
+    // PROTECT(pls1 = MAYBE_REFERENCED(pls) ? duplicate(pls) : pls); pc++;
+	if (MAYBE_REFERENCED(ID)) {
 		PROTECT(ID1 = duplicate(ID)); 
 		pc++;
 	} else 
 		ID1 = ID; 
-    // PROTECT(ID1 = NAMED(ID) ? duplicate(ID) : ID); pc++;
+    // PROTECT(ID1 = MAYBE_REFERENCED(ID) ? duplicate(ID) : ID); pc++;
 
     nps = length(pls1);
     fuzz = R_pow(DOUBLE_EPS, (2.0/3.0));
@@ -234,7 +235,9 @@ SEXP SP_PREFIX(Polygons_c)(const SEXP pls, const SEXP ID) {
         SET_VECTOR_ELT(pls1, (po[0] - R_OFFSET), pl);
     }
 
-    PROTECT(ans = NEW_OBJECT(MAKE_CLASS("Polygons"))); pc++;
+// rchk MAKE_CLASS allocates RSB 180602
+    PROTECT(cls = MAKE_CLASS("Polygons")); pc++;
+    PROTECT(ans = NEW_OBJECT(cls)); pc++;
     SET_SLOT(ans, install("Polygons"), pls1);
     SET_SLOT(ans, install("ID"), ID1);
 
@@ -318,13 +321,15 @@ SEXP SP_PREFIX(Polygons_validate_c)(const SEXP obj) {
 SEXP SP_PREFIX(SpatialPolygons_c)(const SEXP pls, const SEXP pO, 
 		const SEXP p4s) {
 
-    SEXP ans, bbox, ppO;
+    SEXP ans, bbox, ppO, cls;
     int pc=0;
 
-    PROTECT(ans = NEW_OBJECT(MAKE_CLASS("SpatialPolygons"))); pc++;
-    // SET_SLOT(ans, install("polygons"), NAMED(pls) ? duplicate(pls) : pls);
+// rchk MAKE_CLASS allocates RSB 180602
+    PROTECT(cls = MAKE_CLASS("SpatialPolygons")); pc++;
+    PROTECT(ans = NEW_OBJECT(cls)); pc++;
+    // SET_SLOT(ans, install("polygons"), MAYBE_REFERENCED(pls) ? duplicate(pls) : pls);
     SET_SLOT(ans, install("polygons"), pls);
-    // SET_SLOT(ans, install("proj4string"), NAMED(p4s) ? duplicate(p4s) : p4s);
+    // SET_SLOT(ans, install("proj4string"), MAYBE_REFERENCED(p4s) ? duplicate(p4s) : p4s);
     SET_SLOT(ans, install("proj4string"), p4s);
 
     if (pO == R_NilValue) {
@@ -332,7 +337,7 @@ SEXP SP_PREFIX(SpatialPolygons_c)(const SEXP pls, const SEXP pO,
 		pc++;
     } else
 		ppO = pO;
-    // SET_SLOT(ans, install("plotOrder"), NAMED(pO) ? duplicate(pO) : pO);
+    // SET_SLOT(ans, install("plotOrder"), MAYBE_REFERENCED(pO) ? duplicate(pO) : pO);
     SET_SLOT(ans, install("plotOrder"), ppO);
 
     PROTECT(bbox = SP_PREFIX(bboxCalcR_c(pls))); pc++;
@@ -350,8 +355,8 @@ SEXP SP_PREFIX(SpatialPolygons_plotOrder_c)(const SEXP pls) {
     int *po;
     double *areas;
 
-    // PROTECT(pls1 = NAMED(pls) ? duplicate(pls) : pls); pc++;
-	if (NAMED(pls)) {
+    // PROTECT(pls1 = MAYBE_REFERENCED(pls) ? duplicate(pls) : pls); pc++;
+	if (MAYBE_REFERENCED(pls)) {
 		PROTECT(pls1 = duplicate(pls));
 		pc++;
 	} else
@@ -416,8 +421,8 @@ SEXP SP_PREFIX(SpatialPolygons_getIDs_c)(const SEXP obj) {
     int i, n;
     SEXP pls, IDs, obj1;
 
-    // PROTECT(obj1 = NAMED(obj) ? duplicate(obj) : obj); pc++;
-	if (NAMED(obj)) {
+    // PROTECT(obj1 = MAYBE_REFERENCED(obj) ? duplicate(obj) : obj); pc++;
+	if (MAYBE_REFERENCED(obj)) {
 		PROTECT(obj1 = duplicate(obj));
 		pc++;
 	} else
@@ -442,8 +447,8 @@ SEXP SP_PREFIX(bboxCalcR_c)(const SEXP pls) {
     int i, j, k, n, npls, npl, pc=0;
     double x, y;
 
-    // PROTECT(pls1 = NAMED(pls) ? duplicate(pls) : pls); pc++;
-	if (NAMED(pls)) {
+    // PROTECT(pls1 = MAYBE_REFERENCED(pls) ? duplicate(pls) : pls); pc++;
+	if (MAYBE_REFERENCED(pls)) {
 		PROTECT(pls1 = duplicate(pls));
 		pc++;
 	} else
@@ -559,8 +564,8 @@ SEXP SP_PREFIX(comment2comm)(const SEXP obj) {
     char s[15], *buf;
     int *c, *nss, *co, *coo;
 
-    // PROTECT(obj1 = NAMED(obj) ? duplicate(obj) : obj); pc++;
-	if (NAMED(obj)) {
+    // PROTECT(obj1 = MAYBE_REFERENCED(obj) ? duplicate(obj) : obj); pc++;
+	if (MAYBE_REFERENCED(obj)) {
 		PROTECT(obj1 = duplicate(obj));
 		pc++;
 	} else

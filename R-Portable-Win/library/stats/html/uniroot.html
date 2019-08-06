@@ -1,0 +1,263 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: One Dimensional Root (Zero) Finding</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for uniroot {stats}"><tr><td>uniroot {stats}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>One Dimensional Root (Zero) Finding</h2>
+
+<h3>Description</h3>
+
+<p>The function <code>uniroot</code> searches the interval from <code>lower</code>
+to <code>upper</code> for a root (i.e., zero) of the function <code>f</code> with
+respect to its first argument.
+</p>
+<p>Setting <code>extendInt</code> to a non-<code>"no"</code> string, means searching
+for the correct <code>interval = c(lower,upper)</code> if <code>sign(f(x))</code>
+does not satisfy the requirements at the interval end points; see the
+&lsquo;Details&rsquo; section.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+uniroot(f, interval, ...,
+        lower = min(interval), upper = max(interval),
+        f.lower = f(lower, ...), f.upper = f(upper, ...),
+        extendInt = c("no", "yes", "downX", "upX"), check.conv = FALSE,
+        tol = .Machine$double.eps^0.25, maxiter = 1000, trace = 0)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>f</code></td>
+<td>
+<p>the function for which the root is sought.</p>
+</td></tr>
+<tr valign="top"><td><code>interval</code></td>
+<td>
+<p>a vector containing the end-points of the interval
+to be searched for the root.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>additional named or unnamed arguments to be passed
+to <code>f</code></p>
+</td></tr>
+<tr valign="top"><td><code>lower, upper</code></td>
+<td>
+<p>the lower and upper end points of the interval to
+be searched.</p>
+</td></tr>
+<tr valign="top"><td><code>f.lower, f.upper</code></td>
+<td>
+<p>the same as <code>f(upper)</code> and
+<code>f(lower)</code>, respectively.  Passing these values from the caller
+where they are often known is more economical as soon as <code>f()</code>
+contains non-trivial computations.</p>
+</td></tr>
+<tr valign="top"><td><code>extendInt</code></td>
+<td>
+<p>character string specifying if the interval
+<code>c(lower,upper)</code> should be extended or directly produce an error
+when <code>f()</code> does not have differing signs at the endpoints.  The
+default, <code>"no"</code>, keeps the search interval and hence produces
+an error.  Can be abbreviated.</p>
+</td></tr>
+<tr valign="top"><td><code>check.conv</code></td>
+<td>
+<p>logical indicating whether a convergence warning of the
+underlying <code><a href="uniroot.html">uniroot</a></code> should be caught as an error and if
+non-convergence in <code>maxiter</code> iterations should be an error
+instead of a warning.</p>
+</td></tr>
+<tr valign="top"><td><code>tol</code></td>
+<td>
+<p>the desired accuracy (convergence tolerance).</p>
+</td></tr>
+<tr valign="top"><td><code>maxiter</code></td>
+<td>
+<p>the maximum number of iterations.</p>
+</td></tr>
+<tr valign="top"><td><code>trace</code></td>
+<td>
+<p>integer number; if positive, tracing information is
+produced.  Higher values giving more details.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>Note that arguments after <code>...</code> must be matched exactly.
+</p>
+<p>Either <code>interval</code> or both <code>lower</code> and <code>upper</code> must be
+specified: the upper endpoint must be strictly larger than the lower
+endpoint.
+The function values at the endpoints must be of opposite signs (or
+zero), for <code>extendInt="no"</code>, the default.  Otherwise, if
+<code>extendInt="yes"</code>, the interval is extended on both sides, in
+search of a sign change, i.e., until the search interval <i>[l,u]</i>
+satisfies <i>f(l) * f(u) &lt;= 0</i>.
+</p>
+<p>If it is <em>known how</em> <i>f</i> changes sign at the root
+<i>x0</i>, that is, if the function is increasing or decreasing there,
+<code>extendInt</code> can (and typically should) be specified as
+<code>"upX"</code> (for &ldquo;upward crossing&rdquo;) or <code>"downX"</code>,
+respectively.  Equivalently, define <i>S:= +/- 1</i>, to
+require <i>S = sign(f(x0 +
+    eps))</i> at the solution.  In that case, the search interval <i>[l,u]</i>
+possibly is extended to be such that <i>
+    S * f(l) &lt;= 0</i> and <i>S * f(u) &gt;= 0</i>.
+</p>
+<p><code>uniroot()</code> uses Fortran subroutine &lsquo;<span class="file">&quot;zeroin&quot;</span>&rsquo; (from Netlib)
+based on algorithms given in the reference below.  They assume a
+continuous function (which then is known to have at least one root in
+the interval).
+</p>
+<p>Convergence is declared either if <code>f(x) == 0</code> or the change in
+<code>x</code> for one step of the algorithm is less than <code>tol</code> (plus an
+allowance for representation error in <code>x</code>).
+</p>
+<p>If the algorithm does not converge in <code>maxiter</code> steps, a warning
+is printed and the current approximation is returned.
+</p>
+<p><code>f</code> will be called as <code>f(<var>x</var>, ...)</code> for a numeric value
+of <var>x</var>.
+</p>
+<p>The argument passed to <code>f</code> has special semantics and used to be
+shared between calls.  The function should not copy it.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list with at least four components: <code>root</code> and <code>f.root</code>
+give the location of the root and the value of the function evaluated
+at that point. <code>iter</code> and <code>estim.prec</code> give the number of
+iterations used and an approximate estimated precision for
+<code>root</code>.  (If the root occurs at one of the endpoints, the
+estimated precision is <code>NA</code>.)
+</p>
+<p>Further components may be added in future: component <code>init.it</code>
+was added in <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> 3.1.0.  
+</p>
+
+
+<h3>Source</h3>
+
+<p>Based on &lsquo;<span class="file">zeroin.c</span>&rsquo; in <a href="http://www.netlib.org/c/brent.shar">http://www.netlib.org/c/brent.shar</a>.
+</p>
+
+
+<h3>References</h3>
+
+<p>Brent, R. (1973)
+<em>Algorithms for Minimization without Derivatives.</em>
+Englewood Cliffs, NJ: Prentice-Hall.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="../../base/html/polyroot.html">polyroot</a></code> for all complex roots of a polynomial;
+<code><a href="optimize.html">optimize</a></code>, <code><a href="nlm.html">nlm</a></code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+require(utils) # for str
+
+## some platforms hit zero exactly on the first step:
+## if so the estimated precision is 2/3.
+f &lt;- function (x, a) x - a
+str(xmin &lt;- uniroot(f, c(0, 1), tol = 0.0001, a = 1/3))
+
+## handheld calculator example: fixed point of cos(.):
+uniroot(function(x) cos(x) - x, lower = -pi, upper = pi, tol = 1e-9)$root
+
+str(uniroot(function(x) x*(x^2-1) + .5, lower = -2, upper = 2,
+            tol = 0.0001))
+str(uniroot(function(x) x*(x^2-1) + .5, lower = -2, upper = 2,
+            tol = 1e-10))
+
+## Find the smallest value x for which exp(x) &gt; 0 (numerically):
+r &lt;- uniroot(function(x) 1e80*exp(x) - 1e-300, c(-1000, 0), tol = 1e-15)
+str(r, digits.d = 15) # around -745, depending on the platform.
+
+exp(r$root)     # = 0, but not for r$root * 0.999...
+minexp &lt;- r$root * (1 - 10*.Machine$double.eps)
+exp(minexp)     # typically denormalized
+
+
+##--- uniroot() with new interval extension + checking features: --------------
+
+f1 &lt;- function(x) (121 - x^2)/(x^2+1)
+f2 &lt;- function(x) exp(-x)*(x - 12)
+
+try(uniroot(f1, c(0,10)))
+try(uniroot(f2, c(0, 2)))
+##--&gt; error: f() .. end points not of opposite sign
+
+## where as  'extendInt="yes"'  simply first enlarges the search interval:
+u1 &lt;- uniroot(f1, c(0,10),extendInt="yes", trace=1)
+u2 &lt;- uniroot(f2, c(0,2), extendInt="yes", trace=2)
+stopifnot(all.equal(u1$root, 11, tolerance = 1e-5),
+          all.equal(u2$root, 12, tolerance = 6e-6))
+
+## The *danger* of interval extension:
+## No way to find a zero of a positive function, but
+## numerically, f(-|M|) becomes zero :
+u3 &lt;- uniroot(exp, c(0,2), extendInt="yes", trace=TRUE)
+
+## Nonsense example (must give an error):
+tools::assertCondition( uniroot(function(x) 1, 0:1, extendInt="yes"),
+                       "error", verbose=TRUE)
+
+## Convergence checking :
+sinc &lt;- function(x) ifelse(x == 0, 1, sin(x)/x)
+curve(sinc, -6,18); abline(h=0,v=0, lty=3, col=adjustcolor("gray", 0.8))
+
+uniroot(sinc, c(0,5), extendInt="yes", maxiter=4) #-&gt; "just" a warning
+
+
+## now with  check.conv=TRUE, must signal a convergence error :
+
+uniroot(sinc, c(0,5), extendInt="yes", maxiter=4, check.conv=TRUE)
+
+
+### Weibull cumulative hazard (example origin, Ravi Varadhan):
+cumhaz &lt;- function(t, a, b) b * (t/b)^a
+froot &lt;- function(x, u, a, b) cumhaz(x, a, b) - u
+
+n &lt;- 1000
+u &lt;- -log(runif(n))
+a &lt;- 1/2
+b &lt;- 1
+## Find failure times
+ru &lt;- sapply(u, function(x)
+   uniroot(froot, u=x, a=a, b=b, interval= c(1.e-14, 1e04),
+           extendInt="yes")$root)
+ru2 &lt;- sapply(u, function(x)
+   uniroot(froot, u=x, a=a, b=b, interval= c(0.01,  10),
+           extendInt="yes")$root)
+stopifnot(all.equal(ru, ru2, tolerance = 6e-6))
+
+r1 &lt;- uniroot(froot, u= 0.99, a=a, b=b, interval= c(0.01, 10),
+             extendInt="up")
+stopifnot(all.equal(0.99, cumhaz(r1$root, a=a, b=b)))
+
+## An error if 'extendInt' assumes "wrong zero-crossing direction":
+
+uniroot(froot, u= 0.99, a=a, b=b, interval= c(0.1, 10), extendInt="down")
+
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>stats</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

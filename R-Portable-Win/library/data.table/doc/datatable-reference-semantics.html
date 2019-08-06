@@ -4,21 +4,21 @@
 
 <head>
 
-<meta charset="utf-8">
+<meta charset="utf-8" />
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name="generator" content="pandoc" />
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 
-<meta name="date" content="2017-01-31" />
+<meta name="date" content="2019-03-28" />
 
 <title>Reference semantics</title>
 
 
 
 <style type="text/css">code{white-space: pre;}</style>
-<style type="text/css">
+<style type="text/css" data-origin="pandoc">
 div.sourceCode { overflow-x: auto; }
 table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
   margin: 0; padding: 0; vertical-align: baseline; border: none; }
@@ -54,7 +54,29 @@ code > span.do { color: #ba2121; font-style: italic; } /* Documentation */
 code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
 code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
 code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+
 </style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    for (var j = 0; j < rules.length; j++) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") continue;
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' || rule.style.backgroundColor === '') continue;
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
 
 
 
@@ -68,7 +90,7 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 
 
 <h1 class="title toc-ignore">Reference semantics</h1>
-<h4 class="date"><em>2017-01-31</em></h4>
+<h4 class="date"><em>2019-03-28</em></h4>
 
 
 
@@ -109,7 +131,7 @@ flights
 <div id="a-background" class="section level3">
 <h3>a) Background</h3>
 <p>Before we look at <em>reference semantics</em>, consider the <em>data.frame</em> shown below:</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">DF =<span class="st"> </span><span class="kw">data.frame</span>(<span class="dt">ID =</span> <span class="kw">c</span>(<span class="st">&quot;b&quot;</span>,<span class="st">&quot;b&quot;</span>,<span class="st">&quot;b&quot;</span>,<span class="st">&quot;a&quot;</span>,<span class="st">&quot;a&quot;</span>,<span class="st">&quot;c&quot;</span>), <span class="dt">a =</span> <span class="dv">1</span>:<span class="dv">6</span>, <span class="dt">b =</span> <span class="dv">7</span>:<span class="dv">12</span>, <span class="dt">c =</span> <span class="dv">13</span>:<span class="dv">18</span>)
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">DF =<span class="st"> </span><span class="kw">data.frame</span>(<span class="dt">ID =</span> <span class="kw">c</span>(<span class="st">&quot;b&quot;</span>,<span class="st">&quot;b&quot;</span>,<span class="st">&quot;b&quot;</span>,<span class="st">&quot;a&quot;</span>,<span class="st">&quot;a&quot;</span>,<span class="st">&quot;c&quot;</span>), <span class="dt">a =</span> <span class="dv">1</span><span class="op">:</span><span class="dv">6</span>, <span class="dt">b =</span> <span class="dv">7</span><span class="op">:</span><span class="dv">12</span>, <span class="dt">c =</span> <span class="dv">13</span><span class="op">:</span><span class="dv">18</span>)
 DF
 <span class="co">#   ID a  b  c</span>
 <span class="co"># 1  b 1  7 13</span>
@@ -119,10 +141,10 @@ DF
 <span class="co"># 5  a 5 11 17</span>
 <span class="co"># 6  c 6 12 18</span></code></pre></div>
 <p>When we did:</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">DF$c &lt;-<span class="st"> </span><span class="dv">18</span>:<span class="dv">13</span>               <span class="co"># (1) -- replace entire column</span>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">DF<span class="op">$</span>c &lt;-<span class="st"> </span><span class="dv">18</span><span class="op">:</span><span class="dv">13</span>               <span class="co"># (1) -- replace entire column</span>
 <span class="co"># or</span>
-DF$c[DF$ID ==<span class="st"> &quot;b&quot;</span>] &lt;-<span class="st"> </span><span class="dv">15</span>:<span class="dv">13</span> <span class="co"># (2) -- subassign in column 'c'</span></code></pre></div>
-<p>both (1) and (2) resulted in <a href="http://r.789695.n4.nabble.com/speeding-up-perception-td3640920.html#a3646694"><em>deep</em> copy of the entire <em>data.frame</em></a> in versions of <code>R</code> versions <code>&lt; 3.1</code>. <a href="http://stackoverflow.com/q/23898969/559784">It copied more than once</a>. To improve performance by avoiding these redundant copies, <em>data.table</em> utilised the <a href="http://stackoverflow.com/q/7033106/559784">available but unused <code>:=</code> operator in R</a>.</p>
+DF<span class="op">$</span>c[DF<span class="op">$</span>ID <span class="op">==</span><span class="st"> &quot;b&quot;</span>] &lt;-<span class="st"> </span><span class="dv">15</span><span class="op">:</span><span class="dv">13</span> <span class="co"># (2) -- subassign in column 'c'</span></code></pre></div>
+<p>both (1) and (2) resulted in deep copy of the entire data.frame in versions of <code>R</code> versions <code>&lt; 3.1</code>. <a href="http://stackoverflow.com/q/23898969/559784">It copied more than once</a>. To improve performance by avoiding these redundant copies, <em>data.table</em> utilised the <a href="http://stackoverflow.com/q/7033106/559784">available but unused <code>:=</code> operator in R</a>.</p>
 <p>Great performance improvements were made in <code>R v3.1</code> as a result of which only a <em>shallow</em> copy is made for (1) and not <em>deep</em> copy. However, for (2) still, the entire column is <em>deep</em> copied even in <code>R v3.1+</code>. This means the more columns one subassigns to in the <em>same query</em>, the more <em>deep</em> copies R does.</p>
 <div id="shallow-vs-deep-copy" class="section level4 bs-callout bs-callout-info">
 <h4><em>shallow</em> vs <em>deep</em> copy</h4>
@@ -139,11 +161,11 @@ DF$c[DF$ID ==<span class="st"> &quot;b&quot;</span>] &lt;-<span class="st"> </sp
 <p>It can be used in <code>j</code> in two ways:</p>
 <ol style="list-style-type: lower-alpha">
 <li><p>The <code>LHS := RHS</code> form</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">DT[, <span class="kw">c</span>(<span class="st">&quot;colA&quot;</span>, <span class="st">&quot;colB&quot;</span>, ...) :<span class="er">=</span><span class="st"> </span><span class="kw">list</span>(valA, valB, ...)]
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">DT[, <span class="kw">c</span>(<span class="st">&quot;colA&quot;</span>, <span class="st">&quot;colB&quot;</span>, ...) <span class="op">:</span><span class="er">=</span><span class="st"> </span><span class="kw">list</span>(valA, valB, ...)]
 
 <span class="co"># when you have only one column to assign to you</span>
 <span class="co"># can drop the quotes and list(), for convenience</span>
-DT[, colA :<span class="er">=</span><span class="st"> </span>valA]</code></pre></div></li>
+DT[, colA <span class="op">:</span><span class="er">=</span><span class="st"> </span>valA]</code></pre></div></li>
 <li><p>The functional form</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">DT[, <span class="st">`</span><span class="dt">:=</span><span class="st">`</span>(<span class="dt">colA =</span> valA, <span class="co"># valA is assigned to colA</span>
           <span class="dt">colB =</span> valB, <span class="co"># valB is assigned to colB</span>
@@ -178,32 +200,8 @@ DT[, colA :<span class="er">=</span><span class="st"> </span>valA]</code></pre><
 <h3>a) Add columns by reference</h3>
 <div id="how-can-we-add-columns-speed-and-total-delay-of-each-flight-to-flights-data.table" class="section level4">
 <h4>– How can we add columns <em>speed</em> and <em>total delay</em> of each flight to <code>flights</code> <em>data.table</em>?</h4>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">flights[, <span class="st">`</span><span class="dt">:=</span><span class="st">`</span>(<span class="dt">speed =</span> distance /<span class="st"> </span>(air_time/<span class="dv">60</span>), <span class="co"># speed in mph (mi/h)</span>
-               <span class="dt">delay =</span> arr_delay +<span class="st"> </span>dep_delay)]   <span class="co"># delay in minutes</span>
-<span class="co">#         year month day dep_delay arr_delay carrier origin dest air_time distance hour    speed</span>
-<span class="co">#      1: 2014     1   1        14        13      AA    JFK  LAX      359     2475    9 413.6490</span>
-<span class="co">#      2: 2014     1   1        -3        13      AA    JFK  LAX      363     2475   11 409.0909</span>
-<span class="co">#      3: 2014     1   1         2         9      AA    JFK  LAX      351     2475   19 423.0769</span>
-<span class="co">#      4: 2014     1   1        -8       -26      AA    LGA  PBI      157     1035    7 395.5414</span>
-<span class="co">#      5: 2014     1   1         2         1      AA    JFK  LAX      350     2475   13 424.2857</span>
-<span class="co">#     ---                                                                                       </span>
-<span class="co"># 253312: 2014    10  31         1       -30      UA    LGA  IAH      201     1416   14 422.6866</span>
-<span class="co"># 253313: 2014    10  31        -5       -14      UA    EWR  IAH      189     1400    8 444.4444</span>
-<span class="co"># 253314: 2014    10  31        -8        16      MQ    LGA  RDU       83      431   11 311.5663</span>
-<span class="co"># 253315: 2014    10  31        -4        15      MQ    LGA  DTW       75      502   11 401.6000</span>
-<span class="co"># 253316: 2014    10  31        -5         1      MQ    LGA  SDF      110      659    8 359.4545</span>
-<span class="co">#         delay</span>
-<span class="co">#      1:    27</span>
-<span class="co">#      2:    10</span>
-<span class="co">#      3:    11</span>
-<span class="co">#      4:   -34</span>
-<span class="co">#      5:     3</span>
-<span class="co">#     ---      </span>
-<span class="co"># 253312:   -29</span>
-<span class="co"># 253313:   -19</span>
-<span class="co"># 253314:     8</span>
-<span class="co"># 253315:    11</span>
-<span class="co"># 253316:    -4</span>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">flights[, <span class="st">`</span><span class="dt">:=</span><span class="st">`</span>(<span class="dt">speed =</span> distance <span class="op">/</span><span class="st"> </span>(air_time<span class="op">/</span><span class="dv">60</span>), <span class="co"># speed in mph (mi/h)</span>
+               <span class="dt">delay =</span> arr_delay <span class="op">+</span><span class="st"> </span>dep_delay)]   <span class="co"># delay in minutes</span>
 <span class="kw">head</span>(flights)
 <span class="co">#    year month day dep_delay arr_delay carrier origin dest air_time distance hour    speed delay</span>
 <span class="co"># 1: 2014     1   1        14        13      AA    JFK  LAX      359     2475    9 413.6490    27</span>
@@ -235,31 +233,7 @@ flights[, <span class="kw">sort</span>(<span class="kw">unique</span>(hour))]
 <div id="replace-those-rows-where-hour-24-with-the-value-0" class="section level4">
 <h4>– Replace those rows where <code>hour == 24</code> with the value <code>0</code></h4>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># subassign by reference</span>
-flights[hour ==<span class="st"> </span>24L, hour :<span class="er">=</span><span class="st"> </span>0L]
-<span class="co">#         year month day dep_delay arr_delay carrier origin dest air_time distance hour    speed</span>
-<span class="co">#      1: 2014     1   1        14        13      AA    JFK  LAX      359     2475    9 413.6490</span>
-<span class="co">#      2: 2014     1   1        -3        13      AA    JFK  LAX      363     2475   11 409.0909</span>
-<span class="co">#      3: 2014     1   1         2         9      AA    JFK  LAX      351     2475   19 423.0769</span>
-<span class="co">#      4: 2014     1   1        -8       -26      AA    LGA  PBI      157     1035    7 395.5414</span>
-<span class="co">#      5: 2014     1   1         2         1      AA    JFK  LAX      350     2475   13 424.2857</span>
-<span class="co">#     ---                                                                                       </span>
-<span class="co"># 253312: 2014    10  31         1       -30      UA    LGA  IAH      201     1416   14 422.6866</span>
-<span class="co"># 253313: 2014    10  31        -5       -14      UA    EWR  IAH      189     1400    8 444.4444</span>
-<span class="co"># 253314: 2014    10  31        -8        16      MQ    LGA  RDU       83      431   11 311.5663</span>
-<span class="co"># 253315: 2014    10  31        -4        15      MQ    LGA  DTW       75      502   11 401.6000</span>
-<span class="co"># 253316: 2014    10  31        -5         1      MQ    LGA  SDF      110      659    8 359.4545</span>
-<span class="co">#         delay</span>
-<span class="co">#      1:    27</span>
-<span class="co">#      2:    10</span>
-<span class="co">#      3:    11</span>
-<span class="co">#      4:   -34</span>
-<span class="co">#      5:     3</span>
-<span class="co">#     ---      </span>
-<span class="co"># 253312:   -29</span>
-<span class="co"># 253313:   -19</span>
-<span class="co"># 253314:     8</span>
-<span class="co"># 253315:    11</span>
-<span class="co"># 253316:    -4</span></code></pre></div>
+flights[hour <span class="op">==</span><span class="st"> </span>24L, hour <span class="op">:</span><span class="er">=</span><span class="st"> </span>0L]</code></pre></div>
 </div>
 <div id="section-5" class="section level4 bs-callout bs-callout-info">
 <h4></h4>
@@ -267,7 +241,7 @@ flights[hour ==<span class="st"> </span>24L, hour :<span class="er">=</span><spa
 <li><p>We can use <code>i</code> along with <code>:=</code> in <code>j</code> the very same way as we have already seen in the <em>“Introduction to data.table”</em> vignette.</p></li>
 <li><p>Column <code>hour</code> is replaced with <code>0</code> only on those <em>row indices</em> where the condition <code>hour == 24L</code> specified in <code>i</code> evaluates to <code>TRUE</code>.</p></li>
 <li><p><code>:=</code> returns the result invisibly. Sometimes it might be necessary to see the result after the assignment. We can accomplish that by adding an empty <code>[]</code> at the end of the query as shown below:</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">flights[hour ==<span class="st"> </span>24L, hour :<span class="er">=</span><span class="st"> </span>0L][]
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">flights[hour <span class="op">==</span><span class="st"> </span>24L, hour <span class="op">:</span><span class="er">=</span><span class="st"> </span>0L][]
 <span class="co">#         year month day dep_delay arr_delay carrier origin dest air_time distance hour    speed</span>
 <span class="co">#      1: 2014     1   1        14        13      AA    JFK  LAX      359     2475    9 413.6490</span>
 <span class="co">#      2: 2014     1   1        -3        13      AA    JFK  LAX      363     2475   11 409.0909</span>
@@ -312,19 +286,7 @@ flights[, <span class="kw">sort</span>(<span class="kw">unique</span>(hour))]
 <h3>c) Delete column by reference</h3>
 <div id="remove-delay-column" class="section level4">
 <h4>– Remove <code>delay</code> column</h4>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">flights[, <span class="kw">c</span>(<span class="st">&quot;delay&quot;</span>) :<span class="er">=</span><span class="st"> </span><span class="ot">NULL</span>]
-<span class="co">#         year month day dep_delay arr_delay carrier origin dest air_time distance hour    speed</span>
-<span class="co">#      1: 2014     1   1        14        13      AA    JFK  LAX      359     2475    9 413.6490</span>
-<span class="co">#      2: 2014     1   1        -3        13      AA    JFK  LAX      363     2475   11 409.0909</span>
-<span class="co">#      3: 2014     1   1         2         9      AA    JFK  LAX      351     2475   19 423.0769</span>
-<span class="co">#      4: 2014     1   1        -8       -26      AA    LGA  PBI      157     1035    7 395.5414</span>
-<span class="co">#      5: 2014     1   1         2         1      AA    JFK  LAX      350     2475   13 424.2857</span>
-<span class="co">#     ---                                                                                       </span>
-<span class="co"># 253312: 2014    10  31         1       -30      UA    LGA  IAH      201     1416   14 422.6866</span>
-<span class="co"># 253313: 2014    10  31        -5       -14      UA    EWR  IAH      189     1400    8 444.4444</span>
-<span class="co"># 253314: 2014    10  31        -8        16      MQ    LGA  RDU       83      431   11 311.5663</span>
-<span class="co"># 253315: 2014    10  31        -4        15      MQ    LGA  DTW       75      502   11 401.6000</span>
-<span class="co"># 253316: 2014    10  31        -5         1      MQ    LGA  SDF      110      659    8 359.4545</span>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">flights[, <span class="kw">c</span>(<span class="st">&quot;delay&quot;</span>) <span class="op">:</span><span class="er">=</span><span class="st"> </span><span class="ot">NULL</span>]
 <span class="kw">head</span>(flights)
 <span class="co">#    year month day dep_delay arr_delay carrier origin dest air_time distance hour    speed</span>
 <span class="co"># 1: 2014     1   1        14        13      AA    JFK  LAX      359     2475    9 413.6490</span>
@@ -343,41 +305,17 @@ flights[, <span class="kw">sort</span>(<span class="kw">unique</span>(hour))]
 <li><p>Assigning <code>NULL</code> to a column <em>deletes</em> that column. And it happens <em>instantly</em>.</p></li>
 <li><p>We can also pass column numbers instead of names in the <code>LHS</code>, although it is good programming practice to use column names.</p></li>
 <li><p>When there is just one column to delete, we can drop the <code>c()</code> and double quotes and just use the column name <em>unquoted</em>, for convenience. That is:</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">flights[, delay :<span class="er">=</span><span class="st"> </span><span class="ot">NULL</span>]</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">flights[, delay <span class="op">:</span><span class="er">=</span><span class="st"> </span><span class="ot">NULL</span>]</code></pre></div>
 <p>is equivalent to the code above.</p></li>
 </ul>
 </div>
 </div>
-<div id="d-along-with-grouping-using-by" class="section level3">
-<h3>d) <code>:=</code> along with grouping using <code id="ref-j-by">by</code></h3>
+<div id="ref-j-by" class="section level3">
+<h3>d) <code>:=</code> along with grouping using <code>by</code></h3>
 <p>We have already seen the use of <code>i</code> along with <code>:=</code> in <a href="#ref-i-j">Section 2b</a>. Let’s now see how we can use <code>:=</code> along with <code>by</code>.</p>
 <div id="how-can-we-add-a-new-column-which-contains-for-each-origdest-pair-the-maximum-speed" class="section level4">
 <h4>– How can we add a new column which contains for each <code>orig,dest</code> pair the maximum speed?</h4>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">flights[, max_speed :<span class="er">=</span><span class="st"> </span><span class="kw">max</span>(speed), by =<span class="st"> </span>.(origin, dest)]
-<span class="co">#         year month day dep_delay arr_delay carrier origin dest air_time distance hour    speed</span>
-<span class="co">#      1: 2014     1   1        14        13      AA    JFK  LAX      359     2475    9 413.6490</span>
-<span class="co">#      2: 2014     1   1        -3        13      AA    JFK  LAX      363     2475   11 409.0909</span>
-<span class="co">#      3: 2014     1   1         2         9      AA    JFK  LAX      351     2475   19 423.0769</span>
-<span class="co">#      4: 2014     1   1        -8       -26      AA    LGA  PBI      157     1035    7 395.5414</span>
-<span class="co">#      5: 2014     1   1         2         1      AA    JFK  LAX      350     2475   13 424.2857</span>
-<span class="co">#     ---                                                                                       </span>
-<span class="co"># 253312: 2014    10  31         1       -30      UA    LGA  IAH      201     1416   14 422.6866</span>
-<span class="co"># 253313: 2014    10  31        -5       -14      UA    EWR  IAH      189     1400    8 444.4444</span>
-<span class="co"># 253314: 2014    10  31        -8        16      MQ    LGA  RDU       83      431   11 311.5663</span>
-<span class="co"># 253315: 2014    10  31        -4        15      MQ    LGA  DTW       75      502   11 401.6000</span>
-<span class="co"># 253316: 2014    10  31        -5         1      MQ    LGA  SDF      110      659    8 359.4545</span>
-<span class="co">#         max_speed</span>
-<span class="co">#      1:  526.5957</span>
-<span class="co">#      2:  526.5957</span>
-<span class="co">#      3:  526.5957</span>
-<span class="co">#      4:  517.5000</span>
-<span class="co">#      5:  526.5957</span>
-<span class="co">#     ---          </span>
-<span class="co"># 253312:  508.7425</span>
-<span class="co"># 253313:  538.4615</span>
-<span class="co"># 253314:  445.8621</span>
-<span class="co"># 253315:  456.3636</span>
-<span class="co"># 253316:  434.5055</span>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">flights[, max_speed <span class="op">:</span><span class="er">=</span><span class="st"> </span><span class="kw">max</span>(speed), by =<span class="st"> </span>.(origin, dest)]
 <span class="kw">head</span>(flights)
 <span class="co">#    year month day dep_delay arr_delay carrier origin dest air_time distance hour    speed max_speed</span>
 <span class="co"># 1: 2014     1   1        14        13      AA    JFK  LAX      359     2475    9 413.6490  526.5957</span>
@@ -405,31 +343,7 @@ flights[, <span class="kw">sort</span>(<span class="kw">unique</span>(hour))]
 <h4>– How can we add two more columns computing <code>max()</code> of <code>dep_delay</code> and <code>arr_delay</code> for each month, using <code>.SD</code>?</h4>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">in_cols  =<span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;dep_delay&quot;</span>, <span class="st">&quot;arr_delay&quot;</span>)
 out_cols =<span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;max_dep_delay&quot;</span>, <span class="st">&quot;max_arr_delay&quot;</span>)
-flights[, <span class="kw">c</span>(out_cols) :<span class="er">=</span><span class="st"> </span><span class="kw">lapply</span>(.SD, max), by =<span class="st"> </span>month, .SDcols =<span class="st"> </span>in_cols]
-<span class="co">#         year month day dep_delay arr_delay carrier origin dest air_time distance hour    speed</span>
-<span class="co">#      1: 2014     1   1        14        13      AA    JFK  LAX      359     2475    9 413.6490</span>
-<span class="co">#      2: 2014     1   1        -3        13      AA    JFK  LAX      363     2475   11 409.0909</span>
-<span class="co">#      3: 2014     1   1         2         9      AA    JFK  LAX      351     2475   19 423.0769</span>
-<span class="co">#      4: 2014     1   1        -8       -26      AA    LGA  PBI      157     1035    7 395.5414</span>
-<span class="co">#      5: 2014     1   1         2         1      AA    JFK  LAX      350     2475   13 424.2857</span>
-<span class="co">#     ---                                                                                       </span>
-<span class="co"># 253312: 2014    10  31         1       -30      UA    LGA  IAH      201     1416   14 422.6866</span>
-<span class="co"># 253313: 2014    10  31        -5       -14      UA    EWR  IAH      189     1400    8 444.4444</span>
-<span class="co"># 253314: 2014    10  31        -8        16      MQ    LGA  RDU       83      431   11 311.5663</span>
-<span class="co"># 253315: 2014    10  31        -4        15      MQ    LGA  DTW       75      502   11 401.6000</span>
-<span class="co"># 253316: 2014    10  31        -5         1      MQ    LGA  SDF      110      659    8 359.4545</span>
-<span class="co">#         max_speed max_dep_delay max_arr_delay</span>
-<span class="co">#      1:  526.5957           973           996</span>
-<span class="co">#      2:  526.5957           973           996</span>
-<span class="co">#      3:  526.5957           973           996</span>
-<span class="co">#      4:  517.5000           973           996</span>
-<span class="co">#      5:  526.5957           973           996</span>
-<span class="co">#     ---                                      </span>
-<span class="co"># 253312:  508.7425          1498          1494</span>
-<span class="co"># 253313:  538.4615          1498          1494</span>
-<span class="co"># 253314:  445.8621          1498          1494</span>
-<span class="co"># 253315:  456.3636          1498          1494</span>
-<span class="co"># 253316:  434.5055          1498          1494</span>
+flights[, <span class="kw">c</span>(out_cols) <span class="op">:</span><span class="er">=</span><span class="st"> </span><span class="kw">lapply</span>(.SD, max), by =<span class="st"> </span>month, .SDcols =<span class="st"> </span>in_cols]
 <span class="kw">head</span>(flights)
 <span class="co">#    year month day dep_delay arr_delay carrier origin dest air_time distance hour    speed max_speed</span>
 <span class="co"># 1: 2014     1   1        14        13      AA    JFK  LAX      359     2475    9 413.6490  526.5957</span>
@@ -460,19 +374,7 @@ flights[, <span class="kw">c</span>(out_cols) :<span class="er">=</span><span cl
 <h1></h1>
 <p>Before moving on to the next section, let’s clean up the newly created columns <code>speed</code>, <code>max_speed</code>, <code>max_dep_delay</code> and <code>max_arr_delay</code>.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># RHS gets automatically recycled to length of LHS</span>
-flights[, <span class="kw">c</span>(<span class="st">&quot;speed&quot;</span>, <span class="st">&quot;max_speed&quot;</span>, <span class="st">&quot;max_dep_delay&quot;</span>, <span class="st">&quot;max_arr_delay&quot;</span>) :<span class="er">=</span><span class="st"> </span><span class="ot">NULL</span>]
-<span class="co">#         year month day dep_delay arr_delay carrier origin dest air_time distance hour</span>
-<span class="co">#      1: 2014     1   1        14        13      AA    JFK  LAX      359     2475    9</span>
-<span class="co">#      2: 2014     1   1        -3        13      AA    JFK  LAX      363     2475   11</span>
-<span class="co">#      3: 2014     1   1         2         9      AA    JFK  LAX      351     2475   19</span>
-<span class="co">#      4: 2014     1   1        -8       -26      AA    LGA  PBI      157     1035    7</span>
-<span class="co">#      5: 2014     1   1         2         1      AA    JFK  LAX      350     2475   13</span>
-<span class="co">#     ---                                                                              </span>
-<span class="co"># 253312: 2014    10  31         1       -30      UA    LGA  IAH      201     1416   14</span>
-<span class="co"># 253313: 2014    10  31        -5       -14      UA    EWR  IAH      189     1400    8</span>
-<span class="co"># 253314: 2014    10  31        -8        16      MQ    LGA  RDU       83      431   11</span>
-<span class="co"># 253315: 2014    10  31        -4        15      MQ    LGA  DTW       75      502   11</span>
-<span class="co"># 253316: 2014    10  31        -5         1      MQ    LGA  SDF      110      659    8</span>
+flights[, <span class="kw">c</span>(<span class="st">&quot;speed&quot;</span>, <span class="st">&quot;max_speed&quot;</span>, <span class="st">&quot;max_dep_delay&quot;</span>, <span class="st">&quot;max_arr_delay&quot;</span>) <span class="op">:</span><span class="er">=</span><span class="st"> </span><span class="ot">NULL</span>]
 <span class="kw">head</span>(flights)
 <span class="co">#    year month day dep_delay arr_delay carrier origin dest air_time distance hour</span>
 <span class="co"># 1: 2014     1   1        14        13      AA    JFK  LAX      359     2475    9</span>
@@ -487,8 +389,8 @@ flights[, <span class="kw">c</span>(<span class="st">&quot;speed&quot;</span>, <
 <div id="a-for-its-side-effect" class="section level3">
 <h3>a) <code>:=</code> for its side effect</h3>
 <p>Let’s say we would like to create a function that would return the <em>maximum speed</em> for each month. But at the same time, we would also like to add the column <code>speed</code> to <em>flights</em>. We could write a simple function as follows:</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">foo &lt;-<span class="st"> </span>function(DT) {
-  DT[, speed :<span class="er">=</span><span class="st"> </span>distance /<span class="st"> </span>(air_time/<span class="dv">60</span>)]
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">foo &lt;-<span class="st"> </span><span class="cf">function</span>(DT) {
+  DT[, speed <span class="op">:</span><span class="er">=</span><span class="st"> </span>distance <span class="op">/</span><span class="st"> </span>(air_time<span class="op">/</span><span class="dv">60</span>)]
   DT[, .(<span class="dt">max_speed =</span> <span class="kw">max</span>(speed)), by =<span class="st"> </span>month]
 }
 ans =<span class="st"> </span><span class="kw">foo</span>(flights)
@@ -532,23 +434,11 @@ ans =<span class="st"> </span><span class="kw">foo</span>(flights)
 <ol style="list-style-type: decimal">
 <li><p>Contrary to the situation we have seen in the previous point, we may not want the input data.table to a function to be modified <em>by reference</em>. As an example, let’s consider the task in the previous section, except we don’t want to modify <code>flights</code> by reference.</p>
 <p>Let’s first delete the <code>speed</code> column we generated in the previous section.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">flights[, speed :<span class="er">=</span><span class="st"> </span><span class="ot">NULL</span>]
-<span class="co">#         year month day dep_delay arr_delay carrier origin dest air_time distance hour</span>
-<span class="co">#      1: 2014     1   1        14        13      AA    JFK  LAX      359     2475    9</span>
-<span class="co">#      2: 2014     1   1        -3        13      AA    JFK  LAX      363     2475   11</span>
-<span class="co">#      3: 2014     1   1         2         9      AA    JFK  LAX      351     2475   19</span>
-<span class="co">#      4: 2014     1   1        -8       -26      AA    LGA  PBI      157     1035    7</span>
-<span class="co">#      5: 2014     1   1         2         1      AA    JFK  LAX      350     2475   13</span>
-<span class="co">#     ---                                                                              </span>
-<span class="co"># 253312: 2014    10  31         1       -30      UA    LGA  IAH      201     1416   14</span>
-<span class="co"># 253313: 2014    10  31        -5       -14      UA    EWR  IAH      189     1400    8</span>
-<span class="co"># 253314: 2014    10  31        -8        16      MQ    LGA  RDU       83      431   11</span>
-<span class="co"># 253315: 2014    10  31        -4        15      MQ    LGA  DTW       75      502   11</span>
-<span class="co"># 253316: 2014    10  31        -5         1      MQ    LGA  SDF      110      659    8</span></code></pre></div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">flights[, speed <span class="op">:</span><span class="er">=</span><span class="st"> </span><span class="ot">NULL</span>]</code></pre></div>
 <p>Now, we could accomplish the task as follows:</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">foo &lt;-<span class="st"> </span>function(DT) {
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">foo &lt;-<span class="st"> </span><span class="cf">function</span>(DT) {
   DT &lt;-<span class="st"> </span><span class="kw">copy</span>(DT)                              ## deep copy
-  DT[, speed :<span class="er">=</span><span class="st"> </span>distance /<span class="st"> </span>(air_time/<span class="dv">60</span>)]     ## doesn't affect 'flights'
+  DT[, speed <span class="op">:</span><span class="er">=</span><span class="st"> </span>distance <span class="op">/</span><span class="st"> </span>(air_time<span class="op">/</span><span class="dv">60</span>)]     ## doesn't affect 'flights'
   DT[, .(<span class="dt">max_speed =</span> <span class="kw">max</span>(speed)), by =<span class="st"> </span>month]
 }
 ans &lt;-<span class="st"> </span><span class="kw">foo</span>(flights)
@@ -588,9 +478,7 @@ DT_n
 <span class="co"># [1] &quot;x&quot; &quot;y&quot;</span>
 
 ## add a new column by reference
-DT[, z :<span class="er">=</span><span class="st"> </span>3L]
-<span class="co">#    x y z</span>
-<span class="co"># 1: 1 2 3</span>
+DT[, z <span class="op">:</span><span class="er">=</span><span class="st"> </span>3L]
 
 ## DT_n also gets updated
 DT_n
@@ -598,9 +486,7 @@ DT_n
 
 ## use `copy()`
 DT_n =<span class="st"> </span><span class="kw">copy</span>(<span class="kw">names</span>(DT))
-DT[, w :<span class="er">=</span><span class="st"> </span>4L]
-<span class="co">#    x y z w</span>
-<span class="co"># 1: 1 2 3 4</span>
+DT[, w <span class="op">:</span><span class="er">=</span><span class="st"> </span>4L]
 
 ## DT_n doesn't get updated
 DT_n
@@ -631,7 +517,7 @@ DT_n
   (function () {
     var script = document.createElement("script");
     script.type = "text/javascript";
-    script.src  = "https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
     document.getElementsByTagName("head")[0].appendChild(script);
   })();
 </script>

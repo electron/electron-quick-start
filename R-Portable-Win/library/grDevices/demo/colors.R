@@ -86,7 +86,7 @@ nearRcolor <- function(rgb, cSpace = c("hsv", "rgb255", "Luv", "Lab"),
                      "Lab" = function(RGB) convRGB2(RGB, "Lab"))
     d <- sqrt(colSums((TransF(Rcol) - as.vector(TransF(rgb)))^2))
     iS <- sort.list(d[near <- d <= dist])# sorted: closest first
-    setNames(.cc[near][iS], format(d[near][iS], digits=3))
+    setNames(.cc[near][iS], format(zapsmall(d[near][iS]), digits=3))
 }
 
 nearRcolor(col2rgb("tan2"), "rgb")

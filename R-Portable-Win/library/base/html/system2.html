@@ -1,0 +1,170 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Invoke a System Command</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for system2 {base}"><tr><td>system2 {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Invoke a System Command</h2>
+
+<h3>Description</h3>
+
+<p><code>system2</code> invokes the OS command specified by <code>command</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+system2(command, args = character(),
+        stdout = "", stderr = "", stdin = "", input = NULL,
+        env = character(), wait = TRUE,
+        minimized = FALSE, invisible = TRUE, timeout = 0)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>command</code></td>
+<td>
+<p>the system command to be invoked, as a character string.</p>
+</td></tr>
+<tr valign="top"><td><code>args</code></td>
+<td>
+<p>a character vector of arguments to <code>command</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>stdout, stderr</code></td>
+<td>
+<p>where output to &lsquo;<span class="file">stdout</span>&rsquo; or
+&lsquo;<span class="file">stderr</span>&rsquo; should be sent.  Possible values are <code>""</code>, to the <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>
+console (the default), <code>NULL</code> or <code>FALSE</code> (discard output),
+<code>TRUE</code> (capture the output in a character vector) or a
+character string naming a file.</p>
+</td></tr>
+<tr valign="top"><td><code>stdin</code></td>
+<td>
+<p>should input be diverted?  <code>""</code> means the default,
+alternatively a character string naming a file.  Ignored
+if <code>input</code> is supplied.</p>
+</td></tr>
+<tr valign="top"><td><code>input</code></td>
+<td>
+<p>if a character vector is supplied, this is copied one
+string per line to a temporary file, and the standard input of
+<code>command</code> is redirected to the file.</p>
+</td></tr>
+<tr valign="top"><td><code>env</code></td>
+<td>
+<p>character vector of name=value strings to set environment
+variables.</p>
+</td></tr>
+<tr valign="top"><td><code>wait</code></td>
+<td>
+<p>a logical (not <code>NA</code>) indicating whether the <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>
+interpreter should wait for the command to finish, or run it
+asynchronously.  This will be ignored (and the interpreter will
+always wait) if <code>stdout = TRUE</code> or <code>stderr = TRUE</code>. When
+running the command asynchronously, no output will be displayed on
+the <code>Rgui</code> console in Windows (it will be dropped, instead).</p>
+</td></tr>
+<tr valign="top"><td><code>timeout</code></td>
+<td>
+<p>timeout in seconds, ignored if 0.  This is a limit for the
+elapsed time running <code>command</code> in a separate process.   Fractions
+of seconds are ignored.</p>
+</td></tr>
+</table>
+<table summary="R argblock">
+<tr valign="top"><td><code>minimized</code></td>
+<td>
+<p>logical (not <code>NA</code>), indicates whether the
+command window should be displayed initially as a minimized window.</p>
+</td></tr>
+<tr valign="top"><td><code>invisible</code></td>
+<td>
+<p>logical (not <code>NA</code>), indicates whether the
+command window should be visible on the screen.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>Unlike <code><a href="system.html">system</a></code>, <code>command</code> is always quoted by
+<code><a href="shQuote.html">shQuote</a></code>, so it must be a single command without arguments.
+</p>
+<p>For details of how <code>command</code> is found see <code><a href="system.html">system</a></code>.
+</p>
+<p>On Windows, <code>env</code> is only supported for commands such as
+<code>R</code> and <code>make</code> which accept environment variables on
+their command line.
+</p>
+<p>Some Unix commands (such as some implementations of <code>ls</code>) change
+their output if they consider it to be piped or redirected:
+<code>stdout = TRUE</code> uses a pipe whereas <code>stdout =
+  "some_file_name"</code> uses redirection.
+</p>
+<p>Because of the way it is implemented, on a Unix-alike <code>stderr =
+    TRUE</code> implies <code>stdout = TRUE</code>: a warning is given if this is
+not what was specified.
+</p>
+<p>When <code>timeout</code> is non-zero, the command is terminated after the given
+number of seconds.  The termination works for typical commands, but is not
+guaranteed: it is possible to write a program that would keep running
+after the time is out.  Timeouts can only be set with <code>wait = TRUE</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>If <code>stdout = TRUE</code> or <code>stderr = TRUE</code>, a character vector
+giving the output of the command, one line per character string.
+(Output lines of more than 8095 bytes will be split.)  If the command
+could not be run an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> error is generated.  If <code>command</code> runs but
+gives a non-zero exit status this will be reported with a warning and
+in the attribute <code>"status"</code> of the result: an attribute
+<code>"errmsg"</code> may also be available.
+</p>
+<p>In other cases, the return value is an error code (<code>0</code> for
+success), given the <a href="invisible.html">invisible</a> attribute (so needs to be printed
+explicitly).  If the command could not be run for any reason, the
+value is <code>127</code> and a warning is issued (as from <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> 3.5.0).
+Otherwise if <code>wait = TRUE</code> the value is the exit status returned
+by the command, and if <code>wait = FALSE</code> it is <code>0</code> (the
+conventional success value).
+</p>
+<p>If the command times out, a warning is issued and the exit status is
+<code>124</code>.
+</p>
+<p>Some Windows commands return out-of-range status values
+(e.g., <code>-1</code>) and so only the bottom 16 bits of the value are used.
+</p>
+
+
+<h3>Note</h3>
+
+<p><code>system2</code> is a more portable and flexible interface than
+<code><a href="system.html">system</a></code>.  It allows redirection of output without needing
+to invoke a shell on Windows, a portable way to set environment
+variables for the execution of <code>command</code>, and finer control over
+the redirection of <code>stdout</code> and <code>stderr</code>.  Conversely,
+<code>system</code> (and <code>shell</code> on Windows) allows the invocation of
+arbitrary command lines.
+</p>
+<p>There is no guarantee that if <code>stdout</code> and <code>stderr</code> are both
+<code>TRUE</code> or the same file that the two streams will be interleaved
+in order.  This depends on both the buffering used by the command and
+the OS.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="system.html">system</a></code>.
+</p>
+<p><code><a href="shell.html">shell</a></code> and <code><a href="shell.exec.html">shell.exec</a></code>.
+</p>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

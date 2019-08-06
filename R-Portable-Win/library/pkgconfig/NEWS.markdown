@@ -1,4 +1,8 @@
 
+# 2.0.2
+
+No user visible changes, work around a CRAN check false positive.
+
 # 2.0.1
 
 No changes in functionality, only internal cleanup.

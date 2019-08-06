@@ -1,0 +1,150 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: RGB to HSV Conversion</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for rgb2hsv {grDevices}"><tr><td>rgb2hsv {grDevices}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>RGB to HSV Conversion</h2>
+
+<h3>Description</h3>
+
+<p><code>rgb2hsv</code> transforms colors
+from RGB space (red/green/blue)
+into HSV space (hue/saturation/value).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+rgb2hsv(r, g = NULL, b = NULL, maxColorValue = 255)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>r</code></td>
+<td>
+<p>vector of &lsquo;red&rsquo; values in <i>[0, M]</i>, (<i>M
+      = </i><code>maxColorValue</code>) or 3-row rgb matrix.</p>
+</td></tr>
+<tr valign="top"><td><code>g</code></td>
+<td>
+<p>vector of &lsquo;green&rsquo; values, or <code><a href="../../base/html/NULL.html">NULL</a></code> when
+<code>r</code> is a matrix.</p>
+</td></tr>
+<tr valign="top"><td><code>b</code></td>
+<td>
+<p>vector of &lsquo;blue&rsquo; values, or <code><a href="../../base/html/NULL.html">NULL</a></code> when
+<code>r</code> is a matrix.</p>
+</td></tr>
+<tr valign="top"><td><code>maxColorValue</code></td>
+<td>
+<p>number giving the maximum of the RGB color values
+range.  The default <code>255</code> corresponds to the typical <code>0:255</code>
+RGB coding as in <code><a href="col2rgb.html">col2rgb</a>()</code>.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>Value (brightness) gives the amount of light in the color.<br />
+Hue describes the dominant wavelength.<br />
+Saturation is the amount of Hue mixed into the color.
+</p>
+<p>An HSV colorspace is relative to an RGB colorspace, which in <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>
+is sRGB, which has an implicit gamma correction.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A matrix with a column for each color.  The three rows of the matrix
+indicate hue, saturation and value and are named <code>"h"</code>,
+<code>"s"</code>, and <code>"v"</code> accordingly.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p><span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> interface by Wolfram Fischer <a href="mailto:wolfram@fischer-zim.ch">wolfram@fischer-zim.ch</a>;<br />
+C code mainly by Nicholas Lewin-Koh <a href="mailto:nikko@hailmail.net">nikko@hailmail.net</a>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="hsv.html">hsv</a></code>, <code><a href="col2rgb.html">col2rgb</a></code>, <code><a href="rgb.html">rgb</a></code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## These (saturated, bright ones) only differ by hue
+(rc &lt;- col2rgb(c("red", "yellow","green","cyan", "blue", "magenta")))
+(hc &lt;- rgb2hsv(rc))
+6 * hc["h",] # the hues are equispaced
+
+
+(rgb3 &lt;- floor(256 * matrix(stats::runif(3*12), 3, 12)))
+(hsv3 &lt;- rgb2hsv(rgb3))
+## Consistency :
+stopifnot(rgb3 == col2rgb(hsv(h = hsv3[1,], s = hsv3[2,], v = hsv3[3,])),
+          all.equal(hsv3, rgb2hsv(rgb3/255, maxColorValue = 1)))
+
+## A (simplified) pure R version -- originally by Wolfram Fischer --
+## showing the exact algorithm:
+rgb2hsvR &lt;- function(rgb, gamma = 1, maxColorValue = 255)
+{
+    if(!is.numeric(rgb)) stop("rgb matrix must be numeric")
+    d &lt;- dim(rgb)
+    if(d[1] != 3) stop("rgb matrix must have 3 rows")
+    n &lt;- d[2]
+    if(n == 0) return(cbind(c(h = 1, s = 1, v = 1))[,0])
+    rgb &lt;- rgb/maxColorValue
+    if(gamma != 1) rgb &lt;- rgb ^ (1/gamma)
+
+    ## get the max and min
+    v &lt;- apply( rgb, 2, max)
+    s &lt;- apply( rgb, 2, min)
+    D &lt;- v - s # range
+
+    ## set hue to zero for undefined values (gray has no hue)
+    h &lt;- numeric(n)
+    notgray &lt;- ( s != v )
+
+    ## blue hue
+    idx &lt;- (v == rgb[3,] &amp; notgray )
+    if (any (idx))
+        h[idx] &lt;- 2/3 + 1/6 * (rgb[1,idx] - rgb[2,idx]) / D[idx]
+    ## green hue
+    idx &lt;- (v == rgb[2,] &amp; notgray )
+    if (any (idx))
+        h[idx] &lt;- 1/3 + 1/6 * (rgb[3,idx] - rgb[1,idx]) / D[idx]
+    ## red hue
+    idx &lt;- (v == rgb[1,] &amp; notgray )
+    if (any (idx))
+        h[idx] &lt;-       1/6 * (rgb[2,idx] - rgb[3,idx]) / D[idx]
+
+    ## correct for negative red
+    idx &lt;- (h &lt; 0)
+    h[idx] &lt;- 1+h[idx]
+
+    ## set the saturation
+    s[! notgray] &lt;- 0;
+    s[notgray] &lt;- 1 - s[notgray] / v[notgray]
+
+    rbind( h = h, s = s, v = v )
+}
+
+## confirm the equivalence:
+all.equal(rgb2hsv (rgb3),
+          rgb2hsvR(rgb3), tolerance = 1e-14) # TRUE
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>grDevices</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

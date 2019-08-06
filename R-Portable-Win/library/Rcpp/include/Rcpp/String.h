@@ -2,7 +2,7 @@
 //
 // String.h: Rcpp R/C++ interface class library -- single string
 //
-// Copyright (C) 2012 - 2015  Dirk Eddelbuettel and Romain Francois
+// Copyright (C) 2012 - 2018  Dirk Eddelbuettel and Romain Francois
 //
 // This file is part of Rcpp.
 //
@@ -364,9 +364,22 @@ namespace Rcpp {
         }
 
 
+        inline SEXP get_sexp_impl() const {
+
+            // workaround for h5 package (currently deprecated so updates
+            // to CRAN may not be timely)
+#ifdef __H5Cpp_H
+            return Rf_mkCharCE(buffer.c_str(), enc);
+#else
+            if (buffer.find('\0') != std::string::npos)
+                throw embedded_nul_in_string();
+            return Rf_mkCharLenCE(buffer.c_str(), buffer.size(), enc);
+#endif
+        }
+
         inline SEXP get_sexp() const {
             RCPP_STRING_DEBUG_1("String::get_sexp const (valid = %d) ", valid);
-            return valid ? data : Rf_mkCharCE(buffer.c_str(), enc);
+            return valid ? data : get_sexp_impl();
         }
 
         inline SEXP get_sexp() {
@@ -395,9 +408,11 @@ namespace Rcpp {
             enc = encoding;
 
             if (valid) {
-                data = Rcpp_ReplaceObject(data, Rf_mkCharCE(Rf_translateCharUTF8(data), encoding));
+                // TODO: may longjmp on failure to translate?
+                const char* translated = Rf_translateCharUTF8(data);
+                data = Rcpp_ReplaceObject(data, Rf_mkCharCE(translated, encoding));
             } else {
-                data = Rf_mkCharCE(buffer.c_str(), encoding);
+                data = get_sexp_impl();
                 Rcpp_PreserveObject(data);
                 valid = true;
             }
@@ -469,7 +484,7 @@ namespace Rcpp {
         inline void setData() {
             RCPP_STRING_DEBUG("setData");
             if (!valid) {
-                data = Rf_mkCharCE(buffer.c_str(), enc);
+                data = get_sexp_impl();
                 Rcpp_PreserveObject(data);
                 valid = true;
             }
@@ -483,8 +498,8 @@ namespace Rcpp {
     }
 
     namespace internal {
-        template <int RTYPE>
-        string_proxy<RTYPE>& string_proxy<RTYPE>::operator=(const String& s) {
+        template <int RTYPE, template <class> class StoragePolicy>
+        string_proxy<RTYPE, StoragePolicy>& string_proxy<RTYPE, StoragePolicy>::operator=(const String& s) {
             set(s.get_sexp());
             return *this;
         }
@@ -500,9 +515,9 @@ namespace Rcpp {
             return s.get_sexp();
         }
 
-        template <int RTYPE>
+        template <int RTYPE, template <class> class StoragePolicy>
         template <typename T>
-        string_proxy<RTYPE>& string_proxy<RTYPE>::operator+=(const T& rhs) {
+        string_proxy<RTYPE, StoragePolicy>& string_proxy<RTYPE, StoragePolicy>::operator+=(const T& rhs) {
             String tmp = get();
             tmp += rhs;
             set(tmp);

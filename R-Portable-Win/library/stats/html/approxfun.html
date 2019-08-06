@@ -1,0 +1,199 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Interpolation Functions</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for approxfun {stats}"><tr><td>approxfun {stats}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Interpolation Functions</h2>
+
+<h3>Description</h3>
+
+<p>Return a list of points which linearly interpolate given data points,
+or a function performing the linear (or constant) interpolation.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+approx   (x, y = NULL, xout, method = "linear", n = 50,
+          yleft, yright, rule = 1, f = 0, ties = mean)
+
+approxfun(x, y = NULL,       method = "linear",
+          yleft, yright, rule = 1, f = 0, ties = mean)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x, y</code></td>
+<td>
+<p>numeric vectors giving the coordinates of the points to be
+interpolated.  Alternatively a single plotting structure can be
+specified: see <code><a href="../../grDevices/html/xy.coords.html">xy.coords</a></code>.</p>
+</td></tr>
+<tr valign="top"><td><code>xout</code></td>
+<td>
+<p>an optional set of numeric values specifying where
+interpolation is to take place.</p>
+</td></tr>
+<tr valign="top"><td><code>method</code></td>
+<td>
+<p>specifies the interpolation method to be used.  Choices
+are <code>"linear"</code> or <code>"constant"</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>n</code></td>
+<td>
+<p>If <code>xout</code> is not specified, interpolation takes place at
+<code>n</code> equally spaced points spanning the interval [<code>min(x)</code>,
+<code>max(x)</code>].</p>
+</td></tr>
+<tr valign="top"><td><code>yleft</code></td>
+<td>
+<p>the value to be returned when input <code>x</code> values are
+less than <code>min(x)</code>. The default is defined by the value
+of <code>rule</code> given below.</p>
+</td></tr>
+<tr valign="top"><td><code>yright</code></td>
+<td>
+<p>the value to be returned when input <code>x</code> values are
+greater than <code>max(x)</code>. The default is defined by the value
+of <code>rule</code> given below.</p>
+</td></tr>
+<tr valign="top"><td><code>rule</code></td>
+<td>
+<p>an integer (of length 1 or 2) describing how interpolation
+is to take place outside the interval [<code>min(x)</code>, <code>max(x)</code>].
+If <code>rule</code> is <code>1</code> then <code>NA</code>s are returned for such
+points and if it is <code>2</code>, the value at the closest data extreme
+is used.  Use, e.g., <code>rule = 2:1</code>, if the left and right side
+extrapolation should differ.</p>
+</td></tr>
+<tr valign="top"><td><code>f</code></td>
+<td>
+<p>for <code>method = "constant"</code> a number between 0 and 1
+inclusive, indicating a compromise between left- and
+right-continuous step functions. If <code>y0</code> and <code>y1</code> are
+the values to the left and right of the point then the value is
+<code>y0</code> if <code>f == 0</code>, <code>y1</code> if <code>f == 1</code>, and
+<code> y0*(1-f)+y1*f</code> for intermediate values. In this way the result is
+right-continuous for <code>f == 0</code> and left-continuous for <code>f
+    == 1</code>, even for non-finite <code>y</code> values.</p>
+</td></tr>
+<tr valign="top"><td><code>ties</code></td>
+<td>
+<p>handling of tied <code>x</code> values.  The string
+<code>"ordered"</code> or a function (or the name of a function)
+taking a single vector argument and returning a single number
+or a <code><a href="../../base/html/list.html">list</a></code> of both, e.g.,
+<code>list("ordered", mean)</code>, see &lsquo;Details&rsquo;.</p>
+</td></tr> 
+</table>
+
+
+<h3>Details</h3>
+
+<p>The inputs can contain missing values which are deleted, so at least
+two complete <code>(x, y)</code> pairs are required (for <code>method =
+  "linear"</code>, one otherwise).  If there are duplicated (tied) <code>x</code>
+values and <code>ties</code> contains a function it is applied to the <code>y</code>
+values for each distinct <code>x</code> value to produce <code>(x,y)</code> pairs
+with unique <code>x</code>.
+Useful functions in this context include <code><a href="../../base/html/mean.html">mean</a></code>,
+<code><a href="../../base/html/Extremes.html">min</a></code>, and <code><a href="../../base/html/Extremes.html">max</a></code>.
+</p>
+<p>If <code>ties = "ordered"</code> the <code>x</code> values are assumed to be already
+ordered (and unique) and ties are <em>not</em> checked but kept if present.
+This is the fastest option for large <code>length(x)</code>.
+</p>
+<p>If <code>ties</code> is a <code><a href="../../base/html/list.html">list</a></code> of length two, <code>ties[[2]]</code>
+must be a function to be applied to ties, see above, but if
+<code>ties[[1]]</code> is identical to <code>"ordered"</code>, the <code>x</code> values
+are assumed to be sorted and are only checked for ties.  Consequently,
+<code>ties = list("ordered", mean)</code> will be slightly more efficient than
+the default <code>ties = mean</code> in such a case.
+</p>
+<p>The first <code>y</code> value will be used for interpolation to the left and the last
+one for interpolation to the right.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>approx</code> returns a list with components <code>x</code> and <code>y</code>,
+containing <code>n</code> coordinates which interpolate the given data
+points according to the <code>method</code> (and <code>rule</code>) desired.
+</p>
+<p>The function <code>approxfun</code> returns a function performing (linear or
+constant) interpolation of the given data points.  For a given set of
+<code>x</code> values, this function will return the corresponding
+interpolated values.  It uses data stored in its environment when it
+was created, the details of which are subject to change.
+</p>
+
+
+<h3>Warning</h3>
+
+<p>The value returned by <code>approxfun</code> contains references to the code
+in the current version of <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>: it is not intended to be saved and
+loaded into a different <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> session.  This is safer for <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> &gt;= 3.0.0.
+</p>
+
+
+<h3>References</h3>
+
+<p>Becker, R. A., Chambers, J. M. and Wilks, A. R. (1988)
+<em>The New S Language</em>.
+Wadsworth &amp; Brooks/Cole.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="splinefun.html">spline</a></code> and <code><a href="splinefun.html">splinefun</a></code> for spline
+interpolation.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+require(graphics)
+
+x &lt;- 1:10
+y &lt;- rnorm(10)
+par(mfrow = c(2,1))
+plot(x, y, main = "approx(.) and approxfun(.)")
+points(approx(x, y), col = 2, pch = "*")
+points(approx(x, y, method = "constant"), col = 4, pch = "*")
+
+f &lt;- approxfun(x, y)
+curve(f(x), 0, 11, col = "green2")
+points(x, y)
+is.function(fc &lt;- approxfun(x, y, method = "const")) # TRUE
+curve(fc(x), 0, 10, col = "darkblue", add = TRUE)
+## different extrapolation on left and right side :
+plot(approxfun(x, y, rule = 2:1), 0, 11,
+     col = "tomato", add = TRUE, lty = 3, lwd = 2)
+
+## Show treatment of 'ties' :
+
+x &lt;- c(2,2:4,4,4,5,5,7,7,7)
+y &lt;- c(1:6, 5:4, 3:1)
+(amy &lt;- approx(x, y, xout = x)$y) # warning, can be avoided by specifying 'ties=':
+op &lt;- options(warn=2) # warnings would be error
+stopifnot(identical(amy, approx(x, y, xout = x, ties=mean)$y))
+options(op) # revert
+(ay  &lt;- approx(x, y, xout = x, ties = "ordered")$y)
+stopifnot(amy == c(1.5,1.5, 3, 5,5,5, 4.5,4.5, 2,2,2),
+          ay  == c(2, 2,    3, 6,6,6, 4, 4,    1,1,1))
+approx(x, y, xout = x, ties = min)$y
+approx(x, y, xout = x, ties = max)$y
+
+
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>stats</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

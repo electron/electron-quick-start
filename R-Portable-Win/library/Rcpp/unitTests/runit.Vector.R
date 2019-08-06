@@ -1,7 +1,7 @@
 #!/usr/bin/env r
 #       hey emacs, please make this use  -*- tab-width: 4 -*-
 #
-# Copyright (C) 2010 - 2015  Dirk Eddelbuettel and Romain Francois
+# Copyright (C) 2010 - 2018  Dirk Eddelbuettel and Romain Francois
 #
 # This file is part of Rcpp.
 #
@@ -499,7 +499,7 @@ if (.runThisTest) {
                     paste(letters, collapse=""),
                     msg = "CharacterVector::iterator using std::accumulate" )
     }
-    
+
     test.CharacterVector.iterator <- function(){
         fun <- character_const_iterator1
         checkEquals(fun(letters),
@@ -655,12 +655,12 @@ if (.runThisTest) {
         res <- character_vector_const_proxy( "fooo" )
         checkEquals( res, "fooo", msg = "CharacterVector const proxy. #32" )
     }
-    
+
     test.CharacterVector.test.const.proxy <- function(){
         res <- CharacterVector_test_const_proxy( letters )
         checkEquals( res, letters )
     }
-  
+
     test.sort <- function() {
         num <- setNames( c(1, -1, 4, NA, 5, NaN), letters[1:5] )
         checkIdentical( sort_numeric(num), sort(num, na.last=TRUE) )
@@ -671,33 +671,33 @@ if (.runThisTest) {
         lgcl <- as.logical(int)
         checkIdentical( sort_logical(lgcl), sort(lgcl, na.last=TRUE) )
     }
-    
+
     test.sort_desc <- function() {
         num <- setNames(c(1, -1, 4, NA, 5, NaN), letters[1:5])
         checkIdentical(
-            sort_numeric_desc(num), 
+            sort_numeric_desc(num),
             sort(num, decreasing = TRUE, na.last = FALSE)
         )
-        
+
         int <- as.integer(num)
         checkIdentical(
-            sort_integer_desc(int), 
-            sort(int, decreasing = TRUE, na.last = FALSE) 
+            sort_integer_desc(int),
+            sort(int, decreasing = TRUE, na.last = FALSE)
         )
-        
+
         char <- setNames(sample(letters, 5), LETTERS[1:5])
         checkIdentical(
-            sort_character_desc(char), 
-            sort(char, decreasing = TRUE, na.last = FALSE) 
+            sort_character_desc(char),
+            sort(char, decreasing = TRUE, na.last = FALSE)
         )
-        
+
         lgcl <- as.logical(int)
         checkIdentical(
-            sort_logical_desc(lgcl), 
-            sort(lgcl, decreasing = TRUE, na.last = FALSE) 
+            sort_logical_desc(lgcl),
+            sort(lgcl, decreasing = TRUE, na.last = FALSE)
         )
     }
-    
+
     test.List.assign.SEXP <- function() {
         l <- list(1, 2, 3)
         other <- list_sexp_assign(l)
@@ -711,12 +711,12 @@ if (.runThisTest) {
     test.logical.vector.from.bool.assign <- function() {
         checkIdentical(logical_vector_from_bool_assign(), TRUE)
     }
-    
+
     test.noprotect_vector <- function(){
         x <- rnorm(10)
         checkIdentical( noprotect_vector(x), 10L )
     }
-    
+
     test.noprotect_matrix <- function(){
         x <- matrix(rnorm(10), nrow=2)
         checkIdentical( noprotect_matrix(x), 2L )
@@ -755,5 +755,26 @@ if (.runThisTest) {
         gctorture(FALSE)
         checkEquals(x[y], z)
     }
-}
 
+    test.CharacterVectorNoProtect <- function(){
+        s <- "foo"
+        checkEquals(CharacterVectorNoProtect(s), 1L)
+        checkEquals(s, "")
+    }
+
+    test.CharacterVectorNoProtect_crosspolicy <- function(){
+        s <- "foo"
+        checkEquals(CharacterVectorNoProtect_crosspolicy(s), s)
+    }
+
+    test.ListNoProtect_crosspolicy <- function(){
+        data <- list(1:10)
+        data2 <- ListNoProtect_crosspolicy(data)
+        checkEquals(data, data2)
+    }
+
+    test.CharacterVector_test_equality <- function(){
+        checkTrue( !CharacterVector_test_equality("foo", "bar") )
+        checkTrue( !CharacterVector_test_equality_crosspolicy("foo", "bar") )
+    }
+}

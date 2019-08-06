@@ -1,0 +1,154 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Compute Axis Tickmark Locations</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for axTicks {graphics}"><tr><td>axTicks {graphics}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Compute Axis Tickmark Locations</h2>
+
+<h3>Description</h3>
+
+<p>Compute pretty tickmark locations, the same way as <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> does internally.
+This is only non-trivial when <b>log</b> coordinates are active.
+By default, gives the <code>at</code> values which
+<code><a href="axis.html">axis</a>(side)</code> would use.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+axTicks(side, axp = NULL, usr = NULL, log = NULL, nintLog = NULL)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>side</code></td>
+<td>
+<p>integer in 1:4, as for <code><a href="axis.html">axis</a></code>.</p>
+</td></tr>
+<tr valign="top"><td><code>axp</code></td>
+<td>
+<p>numeric vector of length three, defaulting to
+<code><a href="par.html">par</a>("xaxp")</code> or <code><a href="par.html">par</a>("yaxp")</code>
+depending on the <code>side</code> argument (<code>par("xaxp")</code>
+if <code>side</code> is 1 or 3, <code>par("yaxp")</code> if side is 2 or 4).</p>
+</td></tr>
+<tr valign="top"><td><code>usr</code></td>
+<td>
+<p>numeric vector of length two giving user coordinate
+limits, defaulting to the relevant portion of
+<code><a href="par.html">par</a>("usr")</code> (<code>par("usr")[1:2]</code> or
+<code>par("usr")[3:4]</code> for <code>side</code> in (1,3) or (2,4)
+respectively).</p>
+</td></tr>
+<tr valign="top"><td><code>log</code></td>
+<td>
+<p>logical indicating if log coordinates are active; defaults
+to <code><a href="par.html">par</a>("xlog")</code> or <code><a href="par.html">par</a>("ylog")</code>
+depending on <code>side</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>nintLog</code></td>
+<td>
+<p>(only used when <code>log</code> is true): approximate (lower
+bound for the) number of tick intervals; defaults to
+<code><a href="par.html">par</a>("lab")[j]</code> where <code>j</code> is 1 or 2 depending on
+<code>side</code>.  Set this to <code>Inf</code> if you want the same behavior
+as in earlier <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> versions (than 2.14.x).</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>The <code>axp</code>, <code>usr</code>, and <code>log</code> arguments must be consistent
+as their default values (the <code>par(..)</code> results) are.  If you
+specify all three (as non-NULL), the graphics environment is not used
+at all.  Note that the meaning of <code>axp</code> differs significantly
+when <code>log</code> is <code>TRUE</code>; see the documentation on
+<code><a href="par.html">par</a>(xaxp = .)</code>.
+</p>
+<p><code>axTicks()</code> may be seen as an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> implementation of the C function
+<code>CreateAtVector()</code> in &lsquo;<span class="file">..../src/main/plot.c</span>&rsquo;
+which is called by <code><a href="axis.html">axis</a>(side, *)</code> when no argument
+<code>at</code> is specified or directly by <code><a href="../../grDevices/html/axisTicks.html">axisTicks</a>()</code> (in package
+<span class="pkg">grDevices</span>).
+<br />
+The delicate case, <code>log = TRUE</code>, now makes use of
+<code><a href="../../grDevices/html/axisTicks.html">axisTicks</a></code> unless <code>nintLog = Inf</code> which exists for back
+compatibility.
+</p>
+
+
+<h3>Value</h3>
+
+<p>numeric vector of coordinate values at which axis tickmarks can be
+drawn.  By default, when only the first argument is specified,
+these values should be identical to those that
+<code><a href="axis.html">axis</a>(side)</code> would use or has used.  Note that the values
+are decreasing when <code>usr</code> is (&ldquo;reverse axis&rdquo; case).
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="axis.html">axis</a></code>, <code><a href="par.html">par</a></code>.  <code><a href="../../base/html/pretty.html">pretty</a></code>
+uses the same algorithm (but independently of the graphics
+environment) and has more options.  However it is not available for
+<code>log = TRUE.</code>
+</p>
+<p><code><a href="../../grDevices/html/axisTicks.html">axisTicks</a>()</code> (package <span class="pkg">grDevices</span>).
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+ plot(1:7, 10*21:27)
+ axTicks(1)
+ axTicks(2)
+ stopifnot(identical(axTicks(1), axTicks(3)),
+           identical(axTicks(2), axTicks(4)))
+
+## Show how axTicks() and axis() correspond :
+op &lt;- par(mfrow = c(3, 1))
+for(x in 9999 * c(1, 2, 8)) {
+    plot(x, 9, log = "x")
+    cat(formatC(par("xaxp"), width = 5),";", T &lt;- axTicks(1),"\n")
+    rug(T, col =  adjustcolor("red", 0.5), lwd = 4)
+}
+par(op)
+
+x &lt;- 9.9*10^(-3:10)
+plot(x, 1:14, log = "x")
+axTicks(1) # now length 5, in R &lt;= 2.13.x gave the following
+axTicks(1, nintLog = Inf) # rather too many
+
+## An example using axTicks() without reference to an existing plot
+## (copying R's internal procedures for setting axis ranges etc.),
+## You do need to supply _all_ of axp, usr, log, nintLog
+## standard logarithmic y axis labels
+ylims &lt;- c(0.2, 88)
+get_axp &lt;- function(x) 10^c(ceiling(x[1]), floor(x[2]))
+## mimic par("yaxs") == "i"
+usr.i &lt;- log10(ylims)
+(aT.i &lt;- axTicks(side = 2, usr = usr.i,
+                 axp = c(get_axp(usr.i), n = 3), log = TRUE, nintLog = 5))
+## mimic (default) par("yaxs") == "r"
+usr.r &lt;- extendrange(r = log10(ylims), f = 0.04)
+(aT.r &lt;- axTicks(side = 2, usr = usr.r,
+                 axp = c(get_axp(usr.r), 3), log = TRUE, nintLog = 5))
+
+## Prove that we got it right :
+plot(0:1, ylims, log = "y", yaxs = "i")
+stopifnot(all.equal(aT.i, axTicks(side = 2)))
+
+plot(0:1, ylims, log = "y", yaxs = "r")
+stopifnot(all.equal(aT.r, axTicks(side = 2)))
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>graphics</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

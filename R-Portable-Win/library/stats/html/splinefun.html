@@ -1,0 +1,292 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Interpolating Splines</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for splinefun {stats}"><tr><td>splinefun {stats}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Interpolating Splines</h2>
+
+<h3>Description</h3>
+
+<p>Perform cubic (or Hermite) spline interpolation of given data points,
+returning either a list of points obtained by the interpolation or a
+<em>function</em> performing the interpolation.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+splinefun(x, y = NULL,
+          method = c("fmm", "periodic", "natural", "monoH.FC", "hyman"),
+          ties = mean)
+
+spline(x, y = NULL, n = 3*length(x), method = "fmm",
+       xmin = min(x), xmax = max(x), xout, ties = mean)
+
+splinefunH(x, y, m)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x, y</code></td>
+<td>
+<p>vectors giving the coordinates of the points to be
+interpolated.  Alternatively a single plotting structure can be
+specified: see <code><a href="../../grDevices/html/xy.coords.html">xy.coords</a></code>.
+</p>
+<p><code>y</code> must be increasing or decreasing for <code>method = "hyman"</code>.
+</p>
+</td></tr>
+<tr valign="top"><td><code>m</code></td>
+<td>
+<p>(for <code>splinefunH()</code>): vector of <em>slopes</em>
+<i>m[i]</i> at the points <i>(x[i],y[i])</i>; these
+together determine the <b>H</b>ermite &ldquo;spline&rdquo; which is
+piecewise cubic, (only) <em>once</em> differentiable continuously.</p>
+</td></tr>
+<tr valign="top"><td><code>method</code></td>
+<td>
+<p>specifies the type of spline to be used.  Possible
+values are <code>"fmm"</code>, <code>"natural"</code>, <code>"periodic"</code>,
+<code>"monoH.FC"</code> and <code>"hyman"</code>.  Can be abbreviated.</p>
+</td></tr>
+<tr valign="top"><td><code>n</code></td>
+<td>
+<p>if <code>xout</code> is left unspecified, interpolation takes place
+at <code>n</code> equally spaced points spanning the interval
+[<code>xmin</code>, <code>xmax</code>].</p>
+</td></tr>
+<tr valign="top"><td><code>xmin, xmax</code></td>
+<td>
+<p>left-hand and right-hand endpoint of the
+interpolation interval (when <code>xout</code> is unspecified).</p>
+</td></tr>
+<tr valign="top"><td><code>xout</code></td>
+<td>
+<p>an optional set of values specifying where interpolation
+is to take place.</p>
+</td></tr>
+<tr valign="top"><td><code>ties</code></td>
+<td>
+<p>handling of tied <code>x</code> values.  The string
+<code>"ordered"</code> or a function (or the name of a function) taking a
+single vector argument and returning a single number or a length-2
+<code><a href="../../base/html/list.html">list</a></code> of both, see <code><a href="approxfun.html">approx</a></code> and its
+&lsquo;Details&rsquo; section, and the example below.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>The inputs can contain missing values which are deleted, so at least
+one complete <code>(x, y)</code> pair is required.
+If <code>method = "fmm"</code>, the spline used is that of Forsythe, Malcolm
+and Moler (an exact cubic is fitted through the four points at each
+end of the data, and this is used to determine the end conditions).
+Natural splines are used when <code>method = "natural"</code>, and periodic
+splines when <code>method = "periodic"</code>.
+</p>
+<p>The method <code>"monoH.FC"</code> computes a <em>monotone</em> Hermite spline
+according to the method of Fritsch and Carlson.  It does so by
+determining slopes such that the Hermite spline, determined by
+<i>(x[i],y[i],m[i])</i>, is monotone (increasing or
+decreasing) <b>iff</b> the data are.
+</p>
+<p>Method <code>"hyman"</code> computes a <em>monotone</em> cubic spline using
+Hyman filtering of an <code>method = "fmm"</code> fit for strictly monotonic
+inputs.
+</p>
+<p>These interpolation splines can also be used for extrapolation, that is
+prediction at points outside the range of <code>x</code>.  Extrapolation
+makes little sense for <code>method = "fmm"</code>; for natural splines it
+is linear using the slope of the interpolating curve at the nearest
+data point.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>spline</code> returns a list containing components <code>x</code> and
+<code>y</code> which give the ordinates where interpolation took place and
+the interpolated values.
+</p>
+<p><code>splinefun</code> returns a function with formal arguments <code>x</code> and
+<code>deriv</code>, the latter defaulting to zero.  This function
+can be used to evaluate the interpolating cubic spline
+(<code>deriv</code> = 0), or its derivatives (<code>deriv</code> = 1, 2, 3) at the
+points <code>x</code>, where the spline function interpolates the data
+points originally specified.  It uses data stored in its environment
+when it was created, the details of which are subject to change.
+</p>
+
+
+<h3>Warning</h3>
+
+<p>The value returned by <code>splinefun</code> contains references to the code
+in the current version of <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>: it is not intended to be saved and
+loaded into a different <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> session.  This is safer in <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> &gt;= 3.0.0.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>R Core Team.
+</p>
+<p>Simon Wood for the original code for Hyman filtering.
+</p>
+
+
+<h3>References</h3>
+
+<p>Becker, R. A., Chambers, J. M. and Wilks, A. R. (1988).
+<em>The New S Language</em>.
+Wadsworth &amp; Brooks/Cole.
+</p>
+<p>Dougherty, R. L., Edelman, A. and Hyman, J. M. (1989)
+Positivity-, monotonicity-, or convexity-preserving cubic and quintic
+Hermite interpolation.
+<em>Mathematics of Computation</em>, <b>52</b>, 471&ndash;494.
+doi: <a href="https://doi.org/10.1090/S0025-5718-1989-0962209-1">10.1090/S0025-5718-1989-0962209-1</a>.
+</p>
+<p>Forsythe, G. E., Malcolm, M. A. and Moler, C. B. (1977).
+<em>Computer Methods for Mathematical Computations</em>.
+Wiley.
+</p>
+<p>Fritsch, F. N. and Carlson, R. E. (1980).
+Monotone piecewise cubic interpolation.
+<em>SIAM Journal on Numerical Analysis</em>, <b>17</b>, 238&ndash;246.
+doi: <a href="https://doi.org/10.1137/0717021">10.1137/0717021</a>.
+</p>
+<p>Hyman, J. M. (1983).
+Accurate monotonicity preserving cubic interpolation.
+<em>SIAM Journal on Scientific and Statistical Computing</em>, <b>4</b>,
+645&ndash;654.
+doi: <a href="https://doi.org/10.1137/0904045">10.1137/0904045</a>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="approxfun.html">approx</a></code> and <code><a href="approxfun.html">approxfun</a></code> for constant and
+linear interpolation.
+</p>
+<p>Package <span class="pkg">splines</span>, especially <code><a href="../../splines/html/interpSpline.html">interpSpline</a></code>
+and <code><a href="../../splines/html/periodicSpline.html">periodicSpline</a></code> for interpolation splines.
+That package also generates spline bases that can be used for
+regression splines.
+</p>
+<p><code><a href="smooth.spline.html">smooth.spline</a></code> for smoothing splines.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+require(graphics)
+
+op &lt;- par(mfrow = c(2,1), mgp = c(2,.8,0), mar = 0.1+c(3,3,3,1))
+n &lt;- 9
+x &lt;- 1:n
+y &lt;- rnorm(n)
+plot(x, y, main = paste("spline[fun](.) through", n, "points"))
+lines(spline(x, y))
+lines(spline(x, y, n = 201), col = 2)
+
+y &lt;- (x-6)^2
+plot(x, y, main = "spline(.) -- 3 methods")
+lines(spline(x, y, n = 201), col = 2)
+lines(spline(x, y, n = 201, method = "natural"), col = 3)
+lines(spline(x, y, n = 201, method = "periodic"), col = 4)
+legend(6, 25, c("fmm","natural","periodic"), col = 2:4, lty = 1)
+
+y &lt;- sin((x-0.5)*pi)
+f &lt;- splinefun(x, y)
+ls(envir = environment(f))
+splinecoef &lt;- get("z", envir = environment(f))
+curve(f(x), 1, 10, col = "green", lwd = 1.5)
+points(splinecoef, col = "purple", cex = 2)
+curve(f(x, deriv = 1), 1, 10, col = 2, lwd = 1.5)
+curve(f(x, deriv = 2), 1, 10, col = 2, lwd = 1.5, n = 401)
+curve(f(x, deriv = 3), 1, 10, col = 2, lwd = 1.5, n = 401)
+par(op)
+
+## Manual spline evaluation --- demo the coefficients :
+.x &lt;- splinecoef$x
+u &lt;- seq(3, 6, by = 0.25)
+(ii &lt;- findInterval(u, .x))
+dx &lt;- u - .x[ii]
+f.u &lt;- with(splinecoef,
+            y[ii] + dx*(b[ii] + dx*(c[ii] + dx* d[ii])))
+stopifnot(all.equal(f(u), f.u))
+
+## An example with ties (non-unique  x values):
+set.seed(1); x &lt;- round(rnorm(30), 1); y &lt;- sin(pi * x) + rnorm(30)/10
+plot(x, y, main = "spline(x,y)  when x has ties")
+lines(spline(x, y, n = 201), col = 2)
+## visualizes the non-unique ones:
+tx &lt;- table(x); mx &lt;- as.numeric(names(tx[tx &gt; 1]))
+ry &lt;- matrix(unlist(tapply(y, match(x, mx), range, simplify = FALSE)),
+             ncol = 2, byrow = TRUE)
+segments(mx, ry[, 1], mx, ry[, 2], col = "blue", lwd = 2)
+
+## Another example with sorted x, but ties:
+set.seed(8); x &lt;- sort(round(rnorm(30), 1)); y &lt;- round(sin(pi * x) + rnorm(30)/10, 3)
+summary(diff(x) == 0) # -&gt; 7 duplicated x-values
+str(spline(x, y, n = 201, ties="ordered")) # all '$y' entries are NaN
+## The default (ties=mean) is ok, but most efficient to use instead is
+sxyo &lt;- spline(x, y, n = 201, ties= list("ordered", mean))
+sapply(sxyo, summary)# all fine now
+plot(x, y, main = "spline(x,y, ties=list(\"ordered\", mean)  for when x has ties")
+lines(sxyo, col="blue")
+
+## An example of monotone interpolation
+n &lt;- 20
+set.seed(11)
+x. &lt;- sort(runif(n)) ; y. &lt;- cumsum(abs(rnorm(n)))
+plot(x., y.)
+curve(splinefun(x., y.)(x), add = TRUE, col = 2, n = 1001)
+curve(splinefun(x., y., method = "monoH.FC")(x), add = TRUE, col = 3, n = 1001)
+curve(splinefun(x., y., method = "hyman")   (x), add = TRUE, col = 4, n = 1001)
+legend("topleft",
+       paste0("splinefun( \"", c("fmm", "monoH.FC", "hyman"), "\" )"),
+       col = 2:4, lty = 1, bty = "n")
+
+## and one from Fritsch and Carlson (1980), Dougherty et al (1989)
+x. &lt;- c(7.09, 8.09, 8.19, 8.7, 9.2, 10, 12, 15, 20)
+f &lt;- c(0, 2.76429e-5, 4.37498e-2, 0.169183, 0.469428, 0.943740,
+       0.998636, 0.999919, 0.999994)
+s0 &lt;- splinefun(x., f)
+s1 &lt;- splinefun(x., f, method = "monoH.FC")
+s2 &lt;- splinefun(x., f, method = "hyman")
+plot(x., f, ylim = c(-0.2, 1.2))
+curve(s0(x), add = TRUE, col = 2, n = 1001) -&gt; m0
+curve(s1(x), add = TRUE, col = 3, n = 1001)
+curve(s2(x), add = TRUE, col = 4, n = 1001)
+legend("right",
+       paste0("splinefun( \"", c("fmm", "monoH.FC", "hyman"), "\" )"),
+       col = 2:4, lty = 1, bty = "n")
+
+## they seem identical, but are not quite:
+xx &lt;- m0$x
+plot(xx, s1(xx) - s2(xx), type = "l",  col = 2, lwd = 2,
+     main = "Difference   monoH.FC - hyman"); abline(h = 0, lty = 3)
+
+x &lt;- xx[xx &lt; 10.2] ## full range: x &lt;- xx .. does not show enough
+ccol &lt;- adjustcolor(2:4, 0.8)
+matplot(x, cbind(s0(x, deriv = 2), s1(x, deriv = 2), s2(x, deriv = 2))^2,
+        lwd = 2, col = ccol, type = "l", ylab = quote({{f*second}(x)}^2),
+        main = expression({{f*second}(x)}^2 ~" for the three 'splines'"))
+legend("topright",
+       paste0("splinefun( \"", c("fmm", "monoH.FC", "hyman"), "\" )"),
+       lwd = 2, col  =  ccol, lty = 1:3, bty = "n")
+## --&gt; "hyman" has slightly smaller  Integral f''(x)^2 dx  than "FC",
+## here, and both are 'much worse' than the regular fmm spline.
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>stats</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

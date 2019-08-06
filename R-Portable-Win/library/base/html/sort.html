@@ -1,0 +1,278 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Sorting or Ordering Vectors</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for sort {base}"><tr><td>sort {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Sorting or Ordering Vectors</h2>
+
+<h3>Description</h3>
+
+<p>Sort (or <em>order</em>) a vector or factor (partially) into
+ascending or descending order.  For ordering along more than one
+variable, e.g., for sorting data frames, see <code><a href="order.html">order</a></code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+sort(x, decreasing = FALSE, ...)
+
+## Default S3 method:
+sort(x, decreasing = FALSE, na.last = NA, ...)
+
+sort.int(x, partial = NULL, na.last = NA, decreasing = FALSE,
+         method = c("auto", "shell", "quick", "radix"), index.return = FALSE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>for <code>sort</code> an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> object with a class or a numeric,
+complex, character or logical vector.  For <code>sort.int</code>, a
+numeric, complex, character or logical vector, or a factor.</p>
+</td></tr>
+<tr valign="top"><td><code>decreasing</code></td>
+<td>
+<p>logical.  Should the sort be increasing or decreasing?
+For the <code>"radix"</code> method, this can be a vector of
+length equal to the number of arguments in <code>...</code>. For the
+other methods, it must be length one. Not available for partial sorting.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>arguments to be passed to or from methods or (for the
+default methods and objects without a class) to <code>sort.int</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>na.last</code></td>
+<td>
+<p>for controlling the treatment of <code>NA</code>s.
+If <code>TRUE</code>, missing values in the data are put last; if
+<code>FALSE</code>, they are put first; if <code>NA</code>, they are removed.</p>
+</td></tr>
+<tr valign="top"><td><code>partial</code></td>
+<td>
+<p><code>NULL</code> or a  vector of indices for partial sorting.</p>
+</td></tr>
+<tr valign="top"><td><code>method</code></td>
+<td>
+<p>character string specifying the algorithm used.  Not
+available for partial sorting.  Can be abbreviated.</p>
+</td></tr>
+<tr valign="top"><td><code>index.return</code></td>
+<td>
+<p>logical indicating if the ordering index vector should
+be returned as well. Supported by <code>method == "radix"</code> for any
+<code>na.last</code> mode and data type, and the other methods when
+<code>na.last = NA</code> (the default) and fully sorting non-factors.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p><code>sort</code> is a generic function for which methods can be written,
+and <code>sort.int</code> is the internal method which is compatible
+with S if only the first three arguments are used.
+</p>
+<p>The default <code>sort</code> method makes use of <code><a href="order.html">order</a></code> for
+classed objects, which in turn makes use of the generic function
+<code><a href="xtfrm.html">xtfrm</a></code> (and can be slow unless a <code>xtfrm</code> method has
+been defined or <code><a href="numeric.html">is.numeric</a>(x)</code> is true).
+</p>
+<p>Complex values are sorted first by the real part, then the imaginary
+part.
+</p>
+<p>The <code>"auto"</code> method selects <code>"radix"</code> for short (less than
+<i>2^31</i> elements) numeric vectors, integer vectors, logical
+vectors and factors; otherwise, <code>"shell"</code>.
+</p>
+<p>Except for method <code>"radix"</code>,
+the sort order for character vectors will depend on the collating
+sequence of the locale in use: see <code><a href="Comparison.html">Comparison</a></code>.
+The sort order for factors is the order of their levels (which is
+particularly appropriate for ordered factors).
+</p>
+<p>If <code>partial</code> is not <code>NULL</code>, it is taken to contain indices
+of elements of the result which are to be placed in their correct
+positions in the sorted array by partial sorting.  For each of the
+result values in a specified position, any values smaller than that
+one are guaranteed to have a smaller index in the sorted array and any
+values which are greater are guaranteed to have a bigger index in the
+sorted array.  (This is included for efficiency, and many of the
+options are not available for partial sorting.  It is only
+substantially more efficient if <code>partial</code> has a handful of
+elements, and a full sort is done (a Quicksort if possible) if there
+are more than 10.)  Names are discarded for partial sorting.
+</p>
+<p>Method <code>"shell"</code> uses Shellsort (an <i>O(n^{4/3})</i> variant from
+Sedgewick (1986)).  If <code>x</code> has names a stable modification is
+used, so ties are not reordered.  (This only matters if names are
+present.)
+</p>
+<p>Method <code>"quick"</code> uses Singleton (1969)'s implementation of
+Hoare's Quicksort method and is only available when <code>x</code> is
+numeric (double or integer) and <code>partial</code> is <code>NULL</code>.  (For
+other types of <code>x</code> Shellsort is used, silently.)  It is normally
+somewhat faster than Shellsort (perhaps 50% faster on vectors of
+length a million and twice as fast at a billion) but has poor
+performance in the rare worst case.  (Peto's modification using a
+pseudo-random midpoint is used to make the worst case rarer.)  This is
+not a stable sort, and ties may be reordered.
+</p>
+<p>Method <code>"radix"</code> relies on simple hashing to scale time linearly
+with the input size, i.e., its asymptotic time complexity is O(n). The
+specific variant and its implementation originated from the data.table
+package and are due to Matt Dowle and Arun Srinivasan.  For small
+inputs (&lt; 200), the implementation uses an insertion sort (O(n^2))
+that operates in-place to avoid the allocation overhead of the radix
+sort. For integer vectors of range less than 100,000, it switches to a
+simpler and faster linear time counting sort. In all cases, the sort
+is stable; the order of ties is preserved. It is the default method
+for integer vectors and factors.
+</p>
+<p>The <code>"radix"</code> method generally outperforms the other methods,
+especially for character vectors and small integers. Compared to quick
+sort, it is slightly faster for vectors with large integer or real
+values (but unlike quick sort, radix is stable and supports all
+<code>na.last</code> options). The implementation is orders of magnitude
+faster than shell sort for character vectors, in part thanks to clever
+use of the internal <code>CHARSXP</code> table.
+</p>
+<p>However, there are some caveats with the radix sort:
+</p>
+
+<ul>
+<li>
+<p>If <code>x</code> is a <code>character</code> vector, all elements must share
+the same encoding. Only UTF-8 (including ASCII) and Latin-1
+encodings are supported. Collation always follows the &quot;C&quot; locale.
+
+</p>
+</li>
+<li>
+<p>Long vectors (with more than 2^32 elements) and <code>complex</code>
+vectors are not supported yet.
+
+</p>
+</li></ul>
+
+
+
+<h3>Value</h3>
+
+<p>For <code>sort</code>, the result depends on the S3 method which is
+dispatched.  If <code>x</code> does not have a class <code>sort.int</code> is used
+and it description applies.  For classed objects which do not have a
+specific method the default method will be used and is equivalent to
+<code>x[order(x, ...)]</code>: this depends on the class having a suitable
+method for <code>[</code> (and also that <code><a href="order.html">order</a></code> will work,
+which requires a <code><a href="xtfrm.html">xtfrm</a></code> method).
+</p>
+<p>For <code>sort.int</code> the value is the sorted vector unless
+<code>index.return</code> is true, when the result is a list with components
+named <code>x</code> and <code>ix</code> containing the sorted numbers and the
+ordering index vector.  In the latter case, if <code>method ==
+    "quick"</code> ties may be reversed in the ordering (unlike
+<code>sort.list</code>) as quicksort is not stable.  For <code>method ==
+  "radix"</code>, <code>index.return</code> is supported for all <code>na.last</code>
+modes. The other methods only support <code>index.return</code>
+when <code>na.last</code> is <code>NA</code>. The index vector
+refers to element numbers <em>after removal of <code>NA</code>s</em>: see
+<code><a href="order.html">order</a></code> if you want the original element numbers.
+</p>
+<p>All attributes are removed from the return value (see Becker <em>et
+al</em>, 1988, p.146) except names, which are sorted.  (If
+<code>partial</code> is specified even the names are removed.)  Note that
+this means that the returned value has no class, except for factors
+and ordered factors (which are treated specially and whose result is
+transformed back to the original class).
+</p>
+
+
+<h3>References</h3>
+
+<p>Becker, R. A., Chambers, J. M. and Wilks, A. R. (1988).
+<em>The New S Language</em>.
+Wadsworth &amp; Brooks/Cole.
+</p>
+<p>Knuth, D. E. (1998).
+<em>The Art of Computer Programming, Volume 3: Sorting and
+Searching</em>, 2nd ed.
+Addison-Wesley.
+</p>
+<p>Sedgewick, R. (1986).
+A new upper bound for Shellsort.
+<em>Journal of Algorithms</em>, <b>7</b>, 159&ndash;173.
+doi: <a href="https://doi.org/10.1016/0196-6774(86)90001-5">10.1016/0196-6774(86)90001-5</a>.
+</p>
+<p>Singleton, R. C. (1969).
+Algorithm 347: an efficient algorithm for sorting with minimal storage.
+<em>Communications of the ACM</em>, <b>12</b>, 185&ndash;186.
+doi: <a href="https://doi.org/10.1145/362875.362901">10.1145/362875.362901</a>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>&lsquo;<a href="Comparison.html">Comparison</a>&rsquo; for how character strings are collated.
+</p>
+<p><code><a href="order.html">order</a></code> for sorting on or reordering multiple variables.
+</p>
+<p><code><a href="is.unsorted.html">is.unsorted</a></code>. <code><a href="rank.html">rank</a></code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+require(stats)
+
+x &lt;- swiss$Education[1:25]
+x; sort(x); sort(x, partial = c(10, 15))
+
+## illustrate 'stable' sorting (of ties):
+sort(c(10:3, 2:12), method = "shell", index.return = TRUE) # is stable
+## $x : 2  3  3  4  4  5  5  6  6  7  7  8  8  9  9 10 10 11 12
+## $ix: 9  8 10  7 11  6 12  5 13  4 14  3 15  2 16  1 17 18 19
+sort(c(10:3, 2:12), method = "quick", index.return = TRUE) # is not
+## $x : 2  3  3  4  4  5  5  6  6  7  7  8  8  9  9 10 10 11 12
+## $ix: 9 10  8  7 11  6 12  5 13  4 14  3 15 16  2 17  1 18 19
+
+x &lt;- c(1:3, 3:5, 10)
+is.unsorted(x)                  # FALSE: is sorted
+is.unsorted(x, strictly = TRUE) # TRUE : is not (and cannot be)
+                                # sorted strictly
+## Not run: 
+## Small speed comparison simulation:
+N &lt;- 2000
+Sim &lt;- 20
+rep &lt;- 1000 # &lt;&lt; adjust to your CPU
+c1 &lt;- c2 &lt;- numeric(Sim)
+for(is in seq_len(Sim)){
+  x &lt;- rnorm(N)
+  c1[is] &lt;- system.time(for(i in 1:rep) sort(x, method = "shell"))[1]
+  c2[is] &lt;- system.time(for(i in 1:rep) sort(x, method = "quick"))[1]
+  stopifnot(sort(x, method = "shell") == sort(x, method = "quick"))
+}
+rbind(ShellSort = c1, QuickSort = c2)
+cat("Speedup factor of quick sort():\n")
+summary({qq &lt;- c1 / c2; qq[is.finite(qq)]})
+
+## A larger test
+x &lt;- rnorm(1e7)
+system.time(x1 &lt;- sort(x, method = "shell"))
+system.time(x2 &lt;- sort(x, method = "quick"))
+system.time(x3 &lt;- sort(x, method = "radix"))
+stopifnot(identical(x1, x2))
+stopifnot(identical(x1, x3))
+
+## End(Not run)</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

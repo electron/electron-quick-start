@@ -114,3 +114,9 @@ String test_String_ctor_encoding2() {
     y.set_encoding(CE_UTF8);
     return y;
 }
+
+// [[Rcpp::export]]
+String test_String_embeddedNul() {
+    std::string bad("abc\0abc", 7);
+    return String(bad);
+}

@@ -1,0 +1,146 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Isotonic / Monotone Regression</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for isoreg {stats}"><tr><td>isoreg {stats}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Isotonic / Monotone Regression</h2>
+
+<h3>Description</h3>
+
+<p>Compute the isotonic (monotonely increasing nonparametric) least
+squares regression which is piecewise constant.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+isoreg(x, y = NULL)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x, y</code></td>
+<td>
+
+<p>coordinate vectors of the regression points.  Alternatively a single
+plotting structure can be specified: see <code><a href="../../grDevices/html/xy.coords.html">xy.coords</a></code>.
+</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>The algorithm determines the convex minorant <i>m(x)</i> of the
+<em>cumulative</em> data (i.e., <code>cumsum(y)</code>) which is piecewise
+linear and the result is <i>m'(x)</i>, a step function with level
+changes at locations where the convex <i>m(x)</i> touches the
+cumulative data polygon and changes slope.<br />
+<code><a href="stepfun.html">as.stepfun</a>()</code> returns a <code><a href="stepfun.html">stepfun</a></code>
+object which can be more parsimonious.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>isoreg()</code> returns an object of class <code>isoreg</code> which is
+basically a list with components
+</p>
+<table summary="R valueblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>original (constructed) abscissa values <code>x</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>y</code></td>
+<td>
+<p>corresponding y values.</p>
+</td></tr>
+<tr valign="top"><td><code>yf</code></td>
+<td>
+<p>fitted values corresponding to <em>ordered</em> x values.</p>
+</td></tr>
+<tr valign="top"><td><code>yc</code></td>
+<td>
+<p>cumulative y values corresponding to <em>ordered</em> x values.</p>
+</td></tr>
+<tr valign="top"><td><code>iKnots</code></td>
+<td>
+<p>integer vector giving indices where the fitted curve jumps,
+i.e., where the convex minorant has kinks.</p>
+</td></tr>
+<tr valign="top"><td><code>isOrd</code></td>
+<td>
+<p>logical indicating if original x values were ordered
+increasingly already.</p>
+</td></tr>
+<tr valign="top"><td><code>ord</code></td>
+<td>
+<p><code>if(!isOrd)</code>: integer permutation <code><a href="../../base/html/order.html">order</a>(x)</code> of
+<em>original</em> <code>x</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>call</code></td>
+<td>
+<p>the <code><a href="../../base/html/call.html">call</a></code> to <code>isoreg()</code> used.</p>
+</td></tr>
+</table>
+
+
+<h3>Note</h3>
+
+<p>The code should be improved to accept <em>weights</em> additionally and
+solve the corresponding weighted least squares problem.<br />
+&lsquo;Patches are welcome!&rsquo;
+</p>
+
+
+<h3>References</h3>
+
+<p>Barlow, R. E., Bartholomew, D. J., Bremner, J. M., and Brunk, H. D. (1972)
+<em>Statistical inference under order restrictions</em>; Wiley, London.
+</p>
+<p>Robertson, T., Wright, F. T. and Dykstra, R. L. (1988)
+<em>Order Restricted Statistical Inference</em>; Wiley, New York.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>the plotting method <code><a href="plot.isoreg.html">plot.isoreg</a></code> with more examples;
+<code><a href="../../MASS/html/isoMDS.html">isoMDS</a>()</code> from the <a href="https://CRAN.R-project.org/package=MASS"><span class="pkg">MASS</span></a> package internally
+uses isotonic regression.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+require(graphics)
+
+(ir &lt;- isoreg(c(1,0,4,3,3,5,4,2,0)))
+plot(ir, plot.type = "row")
+
+(ir3 &lt;- isoreg(y3 &lt;- c(1,0,4,3,3,5,4,2, 3))) # last "3", not "0"
+(fi3 &lt;- as.stepfun(ir3))
+(ir4 &lt;- isoreg(1:10, y4 &lt;- c(5, 9, 1:2, 5:8, 3, 8)))
+cat(sprintf("R^2 = %.2f\n",
+            1 - sum(residuals(ir4)^2) / ((10-1)*var(y4))))
+
+## If you are interested in the knots alone :
+with(ir4, cbind(iKnots, yf[iKnots]))
+
+## Example of unordered x[] with ties:
+x &lt;- sample((0:30)/8)
+y &lt;- exp(x)
+x. &lt;- round(x) # ties!
+plot(m &lt;- isoreg(x., y))
+stopifnot(all.equal(with(m, yf[iKnots]),
+                    as.vector(tapply(y, x., mean))))
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>stats</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

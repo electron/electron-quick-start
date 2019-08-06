@@ -109,13 +109,13 @@ plot(fit2, margin = 0.05);  text(fit2, use.n = TRUE, cex = 0.8)
 
 
 ###################################################
-### code chunk number 9: longintro.Rnw:999-1000
+### code chunk number 9: longintro.Rnw:998-999
 ###################################################
 summary(fit1, cp = 0.06)
 
 
 ###################################################
-### code chunk number 10: longintro.Rnw:1004-1008
+### code chunk number 10: longintro.Rnw:1003-1007
 ###################################################
 fit3 <- rpart(Reliability ~ Price + Country + Mileage + Type,
                 data=cu.summary, parms=list(split='information'),
@@ -142,7 +142,7 @@ plot(fit3);  text(fit3, use.n = TRUE, all = TRUE, cex = 0.8)
 
 
 ###################################################
-### code chunk number 12: longintro.Rnw:1211-1215
+### code chunk number 12: longintro.Rnw:1210-1214
 ###################################################
 cars <- car90[, -match(c("Rim", "Tires", "Model2"), names(car90))]
 carfit <- rpart(Price/1000 ~ ., data=cars)
@@ -151,13 +151,13 @@ printcp(carfit)
 
 
 ###################################################
-### code chunk number 13: longintro.Rnw:1218-1219
+### code chunk number 13: longintro.Rnw:1217-1218
 ###################################################
 temp <- carfit$cptable
 
 
 ###################################################
-### code chunk number 14: longintro.Rnw:1243-1244
+### code chunk number 14: longintro.Rnw:1242-1243
 ###################################################
 summary(carfit, cp = 0.1)
 
@@ -183,7 +183,7 @@ abline(h = 0, lty = 2)
 
 
 ###################################################
-### code chunk number 17: longintro.Rnw:1316-1322
+### code chunk number 17: longintro.Rnw:1315-1321
 ###################################################
 cfit2 <- rpart(pgstat ~ age + eet + g2 + grade + gleason + ploidy,
                data = stagec)
@@ -194,16 +194,16 @@ print(cfit2, cp = 0.03)
 
 
 ###################################################
-### code chunk number 18: longintro.Rnw:1492-1496
+### code chunk number 18: longintro.Rnw:1491-1495
 ###################################################
 sfit <- rpart(skips ~ Opening + Solder + Mask + PadType + Panel,
-              data = solder, method = 'poisson',
+              data = solder.balance, method = 'poisson',
               control = rpart.control(cp = 0.05, maxcompete = 2))
 sfit
 
 
 ###################################################
-### code chunk number 19: longintro.Rnw:1507-1508
+### code chunk number 19: longintro.Rnw:1506-1507
 ###################################################
 summary(sfit, cp = 0.1)
 
@@ -222,7 +222,7 @@ text(fit.prune, use.n = TRUE, min = 2)
 
 
 ###################################################
-### code chunk number 21: longintro.Rnw:1555-1558
+### code chunk number 21: longintro.Rnw:1554-1557
 ###################################################
 require(survival)
 temp <- coxph(Surv(pgtime, pgstat) ~ 1, stagec)
@@ -303,7 +303,7 @@ text(fit, all = TRUE, use.n = TRUE, fancy = TRUE, cex= 0.9)
 
 
 ###################################################
-### code chunk number 29: longintro.Rnw:1780-1788
+### code chunk number 29: longintro.Rnw:1779-1787
 ###################################################
 carfit <- rpart(Price/1000 ~ ., cars)
 carfit$cptable

@@ -1,0 +1,252 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: The QR Decomposition of a Matrix</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for qr {base}"><tr><td>qr {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>The QR Decomposition of a Matrix</h2>
+
+<h3>Description</h3>
+
+<p><code>qr</code> computes the QR decomposition of a matrix.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+qr(x, ...)
+## Default S3 method:
+qr(x, tol = 1e-07 , LAPACK = FALSE, ...)
+
+qr.coef(qr, y)
+qr.qy(qr, y)
+qr.qty(qr, y)
+qr.resid(qr, y)
+qr.fitted(qr, y, k = qr$rank)
+qr.solve(a, b, tol = 1e-7)
+## S3 method for class 'qr'
+solve(a, b, ...)
+
+is.qr(x)
+as.qr(x)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>a numeric or complex matrix whose QR decomposition is to be
+computed.  Logical matrices are coerced to numeric.</p>
+</td></tr>
+<tr valign="top"><td><code>tol</code></td>
+<td>
+<p>the tolerance for detecting linear dependencies in the
+columns of <code>x</code>. Only used if <code>LAPACK</code> is false and
+<code>x</code> is real.</p>
+</td></tr>
+<tr valign="top"><td><code>qr</code></td>
+<td>
+<p>a QR decomposition of the type computed by <code>qr</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>y, b</code></td>
+<td>
+<p>a vector or matrix of right-hand sides of equations.</p>
+</td></tr>
+<tr valign="top"><td><code>a</code></td>
+<td>
+<p>a QR decomposition or (<code>qr.solve</code> only) a rectangular matrix.</p>
+</td></tr>
+<tr valign="top"><td><code>k</code></td>
+<td>
+<p>effective rank.</p>
+</td></tr>
+<tr valign="top"><td><code>LAPACK</code></td>
+<td>
+<p>logical.  For real <code>x</code>, if true use LAPACK
+otherwise use LINPACK (the default).</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>further arguments passed to or from other methods</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>The QR decomposition plays an important role in many
+statistical techniques.  In particular it can be used to solve the
+equation <i>\bold{Ax} = \bold{b}</i> for given matrix <i>\bold{A}</i>,
+and vector <i>\bold{b}</i>.  It is useful for computing regression
+coefficients and in applying the Newton-Raphson algorithm.
+</p>
+<p>The functions <code>qr.coef</code>, <code>qr.resid</code>, and <code>qr.fitted</code>
+return the coefficients, residuals and fitted values obtained when
+fitting <code>y</code> to the matrix with QR decomposition <code>qr</code>.
+(If pivoting is used, some of the coefficients will be <code>NA</code>.)
+<code>qr.qy</code> and <code>qr.qty</code> return <code>Q %*% y</code> and
+<code>t(Q) %*% y</code>, where <code>Q</code> is the (complete) <i>\bold{Q}</i> matrix.
+</p>
+<p>All the above functions keep <code>dimnames</code> (and <code>names</code>) of
+<code>x</code> and <code>y</code> if there are any.
+</p>
+<p><code>solve.qr</code> is the method for <code><a href="solve.html">solve</a></code> for <code>qr</code> objects.
+<code>qr.solve</code> solves systems of equations via the QR decomposition:
+if <code>a</code> is a QR decomposition it is the same as <code>solve.qr</code>,
+but if <code>a</code> is a rectangular matrix the QR decomposition is
+computed first.  Either will handle over- and under-determined
+systems, providing a least-squares fit if appropriate.
+</p>
+<p><code>is.qr</code> returns <code>TRUE</code> if <code>x</code> is a <code><a href="list.html">list</a></code>
+and <code><a href="class.html">inherits</a></code> from <code>"qr"</code>.
+</p>
+<p>It is not possible to coerce objects to mode <code>"qr"</code>.  Objects
+either are QR decompositions or they are not.
+</p>
+<p>The LINPACK interface is restricted to matrices <code>x</code> with less
+than <i>2^31</i> elements.
+</p>
+<p><code>qr.fitted</code> and <code>qr.resid</code> only support the LINPACK interface.
+</p>
+<p>Unsuccessful results from the underlying LAPACK code will result in an
+error giving a positive error code: these can only be interpreted by
+detailed study of the FORTRAN code.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The QR decomposition of the matrix as computed by LINPACK(*) or LAPACK.
+The components in the returned value correspond directly
+to the values returned by DQRDC(2)/DGEQP3/ZGEQP3.
+</p>
+<table summary="R valueblock">
+<tr valign="top"><td><code>qr</code></td>
+<td>
+<p>a matrix with the same dimensions as <code>x</code>.
+The upper triangle contains the <i>\bold{R}</i> of the decomposition
+and the lower triangle contains information on the <i>\bold{Q}</i> of
+the decomposition (stored in compact form).  Note that the storage
+used by DQRDC and DGEQP3 differs.</p>
+</td></tr>
+<tr valign="top"><td><code>qraux</code></td>
+<td>
+<p>a vector of length <code>ncol(x)</code> which contains
+additional information on <i>\bold{Q}</i>.</p>
+</td></tr>
+<tr valign="top"><td><code>rank</code></td>
+<td>
+<p>the rank of <code>x</code> as computed by the decomposition(*):
+always full rank in the LAPACK case.</p>
+</td></tr>
+<tr valign="top"><td><code>pivot</code></td>
+<td>
+<p>information on the pivoting strategy used during
+the decomposition.</p>
+</td></tr>
+</table>
+<p>Non-complex QR objects computed by LAPACK have the attribute
+<code>"useLAPACK"</code> with value <code>TRUE</code>.
+</p>
+
+
+<h3><code>*)</code>  <code>dqrdc2</code> instead of LINPACK's DQRDC</h3>
+
+<p>In the (default) LINPACK case (<code>LAPACK = FALSE</code>), <code>qr()</code>
+uses a <em>modified</em> version of LINPACK's DQRDC, called
+&lsquo;<code>dqrdc2</code>&rsquo;.  It differs by using the tolerance <code>tol</code>
+for a pivoting strategy which moves columns with near-zero 2-norm to
+the right-hand edge of the x matrix.  This strategy means that
+sequential one degree-of-freedom effects can be computed in a natural
+way.
+</p>
+
+
+<h3>Note</h3>
+
+<p>To compute the determinant of a matrix (do you <em>really</em> need it?),
+the QR decomposition is much more efficient than using Eigen values
+(<code><a href="eigen.html">eigen</a></code>).  See <code><a href="det.html">det</a></code>.
+</p>
+<p>Using LAPACK (including in the complex case) uses column pivoting and
+does not attempt to detect rank-deficient matrices.
+</p>
+
+
+<h3>Source</h3>
+
+<p>For <code>qr</code>, the LINPACK routine <code>DQRDC</code> (but modified to
+<code>dqrdc2</code>(*)) and the LAPACK
+routines <code>DGEQP3</code> and <code>ZGEQP3</code>.  Further LINPACK and LAPACK
+routines are used for <code>qr.coef</code>, <code>qr.qy</code> and <code>qr.aty</code>.
+</p>
+<p>LAPACK and LINPACK are from <a href="http://www.netlib.org/lapack">http://www.netlib.org/lapack</a> and
+<a href="http://www.netlib.org/linpack">http://www.netlib.org/linpack</a> and their guides are listed
+in the references.
+</p>
+
+
+<h3>References</h3>
+
+<p>Anderson. E. and ten others (1999)
+<em>LAPACK Users' Guide</em>. Third Edition. SIAM.<br />
+Available on-line at
+<a href="http://www.netlib.org/lapack/lug/lapack_lug.html">http://www.netlib.org/lapack/lug/lapack_lug.html</a>.
+</p>
+<p>Becker, R. A., Chambers, J. M. and Wilks, A. R. (1988)
+<em>The New S Language</em>.
+Wadsworth &amp; Brooks/Cole.
+</p>
+<p>Dongarra, J. J., Bunch, J. R., Moler, C. B. and Stewart, G. W. (1978)
+<em>LINPACK Users Guide.</em>  Philadelphia: SIAM Publications.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="qraux.html">qr.Q</a></code>,  <code><a href="qraux.html">qr.R</a></code>,  <code><a href="qraux.html">qr.X</a></code> for
+reconstruction of the matrices.
+<code><a href="../../stats/html/lmfit.html">lm.fit</a></code>,  <code><a href="../../stats/html/lsfit.html">lsfit</a></code>,
+<code><a href="eigen.html">eigen</a></code>, <code><a href="svd.html">svd</a></code>.
+</p>
+<p><code><a href="det.html">det</a></code> (using <code>qr</code>) to compute the determinant of a matrix.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+hilbert &lt;- function(n) { i &lt;- 1:n; 1 / outer(i - 1, i, "+") }
+h9 &lt;- hilbert(9); h9
+qr(h9)$rank           #--&gt; only 7
+qrh9 &lt;- qr(h9, tol = 1e-10)
+qrh9$rank             #--&gt; 9
+##-- Solve linear equation system  H %*% x = y :
+y &lt;- 1:9/10
+x &lt;- qr.solve(h9, y, tol = 1e-10) # or equivalently :
+x &lt;- qr.coef(qrh9, y) #-- is == but much better than
+                      #-- solve(h9) %*% y
+h9 %*% x              # = y
+
+
+## overdetermined system
+A &lt;- matrix(runif(12), 4)
+b &lt;- 1:4
+qr.solve(A, b) # or solve(qr(A), b)
+solve(qr(A, LAPACK = TRUE), b)
+# this is a least-squares solution, cf. lm(b ~ 0 + A)
+
+## underdetermined system
+A &lt;- matrix(runif(12), 3)
+b &lt;- 1:3
+qr.solve(A, b)
+solve(qr(A, LAPACK = TRUE), b)
+# solutions will have one zero, not necessarily the same one
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

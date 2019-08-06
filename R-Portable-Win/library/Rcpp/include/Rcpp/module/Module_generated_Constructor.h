@@ -33,7 +33,7 @@ public:
 template <typename Class>
 class Constructor_0 : public Constructor_Base<Class>{
 public:
-    virtual Class* get_new( SEXP* args, int nargs ){
+    virtual Class* get_new( SEXP* /*args*/, int /*nargs*/ ){
         return new Class() ;
     }
     virtual int nargs(){ return 0 ; }

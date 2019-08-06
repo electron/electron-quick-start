@@ -1,0 +1,132 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Sample Ranks</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for rank {base}"><tr><td>rank {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Sample Ranks</h2>
+
+<h3>Description</h3>
+
+<p>Returns the sample ranks of the values in a vector.  Ties (i.e., equal
+values) and missing values can be handled in several ways.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+rank(x, na.last = TRUE,
+     ties.method = c("average", "first", "last", "random", "max", "min"))
+</pre>
+
+
+<h3>Arguments</h3>
+
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>a numeric, complex, character or logical vector.</p>
+</td></tr>
+<tr valign="top"><td><code>na.last</code></td>
+<td>
+<p>for controlling the treatment of <code><a href="NA.html">NA</a></code>s.
+If <code>TRUE</code>, missing values in the data are put last; if
+<code>FALSE</code>, they are put first; if <code>NA</code>, they are removed; if
+<code>"keep"</code> they are kept with rank <code>NA</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>ties.method</code></td>
+<td>
+<p>a character string specifying how ties are treated,
+see &lsquo;Details&rsquo;; can be abbreviated.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>If all components are different (and no <code>NA</code>s), the ranks are
+well defined, with values in <code>seq_along(x)</code>.  With some values equal
+(called &lsquo;ties&rsquo;), the argument <code>ties.method</code> determines the
+result at the corresponding indices.  The <code>"first"</code> method results
+in a permutation with increasing values at each index set of ties, and
+analogously <code>"last"</code> with decreasing values.  The
+<code>"random"</code> method puts these in random order whereas the
+default, <code>"average"</code>, replaces them by their mean, and
+<code>"max"</code> and <code>"min"</code> replaces them by their maximum and
+minimum respectively, the latter being the typical sports
+ranking.
+</p>
+<p><code>NA</code> values are never considered to be equal: for <code>na.last =
+    TRUE</code> and <code>na.last = FALSE</code> they are given distinct ranks in
+the order in which they occur in <code>x</code>.
+</p>
+<p><strong>NB</strong>: <code>rank</code> is not itself generic but <code><a href="xtfrm.html">xtfrm</a></code>
+is, and <code>rank(xtfrm(x), ....)</code> will have the desired result if
+there is a <code>xtfrm</code> method.  Otherwise, <code>rank</code> will make use
+of <code>==</code>, <code>&gt;</code>, <code>is.na</code> and extraction methods for
+classed objects, possibly rather slowly.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A numeric vector of the same length as <code>x</code> with names copied from
+<code>x</code> (unless <code>na.last = NA</code>, when missing values are
+removed).  The vector is of integer type unless <code>x</code> is a long
+vector or <code>ties.method = "average"</code> when it is of double type
+(whether or not there are any ties).
+</p>
+
+
+<h3>References</h3>
+
+<p>Becker, R. A., Chambers, J. M. and Wilks, A. R. (1988)
+<em>The New S Language</em>.
+Wadsworth &amp; Brooks/Cole.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="order.html">order</a></code> and <code><a href="sort.html">sort</a></code>;
+<code><a href="xtfrm.html">xtfrm</a></code>, see above.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+(r1 &lt;- rank(x1 &lt;- c(3, 1, 4, 15, 92)))
+x2 &lt;- c(3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5)
+names(x2) &lt;- letters[1:11]
+(r2 &lt;- rank(x2)) # ties are averaged
+
+## rank() is "idempotent": rank(rank(x)) == rank(x) :
+stopifnot(rank(r1) == r1, rank(r2) == r2)
+
+## ranks without averaging
+rank(x2, ties.method= "first")  # first occurrence wins
+rank(x2, ties.method= "last")   #  last occurrence wins
+rank(x2, ties.method= "random") # ties broken at random
+rank(x2, ties.method= "random") # and again
+
+## keep ties ties, no average
+(rma &lt;- rank(x2, ties.method= "max"))  # as used classically
+(rmi &lt;- rank(x2, ties.method= "min"))  # as in Sports
+stopifnot(rma + rmi == round(r2 + r2))
+
+## Comparing all tie.methods:
+tMeth &lt;- eval(formals(rank)$ties.method)
+rx2 &lt;- sapply(tMeth, function(M) rank(x2, ties.method=M))
+cbind(x2, rx2)
+## ties.method's does not matter w/o ties:
+x &lt;- sample(47)
+rx &lt;- sapply(tMeth, function(MM) rank(x, ties.method=MM))
+stopifnot(all(rx[,1] == rx))
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

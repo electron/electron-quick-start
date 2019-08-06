@@ -1,0 +1,534 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Fitting Generalized Linear Models</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for glm {stats}"><tr><td>glm {stats}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Fitting Generalized Linear Models</h2>
+
+<h3>Description</h3>
+
+<p><code>glm</code> is used to fit generalized linear models, specified by
+giving a symbolic description of the linear predictor and a
+description of the error distribution.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+glm(formula, family = gaussian, data, weights, subset,
+    na.action, start = NULL, etastart, mustart, offset,
+    control = list(...), model = TRUE, method = "glm.fit",
+    x = FALSE, y = TRUE, singular.ok = TRUE, contrasts = NULL, ...)
+
+glm.fit(x, y, weights = rep(1, nobs),
+        start = NULL, etastart = NULL, mustart = NULL,
+        offset = rep(0, nobs), family = gaussian(),
+        control = list(), intercept = TRUE, singular.ok = TRUE)
+
+## S3 method for class 'glm'
+weights(object, type = c("prior", "working"), ...)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>formula</code></td>
+<td>
+<p>an object of class <code>"<a href="formula.html">formula</a>"</code> (or one that
+can be coerced to that class): a symbolic description of the
+model to be fitted.  The details of model specification are given
+under &lsquo;Details&rsquo;.</p>
+</td></tr>
+<tr valign="top"><td><code>family</code></td>
+<td>
+<p>a description of the error distribution and link
+function to be used in the model.  For <code>glm</code> this can be a
+character string naming a family function, a family function or the
+result of a call to a family function.  For <code>glm.fit</code> only the
+third option is supported.  (See <code><a href="family.html">family</a></code> for details of
+family functions.)</p>
+</td></tr>
+<tr valign="top"><td><code>data</code></td>
+<td>
+<p>an optional data frame, list or environment (or object
+coercible by <code><a href="../../base/html/as.data.frame.html">as.data.frame</a></code> to a data frame) containing
+the variables in the model.  If not found in <code>data</code>, the
+variables are taken from <code>environment(formula)</code>,
+typically the environment from which <code>glm</code> is called.</p>
+</td></tr>
+<tr valign="top"><td><code>weights</code></td>
+<td>
+<p>an optional vector of &lsquo;prior weights&rsquo; to be used
+in the fitting process.  Should be <code>NULL</code> or a numeric vector.</p>
+</td></tr>
+<tr valign="top"><td><code>subset</code></td>
+<td>
+<p>an optional vector specifying a subset of observations
+to be used in the fitting process.</p>
+</td></tr>
+<tr valign="top"><td><code>na.action</code></td>
+<td>
+<p>a function which indicates what should happen
+when the data contain <code>NA</code>s.  The default is set by
+the <code>na.action</code> setting of <code><a href="../../base/html/options.html">options</a></code>, and is
+<code><a href="na.fail.html">na.fail</a></code> if that is unset.  The &lsquo;factory-fresh&rsquo;
+default is <code><a href="na.fail.html">na.omit</a></code>.  Another possible value is
+<code>NULL</code>, no action.  Value <code><a href="na.fail.html">na.exclude</a></code> can be useful.</p>
+</td></tr>
+<tr valign="top"><td><code>start</code></td>
+<td>
+<p>starting values for the parameters in the linear predictor.</p>
+</td></tr>
+<tr valign="top"><td><code>etastart</code></td>
+<td>
+<p>starting values for the linear predictor.</p>
+</td></tr>
+<tr valign="top"><td><code>mustart</code></td>
+<td>
+<p>starting values for the vector of means.</p>
+</td></tr>
+<tr valign="top"><td><code>offset</code></td>
+<td>
+<p>this can be used to specify an <em>a priori</em> known
+component to be included in the linear predictor during fitting.
+This should be <code>NULL</code> or a numeric vector of length equal to
+the number of cases.  One or more <code><a href="offset.html">offset</a></code> terms can be
+included in the formula instead or as well, and if more than one is
+specified their sum is used.  See <code><a href="model.extract.html">model.offset</a></code>.</p>
+</td></tr>
+<tr valign="top"><td><code>control</code></td>
+<td>
+<p>a list of parameters for controlling the fitting
+process.  For <code>glm.fit</code> this is passed to
+<code><a href="glm.control.html">glm.control</a></code>.</p>
+</td></tr>
+<tr valign="top"><td><code>model</code></td>
+<td>
+<p>a logical value indicating whether <em>model frame</em>
+should be included as a component of the returned value.</p>
+</td></tr>
+<tr valign="top"><td><code>method</code></td>
+<td>
+<p>the method to be used in fitting the model.  The default
+method <code>"glm.fit"</code> uses iteratively reweighted least squares
+(IWLS): the alternative <code>"model.frame"</code> returns the model frame
+and does no fitting.
+</p>
+<p>User-supplied fitting functions can be supplied either as a function
+or a character string naming a function, with a function which takes
+the same arguments as <code>glm.fit</code>.  If specified as a character
+string it is looked up from within the <span class="pkg">stats</span> namespace.
+</p>
+</td></tr>
+<tr valign="top"><td><code>x, y</code></td>
+<td>
+<p>For <code>glm</code>:
+logical values indicating whether the response vector and model
+matrix used in the fitting process should be returned as components
+of the returned value.
+</p>
+<p>For <code>glm.fit</code>: <code>x</code> is a design matrix of dimension
+<code>n * p</code>, and <code>y</code> is a vector of observations of length
+<code>n</code>.
+</p>
+</td></tr>
+<tr valign="top"><td><code>singular.ok</code></td>
+<td>
+<p>logical; if <code>FALSE</code> a singular fit is an
+error.</p>
+</td></tr>
+<tr valign="top"><td><code>contrasts</code></td>
+<td>
+<p>an optional list. See the <code>contrasts.arg</code>
+of <code>model.matrix.default</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>intercept</code></td>
+<td>
+<p>logical. Should an intercept be included in the
+<em>null</em> model?</p>
+</td></tr>
+<tr valign="top"><td><code>object</code></td>
+<td>
+<p>an object inheriting from class <code>"glm"</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>type</code></td>
+<td>
+<p>character, partial matching allowed.  Type of weights to
+extract from the fitted model object.  Can be abbreviated.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+
+<p>For <code>glm</code>: arguments to be used to form the default
+<code>control</code> argument if it is not supplied directly.
+</p>
+<p>For <code>weights</code>: further arguments passed to or from other methods.
+</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>A typical predictor has the form <code>response ~ terms</code> where
+<code>response</code> is the (numeric) response vector and <code>terms</code> is a
+series of terms which specifies a linear predictor for
+<code>response</code>.  For <code>binomial</code> and <code>quasibinomial</code>
+families the response can also be specified as a <code><a href="../../base/html/factor.html">factor</a></code>
+(when the first level denotes failure and all others success) or as a
+two-column matrix with the columns giving the numbers of successes and
+failures.  A terms specification of the form <code>first + second</code>
+indicates all the terms in <code>first</code> together with all the terms in
+<code>second</code> with any duplicates removed.
+</p>
+<p>A specification of the form <code>first:second</code> indicates the set
+of terms obtained by taking the interactions of all terms in
+<code>first</code> with all terms in <code>second</code>.  The specification
+<code>first*second</code> indicates the <em>cross</em> of <code>first</code> and
+<code>second</code>.  This is the same as <code>first + second +
+  first:second</code>.
+</p>
+<p>The terms in the formula will be re-ordered so that main effects come
+first, followed by the interactions, all second-order, all third-order
+and so on: to avoid this pass a <code>terms</code> object as the formula.
+</p>
+<p>Non-<code>NULL</code> <code>weights</code> can be used to indicate that different
+observations have different dispersions (with the values in
+<code>weights</code> being inversely proportional to the dispersions); or
+equivalently, when the elements of <code>weights</code> are positive
+integers <i>w_i</i>, that each response <i>y_i</i> is the mean of
+<i>w_i</i> unit-weight observations.  For a binomial GLM prior weights
+are used to give the number of trials when the response is the
+proportion of successes: they would rarely be used for a Poisson GLM.
+</p>
+<p><code>glm.fit</code> is the workhorse function: it is not normally called
+directly but can be more efficient where the response vector, design
+matrix and family have already been calculated.
+</p>
+<p>If more than one of <code>etastart</code>, <code>start</code> and <code>mustart</code>
+is specified, the first in the list will be used.  It is often
+advisable to supply starting values for a <code><a href="family.html">quasi</a></code> family,
+and also for families with unusual links such as <code>gaussian("log")</code>.
+</p>
+<p>All of <code>weights</code>, <code>subset</code>, <code>offset</code>, <code>etastart</code>
+and <code>mustart</code> are evaluated in the same way as variables in
+<code>formula</code>, that is first in <code>data</code> and then in the
+environment of <code>formula</code>.
+</p>
+<p>For the background to warning messages about &lsquo;fitted probabilities
+numerically 0 or 1 occurred&rsquo; for binomial GLMs, see Venables &amp;
+Ripley (2002, pp. 197&ndash;8).
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>glm</code> returns an object of class inheriting from <code>"glm"</code>
+which inherits from the class <code>"lm"</code>. See later in this section.
+If a non-standard <code>method</code> is used, the object will also inherit
+from the class (if any) returned by that function.
+</p>
+<p>The function <code><a href="../../base/html/summary.html">summary</a></code> (i.e., <code><a href="summary.glm.html">summary.glm</a></code>) can
+be used to obtain or print a summary of the results and the function
+<code><a href="anova.html">anova</a></code> (i.e., <code><a href="anova.glm.html">anova.glm</a></code>)
+to produce an analysis of variance table.
+</p>
+<p>The generic accessor functions <code><a href="coef.html">coefficients</a></code>,
+<code>effects</code>, <code>fitted.values</code> and <code>residuals</code> can be used to
+extract various useful features of the value returned by <code>glm</code>.
+</p>
+<p><code>weights</code> extracts a vector of weights, one for each case in the
+fit (after subsetting and <code>na.action</code>).
+</p>
+<p>An object of class <code>"glm"</code> is a list containing at least the
+following components:
+</p>
+<table summary="R valueblock">
+<tr valign="top"><td><code>coefficients</code></td>
+<td>
+<p>a named vector of coefficients</p>
+</td></tr>
+<tr valign="top"><td><code>residuals</code></td>
+<td>
+<p>the <em>working</em> residuals, that is the residuals
+in the final iteration of the IWLS fit.  Since cases with zero
+weights are omitted, their working residuals are <code>NA</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>fitted.values</code></td>
+<td>
+<p>the fitted mean values, obtained by transforming
+the linear predictors by the inverse of the link function.</p>
+</td></tr>
+<tr valign="top"><td><code>rank</code></td>
+<td>
+<p>the numeric rank of the fitted linear model.</p>
+</td></tr>
+<tr valign="top"><td><code>family</code></td>
+<td>
+<p>the <code><a href="family.html">family</a></code> object used.</p>
+</td></tr>
+<tr valign="top"><td><code>linear.predictors</code></td>
+<td>
+<p>the linear fit on link scale.</p>
+</td></tr>
+<tr valign="top"><td><code>deviance</code></td>
+<td>
+<p>up to a constant, minus twice the maximized
+log-likelihood.  Where sensible, the constant is chosen so that a
+saturated model has deviance zero.</p>
+</td></tr>
+<tr valign="top"><td><code>aic</code></td>
+<td>
+<p>A version of Akaike's <em>An Information Criterion</em>,
+minus twice the maximized log-likelihood plus twice the number of
+parameters, computed via the <code>aic</code> component of the family.
+For binomial and Poison families the dispersion is
+fixed at one and the number of parameters is the number of
+coefficients.  For gaussian, Gamma and inverse gaussian families the
+dispersion is estimated from the residual deviance, and the number
+of parameters is the number of coefficients plus one.  For a
+gaussian family the MLE of the dispersion is used so this is a valid
+value of AIC, but for Gamma and inverse gaussian families it is not.
+For families fitted by quasi-likelihood the value is <code>NA</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>null.deviance</code></td>
+<td>
+<p>The deviance for the null model, comparable with
+<code>deviance</code>. The null model will include the offset, and an
+intercept if there is one in the model.  Note that this will be
+incorrect if the link function depends on the data other than
+through the fitted mean: specify a zero offset to force a correct
+calculation.</p>
+</td></tr>
+<tr valign="top"><td><code>iter</code></td>
+<td>
+<p>the number of iterations of IWLS used.</p>
+</td></tr>
+<tr valign="top"><td><code>weights</code></td>
+<td>
+<p>the <em>working</em> weights, that is the weights
+in the final iteration of the IWLS fit.</p>
+</td></tr>
+<tr valign="top"><td><code>prior.weights</code></td>
+<td>
+<p>the weights initially supplied, a vector of
+<code>1</code>s if none were.</p>
+</td></tr>
+<tr valign="top"><td><code>df.residual</code></td>
+<td>
+<p>the residual degrees of freedom.</p>
+</td></tr>
+<tr valign="top"><td><code>df.null</code></td>
+<td>
+<p>the residual degrees of freedom for the null model.</p>
+</td></tr>
+<tr valign="top"><td><code>y</code></td>
+<td>
+<p>if requested (the default) the <code>y</code> vector
+used. (It is a vector even for a binomial model.)</p>
+</td></tr>
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>if requested, the model matrix.</p>
+</td></tr>
+<tr valign="top"><td><code>model</code></td>
+<td>
+<p>if requested (the default), the model frame.</p>
+</td></tr>
+<tr valign="top"><td><code>converged</code></td>
+<td>
+<p>logical. Was the IWLS algorithm judged to have converged?</p>
+</td></tr>
+<tr valign="top"><td><code>boundary</code></td>
+<td>
+<p>logical. Is the fitted value on the boundary of the
+attainable values?</p>
+</td></tr>
+<tr valign="top"><td><code>call</code></td>
+<td>
+<p>the matched call.</p>
+</td></tr>
+<tr valign="top"><td><code>formula</code></td>
+<td>
+<p>the formula supplied.</p>
+</td></tr>
+<tr valign="top"><td><code>terms</code></td>
+<td>
+<p>the <code><a href="terms.html">terms</a></code> object used.</p>
+</td></tr>
+<tr valign="top"><td><code>data</code></td>
+<td>
+<p>the <code>data argument</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>offset</code></td>
+<td>
+<p>the offset vector used.</p>
+</td></tr>
+<tr valign="top"><td><code>control</code></td>
+<td>
+<p>the value of the <code>control</code> argument used.</p>
+</td></tr>
+<tr valign="top"><td><code>method</code></td>
+<td>
+<p>the name of the fitter function used, currently always
+<code>"glm.fit"</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>contrasts</code></td>
+<td>
+<p>(where relevant) the contrasts used.</p>
+</td></tr>
+<tr valign="top"><td><code>xlevels</code></td>
+<td>
+<p>(where relevant) a record of the levels of the factors
+used in fitting.</p>
+</td></tr>
+<tr valign="top"><td><code>na.action</code></td>
+<td>
+<p>(where relevant) information returned by
+<code><a href="model.frame.html">model.frame</a></code> on the special handling of <code>NA</code>s.</p>
+</td></tr>
+</table>
+<p>In addition, non-empty fits will have components <code>qr</code>, <code>R</code>
+and <code>effects</code> relating to the final weighted linear fit.
+</p>
+<p>Objects of class <code>"glm"</code> are normally of class <code>c("glm",
+    "lm")</code>, that is inherit from class <code>"lm"</code>, and well-designed
+methods for class <code>"lm"</code> will be applied to the weighted linear
+model at the final iteration of IWLS.  However, care is needed, as
+extractor functions for class <code>"glm"</code> such as
+<code><a href="residuals.html">residuals</a></code> and <code>weights</code> do <b>not</b> just pick out
+the component of the fit with the same name.
+</p>
+<p>If a <code><a href="family.html">binomial</a></code> <code>glm</code> model was specified by giving a
+two-column response, the weights returned by <code>prior.weights</code> are
+the total numbers of cases (factored by the supplied case weights) and
+the component <code>y</code> of the result is the proportion of successes.
+</p>
+
+
+<h3>Fitting functions</h3>
+
+<p>The argument <code>method</code> serves two purposes.  One is to allow the
+model frame to be recreated with no fitting.  The other is to allow
+the default fitting function <code>glm.fit</code> to be replaced by a
+function which takes the same arguments and uses a different fitting
+algorithm.  If <code>glm.fit</code> is supplied as a character string it is
+used to search for a function of that name, starting in the
+<span class="pkg">stats</span> namespace.
+</p>
+<p>The class of the object return by the fitter (if any) will be
+prepended to the class returned by <code>glm</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>The original <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> implementation of <code>glm</code> was written by Simon
+Davies working for Ross Ihaka at the University of Auckland, but has
+since been extensively re-written by members of the R Core team.
+</p>
+<p>The design was inspired by the S function of the same name described
+in Hastie &amp; Pregibon (1992).
+</p>
+
+
+<h3>References</h3>
+
+<p>Dobson, A. J. (1990)
+<em>An Introduction to Generalized Linear Models.</em>
+London: Chapman and Hall.
+</p>
+<p>Hastie, T. J. and Pregibon, D. (1992)
+<em>Generalized linear models.</em>
+Chapter 6 of <em>Statistical Models in S</em>
+eds J. M. Chambers and T. J. Hastie, Wadsworth &amp; Brooks/Cole.
+</p>
+<p>McCullagh P. and Nelder, J. A. (1989)
+<em>Generalized Linear Models.</em>
+London: Chapman and Hall.
+</p>
+<p>Venables, W. N. and Ripley, B. D. (2002)
+<em>Modern Applied Statistics with S.</em>
+New York: Springer.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="anova.glm.html">anova.glm</a></code>, <code><a href="summary.glm.html">summary.glm</a></code>, etc. for
+<code>glm</code> methods,
+and the generic functions <code><a href="anova.html">anova</a></code>, <code><a href="../../base/html/summary.html">summary</a></code>,
+<code><a href="effects.html">effects</a></code>, <code><a href="fitted.values.html">fitted.values</a></code>,
+and <code><a href="residuals.html">residuals</a></code>.
+</p>
+<p><code><a href="lm.html">lm</a></code> for non-generalized <em>linear</em> models (which SAS
+calls GLMs, for &lsquo;general&rsquo; linear models).
+</p>
+<p><code><a href="loglin.html">loglin</a></code> and <code><a href="../../MASS/html/loglm.html">loglm</a></code> (package
+<a href="https://CRAN.R-project.org/package=MASS"><span class="pkg">MASS</span></a>) for fitting log-linear models (which binomial and
+Poisson GLMs are) to contingency tables.
+</p>
+<p><code>bigglm</code> in package <a href="https://CRAN.R-project.org/package=biglm"><span class="pkg">biglm</span></a> for an alternative
+way to fit GLMs to large datasets (especially those with many cases).
+</p>
+<p><code><a href="../../datasets/html/esoph.html">esoph</a></code>, <code><a href="../../datasets/html/infert.html">infert</a></code> and
+<code><a href="predict.glm.html">predict.glm</a></code> have examples of fitting binomial glms.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Dobson (1990) Page 93: Randomized Controlled Trial :
+counts &lt;- c(18,17,15,20,10,20,25,13,12)
+outcome &lt;- gl(3,1,9)
+treatment &lt;- gl(3,3)
+print(d.AD &lt;- data.frame(treatment, outcome, counts))
+glm.D93 &lt;- glm(counts ~ outcome + treatment, family = poisson())
+anova(glm.D93)
+summary(glm.D93)
+## Computing AIC [in many ways]:
+(A0 &lt;- AIC(glm.D93))
+(ll &lt;- logLik(glm.D93))
+A1 &lt;- -2*c(ll) + 2*attr(ll, "df")
+A2 &lt;- glm.D93$family$aic(counts, mu=fitted(glm.D93), wt=1) +
+        2 * length(coef(glm.D93))
+stopifnot(exprs = {
+  all.equal(A0, A1)
+  all.equal(A1, A2)
+  all.equal(A1, glm.D93$aic)
+})
+
+
+## an example with offsets from Venables &amp; Ripley (2002, p.189)
+utils::data(anorexia, package = "MASS")
+
+anorex.1 &lt;- glm(Postwt ~ Prewt + Treat + offset(Prewt),
+                family = gaussian, data = anorexia)
+summary(anorex.1)
+
+
+# A Gamma example, from McCullagh &amp; Nelder (1989, pp. 300-2)
+clotting &lt;- data.frame(
+    u = c(5,10,15,20,30,40,60,80,100),
+    lot1 = c(118,58,42,35,27,25,21,19,18),
+    lot2 = c(69,35,26,21,18,16,13,12,12))
+summary(glm(lot1 ~ log(u), data = clotting, family = Gamma))
+summary(glm(lot2 ~ log(u), data = clotting, family = Gamma))
+## Aliased ("S"ingular) -&gt; 1 NA coefficient
+(fS &lt;- glm(lot2 ~ log(u) + log(u^2), data = clotting, family = Gamma))
+tools::assertError(update(fS, singular.ok=FALSE), verbose=interactive())
+## -&gt; .. "singular fit encountered"
+
+## Not run: 
+## for an example of the use of a terms object as a formula
+demo(glm.vr)
+
+## End(Not run)</pre>
+
+<hr /><div style="text-align: center;">[Package <em>stats</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

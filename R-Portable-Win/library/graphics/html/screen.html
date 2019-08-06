@@ -1,0 +1,177 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Creating and Controlling Multiple Screens on a Single Device</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for screen {graphics}"><tr><td>screen {graphics}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Creating and Controlling Multiple Screens on a Single Device</h2>
+
+<h3>Description</h3>
+
+<p><code>split.screen</code> defines a number of regions within the current
+device which can, to some extent, be treated as separate graphics
+devices.  It is useful for generating multiple plots on a single
+device.  Screens can themselves be split, allowing for quite complex
+arrangements of plots.
+</p>
+<p><code>screen</code> is used to select which screen to draw in.
+</p>
+<p><code>erase.screen</code> is used to clear a single screen, which it
+does by filling with the background colour.
+</p>
+<p><code>close.screen</code> removes the specified screen definition(s).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+split.screen(figs, screen, erase = TRUE)
+screen(n = , new = TRUE)
+erase.screen(n = )
+close.screen(n, all.screens = FALSE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>figs</code></td>
+<td>
+<p>a two-element vector describing the number of rows and the
+number of columns in a screen matrix <em>or</em> a matrix with 4 columns.
+If a matrix, then each row describes a screen with values for the left,
+right, bottom, and top of the screen (in that order) in NDC units,
+that is 0 at the lower left corner of the device surface, and 1 at
+the upper right corner.</p>
+</td></tr>
+<tr valign="top"><td><code>screen</code></td>
+<td>
+<p>a number giving the screen to be split.  It defaults to
+the current screen if there is one, otherwise the whole device region.</p>
+</td></tr>
+<tr valign="top"><td><code>erase</code></td>
+<td>
+<p>logical: should the selected screen be cleared?</p>
+</td></tr>
+<tr valign="top"><td><code>n</code></td>
+<td>
+<p>a number indicating which screen to prepare for drawing
+(<code>screen</code>), erase (<code>erase.screen</code>), or close
+(<code>close.screen</code>).  (<code>close.screen</code> will accept a vector of
+screen numbers.)</p>
+</td></tr>
+<tr valign="top"><td><code>new</code></td>
+<td>
+<p>logical value indicating whether the screen should be
+erased as part of the preparation for drawing in the screen.</p>
+</td></tr>
+<tr valign="top"><td><code>all.screens</code></td>
+<td>
+<p>logical value indicating whether all of the
+screens should be closed.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>The first call to <code>split.screen</code> places <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> into split-screen
+mode.  The other split-screen functions only work within this mode.
+While in this mode, certain other commands should be avoided (see the
+Warnings section below).  Split-screen mode is exited by the command
+<code>close.screen(all = TRUE)</code>.
+</p>
+<p>If the current screen is closed, <code>close.screen</code> sets the current
+screen to be the next larger screen number if there is one, otherwise
+to the first available screen.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>split.screen(*)</code> returns a vector of screen numbers for the
+newly-created screens.  With no arguments, <code>split.screen()</code>
+returns a vector of valid screen numbers.
+</p>
+<p><code>screen(n)</code> invisibly returns <code>n</code>, the number of the
+selected screen. With no arguments, <code>screen()</code> returns the number
+of the current screen.
+</p>
+<p><code>close.screen()</code> returns a vector of valid screen numbers.
+</p>
+<p><code>screen</code>, <code>erase.screen</code>, and <code>close.screen</code> all return
+<code>FALSE</code> if <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> is not in split-screen mode.
+</p>
+
+
+<h3>Warnings</h3>
+
+<p>The recommended way to use these functions is to completely draw a
+plot and all additions (i.e., points and lines) to the base plot, prior to
+selecting and plotting on another screen. The behavior associated with
+returning to a screen to add to an existing plot is unpredictable and
+may result in problems that are not readily visible.
+</p>
+<p>These functions are totally incompatible with the other mechanisms for
+arranging plots on a device: <code><a href="par.html">par</a>(mfrow)</code>,
+<code>par(mfcol)</code> and <code><a href="layout.html">layout</a>()</code>.
+</p>
+<p>The functions are also incompatible with some plotting functions,
+such as <code><a href="coplot.html">coplot</a></code>, which make use of these other mechanisms.
+</p>
+<p><code>erase.screen</code> will appear not to work if the background colour
+is transparent (as it is by default on most devices).
+</p>
+
+
+<h3>References</h3>
+
+<p>Chambers, J. M. and Hastie, T. J. (1992)
+<em>Statistical Models in S</em>.
+Wadsworth &amp; Brooks/Cole.
+</p>
+<p>Murrell, P. (2005) <em>R Graphics</em>. Chapman &amp; Hall/CRC Press.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="par.html">par</a></code>, <code><a href="layout.html">layout</a></code>, <code><a href="../../grDevices/html/Devices.html">Devices</a></code>,
+<code>dev.*</code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+if (interactive()) {
+par(bg = "white")           # default is likely to be transparent
+split.screen(c(2, 1))       # split display into two screens
+split.screen(c(1, 3), screen = 2) # now split the bottom half into 3
+screen(1) # prepare screen 1 for output
+plot(10:1)
+screen(4) # prepare screen 4 for output
+plot(10:1)
+close.screen(all = TRUE)    # exit split-screen mode
+
+split.screen(c(2, 1))       # split display into two screens
+split.screen(c(1, 2), 2)    # split bottom half in two
+plot(1:10)                  # screen 3 is active, draw plot
+erase.screen()              # forgot label, erase and redraw
+plot(1:10, ylab = "ylab 3")
+screen(1)                   # prepare screen 1 for output
+plot(1:10)
+screen(4)                   # prepare screen 4 for output
+plot(1:10, ylab = "ylab 4")
+screen(1, FALSE)            # return to screen 1, but do not clear
+plot(10:1, axes = FALSE, lty = 2, ylab = "")  # overlay second plot
+axis(4)                     # add tic marks to right-hand axis
+title("Plot 1")
+close.screen(all = TRUE)    # exit split-screen mode
+}
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>graphics</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

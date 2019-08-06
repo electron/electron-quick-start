@@ -1,3 +1,0 @@
-fluidPage(
-  textOutput("currentTime")
-)

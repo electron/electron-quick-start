@@ -1,0 +1,157 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Apply Functions Over Array Margins</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for apply {base}"><tr><td>apply {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Apply Functions Over Array Margins</h2>
+
+<h3>Description</h3>
+
+<p>Returns a vector or array or list of values obtained by applying a
+function to margins of an array or matrix.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+apply(X, MARGIN, FUN, ...)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>X</code></td>
+<td>
+<p>an array, including a matrix.</p>
+</td></tr>
+<tr valign="top"><td><code>MARGIN</code></td>
+<td>
+<p>a vector giving the subscripts which the function will
+be applied over.  E.g., for a matrix <code>1</code> indicates rows,
+<code>2</code> indicates columns, <code>c(1, 2)</code> indicates rows and
+columns. Where <code>X</code> has named dimnames, it can be a character
+vector selecting dimension names.</p>
+</td></tr>
+<tr valign="top"><td><code>FUN</code></td>
+<td>
+<p>the function to be applied: see &lsquo;Details&rsquo;.
+In the case of functions like <code>+</code>, <code>%*%</code>, etc., the
+function name must be backquoted or quoted.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>optional arguments to <code>FUN</code>.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>If <code>X</code> is not an array but an object of a class with a non-null
+<code><a href="dim.html">dim</a></code> value (such as a data frame), <code>apply</code> attempts
+to coerce it to an array via <code>as.matrix</code> if it is two-dimensional
+(e.g., a data frame) or via <code>as.array</code>.
+</p>
+<p><code>FUN</code> is found by a call to <code><a href="match.fun.html">match.fun</a></code> and typically
+is either a function or a symbol (e.g., a backquoted name) or a
+character string specifying a function to be searched for from the
+environment of the call to <code>apply</code>.
+</p>
+<p>Arguments in <code>...</code> cannot have the same name as any of the
+other arguments, and care may be needed to avoid partial matching to
+<code>MARGIN</code> or <code>FUN</code>.  In general-purpose code it is good
+practice to name the first three arguments if <code>...</code> is passed
+through: this both avoids partial matching to <code>MARGIN</code>
+or <code>FUN</code> and ensures that a sensible error message is given if
+arguments named <code>X</code>, <code>MARGIN</code> or <code>FUN</code> are passed
+through <code>...</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>If each call to <code>FUN</code> returns a vector of length <code>n</code>, then
+<code>apply</code> returns an array of dimension <code>c(n, dim(X)[MARGIN])</code>
+if <code>n &gt; 1</code>.  If <code>n</code> equals <code>1</code>, <code>apply</code> returns a
+vector if <code>MARGIN</code> has length 1 and an array of dimension
+<code>dim(X)[MARGIN]</code> otherwise.
+If <code>n</code> is <code>0</code>, the result has length 0 but not necessarily
+the &lsquo;correct&rsquo; dimension.
+</p>
+<p>If the calls to <code>FUN</code> return vectors of different lengths,
+<code>apply</code> returns a list of length <code>prod(dim(X)[MARGIN])</code> with
+<code>dim</code> set to <code>MARGIN</code> if this has length greater than one.
+</p>
+<p>In all cases the result is coerced by <code><a href="vector.html">as.vector</a></code> to one
+of the basic vector types before the dimensions are set, so that (for
+example) factor results will be coerced to a character array.
+</p>
+
+
+<h3>References</h3>
+
+<p>Becker, R. A., Chambers, J. M. and Wilks, A. R. (1988)
+<em>The New S Language</em>.
+Wadsworth &amp; Brooks/Cole.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="lapply.html">lapply</a></code> and there, <code><a href="lapply.html">simplify2array</a></code>;
+<code><a href="tapply.html">tapply</a></code>, and convenience functions
+<code><a href="sweep.html">sweep</a></code> and <code><a href="../../stats/html/aggregate.html">aggregate</a></code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Compute row and column sums for a matrix:
+x &lt;- cbind(x1 = 3, x2 = c(4:1, 2:5))
+dimnames(x)[[1]] &lt;- letters[1:8]
+apply(x, 2, mean, trim = .2)
+col.sums &lt;- apply(x, 2, sum)
+row.sums &lt;- apply(x, 1, sum)
+rbind(cbind(x, Rtot = row.sums), Ctot = c(col.sums, sum(col.sums)))
+
+stopifnot( apply(x, 2, is.vector))
+
+## Sort the columns of a matrix
+apply(x, 2, sort)
+
+## keeping named dimnames
+names(dimnames(x)) &lt;- c("row", "col")
+x3 &lt;- array(x, dim = c(dim(x),3),
+	    dimnames = c(dimnames(x), list(C = paste0("cop.",1:3))))
+identical(x,  apply( x,  2,  identity))
+identical(x3, apply(x3, 2:3, identity))
+
+##- function with extra args:
+cave &lt;- function(x, c1, c2) c(mean(x[c1]), mean(x[c2]))
+apply(x, 1, cave,  c1 = "x1", c2 = c("x1","x2"))
+
+ma &lt;- matrix(c(1:4, 1, 6:8), nrow = 2)
+ma
+apply(ma, 1, table)  #--&gt; a list of length 2
+apply(ma, 1, stats::quantile) # 5 x n matrix with rownames
+
+stopifnot(dim(ma) == dim(apply(ma, 1:2, sum)))
+
+## Example with different lengths for each call
+z &lt;- array(1:24, dim = 2:4)
+zseq &lt;- apply(z, 1:2, function(x) seq_len(max(x)))
+zseq         ## a 2 x 3 matrix
+typeof(zseq) ## list
+dim(zseq) ## 2 3
+zseq[1,]
+apply(z, 3, function(x) seq_len(max(x)))
+# a list without a dim attribute
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

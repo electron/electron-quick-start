@@ -1,0 +1,256 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Extract or List Tar Archives</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for untar {utils}"><tr><td>untar {utils}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>
+Extract or List Tar Archives
+</h2>
+
+<h3>Description</h3>
+
+<p>Extract files from or list the contents of a tar archive.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+untar(tarfile, files = NULL, list = FALSE, exdir = ".",
+      compressed = NA, extras = NULL, verbose = FALSE,
+      restore_times =  TRUE,
+      support_old_tars = Sys.getenv("R_SUPPORT_OLD_TARS", FALSE),
+      tar = Sys.getenv("TAR"))
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>tarfile</code></td>
+<td>
+<p>The pathname of the tar file: tilde expansion (see
+<code><a href="../../base/html/path.expand.html">path.expand</a></code>) will be performed.  Alternatively, a
+<a href="../../base/html/connections.html">connection</a> that can be used for binary reads.  For a
+<em>compressed</em> <code>tarfile</code>, and if a connection is to be used,
+that should be created by <code><a href="../../base/html/connections.html">gzfile</a>(.)</code> (or
+<code><a href="../../base/html/gzcon.html">gzcon</a>(.)</code> which currently only works for <code>"gzip"</code>,
+whereas <code>gzfile()</code> works for all compressions available in
+<code><a href="tar.html">tar</a>()</code>).</p>
+</td></tr>
+<tr valign="top"><td><code>files</code></td>
+<td>
+<p>A character vector of recorded filepaths to be extracted:
+the default is to extract all files.</p>
+</td></tr>
+<tr valign="top"><td><code>list</code></td>
+<td>
+<p>If <code>TRUE</code>, list the files (the equivalent of
+<code>tar -tf</code>).  Otherwise extract the files (the equivalent of
+<code>tar -xf</code>).</p>
+</td></tr>
+<tr valign="top"><td><code>exdir</code></td>
+<td>
+<p>The directory to extract files to (the equivalent of
+<code>tar -C</code>).  It will be created if necessary.</p>
+</td></tr>
+<tr valign="top"><td><code>compressed</code></td>
+<td>
+<p>(Deprecated in favour of auto-detection, used only
+for an external <code>tar</code> command.)  Logical or character
+string.  Values <code>"gzip"</code>, <code>"bzip2"</code> and <code>"xz"</code> select
+that form of compression (and may be abbreviated to the first
+letter).  <code>TRUE</code> indicates <code>gzip</code> compression,
+<code>FALSE</code> no known compression, and <code>NA</code> (the default)
+indicates that the type is to be inferred from the file header.
+</p>
+<p>The external command may ignore the selected compression type but
+detect a type automagically.
+</p>
+</td></tr>
+<tr valign="top"><td><code>extras</code></td>
+<td>
+<p><code>NULL</code> or a character string: further command-line
+flags such as <span class="option">-p</span> to be passed to an external <code>tar</code>
+program.</p>
+</td></tr>
+<tr valign="top"><td><code>verbose</code></td>
+<td>
+<p>logical: if true echo the command used for an external
+<code>tar</code> program.</p>
+</td></tr>
+<tr valign="top"><td><code>restore_times</code></td>
+<td>
+<p>logical.  If true (default) restore file
+modification times.  If false, the equivalent of the <span class="option">-m</span>
+flag.  Times in tarballs are supposed to be in UTC, but tarballs
+have been submitted to CRAN with times in the future or far past:
+this argument allows such times to be discarded.
+</p>
+<p>Note that file times in a tarball are stored with a resolution of 1
+second, and can only be restored to the resolution supported by the
+file system (which on a FAT system is 2 seconds).
+</p>
+</td></tr>
+</table>
+
+
+
+
+<table summary="R argblock">
+<tr valign="top"><td><code>support_old_tars</code></td>
+<td>
+<p>logical.  If false (the default), the external
+<code>tar</code> command is assumed to be able handle compressed
+tarfiles and if <code>compressed</code> does not specify it, to
+automagically detect the type of compression.  (The major
+implementations have done so since 2009; for GNU <code>tar</code> since
+version 1.22.)
+</p>
+<p>If true, the <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> code calls an appropriate decompressor and pipes
+the output to <code>tar</code>, for <code>compressed = NA</code> examining
+the tarfile header to determine the type of compression.
+</p>
+</td></tr>
+<tr valign="top"><td><code>tar</code></td>
+<td>
+<p>character string: the path to the command to be used or
+<code>"internal"</code>.  If the command itself contains spaces it needs
+to be quoted &ndash; but <code>tar</code> can also contain flags separated from
+the command by spaces.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>This is either a wrapper for a <code>tar</code> command or for an
+internal implementation written in <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>.  The latter is used if
+<code>tarfile</code> is a connection or if the argument <code>tar</code> is
+<code>"internal"</code> or <code>""</code> (except on Windows, when
+<code>tar.exe</code> is tried first).
+</p>
+<p>Unless otherwise stated three types of compression of the tar file are
+supported: <code>gzip</code>, <code>bzip2</code> and <code>xz</code>.
+</p>
+<p>What options are supported will depend on the <code>tar</code>
+implementation used: the <code>"internal"</code> one is intended to provide
+support for most in a platform-independent way.
+</p>
+
+<dl>
+<dt>GNU tar:</dt><dd><p>Modern GNU <code>tar</code> versions support
+compressed archives and since 1.15 are able to detect the type of
+compression automatically: version 1.22 added support for
+<code>xz</code> compression.
+</p>
+<p>On a Unix-alike, <code>configure</code> will set environment variable
+<span class="env">TAR</span>, preferring GNU tar if found.</p>
+</dd>
+</dl>
+
+<dl>
+<dt><code>bsdtar</code>:</dt><dd><p>macOS 10.6 and later (and FreeBSD and some
+other OSes) have a <code>tar</code>
+from the libarchive project which detects all three forms
+of compression automagically (even if undocumented in macOS).</p>
+</dd>
+<dt>NetBSD:</dt><dd><p>It is undocumented if NetBSD's <code>tar</code> can
+detect compression automagically: for versions before 8 the flag
+for <code>xz</code> compression was <span class="option">--xz</span> not <span class="option">-J</span>.
+So <code>support_old_tars = TRUE</code> is recommended (or use
+<code>bsdtar</code> if installed).</p>
+</dd>
+</dl>
+
+<dl>
+<dt>OpenBSD:</dt><dd><p>OpenBSD's <code>tar</code> does not detect compression
+automagically.  It has no support for <code>xz</code> beyond reporting
+that the file is <code>xz</code>-compressed.  So <code>support_old_tars
+	= TRUE</code> is recommended.</p>
+</dd>
+<dt>Heirloom Toolchest:</dt><dd><p>This <code>tar</code> does automagically
+detect <code>gzip</code> and <code>bzip2</code> compression (undocumented)
+but has no support for <code>xz</code> compression.</p>
+</dd>
+<dt>Older support:</dt><dd><p>Environment variable <span class="env">R_GZIPCMD</span> gives the
+command to decompress <code>gzip</code> files, and
+<span class="env">R_BZIPCMD</span> for <code>bzip2</code> files. (On Unix-alikes
+these are set at installation if found.)  <code>xz</code> is used if
+available: if not decompression is expected to fail.</p>
+</dd>
+</dl>
+
+<p>Arguments <code>compressed</code>, <code>extras</code> and <code>verbose</code> are only
+used when an external <code>tar</code> is used.
+</p>
+<p>Some external <code>tar</code> commands will detect some of
+<code>lrzip</code>, <code>lzma</code>, <code>lz4</code>, <code>lzop</code> and
+<code>zstd</code> compression in addition to <code>gzip</code>,
+<code>bzip2</code> and <code>xz</code>.  (For some external <code>tar</code>
+commands, compressed tarfiles can only be read if the appropriate
+utility program is available.)  For GNU <code>tar</code>, further
+(de)compression programs can be specified by e.g. <code>extras
+  = "-I lz4"</code>.  For <code>bsdtar</code> this could be <code>extras =
+  "--use-compress-program lz4"</code>.  Most commands will detect (the
+nowadays rarely seen) &lsquo;<span class="file">.tar.Z</span>&rsquo; archives compressed by
+<code>compress</code>.
+</p>
+<p>The internal implementation restores symbolic links as links on a
+Unix-alike, and as file copies on Windows (which works only for
+existing files, not for directories), and hard links as links.  If the
+linking operation fails (as it may on a FAT file system), a file copy
+is tried.  Since it uses <code><a href="../../base/html/connections.html">gzfile</a></code> to read a file it can
+handle files compressed by any of the methods that function can
+handle: at least <code>compress</code>, <code>gzip</code>, <code>bzip2</code>
+and <code>xz</code> compression, and some types of <code>lzma</code>
+compression.  It does not guard against restoring absolute file paths,
+as some <code>tar</code> implementations do.  It will create the parent
+directories for directories or files in the archive if necessary.  It
+handles the USTAR/POSIX, GNU and <code>pax</code> ways of handling file
+paths of more than 100 bytes, and the GNU way of handling link targets
+of more than 100 bytes.
+</p>
+<p>You may see warnings from the internal implementation such
+as </p>
+<pre>    unsupported entry type 'x'</pre>
+<p>This often indicates an invalid archive: entry types <code>"A-Z"</code> are
+allowed as extensions, but other types are reserved.  The only thing
+you can do with such an archive is to find a <code>tar</code> program that
+handles it, and look carefully at the resulting files.  There may also
+be the warning </p>
+<pre>    using pax extended headers</pre>
+<p>This indicates that additional information may have been discarded,
+such as ACLs, encodings ....
+</p>
+<p>The former standards only supported ASCII filenames (indeed, only
+alphanumeric plus period, underscore and hyphen).  <code>untar</code> makes
+no attempt to map filenames to those acceptable on the current system,
+and treats the filenames in the archive as applicable without any
+re-encoding in the current locale.
+</p>
+<p>The internal implementation does not special-case &lsquo;resource
+forks&rsquo; in macOS: that system's <code>tar</code> command does. This may
+lead to unexpected files with names with prefix &lsquo;<span class="file">._</span>&rsquo;.
+</p>
+
+
+<h3>Value</h3>
+
+<p>If <code>list = TRUE</code>, a character vector of (relative or absolute)
+paths of files contained in the tar archive.
+</p>
+<p>Otherwise the return code from <code><a href="../../base/html/system.html">system</a></code> with an external
+<code>tar</code> or <code>0L</code>, invisibly.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="tar.html">tar</a></code>, <code><a href="unzip.html">unzip</a></code>.
+</p>
+
+<hr /><div style="text-align: center;">[Package <em>utils</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

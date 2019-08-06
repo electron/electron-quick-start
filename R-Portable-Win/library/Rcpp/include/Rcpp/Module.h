@@ -100,7 +100,7 @@ namespace Rcpp{
         typedef Rcpp::XPtr<Class> XP ;
 
         CppMethod() {}
-        virtual SEXP operator()(Class* object, SEXP* args) { return R_NilValue ; }
+        virtual SEXP operator()(Class* /*object*/, SEXP* /*args*/) { return R_NilValue ; }
         virtual ~CppMethod(){}
         virtual int nargs(){ return 0 ; }
         virtual bool is_void(){ return false ; }
@@ -453,8 +453,8 @@ static VARIABLE_IS_NOT_USED SEXP moduleSym = NULL;
 
 // this macro is called by code wanting to load a module -- see RInside's rinside_module_sample0.cpp
 #define LOAD_RCPP_MODULE(NAME) \
-    Shield<SEXP> __load_module_call__( Rf_lang2( GET_MODULE_SYM, _rcpp_module_boot_##NAME() ); \
-    Rcpp_eval(__load_module_call__), R_GlobalEnv );
+    Shield<SEXP> __load_module_call__( Rf_lang2( GET_MODULE_SYM, _rcpp_module_boot_##NAME() ) ); \
+    Rcpp_fast_eval( __load_module_call__, R_GlobalEnv );
 
 #endif
 

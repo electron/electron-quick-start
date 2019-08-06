@@ -15,7 +15,15 @@ fluidPage(
       hr(),
       actionButton('add', 'Add Row'),
       hr(),
-      textInput('cap', 'Table Caption')
+      textInput('cap', 'Table Caption'),
+      hr(),
+      actionButton('show1', 'Show Only First Column'),
+      actionButton('hide1', 'Hide Only Third Columns'),
+      actionButton('hide2', 'Hide First Two Columns'),
+      actionButton('show2', 'Show First Two Columns'),
+      actionButton('resetVis', 'Show All Columns'),
+      hr(),
+      actionButton('reverse', 'Reverse column order')
     ),
     mainPanel(
       DT::dataTableOutput('foo'),

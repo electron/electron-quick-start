@@ -1,0 +1,190 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Running Medians - Robust Scatter Plot Smoothing</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for runmed {stats}"><tr><td>runmed {stats}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Running Medians &ndash; Robust Scatter Plot Smoothing</h2>
+
+<h3>Description</h3>
+
+<p>Compute running medians of odd span.  This is the &lsquo;most robust&rsquo;
+scatter plot smoothing possible.  For efficiency (and historical
+reason), you can use one of two different algorithms giving identical
+results.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+runmed(x, k, endrule = c("median", "keep", "constant"),
+       algorithm = NULL, print.level = 0)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>numeric vector, the &lsquo;dependent&rsquo; variable to be
+smoothed.</p>
+</td></tr>
+<tr valign="top"><td><code>k</code></td>
+<td>
+<p>integer width of median window; must be odd.  Turlach had a
+default of <code>k &lt;- 1 + 2 * min((n-1)%/% 2, ceiling(0.1*n))</code>.
+Use <code>k = 3</code> for &lsquo;minimal&rsquo; robust smoothing eliminating
+isolated outliers.</p>
+</td></tr>
+<tr valign="top"><td><code>endrule</code></td>
+<td>
+<p>character string indicating how the values at the
+beginning and the end (of the data) should be treated.
+Can be abbreviated.  Possible values are:
+</p>
+
+<dl>
+<dt><code>"keep"</code></dt><dd><p>keeps the first and last <i>k2</i> values
+at both ends, where <i>k2</i> is the half-bandwidth
+<code>k2 = k %/% 2</code>,
+i.e., <code>y[j] = x[j]</code> for <i>j = 1, &hellip;, k2 and (n-k2+1), &hellip;, n</i>;</p>
+</dd>
+<dt><code>"constant"</code></dt><dd><p>copies <code>median(y[1:k2])</code> to the first
+values and analogously for the last ones making the smoothed ends
+<em>constant</em>;</p>
+</dd>
+<dt><code>"median"</code></dt><dd><p>the default, smooths the ends by using
+symmetrical medians of subsequently smaller bandwidth, but for
+the very first and last value where Tukey's robust end-point
+rule is applied, see <code><a href="smoothEnds.html">smoothEnds</a></code>.</p>
+</dd>
+</dl>
+
+</td></tr>
+<tr valign="top"><td><code>algorithm</code></td>
+<td>
+<p>character string (partially matching <code>"Turlach"</code> or
+<code>"Stuetzle"</code>) or the default <code>NULL</code>, specifying which algorithm
+should be applied.  The default choice depends on <code>n = length(x)</code>
+and <code>k</code> where <code>"Turlach"</code> will be used for larger problems.</p>
+</td></tr>
+<tr valign="top"><td><code>print.level</code></td>
+<td>
+<p>integer, indicating verboseness of algorithm;
+should rarely be changed by average users.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>Apart from the end values, the result <code>y = runmed(x, k)</code> simply has
+<code>y[j] = median(x[(j-k2):(j+k2)])</code> (<code>k = 2*k2+1</code>), computed very
+efficiently.
+</p>
+<p>The two algorithms are internally entirely different:
+</p>
+
+<dl>
+<dt><code>"Turlach"</code></dt><dd><p>is the Härdle&ndash;Steiger
+algorithm (see Ref.) as implemented by Berwin Turlach.
+A tree algorithm is used, ensuring performance <i>O(n * log(k))</i> where <code>n = length(x)</code> which is
+asymptotically optimal.</p>
+</dd>
+<dt><code>"Stuetzle"</code></dt><dd><p>is the (older) Stuetzle&ndash;Friedman implementation
+which makes use of median <em>updating</em> when one observation
+enters and one leaves the smoothing window.  While this performs as
+<i>O(n * k)</i> which is slower asymptotically, it is
+considerably faster for small <i>k</i> or <i>n</i>.</p>
+</dd>
+</dl>
+
+<p>Currently long vectors are only supported for <code>algorithm = "Stuetzle"</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>vector of smoothed values of the same length as <code>x</code> with an
+<code><a href="../../base/html/attr.html">attr</a></code>ibute <code>k</code> containing (the &lsquo;oddified&rsquo;)
+<code>k</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Martin Maechler <a href="mailto:maechler@stat.math.ethz.ch">maechler@stat.math.ethz.ch</a>,
+based on Fortran code from Werner Stuetzle and S-PLUS and C code from
+Berwin Turlach.
+</p>
+
+
+<h3>References</h3>
+
+<p>Härdle, W. and Steiger, W. (1995)
+Algorithm AS 296: Optimal median smoothing,
+<em>Applied Statistics</em> <b>44</b>, 258&ndash;264.
+doi: <a href="https://doi.org/10.2307/2986349">10.2307/2986349</a>.
+</p>
+<p>Jerome H. Friedman and Werner Stuetzle (1982)
+<em>Smoothing of Scatterplots</em>;
+Report, Dep. Statistics, Stanford U., Project Orion 003.
+</p>
+<p>Martin Maechler (2003)
+Fast Running Medians: Finite Sample and Asymptotic Optimality;
+working paper available from the author.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="smoothEnds.html">smoothEnds</a></code> which implements Tukey's end point rule and
+is called by default from <code>runmed(*, endrule = "median")</code>.
+<code><a href="smooth.html">smooth</a></code> uses running
+medians of 3 for its compound smoothers.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+require(graphics)
+
+utils::example(nhtemp)
+myNHT &lt;- as.vector(nhtemp)
+myNHT[20] &lt;- 2 * nhtemp[20]
+plot(myNHT, type = "b", ylim = c(48, 60), main = "Running Medians Example")
+lines(runmed(myNHT, 7), col = "red")
+
+## special: multiple y values for one x
+plot(cars, main = "'cars' data and runmed(dist, 3)")
+lines(cars, col = "light gray", type = "c")
+with(cars, lines(speed, runmed(dist, k = 3), col = 2))
+
+
+## nice quadratic with a few outliers
+y &lt;- ys &lt;- (-20:20)^2
+y [c(1,10,21,41)] &lt;- c(150, 30, 400, 450)
+all(y == runmed(y, 1)) # 1-neighbourhood &lt;==&gt; interpolation
+plot(y) ## lines(y, lwd = .1, col = "light gray")
+lines(lowess(seq(y), y, f = 0.3), col = "brown")
+lines(runmed(y, 7), lwd = 2, col = "blue")
+lines(runmed(y, 11), lwd = 2, col = "red")
+
+## Lowess is not robust
+y &lt;- ys ; y[21] &lt;- 6666 ; x &lt;- seq(y)
+col &lt;- c("black", "brown","blue")
+plot(y, col = col[1])
+lines(lowess(x, y, f = 0.3), col = col[2])
+
+
+lines(runmed(y, 7),      lwd = 2, col = col[3])
+legend(length(y),max(y), c("data", "lowess(y, f = 0.3)", "runmed(y, 7)"),
+       xjust = 1, col = col, lty = c(0, 1, 1), pch = c(1,NA,NA))
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>stats</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

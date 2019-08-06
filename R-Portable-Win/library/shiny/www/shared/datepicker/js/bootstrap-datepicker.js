@@ -529,7 +529,17 @@
 		},
 
 		_utc_to_local: function(utc){
-			return utc && new Date(utc.getTime() + (utc.getTimezoneOffset()*60000));
+
+			if (!utc) return utc;
+
+			var local = new Date(utc.getTime() + (utc.getTimezoneOffset() * 60000));
+
+			if (local.getTimezoneOffset() != utc.getTimezoneOffset())
+			{
+				local = new Date(utc.getTime() + (local.getTimezoneOffset() * 60000));
+			}
+
+			return utc && local;
 		},
 		_local_to_utc: function(local){
 			return local && new Date(local.getTime() - (local.getTimezoneOffset()*60000));
@@ -661,7 +671,7 @@
 				visualPadding = 10,
 				container = $(this.o.container),
 				windowWidth = container.width(),
-				scrollTop = this.o.container === 'body' ? $(document).scrollTop() : container.scrollTop(),
+				scrollTop = this.o.container === 'body:first' ? $(document).scrollTop() : container.scrollTop(),
 				appendOffset = container.offset();
 
 			var parentsZindex = [];
@@ -676,7 +686,7 @@
 			var left = offset.left - appendOffset.left,
 				top = offset.top - appendOffset.top;
 
-			if (this.o.container !== 'body') {
+			if (this.o.container !== 'body:first') {
 				top += scrollTop;
 			}
 
@@ -1756,7 +1766,7 @@
 		enableOnReadonly: true,
 		showOnFocus: true,
 		zIndexOffset: 10,
-		container: 'body',
+		container: 'body:first',
 		immediateUpdates: false,
 		title: '',
 		templates: {

@@ -2,7 +2,7 @@
 //
 // Vector.cpp: Rcpp R/C++ interface class library -- Vector unit tests
 //
-// Copyright (C) 2012 - 2015    Dirk Eddelbuettel and Romain Francois
+// Copyright (C) 2012 - 2018    Dirk Eddelbuettel and Romain Francois
 //
 // This file is part of Rcpp.
 //
@@ -847,4 +847,42 @@ String vec_print_integer(IntegerVector v) {
 // [[Rcpp::export]]
 IntegerVector vec_subset(IntegerVector x, IntegerVector y) {
     return x[y - 1];
+}
+
+// [[Rcpp::export]]
+int CharacterVectorNoProtect(Vector<STRSXP, NoProtectStorage> s){
+    s[0] = "";
+    return s.size();
+}
+
+// [[Rcpp::export]]
+CharacterVector CharacterVectorNoProtect_crosspolicy(Vector<STRSXP, NoProtectStorage> s){
+    CharacterVector s2(1) ;
+    s2[0] = s[0];
+    return s;
+}
+
+// [[Rcpp::export]]
+List ListNoProtect_crosspolicy(Vector<VECSXP, NoProtectStorage> data){
+    List data2(1) ;
+    data2[0] = data[0];
+    return data2;
+}
+
+// [[Rcpp::export]]
+bool CharacterVector_test_equality(CharacterVector x, CharacterVector y) {
+    if (x.length() != y.length()) {
+        return false;
+    }
+
+    return std::equal(x.begin(), x.end(), y.begin());
+}
+
+// [[Rcpp::export]]
+bool CharacterVector_test_equality_crosspolicy(CharacterVector x, Vector<STRSXP,NoProtectStorage> y) {
+    if (x.length() != y.length()) {
+        return false;
+    }
+
+    return std::equal(x.begin(), x.end(), y.begin());
 }

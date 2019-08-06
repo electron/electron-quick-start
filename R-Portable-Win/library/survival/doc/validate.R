@@ -38,7 +38,7 @@ for (i in 1:6) {
     iter[i,] <- breslow1(beta)
     beta <- beta + iter[i,"U"]/iter[i,"H"]
 }
-iter
+print(iter, digits=10)
 
 # coxph fits
 test1 <- data.frame(time=  c(1, 1, 6, 6, 8, 9),

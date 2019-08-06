@@ -1,0 +1,69 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Monthly Airline Passenger Numbers 1949-1960</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for AirPassengers {datasets}"><tr><td>AirPassengers {datasets}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Monthly Airline Passenger Numbers 1949-1960</h2>
+
+<h3>Description</h3>
+
+<p>The classic Box &amp; Jenkins airline data.  Monthly totals of
+international airline passengers, 1949 to 1960.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>AirPassengers</pre>
+
+
+<h3>Format</h3>
+
+<p>A monthly time series, in thousands.
+</p>
+
+
+<h3>Source</h3>
+
+<p>Box, G. E. P., Jenkins, G. M. and Reinsel, G. C. (1976)
+<em>Time Series Analysis, Forecasting and Control.</em>
+Third Edition. Holden-Day. Series G.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Not run: 
+## These are quite slow and so not run by example(AirPassengers)
+
+## The classic 'airline model', by full ML
+(fit &lt;- arima(log10(AirPassengers), c(0, 1, 1),
+              seasonal = list(order = c(0, 1, 1), period = 12)))
+update(fit, method = "CSS")
+update(fit, x = window(log10(AirPassengers), start = 1954))
+pred &lt;- predict(fit, n.ahead = 24)
+tl &lt;- pred$pred - 1.96 * pred$se
+tu &lt;- pred$pred + 1.96 * pred$se
+ts.plot(AirPassengers, 10^tl, 10^tu, log = "y", lty = c(1, 2, 2))
+
+## full ML fit is the same if the series is reversed, CSS fit is not
+ap0 &lt;- rev(log10(AirPassengers))
+attributes(ap0) &lt;- attributes(AirPassengers)
+arima(ap0, c(0, 1, 1), seasonal = list(order = c(0, 1, 1), period = 12))
+arima(ap0, c(0, 1, 1), seasonal = list(order = c(0, 1, 1), period = 12),
+      method = "CSS")
+
+## Structural Time Series
+ap &lt;- log10(AirPassengers) - 2
+(fit &lt;- StructTS(ap, type = "BSM"))
+par(mfrow = c(1, 2))
+plot(cbind(ap, fitted(fit)), plot.type = "single")
+plot(cbind(ap, tsSmooth(fit)), plot.type = "single")
+
+## End(Not run)</pre>
+
+<hr /><div style="text-align: center;">[Package <em>datasets</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

@@ -1,0 +1,158 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Approximate String Distances</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for adist {utils}"><tr><td>adist {utils}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Approximate String Distances</h2>
+
+<h3>Description</h3>
+
+<p>Compute the approximate string distance between character vectors.
+The distance is a generalized Levenshtein (edit) distance, giving the
+minimal possibly weighted number of insertions, deletions and
+substitutions needed to transform one string into another.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+adist(x, y = NULL, costs = NULL, counts = FALSE, fixed = TRUE,
+      partial = !fixed, ignore.case = FALSE, useBytes = FALSE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>a character vector.  <a href="../../base/html/LongVectors.html">Long vectors</a> are not supported.</p>
+</td></tr>
+<tr valign="top"><td><code>y</code></td>
+<td>
+<p>a character vector, or <code>NULL</code> (default) indicating
+taking <code>x</code> as <code>y</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>costs</code></td>
+<td>
+<p>a numeric vector or list with names partially matching
+<span class="samp">insertions</span>, <span class="samp">deletions</span> and <span class="samp">substitutions</span> giving
+the respective costs for computing the Levenshtein distance, or
+<code>NULL</code> (default) indicating using unit cost for all three
+possible transformations.</p>
+</td></tr>
+<tr valign="top"><td><code>counts</code></td>
+<td>
+<p>a logical indicating whether to optionally return the
+transformation counts (numbers of insertions, deletions and
+substitutions) as the <code>"counts"</code> attribute of the return
+value.</p>
+</td></tr>
+<tr valign="top"><td><code>fixed</code></td>
+<td>
+<p>a logical.  If <code>TRUE</code> (default), the <code>x</code>
+elements are used as string literals.  Otherwise, they are taken as
+regular expressions and <code>partial = TRUE</code> is implied
+(corresponding to the approximate string distance used by
+<code><a href="../../base/html/agrep.html">agrep</a></code> with <code>fixed = FALSE</code>).</p>
+</td></tr>
+<tr valign="top"><td><code>partial</code></td>
+<td>
+<p>a logical indicating whether the transformed <code>x</code>
+elements must exactly match the complete <code>y</code> elements, or only
+substrings of these.  The latter corresponds to the approximate
+string distance used by <code><a href="../../base/html/agrep.html">agrep</a></code> (by default).</p>
+</td></tr>
+<tr valign="top"><td><code>ignore.case</code></td>
+<td>
+<p>a logical.  If <code>TRUE</code>, case is ignored for
+computing the distances.</p>
+</td></tr>
+<tr valign="top"><td><code>useBytes</code></td>
+<td>
+<p>a logical.  If <code>TRUE</code> distance computations are
+done byte-by-byte rather than character-by-character.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>The (generalized) Levenshtein (or edit) distance between two strings
+<var>s</var> and <var>t</var> is the minimal possibly weighted number of
+insertions, deletions and substitutions needed to transform <var>s</var>
+into <var>t</var> (so that the transformation exactly matches <var>t</var>).
+This distance is computed for <code>partial = FALSE</code>, currently using
+a dynamic programming algorithm (see, e.g.,
+<a href="https://en.wikipedia.org/wiki/Levenshtein_distance">https://en.wikipedia.org/wiki/Levenshtein_distance</a>) with space
+and time complexity <i>O(mn)</i>, where <i>m</i> and <i>n</i> are the
+lengths of <var>s</var> and <var>t</var>, respectively.  Additionally computing
+the transformation sequence and counts is <i>O(\max(m, n))</i>.
+</p>
+<p>The generalized Levenshtein distance can also be used for approximate
+(fuzzy) string matching, in which case one finds the substring of
+<var>t</var> with minimal distance to the pattern <var>s</var> (which could be
+taken as a regular expression, in which case the principle of using
+the leftmost and longest match applies), see, e.g.,
+<a href="https://en.wikipedia.org/wiki/Approximate_string_matching">https://en.wikipedia.org/wiki/Approximate_string_matching</a>.  This
+distance is computed for <code>partial = TRUE</code> using <span class="samp">tre</span> by
+Ville Laurikari (<a href="http://laurikari.net/tre/">http://laurikari.net/tre/</a>) and
+corresponds to the distance used by <code><a href="../../base/html/agrep.html">agrep</a></code>.  In this
+case, the given cost values are coerced to integer.
+</p>
+<p>Note that the costs for insertions and deletions can be different, in
+which case the distance between <var>s</var> and <var>t</var> can be different
+from the distance between <var>t</var> and <var>s</var>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A matrix with the approximate string distances of the elements of
+<code>x</code> and <code>y</code>, with rows and columns corresponding to <code>x</code>
+and <code>y</code>, respectively.
+</p>
+<p>If <code>counts</code> is <code>TRUE</code>, the transformation counts are
+returned as the <code>"counts"</code> attribute of this matrix, as a
+3-dimensional array with dimensions corresponding to the elements of
+<code>x</code>, the elements of <code>y</code>, and the type of transformation
+(insertions, deletions and substitutions), respectively.
+Additionally, if <code>partial = FALSE</code>, the transformation sequences
+are returned as the <code>"trafos"</code> attribute of the return value, as
+character strings with elements <span class="samp">M</span>, <span class="samp">I</span>, <span class="samp">D</span> and
+<span class="samp">S</span> indicating a match, insertion, deletion and substitution,
+respectively.  If <code>partial = TRUE</code>, the offsets (positions of
+the first and last element) of the matched substrings are returned as
+the <code>"offsets"</code> attribute of the return value (with both offsets
+<i>-1</i> in case of no match).
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="../../base/html/agrep.html">agrep</a></code> for approximate string matching (fuzzy matching)
+using the generalized Levenshtein distance.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Cf. https://en.wikipedia.org/wiki/Levenshtein_distance
+adist("kitten", "sitting")
+## To see the transformation counts for the Levenshtein distance:
+drop(attr(adist("kitten", "sitting", counts = TRUE), "counts"))
+## To see the transformation sequences:
+attr(adist(c("kitten", "sitting"), counts = TRUE), "trafos")
+
+## Cf. the examples for agrep:
+adist("lasy", "1 lazy 2")
+## For a "partial approximate match" (as used for agrep):
+adist("lasy", "1 lazy 2", partial = TRUE)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>utils</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

@@ -132,3 +132,17 @@ invisible(force(.GenericArgsEnv))
 invisible(force(.signalSimpleWarning))
 invisible(force(.handleSimpleError))
 invisible(force(.tryResumeInterrupt))
+
+local({
+    assignWrapped <- function(x, method, home, envir) {
+        method <- method                # force evaluation
+        home <- home                    # force evaluation
+        delayedAssign(x, get(method, envir = home), assign.env = envir)
+    }          
+    methods <- paste0(.S3_methods_table[, 1L], ".",
+                      .S3_methods_table[, 2L])
+    env <- .BaseNamespaceEnv
+    table <- env[[".__S3MethodsTable__."]]
+    for(m in methods)
+        assignWrapped(m, m, env, table)
+})

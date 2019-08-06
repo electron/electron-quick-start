@@ -1,0 +1,233 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Convert Character Vector between Encodings</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for iconv {base}"><tr><td>iconv {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Convert Character Vector between Encodings</h2>
+
+<h3>Description</h3>
+
+<p>This uses system facilities to convert a character vector between
+encodings: the &lsquo;i&rsquo; stands for &lsquo;internationalization&rsquo;.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+iconv(x, from = "", to = "", sub = NA, mark = TRUE, toRaw = FALSE)
+
+iconvlist()
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>A character vector, or an object to be converted to a character
+vector by <code><a href="character.html">as.character</a></code>, or a list with <code>NULL</code> and
+<code>raw</code> elements as returned by <code>iconv(toRaw = TRUE)</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>from</code></td>
+<td>
+<p>A character string describing the current encoding.</p>
+</td></tr>
+<tr valign="top"><td><code>to</code></td>
+<td>
+<p>A character string describing the target encoding.</p>
+</td></tr>
+<tr valign="top"><td><code>sub</code></td>
+<td>
+<p>character string.  If not <code>NA</code> it is used to replace
+any non-convertible bytes in the input.  (This would normally be a
+single character, but can be more.)  If <code>"byte"</code>, the indication is
+<code>"&lt;xx&gt;"</code> with the hex code of the byte.</p>
+</td></tr>
+<tr valign="top"><td><code>mark</code></td>
+<td>
+<p>logical, for expert use.  Should encodings be marked?</p>
+</td></tr>
+<tr valign="top"><td><code>toRaw</code></td>
+<td>
+<p>logical.  Should a list of raw vectors be returned rather
+than a character vector?</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>The names of encodings and which ones are available are
+platform-dependent.  All <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> platforms support <code>""</code> (for the
+encoding of the current locale), <code>"latin1"</code> and <code>"UTF-8"</code>.
+Generally case is ignored when specifying an encoding.
+</p>
+<p>On most platforms <code>iconvlist</code> provides an alphabetical list of
+the supported encodings.  On others, the information is on the man
+page for <code>iconv(5)</code> or elsewhere in the man pages (but beware
+that the system command <code>iconv</code> may not support the same set of
+encodings as the C functions <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> calls).  Unfortunately, the names are
+rarely supported across all platforms.
+</p>
+<p>Elements of <code>x</code> which cannot be converted (perhaps because they
+are invalid or because they cannot be represented in the target
+encoding) will be returned as <code>NA</code> unless <code>sub</code> is specified.
+</p>
+<p>Most versions of <code>iconv</code> will allow transliteration by appending
+<span class="samp">//TRANSLIT</span> to the <code>to</code> encoding: see the examples.
+</p>
+<p>Encoding <code>"ASCII"</code> is accepted, and on most systems <code>"C"</code>
+and <code>"POSIX"</code> are synonyms for ASCII.
+</p>
+<p>Any encoding bits (see <code><a href="Encoding.html">Encoding</a></code>) on elements of <code>x</code>
+are ignored: they will always be translated as if from encoding
+<code>from</code> even if declared otherwise.  <code><a href="Encoding.html">enc2native</a></code> and
+<code><a href="Encoding.html">enc2utf8</a></code> provide alternatives which do take declared
+encodings into account.
+</p>
+<p>Note that implementations of <code>iconv</code> typically do not do much
+validity checking and will often mis-convert inputs which are invalid
+in encoding <code>from</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>If <code>toRaw = FALSE</code> (the default), the value is a character vector
+of the same length and the same attributes as <code>x</code> (after
+conversion to a character vector).
+</p>
+<p>If <code>mark = TRUE</code> (the default) the elements of the result have a
+declared encoding if <code>to</code> is <code>"latin1"</code> or <code>"UTF-8"</code>,
+or if <code>to = ""</code> and the current locale's encoding is detected as
+Latin-1 (or its superset CP1252 on Windows) or UTF-8.
+</p>
+<p>If <code>toRaw = TRUE</code>, the value is a list of the same length and
+the same attributes as <code>x</code> whose elements are either <code>NULL</code>
+(if conversion fails) or a raw vector.
+</p>
+<p>For <code>iconvlist()</code>, a character vector (typically of a few hundred
+elements) of known encoding names.
+</p>
+
+
+<h3>Implementation Details</h3>
+
+<p>There are three main implementations of <code>iconv</code> in use.
+Linux's C runtime <span class="samp">glibc</span> contains one.  Several platforms
+supply GNU <span class="samp">libiconv</span>, including macOS, FreeBSD and Cygwin, in
+some cases with additional encodings.  On Windows we use a version of
+Yukihiro Nakadaira's <span class="samp">win_iconv</span>, which is based on Windows'
+codepages.  (We have added many encoding names for compatibility
+with other systems.)  All three have <code>iconvlist</code>, ignore case in
+encoding names and support <span class="samp">//TRANSLIT</span> (but with different
+results, and for <span class="samp">win_iconv</span> currently a &lsquo;best fit&rsquo;
+strategy is used except for <code>to = "ASCII"</code>).
+</p>
+<p>Most commercial Unixes contain an implemetation of <code>iconv</code> but
+none we have encountered have supported the encoding names we need:
+the &ldquo;R Installation and Administration Manual&rdquo; recommends
+installing GNU <span class="samp">libiconv</span> on Solaris and AIX, for example.
+</p>
+<p>There are other implementations, e.g.  NetBSD has used one from the
+Citrus project (which does not support <span class="samp">//TRANSLIT</span>) and there is
+an older FreeBSD port (<span class="samp">libiconv</span> is usually used there): it has
+not been reported whether or not these work with <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>.
+</p>
+<p>Note that you cannot rely on invalid inputs being detected, especially
+for <code>to = "ASCII"</code> where some implementations allow 8-bit
+characters and pass them through unchanged or with transliteration.
+</p>
+<p>Some of the implementations have interesting extra encodings: for
+example GNU <span class="samp">libiconv</span> allows <code>to = "C99"</code> to use
+<span class="samp">\uxxxx</span> escapes for non-ASCII characters.
+</p>
+
+
+<h3>Byte Order Marks</h3>
+
+<p>most commonly known as &lsquo;BOMs&rsquo;.
+</p>
+<p>Encodings using character units which are more than one byte in size
+can be written on a file in either big-endian or little-endian order:
+this applies most commonly to UCS-2, UTF-16 and UTF-32/UCS-4
+encodings.  Some systems will write the Unicode character
+<code>U+FEFF</code> at the beginning of a file in these encodings and
+perhaps also in UTF-8.  In that usage the character is known as a BOM,
+and should be handled during input (see the &lsquo;Encodings&rsquo; section
+under <code><a href="connections.html">connection</a></code>: re-encoded connections have some
+special handling of BOMs).  The rest of this section applies when this
+has not been done so <code>x</code> starts with a BOM.
+</p>
+<p>Implementations will generally interpret a BOM for <code>from</code> given
+as one of <code>"UCS-2"</code>, <code>"UTF-16"</code> and
+<code>"UTF-32"</code>.  Implementations differ in how they treat BOMs in
+<code>x</code> in other <code>from</code> encodings: they may be discarded,
+returned as character <code>U+FEFF</code> or regarded as invalid.
+</p>
+
+
+<h3>Note</h3>
+
+<p>The only reasonably portable name for the ISO 8859-15 encoding,
+commonly known as &lsquo;Latin 9&rsquo;, is <code>"latin-9"</code>: some
+platforms support <code>"latin9"</code> but GNU <span class="samp">libiconv</span> does not.
+</p>
+<p>Encoding names <code>"utf8"</code>, <code>"mac"</code> and <code>"macroman"</code> are
+not portable.  <code>"utf8"</code> is converted to <code>"UTF-8"</code> for
+<code>from</code> and <code>to</code> by <code>iconv</code>, but not
+for e.g. <code>fileEncoding</code> arguments.  <code>"macintosh"</code> is
+the official (and most widely supported) name for &lsquo;Mac Roman&rsquo;
+(<a href="https://en.wikipedia.org/wiki/Mac_OS_Roman">https://en.wikipedia.org/wiki/Mac_OS_Roman</a>).
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="../../utils/html/localeToCharset.html">localeToCharset</a></code>, <code><a href="connections.html">file</a></code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## In principle, as not all systems have iconvlist
+try(utils::head(iconvlist(), n = 50))
+
+## Not run: 
+## convert from Latin-2 to UTF-8: two of the glibc iconv variants.
+iconv(x, "ISO_8859-2", "UTF-8")
+iconv(x, "LATIN2", "UTF-8")
+
+## End(Not run)
+
+## Both x below are in latin1 and will only display correctly in a
+## locale that can represent and display latin1.
+x &lt;- "fa\xE7ile"
+Encoding(x) &lt;- "latin1"
+x
+charToRaw(xx &lt;- iconv(x, "latin1", "UTF-8"))
+xx
+
+iconv(x, "latin1", "ASCII")          #   NA
+iconv(x, "latin1", "ASCII", "?")     # "fa?ile"
+iconv(x, "latin1", "ASCII", "")      # "faile"
+iconv(x, "latin1", "ASCII", "byte")  # "fa&lt;e7&gt;ile"
+
+## Extracts from old R help files (they are nowadays in UTF-8)
+x &lt;- c("Ekstr\xf8m", "J\xf6reskog", "bi\xdfchen Z\xfcrcher")
+Encoding(x) &lt;- "latin1"
+x
+try(iconv(x, "latin1", "ASCII//TRANSLIT"))  # platform-dependent
+iconv(x, "latin1", "ASCII", sub = "byte")
+## and for Windows' 'Unicode'
+str(xx &lt;- iconv(x, "latin1", "UTF-16LE", toRaw = TRUE))
+iconv(xx, "UTF-16LE", "UTF-8")
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

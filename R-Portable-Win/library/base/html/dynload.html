@@ -1,0 +1,280 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Foreign Function Interface</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for dyn.load {base}"><tr><td>dyn.load {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Foreign Function Interface</h2>
+
+<h3>Description</h3>
+
+<p>Load or unload DLLs (also known as shared objects), and test whether a
+C function or Fortran subroutine is available.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+dyn.load(x, local = TRUE, now = TRUE, ...)
+dyn.unload(x)
+
+is.loaded(symbol, PACKAGE = "", type = "")
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>a character string giving the pathname to a DLL, also known
+as a dynamic shared object.  (See &lsquo;Details&rsquo; for what these
+terms mean.)</p>
+</td></tr>
+<tr valign="top"><td><code>local</code></td>
+<td>
+<p>a logical value controlling whether the symbols in the
+DLL are stored in their own local table and not shared
+across DLLs, or added to the global symbol table.  Whether this has
+any effect is system-dependent.
+It is ignored on Windows.
+</p>
+</td></tr>
+<tr valign="top"><td><code>now</code></td>
+<td>
+<p>a logical controlling whether all symbols are resolved (and
+relocated) immediately the library is loaded or deferred until they
+are used.  This control is useful for developers testing whether a
+library is complete and has all the necessary symbols, and for users
+to ignore missing symbols.  Whether this has any effect is system-dependent.
+It is ignored on Windows.
+</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>other arguments for future expansion.
+See section &lsquo;Windows&rsquo; below.
+</p>
+</td></tr>
+<tr valign="top"><td><code>symbol</code></td>
+<td>
+<p>a character string giving a symbol name.</p>
+</td></tr>
+<tr valign="top"><td><code>PACKAGE</code></td>
+<td>
+<p>if supplied, confine the search for the <code>name</code> to
+the DLL given by this argument (plus the conventional extension,
+&lsquo;<span class="file">.so</span>&rsquo;, &lsquo;<span class="file">.sl</span>&rsquo;, &lsquo;<span class="file">.dll</span>&rsquo;, ...).  This is intended to
+add safety for packages, which can ensure by using this argument
+that no other package can override their external symbols.  This is
+used in the same way as in <code><a href="Foreign.html">.C</a></code>, <code><a href="CallExternal.html">.Call</a></code>,
+<code><a href="Foreign.html">.Fortran</a></code> and <code><a href="CallExternal.html">.External</a></code> functions.</p>
+</td></tr>
+<tr valign="top"><td><code>type</code></td>
+<td>
+<p>The type of symbol to look for: can be any (<code>""</code>, the
+default), <code>"Fortran"</code>, <code>"Call"</code> or <code>"External"</code>.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>The objects <code>dyn.load</code> loads are called &lsquo;dynamically
+loadable libraries&rsquo; (abbreviated to &lsquo;DLL&rsquo;) on all platforms
+except macOS, which uses the term for a different sort
+of object.  On Unix-alikes they are also called &lsquo;dynamic
+shared objects&rsquo; (&lsquo;DSO&rsquo;), or &lsquo;shared objects&rsquo; for
+short.  (The POSIX standards use &lsquo;executable object file&rsquo;,
+but no one else does.)
+</p>
+<p>See &lsquo;See Also&rsquo; and the &lsquo;Writing R Extensions&rsquo; and
+&lsquo;R Installation and Administration&rsquo; manuals for how to create
+and install a suitable DLL.
+</p>
+<p>Unfortunately a very few platforms (e.g., Compaq Tru64) do not handle
+the <code>PACKAGE</code> argument correctly, and may incorrectly find
+symbols linked into <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>.
+</p>
+<p>The additional arguments to <code>dyn.load</code> mirror the different
+aspects of the mode argument to the <code>dlopen()</code> routine on POSIX
+systems.  They are available so that users can exercise greater control
+over the loading process for an individual library.  In general, the
+default values are appropriate and you should override them only if
+there is good reason and you understand the implications.
+</p>
+<p>External code must not change the floating point control word, but
+many DLLs do so.  Common changes are to set it to use 53 bit
+precision instead of R's default 64 bit precision, or to unmask
+some exceptions.  <code>dyn.load</code> detects such changes,
+and restores R's control word to its default value of hex 8001F.
+This may cause the DLL to malfunction; if so, it should be rewritten
+to save and restore the control word itself.  If <code>warn.FPU</code>
+is set to <code>TRUE</code> using the <code><a href="options.html">options</a></code> function,
+a warning will be printed.  (If the warning says
+that the control word was changed from some other value than 8001F,
+please report the circumstances to the Windows maintainers:
+that probably indicates an internal bug.)
+</p>
+
+
+<h3>Value</h3>
+
+<p>The function <code>dyn.load</code> is used for its side effect which links
+the specified DLL to the executing <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> image.  Calls to <code>.C</code>,
+<code>.Call</code>, <code>.Fortran</code> and <code>.External</code> can then be used to
+execute compiled C functions or Fortran subroutines contained in the
+library.  The return value of <code>dyn.load</code> is an object of class
+<code>DLLInfo</code>.  See <code><a href="getLoadedDLLs.html">getLoadedDLLs</a></code> for information about
+this class.
+</p>
+<p>The function <code>dyn.unload</code> unlinks the DLL.  Note that unloading a
+DLL and then re-loading a DLL of the same name may or may not work: on
+Solaris it uses the first version loaded. Note also that some DLLs cannot
+be safely unloaded at all: unloading a DLL which implements C finalizers
+but does not unregister them on unload causes R to crash.
+</p>
+<p><code>is.loaded</code> checks if the symbol name is loaded <em>and
+searchable</em> and hence available for use as a character string value
+for argument <code>.NAME</code> in <code>.C</code> or <code>.Fortran</code> or
+<code>.Call</code> or <code>.External</code>.  It will succeed if any one of the
+four calling functions would succeed in using the entry point unless
+<code>type</code> is specified.  (See <code><a href="Foreign.html">.Fortran</a></code> for how Fortran
+symbols are mapped.)  Note that symbols in base packages are not
+searchable, and other packages can be so marked.
+</p>
+
+
+<h3>Windows</h3>
+
+<p>The &lsquo;standard mechanisms for loading DLLs&rsquo; include a
+search order for where a DLL is found (if not given as an absolute
+path, which is preferred), <em>and</em> of where its dependent DLLs will
+be found.  This search path depends on the version of Windows and its
+security settings, but for versions since Windows XP SP1 it is
+</p>
+
+<ul>
+<li><p> The directory from which the application was launched.
+</p>
+</li>
+<li><p> The various system directories,
+e.g. &lsquo;<span class="file">c:/Windows/system32</span>&rsquo;, &lsquo;<span class="file">c:/Windows/system</span>&rsquo; and
+&lsquo;<span class="file">c:/Windows</span>&rsquo;.
+</p>
+</li>
+<li><p> The current directory.
+</p>
+</li>
+<li><p> Along the search path for executables given by the environment
+variable <span class="env">PATH</span>.
+</p>
+</li></ul>
+
+<p>Packages often want to supply dependent DLLs in their &lsquo;<span class="file">libs</span>&rsquo;
+directory, and do this by setting the <span class="env">PATH</span> variable
+(<code><a href="library.dynam.html">library.dynam</a></code> does that automatically in recent
+versions of <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>), but the DLL search order means that DLLs in the
+launch directory and in system directories will be preferred.  On
+Windows XP SP1 and later there is a way to modify the search order.
+If argument <code>DLLpath</code> is supplied to <code>dyn.load</code>, the latter
+makes use of the Windows system call <code>SetDllDirectory</code> to insert
+the value of <code>DLLpath</code> in second place, and removes the current
+directory, for the duration of that <code>dyn.load</code> call.  (Note that
+only one directory can be inserted in this way.)
+</p>
+<p>Users have been confused by messages like
+</p>
+<pre>
+ error: unable to load shared object
+ '.../library/rJava/libs/x64/rJava.dll':
+ LoadLibrary failure:  The specified module could not be found.
+</pre>
+<p>The final line is a Windows (not <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>) diagnostic: the &lsquo;module&rsquo;
+that could not be found is not &lsquo;<span class="file">rJava.dll</span>&rsquo; but something else
+Windows is looking for (here most likely Java DLLs): if you are lucky
+there will be a dialog box with more details.
+</p>
+
+
+<h3>Warning</h3>
+
+<p>Do not use <code>dyn.unload</code> on a DLL loaded by
+<code><a href="library.dynam.html">library.dynam</a></code>: use <code><a href="library.dynam.html">library.dynam.unload</a></code>.
+This is needed for system housekeeping.
+</p>
+
+
+<h3>Note</h3>
+
+<p><code>is.loaded</code> requires the name you would give to <code>.C</code> etc
+and <strong>not</strong> (as in S) that remapped by the defunct functions
+<code>symbol.C</code> or <code>symbol.For</code>.
+</p>
+<p>By default, the maximum number of DLLs that can be loaded is now 614
+when the OS limit on the number of open files allows or can be
+increased, but less otherwise (but it will be at least 100).  A
+specific maximum can be requested <em>via</em> the environment variable
+<span class="env">R_MAX_NUM_DLLS</span>, which has to be set (to a value between 100 and
+1000 inclusive) before starting an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> session.  If the OS limit on
+the number of open files does not allow using this maximum and cannot
+be increased, <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> will fail to start with an error.  The maximum is not
+allowed to be greater than 60% of the OS limit on the number of open
+files (essentially unlimited on Windows, on Unix typically 1024, but
+256 on macOS).  The limit can sometimes (including on macOS) be
+modified using command <code>ulimit -n</code> (<code>sh</code>,
+<code>bash</code>) or <code>limit descriptors</code> (<code>csh</code>) in the
+shell used to launch <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>.  Increasing <span class="env">R_MAX_NUM_DLLS</span> comes with
+some memory overhead.
+</p>
+<p>If the OS limit on the number of open files cannot be determined, the
+DLL limit is 100 and cannot be changed <em>via</em> <span class="env">R_MAX_NUM_DLLS</span>.
+</p>
+<p>The creation of DLLs and the runtime linking of them into executing
+programs is very platform dependent.  In recent years there has been
+some simplification in the process because the C subroutine call
+<code>dlopen</code> has become the POSIX standard for doing this.  Under
+Unix-alikes <code>dyn.load</code> uses the <code>dlopen</code> mechanism and
+should work on all platforms which support it.  On Windows it uses the
+standard mechanism (<code>LoadLibrary</code>) for loading DLLs.
+</p>
+<p>The original code for loading DLLs in Unix-alikes was provided by
+Heiner Schwarte.
+</p>
+
+
+<h3>References</h3>
+
+<p>Becker, R. A., Chambers, J. M. and Wilks, A. R. (1988)
+<em>The New S Language</em>.
+Wadsworth &amp; Brooks/Cole.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="library.dynam.html">library.dynam</a></code> to be used inside a package's
+<code><a href="ns-hooks.html">.onLoad</a></code> initialization.
+</p>
+<p><code><a href="../../utils/html/SHLIB.html">SHLIB</a></code> for how to create suitable DLLs.
+</p>
+<p><code><a href="Foreign.html">.C</a></code>,
+<code><a href="Foreign.html">.Fortran</a></code>,
+<code><a href="CallExternal.html">.External</a></code>,
+<code><a href="CallExternal.html">.Call</a></code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## expect all of these to be false in R &gt;= 3.0.0.
+is.loaded("supsmu") # Fortran entry point in stats
+is.loaded("supsmu", "stats", "Fortran")
+is.loaded("PDF", type = "External") # pdf() device in grDevices
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

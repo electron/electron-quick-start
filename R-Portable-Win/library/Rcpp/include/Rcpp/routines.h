@@ -31,6 +31,8 @@ namespace Rcpp{
     namespace internal{
         unsigned long enterRNGScope();
         unsigned long exitRNGScope();
+        unsigned long beginSuspendRNGSynchronization();
+        unsigned long endSuspendRNGSynchronization();
         char* get_string_buffer();
         SEXP get_Rcpp_namespace();
     }
@@ -83,6 +85,18 @@ namespace Rcpp {
         inline attribute_hidden unsigned long exitRNGScope(){
             typedef unsigned long (*Fun)(void);
             static Fun fun = GET_CALLABLE("exitRNGScope");
+            return fun();
+        }
+
+        inline attribute_hidden unsigned long beginSuspendRNGSynchronization(){
+            typedef unsigned long (*Fun)(void);
+            static Fun fun = GET_CALLABLE("beginSuspendRNGSynchronization");
+            return fun();
+        }
+
+        inline attribute_hidden unsigned long endSuspendRNGSynchronization(){
+            typedef unsigned long (*Fun)(void);
+            static Fun fun = GET_CALLABLE("endSuspendRNGSynchronization");
             return fun();
         }
 

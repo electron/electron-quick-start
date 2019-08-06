@@ -1,0 +1,334 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Low-level Tcl/Tk Interface</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for TclInterface {tcltk}"><tr><td>TclInterface {tcltk}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Low-level Tcl/Tk Interface</h2>
+
+<h3>Description</h3>
+
+<p>These functions and variables provide the basic glue between <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> and the
+Tcl interpreter and Tk GUI toolkit. Tk
+windows may be represented via <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> objects. Tcl variables can be accessed
+via objects of class <code>tclVar</code> and the C level interface to Tcl
+objects is accessed via objects of class <code>tclObj</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+.Tcl(...)
+.Tcl.objv(objv)
+.Tcl.args(...)
+.Tcl.args.objv(...)
+.Tcl.callback(...)
+.Tk.ID(win)
+.Tk.newwin(ID)
+.Tk.subwin(parent)
+.TkRoot
+
+tkdestroy(win)
+is.tkwin(x)
+
+tclvalue(x)
+tclvalue(x) &lt;- value
+
+tclVar(init = "")
+## S3 method for class 'tclVar'
+as.character(x, ...)
+## S3 method for class 'tclVar'
+tclvalue(x)
+## S3 replacement method for class 'tclVar'
+tclvalue(x) &lt;- value
+
+tclArray()
+## S3 method for class 'tclArray'
+x[[...]]
+## S3 replacement method for class 'tclArray'
+x[[...]] &lt;- value
+## S3 method for class 'tclArray'
+x$i
+## S3 replacement method for class 'tclArray'
+x$i &lt;- value
+
+## S3 method for class 'tclArray'
+names(x)
+## S3 method for class 'tclArray'
+length(x)
+
+tclObj(x)
+tclObj(x) &lt;- value
+## S3 method for class 'tclVar'
+tclObj(x)
+## S3 replacement method for class 'tclVar'
+tclObj(x) &lt;- value
+
+as.tclObj(x, drop = FALSE)
+is.tclObj(x)
+
+## S3 method for class 'tclObj'
+as.character(x, ...)
+## S3 method for class 'tclObj'
+as.integer(x, ...)
+## S3 method for class 'tclObj'
+as.double(x, ...)
+## S3 method for class 'tclObj'
+as.logical(x, ...)
+## S3 method for class 'tclObj'
+as.raw(x, ...)
+## S3 method for class 'tclObj'
+tclvalue(x)
+
+## Default S3 method:
+tclvalue(x)
+## Default S3 replacement method:
+tclvalue(x) &lt;- value
+
+
+addTclPath(path = ".")
+tclRequire(package, warn = TRUE)
+tclVersion()
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>objv</code></td>
+<td>
+<p>a named vector of Tcl objects</p>
+</td></tr>
+<tr valign="top"><td><code>win</code></td>
+<td>
+<p>a window structure</p>
+</td></tr>
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>an object</p>
+</td></tr>
+<tr valign="top"><td><code>i</code></td>
+<td>
+<p>character or (unquoted) name</p>
+</td></tr>
+<tr valign="top"><td><code>drop</code></td>
+<td>
+<p>logical. Indicates whether a single-element vector should
+be made into a simple Tcl object or a list of length one</p>
+</td></tr>
+<tr valign="top"><td><code>value</code></td>
+<td>
+<p>For <code>tclvalue</code> assignments, a character string. For
+<code>tclObj</code> assignments, an object of class <code>tclObj</code></p>
+</td></tr>
+<tr valign="top"><td><code>ID</code></td>
+<td>
+<p>a window ID</p>
+</td></tr>
+<tr valign="top"><td><code>parent</code></td>
+<td>
+<p>a window which becomes the parent of the resulting window</p>
+</td></tr>
+<tr valign="top"><td><code>path</code></td>
+<td>
+<p>path to a directory containing Tcl packages</p>
+</td></tr>
+<tr valign="top"><td><code>package</code></td>
+<td>
+<p>a Tcl package name</p>
+</td></tr>
+<tr valign="top"><td><code>warn</code></td>
+<td>
+<p>logical. Warn if not found?</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>Additional arguments. See below.</p>
+</td></tr>
+<tr valign="top"><td><code>init</code></td>
+<td>
+<p>initialization value</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>Many of these functions are not intended for general use but are used
+internally by the commands that create and manipulate Tk widgets and
+Tcl objects.  At the lowest level <code>.Tcl</code> sends a command as a text
+string to the Tcl interpreter and returns the result as an object of
+class <code>tclObj</code> (see below).  A newer variant <code>.Tcl.objv</code>
+accepts arguments in the form of a named list of <code>tclObj</code>
+objects.
+</p>
+<p><code>.Tcl.args</code> converts an R argument list of <code>tag = value</code> pairs
+to the Tcl <code>-option value</code> style, thus
+enabling a simple translation between the two languages. To send a
+value with no preceding option flag to Tcl, just use an untagged
+argument. In the rare case one needs an option with no subsequent
+value <code>tag = NULL</code> can be used. Most values are just converted to
+character mode and inserted in the command string, but window objects
+are passed using their ID string, and callbacks are passed via the
+result of <code>.Tcl.callback</code>. Tags are converted to option flags
+simply by prepending a <code>-</code>
+</p>
+<p><code>.Tcl.args.objv</code> serves a similar purpose as <code>.Tcl.args</code> but
+produces a list of <code>tclObj</code> objects suitable for passing to
+<code>.Tcl.objv</code>. The names of the list are converted to Tcl option
+style internally by <code>.Tcl.objv</code>.
+</p>
+<p>Callbacks can be either <em>atomic callbacks</em> handled by
+<code>.Tcl.callback</code> or expressions. An expression is treated as a
+list of atomic callbacks, with the following exceptions: if an
+element is a name, it is first evaluated in the callers frame, and
+likewise if it is an explicit function definition; the <code>break</code>
+expression is translated directly to the Tcl counterpart.
+<code>.Tcl.callback</code> converts <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> functions and unevaluated calls to
+Tcl command strings.  The argument must be either a function closure
+or an object of mode <code>"call"</code> followed by an environment.  The
+return value in the first case is of the form <code>R_call
+  0x408b94d4</code> in which the hexadecimal number is the memory address of
+the function. In the second case it will be of the form
+<code>R_call_lang 0x8a95904 0x819bfd0</code>. For expressions, a sequence
+of similar items is generated, separated by
+semicolons. <code>.Tcl.args</code> takes special precautions to ensure
+that functions or calls will continue to exist at the specified
+address by assigning the
+callback into the relevant window environment (see below).
+</p>
+<p>Tk windows are represented as objects of class <code>tkwin</code> which are
+lists containing  a <code>ID</code> field and an <code>env</code> field which is
+an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> environments, enclosed in the global environment.  The value of
+the <code>ID</code> field is identical to the Tk window name. The <code>env</code>
+environment contains a <code>parent</code> variable and a <code>num.subwin</code>
+variable.  If the window obtains sub-windows and  callbacks, they are
+added as variables to the environment.   <code>.TkRoot</code> is the top
+window with ID &quot;.&quot;; this window is not  displayed in order to avoid
+ill effects of closing it via window  manager controls. The
+<code>parent</code> variable is undefined for <code>.TkRoot</code>.
+</p>
+<p><code>.Tk.ID</code> extracts the <code>ID</code> of a window,
+<code>.Tk.newwin</code> creates a new window environment with a given ID and
+<code>.Tk.subwin</code> creates a new window which is a sub-window of a given
+parent window.
+</p>
+<p><code>tkdestroy</code> destroys a window and also removes the reference to a
+window from its parent.
+</p>
+<p><code>is.tkwin</code> can be used to test whether a given object is a window
+environment.
+</p>
+<p><code>tclVar</code> creates a new Tcl variable and initializes it to
+<code>init</code>.  An R object of class <code>tclVar</code> is created to
+represent it.  Using <code>as.character</code> on the object returns the Tcl
+variable name.  Accessing the Tcl variable from R is done using the
+<code>tclvalue</code> function, which can also occur on the left-hand side of
+assignments.  If <code>tclvalue</code> is passed an argument which is not a
+<code>tclVar</code> object, then it will assume that it is a character string
+explicitly naming global Tcl variable. Tcl variables created by
+<code>tclVar</code> are uniquely named and automatically unset by the
+garbage collector when the representing object is no longer in use.
+</p>
+<p><code>tclArray</code> creates a new Tcl array and initializes it to the empty
+array.  An R object of class <code>tclArray</code> and inheriting from class
+<code>tclVar</code> is created to represent it. You can access elements of
+the Tcl array using indexing with <code>[[</code> or <code>$</code>, which also
+allow replacement forms.  Notice that Tcl arrays are associative by
+nature and hence unordered; indexing with a numeric index <code>i</code>
+refers to the element with the <em>name</em>
+<code>as.character(i)</code>.  Multiple indices are pasted together separated
+by commas to form a single name.  You can query the
+length and the set of names in an array using methods for
+<code>length</code> and <code>names</code>, respectively; these cannot
+meaningfully be set so assignment forms exist only to print an error
+message.
+</p>
+<p>It is possible to access Tcl's &lsquo;dual-ported&rsquo; objects directly,
+thus avoiding parsing and deparsing of their string representation.
+This works by using objects of class <code>tclObj</code>.  The string
+representation of such objects can be extracted (but not set) using
+<code>tclvalue</code> and conversion to vectors of mode <code>"character"</code>,
+<code>"double"</code>, <code>"integer"</code>, <code>"logical"</code>, and <code>"raw"</code>
+is performed using the standard coercion functions <code>as.character</code>,
+etc.  Conversely, such
+vectors can be converted using <code>as.tclObj</code>.  There is an
+ambiguity as to what should happen for length one vectors, controlled
+by the <code>drop</code> argument; there are cases where the distinction
+matters to Tcl, although mostly it treats them equivalently.  Notice
+that <code>tclvalue</code> and <code>as.character</code> differ on an object whose
+string representation has embedded spaces, the former is sometimes to
+be preferred, in particular when applied to the result of
+<code>tclread</code>, <code>tkgetOpenFile</code>, and similar functions.  The
+<code>as.raw</code> method returns a raw vector or a list of raw vectors and
+can be used to return binary data from Tcl.
+</p>
+<p>The object behind a <code>tclVar</code> object is extracted using
+<code>tclObj(x)</code> which also allows an assignment form, in which the
+right hand side of the assignment is automatically converted using
+<code>as.tclObj</code>.  There is a print method for <code>tclObj</code> objects;
+it prints <code>&lt;Tcl&gt;</code> followed by the string representation of the
+object.  Notice that <code>as.character</code> on a <code>tclVar</code> object is
+the <em>name</em> of the corresponding Tcl variable and not the value.
+</p>
+<p>Tcl packages can be loaded with <code>tclRequire</code>; it may be necessary
+to add the directory where they are found to the Tcl search path with
+<code>addTclPath</code>.  The return value is a class <code>"tclObj"</code> object
+if it succeeds, or <code>FALSE</code> if it fails (when a warning is
+issued).  To see the current search path as an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> character vector, use
+</p>
+<pre>strsplit(tclvalue('auto_path'), " ")[[1]]</pre><p>.
+</p>
+<p>The Tcl version (including patchlevel) is returned as a character
+string (such as <code>"8.6.3"</code>).
+</p>
+
+
+<h3>Note</h3>
+
+<p>Strings containing unbalanced braces are currently not handled
+well in many circumstances.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="TkWidgets.html">TkWidgets</a></code>,
+<code><a href="TkCommands.html">TkCommands</a></code>,
+<code><a href="TkWidgetcmds.html">TkWidgetcmds</a></code>.
+</p>
+<p><code><a href="../../base/html/capabilities.html">capabilities</a>("tcltk")</code> to see if Tcl/Tk support was
+compiled into this build of <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+tclVersion()
+
+## Not run: 
+## These cannot be run by example() but should be OK when pasted
+## into an interactive R session with the tcltk package loaded
+.Tcl("format \"%s\n\" \"Hello, World!\"")
+f &lt;- function()cat("HI!\n")
+.Tcl.callback(f)
+.Tcl.args(text = "Push!", command = f) # NB: Different address
+
+xyzzy &lt;- tclVar(7913)
+tclvalue(xyzzy)
+tclvalue(xyzzy) &lt;- "foo"
+as.character(xyzzy)
+tcl("set", as.character(xyzzy))
+
+top &lt;- tktoplevel() # a Tk widget, see Tk-widgets
+ls(envir = top$env, all = TRUE)
+ls(envir = .TkRoot$env, all = TRUE) # .Tcl.args put a callback ref in here
+
+## End(Not run)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>tcltk</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

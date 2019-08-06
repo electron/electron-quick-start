@@ -1,0 +1,152 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Singular Value Decomposition of a Matrix</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for svd {base}"><tr><td>svd {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Singular Value Decomposition of a Matrix</h2>
+
+<h3>Description</h3>
+
+<p>Compute the singular-value decomposition of a rectangular matrix.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+svd(x, nu = min(n, p), nv = min(n, p), LINPACK = FALSE)
+
+La.svd(x, nu = min(n, p), nv = min(n, p))
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>a numeric or complex matrix whose SVD decomposition
+is to be computed.  Logical matrices are coerced to numeric.</p>
+</td></tr>
+<tr valign="top"><td><code>nu</code></td>
+<td>
+<p>the number of left  singular vectors to be computed.
+This must between <code>0</code> and <code>n = nrow(x)</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>nv</code></td>
+<td>
+<p>the number of right singular vectors to be computed.
+This must be between <code>0</code> and <code>p = ncol(x)</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>LINPACK</code></td>
+<td>
+<p>logical.  Defunct and ignored.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>The singular value decomposition plays an important role in many
+statistical techniques.  <code>svd</code> and <code>La.svd</code> provide two
+interfaces which differ in their return values.
+</p>
+<p>Computing the singular vectors is the slow part for large matrices.
+The computation will be more efficient if both <code>nu &lt;= min(n, p)</code>
+and <code>nv &lt;= min(n, p)</code>, and even more so if both are zero.
+</p>
+<p>Unsuccessful results from the underlying LAPACK code will result in an
+error giving a positive error code (most often <code>1</code>): these can
+only be interpreted by detailed study of the FORTRAN code but mean
+that the algorithm failed to converge.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The SVD decomposition of the matrix as computed by LAPACK, </p>
+<p style="text-align: center;"><i>
+  \bold{X = U D V'},</i></p>
+<p> where <i>\bold{U}</i> and <i>\bold{V}</i> are
+orthogonal, <i>\bold{V'}</i> means <em>V transposed</em> (and conjugated
+for complex input), and <i>\bold{D}</i> is a diagonal matrix with the
+(non-negative) singular values <i>D[i,i]</i> in decreasing
+order.  Equivalently, <i>\bold{D = U' X V}</i>, which is verified in
+the examples.
+</p>
+<p>The returned value is a list with components
+</p>
+<table summary="R valueblock">
+<tr valign="top"><td><code>d</code></td>
+<td>
+<p>a vector containing the singular values of <code>x</code>, of
+length <code>min(n, p)</code>, sorted decreasingly.</p>
+</td></tr>
+<tr valign="top"><td><code>u</code></td>
+<td>
+<p>a matrix whose columns contain the left singular vectors of
+<code>x</code>, present if <code>nu &gt; 0</code>.  Dimension <code>c(n, nu)</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>v</code></td>
+<td>
+<p>a matrix whose columns contain the right singular vectors of
+<code>x</code>, present if <code>nv &gt; 0</code>.  Dimension <code>c(p, nv)</code>.</p>
+</td></tr>
+</table>
+<p>Recall that the singular vectors are only defined up to sign (a
+constant of modulus one in the complex case).  If a left singular
+vector has its sign changed, changing the sign of the corresponding
+right vector gives an equivalent decomposition.
+</p>
+<p>For <code>La.svd</code> the return value replaces <code>v</code> by <code>vt</code>, the
+(conjugated if complex) transpose of <code>v</code>.
+</p>
+
+
+<h3>Source</h3>
+
+<p>The main functions used are the LAPACK routines <code>DGESDD</code> and
+<code>ZGESDD</code>.
+</p>
+<p>LAPACK is from <a href="http://www.netlib.org/lapack">http://www.netlib.org/lapack</a> and its guide is
+listed in the references.
+</p>
+
+
+<h3>References</h3>
+
+<p>Anderson. E. and ten others (1999)
+<em>LAPACK Users' Guide</em>. Third Edition. SIAM.<br />
+Available on-line at
+<a href="http://www.netlib.org/lapack/lug/lapack_lug.html">http://www.netlib.org/lapack/lug/lapack_lug.html</a>.
+</p>
+<p>The <a href="https://en.wikipedia.org/wiki/Singular-value_decomposition">
+&lsquo;Singular-value decomposition&rsquo;</a> Wikipedia article.
+</p>
+<p>Becker, R. A., Chambers, J. M. and Wilks, A. R. (1988)
+<em>The New S Language</em>.
+Wadsworth &amp; Brooks/Cole.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="eigen.html">eigen</a></code>, <code><a href="qr.html">qr</a></code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+hilbert &lt;- function(n) { i &lt;- 1:n; 1 / outer(i - 1, i, "+") }
+X &lt;- hilbert(9)[, 1:6]
+(s &lt;- svd(X))
+D &lt;- diag(s$d)
+s$u %*% D %*% t(s$v) #  X = U D V'
+t(s$u) %*% X %*% s$v #  D = U' X V
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

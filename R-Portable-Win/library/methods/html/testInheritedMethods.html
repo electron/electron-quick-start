@@ -1,0 +1,153 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Test for and Report about Selection of Inherited Methods</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for testInheritedMethods {methods}"><tr><td>testInheritedMethods {methods}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>
+Test for and Report about  Selection of Inherited Methods
+</h2>
+
+<h3>Description</h3>
+
+<p>A set of distinct inherited signatures is generated to test
+inheritance for all the methods of a specified generic function.  If
+method selection is ambiguous for some of these, a summary of the
+ambiguities is attached to the returned object.  This test should be
+performed by package authors <em>before</em> releasing a package.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+testInheritedMethods(f, signatures, test = TRUE, virtual = FALSE,
+                     groupMethods = TRUE, where = .GlobalEnv)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>f</code></td>
+<td>
+<p>a generic function or the character string name of one.  By default,
+all currently defined subclasses of all the method signatures for this
+generic will be examined.  The other arguments are mainly options to
+modify which inheritance patterns will be examined.
+</p>
+</td></tr>
+<tr valign="top"><td><code>signatures</code></td>
+<td>
+
+<p>An optional set of subclass signatures to use instead of the relevant
+subclasses computed by <code>testInheritedMethods</code>.  See the Details
+for how this is done.  This argument might be supplied after a call
+with <code>test = FALSE</code>, to test selection in batches.
+</p>
+</td></tr>
+<tr valign="top"><td><code>test</code></td>
+<td>
+
+<p>optional flag to control whether method selection is actually tested.
+If <code>FALSE</code>, returns just the list of relevant signatures for
+subclasses, without calling <code><a href="getMethod.html">selectMethod</a></code> for each signature.
+If there are a very large number of signatures, you may want to collect the full list  and then test them in batches.
+</p>
+</td></tr>
+<tr valign="top"><td><code>virtual</code></td>
+<td>
+
+<p>should virtual classes be included in the relevant subclasses.
+Normally not, since only the classes of actual arguments will trigger
+the inheritance calculation in a call to the generic function.
+Including virtual classes may be useful if the class has no current
+non-virtual subclasses but you anticipate your users may define such
+classes in the future.
+</p>
+</td></tr>
+<tr valign="top"><td><code>groupMethods</code></td>
+<td>
+
+<p>should methods for the group generic function be included?
+</p>
+</td></tr>
+<tr valign="top"><td><code>where</code></td>
+<td>
+
+<p>the environment in which to look for class definitions.  Nearly
+always, use the default global environment after attaching all the
+packages with relevant methods and/or class definitions.
+</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>The following description applies when the optional arguments are
+omitted, the usual case.
+First, the defining signatures for all methods are computed by calls
+to <code><a href="findMethods.html">findMethodSignatures</a></code>.
+From these all the known non-virtual subclasses are found for each
+class that appears in the signature of some method.
+These subclasses are split into groups according to which class they
+inherit from, and only one subclass from each group is retained (for
+each argument in the generic signature).
+So if a method was defined with class <code>"vector"</code> for some
+argument, one actual vector class is chosen arbitrarily.
+The case of <code>"ANY"</code> is dealt with specially, since all classes
+extend it.  A dummy, nonvirtual class, <code>".Other"</code>, is used to
+correspond to all classes that have no superclasses among those being
+tested.
+</p>
+<p>All combinations of retained subclasses for the
+arguments in the generic signature are then computed.
+Each row of the resulting matrix is a signature to be tested by a call
+to <code><a href="getMethod.html">selectMethod</a></code>.
+To collect information on ambiguous selections,
+<code>testInheritedMethods</code> establishes a calling handler for the
+special signal <code>"ambiguousMethodSelection"</code>, by setting the
+corresponding option.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class <code>"methodSelectionReport"</code>.  The details of
+this class are currently subject to change.  It has slots
+<code>"target"</code>, <code>"selected"</code>, <code>"candidates"</code>, and
+<code>"note"</code>, all referring to the ambiguous cases (and so of length
+0 if there were none).  These slots are intended to be examined by the
+programmer to detect and preferably fix ambiguous method selections.
+The object contains in addition slots <code>"generic"</code>, the name of
+the generic function, and
+<code>"allSelections"</code>,  giving the vector of labels for all
+the signatures tested.
+</p>
+
+
+<h3>References</h3>
+
+<p>Chambers, John M. (2008)
+<em>Software for Data Analysis: Programming with R</em>
+Springer.  (Section 10.6 for basics of method selection.)
+</p>
+<p>Chambers, John M. (2009)
+<em>Class Inheritance in R</em>
+<a href="https://statweb.stanford.edu/~jmc4/classInheritance.pdf">https://statweb.stanford.edu/~jmc4/classInheritance.pdf</a>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## if no other attached packages have methods for `+` or its group
+## generic functions, this returns a 16 by 2 matrix of selection
+## patterns (in R 2.9.0)
+testInheritedMethods("+")
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>methods</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

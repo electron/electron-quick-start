@@ -1,0 +1,209 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Fit Autoregressive Models to Time Series by OLS</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for ar.ols {stats}"><tr><td>ar.ols {stats}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Fit Autoregressive Models to Time Series by OLS</h2>
+
+<h3>Description</h3>
+
+<p>Fit an autoregressive time series model to the data by ordinary
+least squares, by default selecting the complexity by AIC.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+ar.ols(x, aic = TRUE, order.max = NULL, na.action = na.fail,
+       demean = TRUE, intercept = demean, series, ...)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>A univariate or multivariate time series.</p>
+</td></tr>
+<tr valign="top"><td><code>aic</code></td>
+<td>
+<p>Logical flag.  If <code>TRUE</code> then the Akaike Information
+Criterion is used to choose the order of the autoregressive
+model. If <code>FALSE</code>, the model of order <code>order.max</code> is
+fitted.</p>
+</td></tr>
+<tr valign="top"><td><code>order.max</code></td>
+<td>
+<p>Maximum order (or order) of model to fit. Defaults
+to <i>10*log10(N)</i> where <i>N</i> is the number
+of observations.</p>
+</td></tr>
+<tr valign="top"><td><code>na.action</code></td>
+<td>
+<p>function to be called to handle missing values.</p>
+</td></tr>
+<tr valign="top"><td><code>demean</code></td>
+<td>
+<p>should the AR model be for <code>x</code> minus its mean?</p>
+</td></tr>
+<tr valign="top"><td><code>intercept</code></td>
+<td>
+<p>should a separate intercept term be fitted?</p>
+</td></tr>
+<tr valign="top"><td><code>series</code></td>
+<td>
+<p>names for the series.  Defaults to
+<code>deparse(substitute(x))</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>further arguments to be passed to or from methods.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p><code>ar.ols</code> fits the general AR model to a possibly non-stationary
+and/or multivariate system of series <code>x</code>. The resulting
+unconstrained least squares estimates are consistent, even if
+some of the series are non-stationary and/or co-integrated.
+For definiteness, note that the AR coefficients have the sign in
+</p>
+<p style="text-align: center;"><i>(x[t] - m) = a[0] + a[1]*(x[t-1] - m) + &hellip; +  a[p]*(x[t-p] - m) + e[t]</i></p>
+
+<p>where <i>a[0]</i> is zero unless <code>intercept</code> is true, and
+<i>m</i> is the sample mean if <code>demean</code> is true, zero
+otherwise.
+</p>
+<p>Order selection is done by AIC if <code>aic</code> is true. This is
+problematic, as <code>ar.ols</code> does not perform
+true maximum likelihood estimation. The AIC is computed as if
+the variance estimate (computed from the variance matrix of the
+residuals) were the MLE, omitting the determinant term from the
+likelihood. Note that this is not the same as the Gaussian
+likelihood evaluated at the estimated parameter values.
+</p>
+<p>Some care is needed if <code>intercept</code> is true and <code>demean</code> is
+false. Only use this is the series are roughly centred on
+zero. Otherwise the computations may be inaccurate or fail entirely.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list of class <code>"ar"</code> with the following elements:
+</p>
+<table summary="R valueblock">
+<tr valign="top"><td><code>order</code></td>
+<td>
+<p>The order of the fitted model.  This is chosen by
+minimizing the AIC if <code>aic = TRUE</code>, otherwise it is
+<code>order.max</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>ar</code></td>
+<td>
+<p>Estimated autoregression coefficients for the fitted
+model.</p>
+</td></tr>
+<tr valign="top"><td><code>var.pred</code></td>
+<td>
+<p>The prediction variance: an estimate of the portion of
+the variance of the time series that is not explained by the
+autoregressive model.</p>
+</td></tr>
+<tr valign="top"><td><code>x.mean</code></td>
+<td>
+<p>The estimated mean (or zero if <code>demean</code> is false)
+of the series used in fitting and for use in prediction.</p>
+</td></tr>
+<tr valign="top"><td><code>x.intercept</code></td>
+<td>
+<p>The intercept in the model for
+<code>x - x.mean</code>, or zero if <code>intercept</code> is false.</p>
+</td></tr>
+<tr valign="top"><td><code>aic</code></td>
+<td>
+<p>The differences in AIC between each model and the
+best-fitting model.  Note that the latter can have an AIC of <code>-Inf</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>n.used</code></td>
+<td>
+<p>The number of observations in the time series.</p>
+</td></tr>
+<tr valign="top"><td><code>order.max</code></td>
+<td>
+<p>The value of the <code>order.max</code> argument.</p>
+</td></tr>
+<tr valign="top"><td><code>partialacf</code></td>
+<td>
+<p><code>NULL</code>.  For compatibility with <code>ar</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>resid</code></td>
+<td>
+<p>residuals from the fitted model, conditioning on the
+first <code>order</code> observations.  The first <code>order</code> residuals
+are set to <code>NA</code>. If <code>x</code> is a time series, so is
+<code>resid</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>method</code></td>
+<td>
+<p>The character string <code>"Unconstrained LS"</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>series</code></td>
+<td>
+<p>The name(s) of the time series.</p>
+</td></tr>
+<tr valign="top"><td><code>frequency</code></td>
+<td>
+<p>The frequency of the time series.</p>
+</td></tr>
+<tr valign="top"><td><code>call</code></td>
+<td>
+<p>The matched call.</p>
+</td></tr>
+<tr valign="top"><td><code>asy.se.coef</code></td>
+<td>
+<p>The asymptotic-theory standard errors of the
+coefficient estimates.</p>
+</td></tr>
+</table>
+
+
+<h3>Author(s)</h3>
+
+<p>Adrian Trapletti, Brian Ripley.</p>
+
+
+<h3>References</h3>
+
+<p>Luetkepohl, H. (1991): <em>Introduction to Multiple Time Series
+Analysis.</em> Springer Verlag, NY, pp. 368&ndash;370.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="ar.html">ar</a></code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+ar(lh, method = "burg")
+ar.ols(lh)
+ar.ols(lh, FALSE, 4) # fit ar(4)
+
+ar.ols(ts.union(BJsales, BJsales.lead))
+
+x &lt;- diff(log(EuStockMarkets))
+ar.ols(x, order.max = 6, demean = FALSE, intercept = TRUE)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>stats</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

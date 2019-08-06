@@ -1,0 +1,290 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Apply Operations using Clusters</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for clusterApply {parallel}"><tr><td>clusterApply {parallel}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Apply Operations using Clusters</h2>
+
+<h3>Description</h3>
+
+<p>These functions provide several ways to parallelize computations using
+a cluster.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+clusterCall(cl = NULL, fun, ...)
+clusterApply(cl = NULL, x, fun, ...)
+clusterApplyLB(cl = NULL, x, fun, ...)
+clusterEvalQ(cl = NULL, expr)
+clusterExport(cl = NULL, varlist, envir = .GlobalEnv)
+clusterMap(cl = NULL, fun, ..., MoreArgs = NULL, RECYCLE = TRUE,
+           SIMPLIFY = FALSE, USE.NAMES = TRUE,
+           .scheduling = c("static", "dynamic"))
+clusterSplit(cl = NULL, seq)
+
+parLapply(cl = NULL, X, fun, ..., chunk.size = NULL)
+parSapply(cl = NULL, X, FUN, ..., simplify = TRUE,
+          USE.NAMES = TRUE, chunk.size = NULL)
+parApply(cl = NULL, X, MARGIN, FUN, ..., chunk.size = NULL)
+parRapply(cl = NULL, x, FUN, ..., chunk.size = NULL)
+parCapply(cl = NULL, x, FUN, ..., chunk.size = NULL)
+
+parLapplyLB(cl = NULL, X, fun, ..., chunk.size = NULL)
+parSapplyLB(cl = NULL, X, FUN, ..., simplify = TRUE,
+            USE.NAMES = TRUE, chunk.size = NULL)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>cl</code></td>
+<td>
+<p>a cluster object, created by this package or by package
+<a href="https://CRAN.R-project.org/package=snow"><span class="pkg">snow</span></a>.  If <code>NULL</code>, use the registered default cluster.</p>
+</td></tr>
+<tr valign="top"><td><code>fun, FUN</code></td>
+<td>
+<p>function or character string naming a function.</p>
+</td></tr>
+<tr valign="top"><td><code>expr</code></td>
+<td>
+<p>expression to evaluate.</p>
+</td></tr>
+<tr valign="top"><td><code>seq</code></td>
+<td>
+<p>vector to split.</p>
+</td></tr>
+<tr valign="top"><td><code>varlist</code></td>
+<td>
+<p>character vector of names of objects to export.</p>
+</td></tr>
+<tr valign="top"><td><code>envir</code></td>
+<td>
+<p>environment from which t export variables</p>
+</td></tr>
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>a vector for <code>clusterApply</code> and <code>clusterApplyLB</code>, a
+matrix for <code>parRapply</code> and <code>parCapply</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>additional arguments to pass to <code>fun</code> or <code>FUN</code>:
+beware of partial matching to earlier arguments.</p>
+</td></tr>
+<tr valign="top"><td><code>MoreArgs</code></td>
+<td>
+<p>additional arguments for <code>fun</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>RECYCLE</code></td>
+<td>
+<p>logical; if true shorter arguments are recycled.</p>
+</td></tr>
+<tr valign="top"><td><code>X</code></td>
+<td>
+<p>A vector (atomic or list) for <code>parLapply</code> and
+<code>parSapply</code>, an array for <code>parApply</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>chunk.size</code></td>
+<td>
+<p>scalar number; number of invocations of <code>fun</code> or
+<code>FUN</code> in one chunk; a chunk is a unit for scheduling.</p>
+</td></tr>
+<tr valign="top"><td><code>MARGIN</code></td>
+<td>
+<p>vector specifying the dimensions to use.</p>
+</td></tr>
+<tr valign="top"><td><code>simplify, USE.NAMES</code></td>
+<td>
+<p>logical; see <code><a href="../../base/html/lapply.html">sapply</a></code>.</p>
+</td></tr>
+<tr valign="top"><td><code>SIMPLIFY</code></td>
+<td>
+<p>logical; see <code><a href="../../base/html/mapply.html">mapply</a></code>.</p>
+</td></tr>
+<tr valign="top"><td><code>.scheduling</code></td>
+<td>
+<p>should tasks be statically allocated to nodes or
+dynamic load-balancing used?</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p><code>clusterCall</code> calls a function <code>fun</code> with identical
+arguments <code>...</code> on each node.
+</p>
+<p><code>clusterEvalQ</code> evaluates a literal expression on each cluster
+node.  It is a parallel version of <code><a href="../../base/html/eval.html">evalq</a></code>, and is a
+convenience function invoking <code>clusterCall</code>.
+</p>
+<p><code>clusterApply</code> calls <code>fun</code> on the first node with
+arguments <code>x[[1]]</code> and <code>...</code>, on the second node with
+<code>x[[2]]</code> and <code>...</code>, and so on, recycling nodes as needed.
+</p>
+<p><code>clusterApplyLB</code> is a load balancing version of
+<code>clusterApply</code>.  If the length <code>n</code> of <code>x</code> is not
+greater than the number of nodes <code>p</code>, then a job is sent to
+<code>n</code> nodes.  Otherwise the first <code>p</code> jobs are placed in order
+on the <code>p</code> nodes.  When the first job completes, the next job is
+placed on the node that has become free; this continues until all jobs
+are complete.  Using <code>clusterApplyLB</code> can result in better
+cluster utilization than using <code>clusterApply</code>, but increased
+communication can reduce performance.  Furthermore, the node that
+executes a particular job is non-deterministic. This means that
+simulations that assign RNG streams to nodes will not be reproducible.
+</p>
+<p><code>clusterMap</code> is a multi-argument version of <code>clusterApply</code>,
+analogous to <code><a href="../../base/html/mapply.html">mapply</a></code> and <code><a href="../../base/html/funprog.html">Map</a></code>.  If
+<code>RECYCLE</code> is true shorter arguments are recycled (and either none
+or all must be of length zero); otherwise, the result length is the
+length of the shortest argument.  Nodes are recycled if the length of
+the result is greater than the number of nodes.  (<code>mapply</code> always
+uses <code>RECYCLE = TRUE</code>, and has argument <code>SIMPLIFY = TRUE</code>.
+<code>Map</code> always uses <code>RECYCLE = TRUE</code>.)
+</p>
+<p><code>clusterExport</code> assigns the values on the master <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> process of
+the variables named in <code>varlist</code> to variables of the same names
+in the global environment (aka &lsquo;workspace&rsquo;) of each node.  The
+environment on the master from which variables are exported defaults
+to the global environment.
+</p>
+<p><code>clusterSplit</code> splits <code>seq</code> into a consecutive piece for
+each cluster and returns the result as a list with length equal to the
+number of nodes.  Currently the pieces are chosen to be close
+to equal in length: the computation is done on the master.
+</p>
+<p><code>parLapply</code>, <code>parSapply</code>, and <code>parApply</code> are parallel
+versions of <code>lapply</code>, <code>sapply</code> and <code>apply</code>.  Chunks of
+computation are statically allocated to nodes using <code>clusterApply</code>.
+By default, the number of chunks is the same as the number of nodes.
+<code>parLapplyLB</code>, <code>parSapplyLB</code> are load-balancing versions,
+intended for use when applying <code>FUN</code> to different elements of
+<code>X</code> takes quite variable amounts of time, and either the function is
+deterministic or reproducible results are not required.  Chunks of
+computation are allocated dynamically to nodes using
+<code>clusterApplyLB</code>.  From <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> 3.5.0, the default number of chunks is
+twice the number of nodes. Before <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> 3.5.0, the (fixed) number of chunks
+was the same as the number of nodes.  As for <code>clusterApplyLB</code>,
+with load balancing the node that executes a particular job is
+non-deterministic and simulations that assign RNG streams to nodes
+will not be reproducible.
+</p>
+<p><code>parRapply</code> and <code>parCapply</code> are parallel row and column
+<code>apply</code> functions for a matrix <code>x</code>; they may be slightly
+more efficient than <code>parApply</code> but do less post-processing of the
+result.
+</p>
+<p>A chunk size of <code>0</code> with static scheduling uses the default (one
+chunk per node).  With dynamic scheduling, chunk size of <code>0</code> has the
+same effect as <code>1</code> (one invocation of <code>FUN</code>/<code>fun</code> per
+chunk).
+</p>
+
+
+<h3>Value</h3>
+
+<p>For <code>clusterCall</code>, <code>clusterEvalQ</code> and <code>clusterSplit</code>, a
+list with one element per node.
+</p>
+<p>For <code>clusterApply</code> and <code>clusterApplyLB</code>, a list the same
+length as <code>x</code>.
+</p>
+<p><code>clusterMap</code> follows <code><a href="../../base/html/mapply.html">mapply</a></code>.
+</p>
+<p><code>clusterExport</code> returns nothing.
+</p>
+<p><code>parLapply</code> returns a list the length of <code>X</code>.
+</p>
+<p><code>parSapply</code> and <code>parApply</code> follow <code><a href="../../base/html/lapply.html">sapply</a></code> and
+<code><a href="../../base/html/apply.html">apply</a></code> respectively.
+</p>
+<p><code>parRapply</code> and <code>parCapply</code> always return a vector.  If
+<code>FUN</code> always returns a scalar result this will be of length the
+number of rows or columns: otherwise it will be the concatenation of
+the returned values.
+</p>
+<p>An error is signalled on the master if any of the workers produces an
+error.
+</p>
+
+
+<h3>Note</h3>
+
+<p>These functions are almost identical to those in package <a href="https://CRAN.R-project.org/package=snow"><span class="pkg">snow</span></a>.
+</p>
+<p>Two exceptions: <code>parLapply</code> has argument <code>X</code>
+not <code>x</code> for consistency with <code><a href="../../base/html/lapply.html">lapply</a></code>, and
+<code>parSapply</code> has been updated to match <code><a href="../../base/html/lapply.html">sapply</a></code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Luke Tierney and R Core.
+</p>
+<p>Derived from the <a href="https://CRAN.R-project.org/package=snow"><span class="pkg">snow</span></a> package.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Use option cl.cores to choose an appropriate cluster size.
+cl &lt;- makeCluster(getOption("cl.cores", 2))
+
+clusterApply(cl, 1:2, get("+"), 3)
+xx &lt;- 1
+clusterExport(cl, "xx")
+clusterCall(cl, function(y) xx + y, 2)
+
+## Use clusterMap like an mapply example
+clusterMap(cl, function(x, y) seq_len(x) + y,
+          c(a =  1, b = 2, c = 3), c(A = 10, B = 0, C = -10))
+
+
+parSapply(cl, 1:20, get("+"), 3)
+
+## A bootstrapping example, which can be done in many ways:
+clusterEvalQ(cl, {
+  ## set up each worker.  Could also use clusterExport()
+  library(boot)
+  cd4.rg &lt;- function(data, mle) MASS::mvrnorm(nrow(data), mle$m, mle$v)
+  cd4.mle &lt;- list(m = colMeans(cd4), v = var(cd4))
+  NULL
+})
+res &lt;- clusterEvalQ(cl, boot(cd4, corr, R = 100,
+                    sim = "parametric", ran.gen = cd4.rg, mle = cd4.mle))
+library(boot)
+cd4.boot &lt;- do.call(c, res)
+boot.ci(cd4.boot,  type = c("norm", "basic", "perc"),
+        conf = 0.9, h = atanh, hinv = tanh)
+stopCluster(cl)
+
+## or
+library(boot)
+run1 &lt;- function(...) {
+   library(boot)
+   cd4.rg &lt;- function(data, mle) MASS::mvrnorm(nrow(data), mle$m, mle$v)
+   cd4.mle &lt;- list(m = colMeans(cd4), v = var(cd4))
+   boot(cd4, corr, R = 500, sim = "parametric",
+        ran.gen = cd4.rg, mle = cd4.mle)
+}
+cl &lt;- makeCluster(mc &lt;- getOption("cl.cores", 2))
+## to make this reproducible
+clusterSetRNGStream(cl, 123)
+cd4.boot &lt;- do.call(c, parLapply(cl, seq_len(mc), run1))
+boot.ci(cd4.boot,  type = c("norm", "basic", "perc"),
+        conf = 0.9, h = atanh, hinv = tanh)
+stopCluster(cl)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>parallel</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

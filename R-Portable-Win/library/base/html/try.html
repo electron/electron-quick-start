@@ -1,0 +1,125 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Try an Expression Allowing Error Recovery</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for try {base}"><tr><td>try {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Try an Expression Allowing Error Recovery</h2>
+
+<h3>Description</h3>
+
+<p><code>try</code> is a wrapper to run an expression that might fail and allow
+the user's code to handle error-recovery.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+try(expr, silent = FALSE,
+    outFile = getOption("try.outFile", default = stderr()))
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>expr</code></td>
+<td>
+<p>an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> expression to try.</p>
+</td></tr>
+<tr valign="top"><td><code>silent</code></td>
+<td>
+<p>logical: should the report of error messages be
+suppressed?</p>
+</td></tr>
+<tr valign="top"><td><code>outFile</code></td>
+<td>
+<p>a <a href="connections.html">connection</a>, or a character string naming the
+file to print to (via <code><a href="cat.html">cat</a>(*, file = outFile)</code>);
+used only if <code>silent</code> is false, as by default.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p><code>try</code> evaluates an expression and traps any errors that occur
+during the evaluation.  If an error occurs then the error
+message is printed to the <code><a href="showConnections.html">stderr</a></code> connection unless
+<code>options("show.error.messages")</code> is false or
+the call includes <code>silent = TRUE</code>.  The error message is also
+stored in a buffer where it can be retrieved by
+<code>geterrmessage</code>. (This should not be needed as the value returned
+in case of an error contains the error message.)
+</p>
+<p><code>try</code> is implemented using <code><a href="conditions.html">tryCatch</a></code>; for
+programming, instead of <code>try(expr, silent = TRUE)</code>, something like
+<code>tryCatch(expr, error = function(e) e)</code> (or other simple
+error handler functions) may be more efficient and flexible.
+</p>
+<p>It may be useful to set the default for <code>outFile</code> to
+<code><a href="showConnections.html">stdout</a>()</code>, i.e., </p>
+<pre>  options(try.outFile = stdout()) </pre>
+<p>instead of the default <code><a href="showConnections.html">stderr</a>()</code>,
+notably when <code>try()</code> is used inside a <code><a href="../../utils/html/Sweave.html">Sweave</a></code> code
+chunk and the error message should appear in the resulting document.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The value of the expression if <code>expr</code> is evaluated without error,
+but an invisible object of class <code>"try-error"</code> containing the
+error message, and the error condition as the <code>"condition"</code>
+attribute, if it fails.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="options.html">options</a></code> for setting error handlers and suppressing the
+printing of error messages;
+<code><a href="stop.html">geterrmessage</a></code> for retrieving the last error message.
+The underlying <code><a href="conditions.html">tryCatch</a></code> provides more flexible means of
+catching and handling errors.
+</p>
+<p><code><a href="../../tools/html/assertCondition.html">assertCondition</a></code> in package <span class="pkg">tools</span> is related and
+useful for testing.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## this example will not work correctly in example(try), but
+## it does work correctly if pasted in
+options(show.error.messages = FALSE)
+try(log("a"))
+print(.Last.value)
+options(show.error.messages = TRUE)
+
+## alternatively,
+print(try(log("a"), TRUE))
+
+## run a simulation, keep only the results that worked.
+set.seed(123)
+x &lt;- stats::rnorm(50)
+doit &lt;- function(x)
+{
+    x &lt;- sample(x, replace = TRUE)
+    if(length(unique(x)) &gt; 30) mean(x)
+    else stop("too few unique points")
+}
+## alternative 1
+res &lt;- lapply(1:100, function(i) try(doit(x), TRUE))
+## alternative 2
+## Not run: res &lt;- vector("list", 100)
+for(i in 1:100) res[[i]] &lt;- try(doit(x), TRUE)
+## End(Not run)
+unlist(res[sapply(res, function(x) !inherits(x, "try-error"))])
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

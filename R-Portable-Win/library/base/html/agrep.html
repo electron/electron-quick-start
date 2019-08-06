@@ -1,0 +1,177 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Approximate String Matching (Fuzzy Matching)</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for agrep {base}"><tr><td>agrep {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Approximate String Matching (Fuzzy Matching)</h2>
+
+<h3>Description</h3>
+
+<p>Searches for approximate matches to <code>pattern</code> (the first argument)
+within each element of the string <code>x</code> (the second argument) using
+the generalized Levenshtein edit distance (the minimal possibly
+weighted number of insertions, deletions and substitutions needed to
+transform one string into another).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+agrep(pattern, x, max.distance = 0.1, costs = NULL,
+      ignore.case = FALSE, value = FALSE, fixed = TRUE,
+      useBytes = FALSE)
+
+agrepl(pattern, x, max.distance = 0.1, costs = NULL,
+       ignore.case = FALSE, fixed = TRUE, useBytes = FALSE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>pattern</code></td>
+<td>
+<p>a non-empty character string or a character string
+containing a regular expression (for <code>fixed = FALSE</code>) to be
+matched.
+Coerced by <code><a href="character.html">as.character</a></code> to a string if possible.</p>
+</td></tr>
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>character vector where matches are sought.
+Coerced by <code><a href="character.html">as.character</a></code> to a character vector if
+possible.</p>
+</td></tr>
+<tr valign="top"><td><code>max.distance</code></td>
+<td>
+<p>Maximum distance allowed for a match.  Expressed
+either as integer, or as a fraction of the <em>pattern</em> length
+times the maximal transformation cost (will be replaced by the
+smallest integer not less than the corresponding fraction), or a
+list with possible components
+</p>
+
+<dl>
+<dt><code>cost</code>:</dt><dd><p>maximum number/fraction of match cost
+(generalized Levenshtein distance)</p>
+</dd>
+<dt><code>all</code>:</dt><dd><p>maximal number/fraction of <em>all</em>
+transformations (insertions, deletions and substitutions)</p>
+</dd>
+<dt><code>insertions</code>:</dt><dd><p>maximum number/fraction of insertions</p>
+</dd>
+<dt><code>deletions</code>:</dt><dd><p>maximum number/fraction of deletions</p>
+</dd>
+<dt><code>substitutions</code>:</dt><dd><p>maximum number/fraction of
+substitutions</p>
+</dd>
+</dl>
+
+<p>If <code>cost</code> is not given, <code>all</code> defaults to 10%, and the
+other transformation number bounds default to <code>all</code>.
+The component names can be abbreviated.
+</p>
+</td></tr>
+<tr valign="top"><td><code>costs</code></td>
+<td>
+<p>a numeric vector or list with names partially matching
+<span class="samp">insertions</span>, <span class="samp">deletions</span> and <span class="samp">substitutions</span> giving
+the respective costs for computing the generalized Levenshtein
+distance, or <code>NULL</code> (default) indicating using unit cost for
+all three possible transformations.
+Coerced to integer via <code><a href="integer.html">as.integer</a></code> if possible.</p>
+</td></tr>
+<tr valign="top"><td><code>ignore.case</code></td>
+<td>
+<p>if <code>FALSE</code>, the pattern matching is <em>case
+sensitive</em> and if <code>TRUE</code>, case is ignored during matching.</p>
+</td></tr>
+<tr valign="top"><td><code>value</code></td>
+<td>
+<p>if <code>FALSE</code>, a vector containing the (integer)
+indices of the matches determined is returned and if <code>TRUE</code>, a
+vector containing the matching elements themselves is returned.</p>
+</td></tr>
+<tr valign="top"><td><code>fixed</code></td>
+<td>
+<p>logical.  If <code>TRUE</code> (default), the pattern is
+matched literally (as is).  Otherwise, it is matched as a regular
+expression.</p>
+</td></tr>
+<tr valign="top"><td><code>useBytes</code></td>
+<td>
+<p>logical. in a multibyte locale, should the comparison
+be character-by-character (the default) or byte-by-byte.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>The Levenshtein edit distance is used as measure of approximateness:
+it is the (possibly cost-weighted) total number of insertions,
+deletions and substitutions required to transform one string into
+another.
+</p>
+<p>This uses <code>tre</code> by Ville Laurikari
+(<a href="http://laurikari.net/tre/">http://laurikari.net/tre/</a>), which supports MBCS
+character matching.
+</p>
+<p>The main effect of <code>useBytes</code> is to avoid errors/warnings about
+invalid inputs and spurious matches in multibyte locales.
+It inhibits the conversion of inputs with marked encodings, and is
+forced if any input is found which is marked as <code>"bytes"</code> (see
+<code><a href="Encoding.html">Encoding</a></code>).
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>agrep</code> returns a vector giving the indices of the elements that
+yielded a match, or, if <code>value</code> is <code>TRUE</code>, the matched
+elements (after coercion, preserving names but no other attributes).
+</p>
+<p><code>agrepl</code> returns a logical vector.
+</p>
+
+
+<h3>Note</h3>
+
+<p>Since someone who read the description carelessly even filed a bug
+report on it, do note that this matches substrings of each element of
+<code>x</code> (just as <code><a href="grep.html">grep</a></code> does) and <b>not</b> whole
+elements.  See also <code><a href="../../utils/html/adist.html">adist</a></code> in package <span class="pkg">utils</span>, which
+optionally returns the offsets of the matched substrings.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Original version in <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> &lt; 2.10.0 by David Meyer.
+Current version by Brian Ripley and Kurt Hornik.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="grep.html">grep</a></code>, <code><a href="../../utils/html/adist.html">adist</a></code>.
+A different interface to approximate string matching is provided by
+<code><a href="../../utils/html/aregexec.html">aregexec</a>()</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+agrep("lasy", "1 lazy 2")
+agrep("lasy", c(" 1 lazy 2", "1 lasy 2"), max = list(sub = 0))
+agrep("laysy", c("1 lazy", "1", "1 LAZY"), max = 2)
+agrep("laysy", c("1 lazy", "1", "1 LAZY"), max = 2, value = TRUE)
+agrep("laysy", c("1 lazy", "1", "1 LAZY"), max = 2, ignore.case = TRUE)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

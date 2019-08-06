@@ -1,0 +1,307 @@
+<h3>Authors</h3>
+
+<p>Jason C. Fisher, Reto Stauffer, Achim Zeileis
+</p>
+
+
+
+<h2>Graphical User Interface for Choosing HCL Color Palettes</h2>
+<h3>Description</h3>
+
+<p>A graphical user interface (GUI) for viewing, manipulating, and choosing HCL
+color palettes.
+</p>
+
+
+
+<h3>Details</h3>
+
+<p>Computes palettes based on the HCL (hue-chroma-luminance) color model (as
+implemented by <code>polarLUV</code>). The GUIs interface the palette
+functions <code>qualitative_hcl</code> for qualitative palettes,
+<code>sequential_hcl</code> for sequential palettes with a single or
+multiple hues, and <code>diverging_hcl</code> for diverging palettes (composed
+from two single-hue sequential palettes).
+</p>
+<p>Two different GUIs are implemented and can be selected using the function
+input argument <code>gui</code> (<code>"tcltk"</code> or <code>"shiny"</code>). Both GUIs
+allows for interactive modification of the arguments of the respective
+palette-generating functions, i.e., starting/ending hue (wavelength, type of
+color), minimal/maximal chroma (colorfulness), minimal maximal luminance
+(brightness, amount of gray), and a power transformations that control how
+quickly/slowly chroma and/or luminance are changed through the palette.
+Subsets of the parameters may not be applicable depending on the type of
+palette chosen. See <code>qualitative_hcl</code> and Zeileis et al. (2009) for
+a more detailed explanation of the different arguments. Stauffer et al.
+(2015) provide more examples and guidance.
+</p>
+<p>Optionally, active palette can be illustrated by using a range of examples
+such as a map, heatmap, scatter plot, perspective 3D surface etc.
+</p>
+<p>To demonstrate different types of deficiencies, the active palette may be
+desaturated (emulating printing on a grayscale printer) and collapsed to
+emulate different types of color-blindness (without red-green or green-blue
+contrasts) using the <code>simulate_cvd</code> functions.
+</p>
+<p><code>choose_palette</code> by default starts the Tcl/Tk version of the GUI while
+<code>hclwizard</code> by default starts the shiny version. <code>hcl_wizard</code> is
+an alias for <code>hclwizard</code>.
+</p>
+
+
+
+<h3>Value</h3>
+
+<p>Returns a palette-generating function with the selected arguments.
+Thus, the returned function takes an integer argument and returns the
+corresponding number of HCL colors by traversing HCL space through
+interpolation of the specified hue/chroma/luminance/power values.
+</p>
+
+
+
+<h2>HCL Color Palettes</h2>
+<h3>Description</h3>
+
+<p>Qualitative, sequential (single-hue and multi-hue), and diverging
+color palettes based on the HCL (hue-chroma-luminance) color model.
+</p>
+
+
+
+<h3>Details</h3>
+
+<p>The HCL (hue-chroma-luminance) color model is a perceptual color model
+obtained by using polar coordinates in CIE <code>LUV</code> space
+(i.e., <code>polarLUV</code>), where steps of equal size correspond to
+approximately equal perceptual changes in color. By taking polar coordinates
+the resulting three dimensions capture the three perceptual axes very well:
+hue is the type of color, chroma the colorfulness compared
+to the corresponding gray, and luminance the brightness. This makes it relatively
+easy to create balanced palettes through trajectories in this HCL space.
+In contrast, in the more commonly-used <code>HSV</code> (hue-saturation-value)
+model (a simple transformation of <code>RGB</code>), the three axes are
+confounded so that luminance changes along with the hue leading to very
+unbalanced palettes (see <code>rainbow_hcl</code> for further illustrations).
+</p>
+<p>Three types of palettes are derived based on the HCL model: </p>
+
+<ul>
+<li><p> Qualitative: Designed for coding categorical information, i.e.,
+where no particular ordering of categories is available and every color
+should receive the same perceptual weight.
+</p>
+</li>
+<li><p> Sequential: Designed for coding ordered/numeric information, i.e.,
+where colors go from high to low (or vice versa).
+</p>
+</li>
+<li><p> Diverging: Designed for coding numeric information around a central
+neutral value, i.e., where colors diverge from neutral to two extremes.
+</p>
+</li></ul>
+
+<p>The corresponding functions are <code>qualitative_hcl</code>, <code>sequential_hcl</code>,
+and <code>diverging_hcl</code>. Their construction principles are explained in more detail below.
+At the core is the luminance axis (i.e., light-dark contrasts):
+These are easily decoded by humans and matched to high-low differences in the underlying
+data. Therefore, <code>sequential_hcl</code> palettes are always based on a <em>monotonic</em>
+luminance sequence whereas the colors in a <code>qualitative_hcl</code> palette all have the
+<em>same</em> luminance. Finally, <code>diverging_hcl</code> palettes use the same monotonic
+luminance sequence in both &ldquo;arms&rdquo; of the palette, i.e., correspond to
+two balanced sequential palettes diverging from the same neutral value.
+The other two axes, hue and chroma, are used to enhance the luminance information and/or
+to further discriminate the color.
+</p>
+<p>All three palette functions specify trajectories in HCL space and hence need either
+single values or intervals of the coordinates <code>h</code>, <code>c</code>, <code>l</code>. Their
+interfaces are always designed such that <code>h</code>, <code>c</code>, <code>l</code> can take vector
+arguments (as needed) but alternatively or additionally <code>h1</code>/<code>h2</code>,
+<code>c1</code>/<code>c2</code>/<code>cmax</code>, and <code>l1</code>/<code>l2</code> can be specified. If so,
+the latter coordinates overwrite the former.
+</p>
+<p><code>qualitative_hcl</code> distinguishes the underlying categories by a sequence of
+hues while keeping both chroma and luminance constant to give each color in the
+resulting palette the same perceptual weight. Thus, <code>h</code> should be a pair of
+hues (or equivalently <code>h1</code> and <code>h2</code> can be used) with the starting and
+ending hue of the palette. Then, an equidistant sequence between these hues is
+employed, by default spanning the full color wheel (i.e, the full 360 degrees).
+Chroma <code>c</code> (or equivalently <code>c1</code>) and luminance <code>l</code> (or equivalently
+<code>l1</code>) are constants.
+</p>
+<p><code>sequential_hcl</code> codes the underlying numeric values by a monotonic sequence
+of increasing (or decreasing) luminance. Thus, the <code>l</code> argument should provide
+a vector of length 2 with starting and ending luminance (equivalently, <code>l1</code> and
+<code>l2</code> can be used). Without chroma (i.e., <code>c = 0</code>), this simply corresponds
+to a grayscale palette like <code>gray.colors</code>. For adding chroma, a simple
+strategy would be to pick a single hue (via <code>h</code> or <code>h1</code>) and then decrease
+chroma from some value (<code>c</code> or <code>c1</code>) to zero (i.e., gray) along with
+increasing luminance. For bringing out the extremes (a dark high-chroma color vs.
+a light gray) this is already very effective. For distinguishing also colors in the
+middle two strategies can be employed: (a) Hue can be varied as well by specifying an
+interval of hues in <code>h</code> (or beginning hue <code>h1</code> and ending hue <code>h2</code>).
+(b) Instead of a decreasing chroma a triangular chroma trajectory can be employed
+from <code>c1</code> over <code>cmax</code> to <code>c2</code> (or equivalently a vector <code>c</code> of
+length 3). This yields high-chroma colors in the middle of the palette that are
+more easily distinguished from the dark and light extremes. Finally, instead of
+employing linear trajectories, power transformations are supported in chroma and
+luminance via a vector <code>power</code> (or separate <code>p1</code> and <code>p2</code>). If
+<code>power[2]</code> (or <code>p2</code>) for the luminance trajectory is missing, it defaults
+to <code>power[1]</code>/<code>p1</code> from the chroma trajectory.
+</p>
+<p><code>diverging_hcl</code> codes the underlying numeric values by a triangular luminance
+sequence with different hues in the left and in the right arm of the palette. Thus,
+it can be seen as a combination of two sequential palettes with some restrictions:
+(a) a single hue is used for each arm of the palette, (b) chroma and luminance trajectory
+are balanced between the two arms, (c) the neutral central value has zero chroma.
+To specify such a palette a vector of two hues <code>h</code> (or equivalently <code>h1</code>
+and <code>h2</code>), either a single chroma value <code>c</code> (or <code>c1</code>) or a vector
+of two chroma values <code>c</code> (or <code>c1</code> and <code>cmax</code>), a vector of two
+luminances <code>l</code> (or <code>l1</code> and <code>l2</code>), and power parameter(s) <code>power</code>
+(or <code>p1</code> and <code>p2</code>) are used. For more flexible diverging palettes without
+the restrictrictions above (and consequently more parameters)
+<code>divergingx_hcl</code> is available. For backward compatibility, <code>diverge_hcl</code>
+is a copy of <code>diverging_hcl</code>.
+</p>
+<p>To facilitate using HCL-based palettes a wide range of example palettes are
+provided in the package and can be specified by a name instead of a set of
+parameters/coordinates. The examples have been taken from the literature and many
+approximate color palettes from other software packages such as ColorBrewer.org
+(<span class="pkg">RColorBrewer</span>), CARTO colors (<span class="pkg">rcartocolor</span>), or <span class="pkg">scico</span>. The function
+<code>hcl_palettes</code> can be used to query the available pre-specified palettes. It
+comes with a <code>print</code> method (listing names and types), a <code>summary</code> method
+(additionally listing the underlying parameters/coordinates), and a <code>plot</code>
+method that creates a <code>swatchplot</code> with suitable labels.
+</p>
+
+
+
+
+<h2>Color Spectrum Plot</h2>
+<h3>Description</h3>
+
+<p>Visualization of color palettes (given as hex codes) in HCL and/or RGB
+coordinates.
+</p>
+
+
+
+<h3>Details</h3>
+
+<p>The function <code>specplot</code> transforms a given color palette in hex codes
+into their HCL (<code>polarLUV</code>) and/or RGB
+(<code>sRGB</code>) coordinates. As the hues for low-chroma
+colors are not (or poorly) identified, by default a smoothing is applied to
+the hues (<code>fix = TRUE</code>). Also, to avoid jumps from 0 to 360 or vice
+versa, the hue coordinates are shifted suitably.
+</p>
+<p>By default (<code>plot = TRUE</code>), the resulting HCL and optionally RGB coordinates are
+visualized by simple line plots along with the color palette <code>x</code>
+itself.
+</p>
+<p>For comparing two palettes, <code>specplot(x, y)</code> can be used which adds
+lines (dashed, by default) corresponding to the <code>y</code> palette HCL/RGB
+coordinates in the display.
+</p>
+
+
+
+<h3>Value</h3>
+
+<p><code>specplot</code> invisibly returns a list with components
+</p>
+<table summary="R valueblock">
+<tr valign="top"><td><code>HCL</code></td>
+<td>
+<p>a matrix of HCL coordinates,</p>
+</td></tr>
+<tr valign="top"><td><code>RGB</code></td>
+<td>
+<p>a matrix of sRGB coordinates,</p>
+</td></tr>
+<tr valign="top"><td><code>hex</code></td>
+<td>
+<p>original color palette <code>x</code>.</p>
+</td></tr>
+</table>
+
+
+
+<h2>Palette Plot in HCL Space</h2>
+<h3>Description</h3>
+
+<p>Visualization of color palettes in HCL space projections.
+</p>
+
+
+
+<h3>Details</h3>
+
+<p>The function <code>hclplot</code> is an auxiliary function for illustrating
+the trajectories of color palettes in two-dimensional HCL space projections.
+It collapses over one of the three coordinates (either the hue H or the
+luminance L) and displays a heatmap of colors combining the remaining
+two dimensions. The coordinates for the given color palette are highlighted
+to bring out its trajectory.
+</p>
+<p>The function <code>hclplot</code> has been designed to work well with the
+<code>hcl_palettes</code> in this package. While it is possible to apply
+it to other color palettes as well, the results might look weird or confusing
+if these palettes are constructed very differently (e.g., as in the highly
+saturated base R palettes).
+</p>
+<p>More specifically, the following palettes can be visualized well: </p>
+
+<ul>
+<li><p> Qualitative with (approximately) constant luminance. In this case,
+<code>hclplot</code> shows a hue-chroma plane (in polar coordinates), keeping
+luminance at a fixed level (by default displayed in the main title of
+the plot). If the luminance is, in fact, not approximately constant,
+the luminance varies along with hue and chroma, using a simple linear
+function (fitted by least squares).
+<code>hclplot</code> shows a chroma-luminance plane, keeping hue at a fixed
+level (by default displayed in the main title of the plot). If the hue
+is, in fact, not approximately constant, the hue varies along with
+chroma and luminance, using a simple linear function (fitted by least
+squares.
+</p>
+</li>
+<li><p> Diverging with two (approximately) constant hues: This case is
+visualized with two back-to-back sequential displays.
+</p>
+</li></ul>
+
+<p>To infer the type of display to use, by default, the following heuristic is
+used: If luminance is not approximately constant (range &gt; 10) and follows
+rougly a triangular pattern, a diverging display is used. If luminance is
+not constant and follows roughly a linear pattern, a sequential display is
+used. Otherwise a qualitative display is used.
+</p>
+
+
+
+<h3>Value</h3>
+
+<p><code>hclplot</code> invisibly returns a matrix with the HCL coordinates corresponding to <code>x</code>.
+</p>
+
+
+
+<h3>References</h3>
+
+<p>Zeileis A, Hornik K, Murrell P (2009).  Escaping RGBland:
+Selecting Colors for Statistical Graphics.  <em>Computational Statistics &amp;
+Data Analysis</em>, <b>53</b>, 3259&ndash;3270.
+doi: 10.1016/j.csda.2008.11.033
+Preprint available from
+https://eeecon.uibk.ac.at/~zeileis/papers/Zeileis+Hornik+Murrell-2009.pdf.
+</p>
+<p>Stauffer R, Mayr GJ, Dabernig M, Zeileis A (2015).  Somewhere over the
+Rainbow: How to Make Effective Use of Colors in Meteorological
+Visualizations.  <em>Bulletin of the American Meteorological Society</em>,
+<b>96</b>(2), 203&ndash;216.
+doi: 10.1175/BAMS-D-13-00155.1
+</p>
+
+
+

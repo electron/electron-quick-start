@@ -1,0 +1,214 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Update Existing PACKAGES Files</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for update_PACKAGES {tools}"><tr><td>update_PACKAGES {tools}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Update Existing PACKAGES Files</h2>
+
+<h3>Description</h3>
+
+<p>Update an existing repository by reading the <code>PACKAGES</code>
+file, retaining entries which are still valid, removing entries which
+are no longer valid, and only processing built package tarballs which do not
+match existing entries.
+</p>
+<p><code>update_PACKAGES</code> can be much faster than
+<code><a href="writePACKAGES.html">write_PACKAGES</a></code> for small-moderate changes to large
+repository indexes, particularly in non-strict mode (see Details).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+update_PACKAGES(dir = ".", fields = NULL, type = c("source",
+  "mac.binary", "win.binary"), verbose.level = as.integer(dryrun),
+  latestOnly = TRUE, addFiles = FALSE, rds_compress = "xz",
+  strict = TRUE, dryrun = FALSE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>dir</code></td>
+<td>
+<p>See <code><a href="writePACKAGES.html">write_PACKAGES</a></code></p>
+</td></tr>
+<tr valign="top"><td><code>fields</code></td>
+<td>
+<p>See <code><a href="writePACKAGES.html">write_PACKAGES</a></code></p>
+</td></tr>
+<tr valign="top"><td><code>type</code></td>
+<td>
+<p>See <code><a href="writePACKAGES.html">write_PACKAGES</a></code></p>
+</td></tr>
+<tr valign="top"><td><code>verbose.level</code></td>
+<td>
+<p>(0, 1,  2) What level of informative messages
+which should be displayed throughout the process. Defaults to 0 if
+<code>dryrun</code>   is   <code>FALSE</code>    (the   default)   and   1
+otherwise. See details for more information.</p>
+</td></tr>
+<tr valign="top"><td><code>latestOnly</code></td>
+<td>
+<p>See <code><a href="writePACKAGES.html">write_PACKAGES</a></code></p>
+</td></tr>
+<tr valign="top"><td><code>addFiles</code></td>
+<td>
+<p>See <code><a href="writePACKAGES.html">write_PACKAGES</a></code></p>
+</td></tr>
+<tr valign="top"><td><code>rds_compress</code></td>
+<td>
+<p>See <code><a href="writePACKAGES.html">write_PACKAGES</a></code></p>
+</td></tr>
+<tr valign="top"><td><code>strict</code></td>
+<td>
+<p>logical. Should 'strict mode' be used when checking
+existing <code>PACKAGES</code> entries. See details. Defaults to
+<code>TRUE</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>dryrun</code></td>
+<td>
+<p>logical. Should the updates to existing <code>PACKAGES</code>
+files be computed but NOT applied. Defaults to <code>FALSE</code>.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>Throughout this section, <em>package tarball</em> is defined to mean any
+archive file in <code>dir</code> whose name can be interpreted as
+<code>&lt;package&gt;_&lt;version&gt;.&lt;ext&gt;</code> - with <code>&lt;ext&gt;</code> the appropriate
+extension for built packages of type <code>type</code> - (or that is pointed
+to by the <code>File</code> field of an existing <code>PACKAGES</code> entry).
+<em>Novel package tarballs</em> are those which do not match an existing
+<code>PACKAGES</code> file entry.
+</p>
+<p><code>update_PACKAGES</code> calls directly down to
+<code><a href="writePACKAGES.html">write_PACKAGES</a></code> with a warning (and thus all package tarballs
+will be processed), if any of the following conditions hold:
+</p>
+
+<ul>
+<li> <p><code>type</code> is <code>win.binary</code> and <code>strict</code> is
+<code>TRUE</code> (no MD5 checksums are included in win.binary <code>PACKAGES</code> files)
+</p>
+</li>
+<li><p> No <code>PACKAGES</code> file exists under <code>dir</code>
+</p>
+</li>
+<li><p> A <code>PACKAGES</code> file exists under <code>dir</code> but is empty 
+</p>
+</li>
+<li> <p><code>fields</code> is not <code>NULL</code> and one or more specified fields
+are not present in the existing <code>PACKAGES</code> file
+</p>
+</li></ul>
+
+<p><code>update_PACKAGES</code> avoids (re)processing package tarballs in cases where
+a <code>PACKAGES</code> file entry already exists and appears to remain valid. The
+logic for detecting still-valid entries is as follows:
+</p>
+<p>Any package tarball which was last modified more recently than the
+existing <code>PACKAGES</code> file is considered novel; existing
+<code>PACKAGES</code> entries appearing to correspond to such tarballs are
+<em>always</em> considered stale and replaced by newly generated ones.
+Similarly, all <code>PACKAGES</code> entries that do not correspond to any
+package tarball found in <code>dir</code> are considered invalid and are
+excluded from the resulting updated <code>PACKAGES</code> files.
+</p>
+<p>When <code>strict</code> is <code>TRUE</code>, <code>PACKAGES</code> entries that match a package
+tarball (by package name and version) are confirmed via MD5 checksum;
+only those that pass are retained as valid. All novel package tarballs
+are fully processed by the standard machinery underlying
+<code><a href="writePACKAGES.html">write_PACKAGES</a></code> and the resulting entries are
+added. Finally, if <code>latestOnly</code> is <code>TRUE</code>, package-version
+pruning is performed across the entries.
+</p>
+<p>When <code>strict</code> is <code>FALSE</code>, package tarballs are assumed to encode
+correct metadata in their filenames. <code>PACKAGES</code> entries which
+appear to match a package tarball are retained as valid (No MD5 checksum
+testing occurs). If <code>latestOnly</code> is <code>TRUE</code>, package-version
+pruning is performed across the full set of retained entries and novel package
+tarballs <em>before</em> the processing of the novel tarballs, at
+significant computational and time savings in some
+situations. After the optional pruning, any relevant novel package
+tarballs are processed via the standard machinery and added to the
+set of retained entries.
+</p>
+<p>In both cases, after the above process concludes, entries are sorted
+alphabetically by the string concatenation of <code>Package</code> and
+<code>Version</code>. This should match the entry order <code>write_PACKAGES</code>
+outputs.
+</p>
+<p>The fields within the entries are ordered as follows: canonical fields -
+i.e., those appearing as columns when <code>available.packages</code> is
+called on a CRAN mirror - appear first in their canonical order,
+followed by any non-canonical fields.
+</p>
+<p>After entry and field reordering, the final database of <code>PACKAGES</code>
+entries is written to all three <code>PACKAGES</code> files, overwriting the
+existing versions.
+</p>
+<p>When <code>verbose.level</code> is <code>0</code>, no extra messages are displayed
+to the user. When it is <code>1</code>, detailed information about what is
+happening is conveyed via messages, but underlying machinery from
+<code><a href="writePACKAGES.html">write_PACKAGES</a></code> is invoked with <code>verbose = FALSE</code>.
+Behavior when <code>verbose.level</code> is <code>2</code> is identical to
+<code>verbose.level</code> <code>1</code> with the exception that underlying
+machinery from <code>write_PACKAGE</code> is invoked with
+<code>verbose = TRUE</code>, which will individually list every processed
+tarball.
+</p>
+
+
+<h3>Note</h3>
+
+<p>While both strict and non-strict modes can offer speedups when updating
+small percentages of large repositories, non-strict mode is <em>much</em>
+faster and is recommended in situations where the assumption it makes
+about tarballs' filenames encoding accurate information is safe.  </p>
+
+
+<h3>Note</h3>
+
+<p> Users should expect significantly smaller speedups over
+<code>write_PACKAGES</code> in the <code>type == "win.binary"</code> case on at
+least some operating systems. This is due to <code>write_PACKAGES</code> being
+significantly faster in this context, rather than <code>update_PACKAGES</code>
+being slower.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Gabriel Becker (adapted from previous, related work by him in the <code>switchr</code>
+package which is copyright Genentech, Inc.)
+</p>
+
+
+<h3>See Also</h3>
+
+<p><a href="writePACKAGES.html">write_PACKAGES</a>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Not run: 
+write_PACKAGES("c:/myFolder/myRepository") # on Windows
+update_PACKAGES("c:/myFolder/myRepository") # on Windows
+write_PACKAGES("/pub/RWin/bin/windows/contrib/2.9",
+type = "win.binary") # on Linux
+update_PACKAGES("/pub/RWin/bin/windows/contrib/2.9",
+type = "win.binary") # on Linux
+
+## End(Not run)</pre>
+
+<hr /><div style="text-align: center;">[Package <em>tools</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

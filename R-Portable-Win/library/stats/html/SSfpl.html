@@ -1,0 +1,124 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Self-Starting Nls Four-Parameter Logistic Model</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for SSfpl {stats}"><tr><td>SSfpl {stats}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Self-Starting Nls Four-Parameter Logistic Model</h2>
+
+<h3>Description</h3>
+
+<p>This <code>selfStart</code> model evaluates the four-parameter logistic
+function and its gradient.  It has an <code>initial</code> attribute computing
+initial estimates of the parameters <code>A</code>, <code>B</code>,
+<code>xmid</code>, and <code>scal</code> for a given set of data.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+SSfpl(input, A, B, xmid, scal)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>input</code></td>
+<td>
+<p>a numeric vector of values at which to evaluate the model.</p>
+</td></tr>
+<tr valign="top"><td><code>A</code></td>
+<td>
+<p>a numeric parameter representing the horizontal asymptote on
+the left side (very small values of <code>input</code>).</p>
+</td></tr>
+<tr valign="top"><td><code>B</code></td>
+<td>
+<p>a numeric parameter representing the horizontal asymptote on
+the right side (very large values of <code>input</code>).</p>
+</td></tr>
+<tr valign="top"><td><code>xmid</code></td>
+<td>
+<p>a numeric parameter representing the <code>input</code> value at the
+inflection point of the curve.  The value of <code>SSfpl</code> will be
+midway between <code>A</code> and <code>B</code> at <code>xmid</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>scal</code></td>
+<td>
+<p>a numeric scale parameter on the <code>input</code> axis.</p>
+</td></tr>
+</table>
+
+
+<h3>Value</h3>
+
+<p>a numeric vector of the same length as <code>input</code>.  It is the value of
+the expression <code>A+(B-A)/(1+exp((xmid-input)/scal))</code>.  If all of
+the arguments <code>A</code>, <code>B</code>, <code>xmid</code>, and <code>scal</code> are
+names of objects, the gradient matrix with respect to these names is
+attached as an attribute named <code>gradient</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>José Pinheiro and Douglas Bates</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="nls.html">nls</a></code>, <code><a href="selfStart.html">selfStart</a></code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+Chick.1 &lt;- ChickWeight[ChickWeight$Chick == 1, ]
+SSfpl(Chick.1$Time, 13, 368, 14, 6)  # response only
+local({
+  A &lt;- 13; B &lt;- 368; xmid &lt;- 14; scal &lt;- 6
+  SSfpl(Chick.1$Time, A, B, xmid, scal) # response _and_ gradient
+})
+print(getInitial(weight ~ SSfpl(Time, A, B, xmid, scal), data = Chick.1),
+      digits = 5)
+## Initial values are in fact the converged values
+fm1 &lt;- nls(weight ~ SSfpl(Time, A, B, xmid, scal), data = Chick.1)
+summary(fm1)
+
+## Visualizing the  SSfpl()  parametrization
+  xx &lt;- seq(-0.5, 5, len = 101)
+  yy &lt;- 1 + 4 / (1 + exp((2-xx))) # == SSfpl(xx, *) :
+  stopifnot( all.equal(yy, SSfpl(xx, A = 1, B = 5, xmid = 2, scal = 1)) )
+  require(graphics)
+  op &lt;- par(mar = c(0, 0, 3.5, 0))
+  plot(xx, yy, type = "l", axes = FALSE, ylim = c(0,6), xlim = c(-1, 5),
+       xlab = "", ylab = "", lwd = 2,
+       main = "Parameters in the SSfpl model")
+  mtext(quote(list(phi[1] == "A", phi[2] == "B", phi[3] == "xmid", phi[4] == "scal")))
+  usr &lt;- par("usr")
+  arrows(usr[1], 0, usr[2], 0, length = 0.1, angle = 25)
+  arrows(0, usr[3], 0, usr[4], length = 0.1, angle = 25)
+  text(usr[2] - 0.2, 0.1, "x", adj = c(1, 0))
+  text(     -0.1, usr[4], "y", adj = c(1, 1))
+  abline(h = c(1, 5), lty = 3)
+  arrows(-0.8, c(2.1, 2.9),
+         -0.8, c(0,   5  ), length = 0.1, angle = 25)
+  text  (-0.8, 2.5, quote(phi[1]))
+  arrows(-0.3, c(1/4, 3/4),
+         -0.3, c(0,   1  ), length = 0.07, angle = 25)
+  text  (-0.3, 0.5, quote(phi[2]))
+  text(2, -.1, quote(phi[3]))
+  segments(c(2,3,3), c(0,3,4), # SSfpl(x = xmid = 2) = 3
+           c(2,3,2), c(3,4,3),    lty = 2, lwd = 0.75)
+  arrows(c(2.3, 2.7), 3,
+         c(2.0, 3  ), 3, length = 0.08, angle = 25)
+  text(      2.5,     3, quote(phi[4])); text(3.1, 3.5, "1")
+  par(op)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>stats</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

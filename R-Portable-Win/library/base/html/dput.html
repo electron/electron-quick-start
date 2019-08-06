@@ -1,0 +1,153 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Write an Object to a File or Recreate it</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for dput {base}"><tr><td>dput {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Write an Object to a File or Recreate it</h2>
+
+<h3>Description</h3>
+
+<p>Writes an ASCII text representation of an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> object to a file
+or connection, or uses one to recreate the object.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+dput(x, file = "",
+     control = c("keepNA", "keepInteger", "niceNames", "showAttributes"))
+
+dget(file, keep.source = FALSE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>an object.</p>
+</td></tr>
+<tr valign="top"><td><code>file</code></td>
+<td>
+<p>either a character string naming a file or a
+<a href="connections.html">connection</a>. <code>""</code> indicates output to the console.</p>
+</td></tr>
+<tr valign="top"><td><code>control</code></td>
+<td>
+<p>character vector indicating deparsing options.
+See <code><a href="deparseOpts.html">.deparseOpts</a></code> for their description.</p>
+</td></tr>
+<tr valign="top"><td><code>keep.source</code></td>
+<td>
+<p>logical: should the source formatting be retained when
+parsing functions, if possible?</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p><code>dput</code> opens <code>file</code> and deparses the object <code>x</code> into
+that file.  The object name is not written (unlike <code>dump</code>).
+If <code>x</code> is a function the associated environment is stripped.
+Hence scoping information can be lost.
+</p>
+<p>Deparsing an object is difficult, and not always possible.  With the
+default <code>control</code>, <code>dput()</code> attempts to deparse in a way
+that is readable, but for more complex or unusual objects (see
+<code><a href="dump.html">dump</a></code>), not likely
+to be parsed as identical to the original.  Use <code>control = "all"</code>
+for the most complete deparsing; use <code>control = NULL</code> for the
+simplest deparsing, not even including attributes.
+</p>
+<p><code>dput</code> will warn if fewer characters were written to a file than
+expected, which may indicate a full or corrupt file system.
+</p>
+<p>To display saved source rather than deparsing the internal
+representation include <code>"useSource"</code> in <code>control</code>.  <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>
+currently saves source only for function definitions.  If you do not
+care about source representation (e.g., for a data object), for speed
+set <code>options(keep.source = FALSE</code>) when calling <code>source</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>For <code>dput</code>, the first argument invisibly.
+</p>
+<p>For <code>dget</code>, the object created.
+</p>
+
+
+<h3>Note</h3>
+
+<p>This is <b>not</b> a good way to transfer objects between <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> sessions.
+<code><a href="dump.html">dump</a></code> is better, but the function <code><a href="save.html">save</a></code> is
+designed to be used for transporting <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> data, and will work with <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>
+objects that <code>dput</code> does not handle correctly as well as being
+much faster.
+</p>
+<p>To avoid the risk of a source attribute out of sync with the actual
+function definition, the source attribute of a function will never
+be written as an attribute.
+</p>
+
+
+<h3>References</h3>
+
+<p>Becker, R. A., Chambers, J. M. and Wilks, A. R. (1988)
+<em>The New S Language</em>.
+Wadsworth &amp; Brooks/Cole.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="deparse.html">deparse</a></code>, <code><a href="dump.html">dump</a></code>, <code><a href="write.html">write</a></code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+fil &lt;- tempfile()
+## Write an ASCII version of the 'base' function mean() to our temp file, ..
+dput(base::mean, fil)
+## ... read it back into 'bar' and confirm it is the same
+bar &lt;- dget(fil)
+stopifnot(all.equal(bar, base::mean))
+
+## Create a function with comments
+baz &lt;- function(x) {
+  # Subtract from one
+  1-x
+}
+## and display it
+dput(baz)
+## and now display the saved source
+dput(baz, control = "useSource")
+
+## Numeric values:
+xx &lt;- pi^(1:3)
+dput(xx)
+dput(xx, control = "digits17")
+dput(xx, control = "hexNumeric")
+dput(xx, fil); dget(fil) - xx # slight rounding on all platforms
+dput(xx, fil, control = "digits17")
+dget(fil) - xx # slight rounding on some platforms
+dput(xx, fil, control = "hexNumeric"); dget(fil) - xx
+unlink(fil)
+
+xn &lt;- setNames(xx, paste0("pi^",1:3))
+dput(xn) # nicer, now "niceNames" being part of default 'control'
+dput(xn, control = "S_compat") # no names
+## explicitly asking for output as in R &lt; 3.5.0:
+dput(xn, control = c("keepNA", "keepInteger", "showAttributes"))
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

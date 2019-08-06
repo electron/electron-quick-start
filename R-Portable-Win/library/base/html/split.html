@@ -1,0 +1,171 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Divide into Groups and Reassemble</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for split {base}"><tr><td>split {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Divide into Groups and Reassemble</h2>
+
+<h3>Description</h3>
+
+<p><code>split</code> divides the data in the vector <code>x</code> into the groups
+defined by <code>f</code>.  The replacement forms replace values
+corresponding to such a division.  <code>unsplit</code> reverses the effect of
+<code>split</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+split(x, f, drop = FALSE, ...)
+## Default S3 method:
+split(x, f, drop = FALSE, sep = ".", lex.order = FALSE, ...)
+
+split(x, f, drop = FALSE, ...) &lt;- value
+unsplit(value, f, drop = FALSE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>vector or data frame containing values to be divided into groups.</p>
+</td></tr>
+<tr valign="top"><td><code>f</code></td>
+<td>
+<p>a &lsquo;factor&rsquo; in the sense that <code><a href="factor.html">as.factor</a>(f)</code>
+defines the grouping, or a list of such factors in which case their
+interaction is used for the grouping.</p>
+</td></tr>
+<tr valign="top"><td><code>drop</code></td>
+<td>
+<p>logical indicating if levels that do not occur should be dropped
+(if <code>f</code> is a <code>factor</code> or a list).</p>
+</td></tr>
+<tr valign="top"><td><code>value</code></td>
+<td>
+<p>a list of vectors or data frames compatible with a
+splitting of <code>x</code>. Recycling applies if the lengths do not match.</p>
+</td></tr>
+<tr valign="top"><td><code>sep</code></td>
+<td>
+<p>character string, passed to <code><a href="interaction.html">interaction</a></code> in the
+case where <code>f</code> is a <code><a href="list.html">list</a></code>.</p>
+</td></tr>
+<tr valign="top"><td><code>lex.order</code></td>
+<td>
+<p>logical, passed to <code><a href="interaction.html">interaction</a></code> when
+<code>f</code> is a list.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>further potential arguments passed to methods.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p><code>split</code> and <code>split&lt;-</code> are generic functions with default and
+<code>data.frame</code> methods.  The data frame method can also be used to
+split a matrix into a list of matrices, and the replacement form
+likewise, provided they are invoked explicitly.
+</p>
+<p><code>unsplit</code> works with lists of vectors or data frames (assumed to
+have compatible structure, as if created by <code>split</code>).  It puts
+elements or rows back in the positions given by <code>f</code>.  In the data
+frame case, row names are obtained by unsplitting the row name
+vectors from the elements of <code>value</code>.
+</p>
+<p><code>f</code> is recycled as necessary and if the length of <code>x</code> is not
+a multiple of the length of <code>f</code> a warning is printed.
+</p>
+<p>Any missing values in <code>f</code> are dropped together with the
+corresponding values of <code>x</code>.
+</p>
+<p>The default method calls <code><a href="interaction.html">interaction</a></code> when <code>f</code> is a
+<code><a href="list.html">list</a></code>.  If the levels of the factors contain <span class="samp">.</span>
+the factors may not be split as expected, unless <code>sep</code> is set to
+string not present in the factor <code><a href="levels.html">levels</a></code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The value returned from <code>split</code> is a list of vectors containing
+the values for the groups.  The components of the list are named by
+the levels of <code>f</code> (after converting to a factor, or if already a
+factor and <code>drop = TRUE</code>, dropping unused levels).
+</p>
+<p>The replacement forms return their right hand side.  <code>unsplit</code>
+returns a vector or data frame for which <code>split(x, f)</code> equals
+<code>value</code>
+</p>
+
+
+<h3>References</h3>
+
+<p>Becker, R. A., Chambers, J. M. and Wilks, A. R. (1988)
+<em>The New S Language</em>.
+Wadsworth &amp; Brooks/Cole.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="cut.html">cut</a></code> to categorize numeric values.
+</p>
+<p><code><a href="strsplit.html">strsplit</a></code> to split strings.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+require(stats); require(graphics)
+n &lt;- 10; nn &lt;- 100
+g &lt;- factor(round(n * runif(n * nn)))
+x &lt;- rnorm(n * nn) + sqrt(as.numeric(g))
+xg &lt;- split(x, g)
+boxplot(xg, col = "lavender", notch = TRUE, varwidth = TRUE)
+sapply(xg, length)
+sapply(xg, mean)
+
+### Calculate 'z-scores' by group (standardize to mean zero, variance one)
+z &lt;- unsplit(lapply(split(x, g), scale), g)
+
+# or
+
+zz &lt;- x
+split(zz, g) &lt;- lapply(split(x, g), scale)
+
+# and check that the within-group std dev is indeed one
+tapply(z, g, sd)
+tapply(zz, g, sd)
+
+
+### data frame variation
+
+## Notice that assignment form is not used since a variable is being added
+
+g &lt;- airquality$Month
+l &lt;- split(airquality, g)
+l &lt;- lapply(l, transform, Oz.Z = scale(Ozone))
+aq2 &lt;- unsplit(l, g)
+head(aq2)
+with(aq2, tapply(Oz.Z,  Month, sd, na.rm = TRUE))
+
+
+### Split a matrix into a list by columns
+ma &lt;- cbind(x = 1:10, y = (-4:5)^2)
+split(ma, col(ma))
+
+split(1:10, 1:2)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

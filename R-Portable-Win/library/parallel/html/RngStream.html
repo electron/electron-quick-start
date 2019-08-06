@@ -1,0 +1,137 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Implementation of Pierre L'Ecuyer's RngStreams</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for RNGstreams {parallel}"><tr><td>RNGstreams {parallel}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Implementation of Pierre L'Ecuyer's RngStreams</h2>
+
+<h3>Description</h3>
+
+<p>This is an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> re-implementation of Pierre L'Ecuyer's &lsquo;RngStreams&rsquo;
+multiple streams of pseudo-random numbers.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+nextRNGStream(seed)
+nextRNGSubStream(seed)
+
+clusterSetRNGStream(cl = NULL, iseed)
+mc.reset.stream()
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>seed</code></td>
+<td>
+<p>An integer vector of length 7 as given by
+<code>.Random.seed</code> when the <span class="samp">"L'Ecuyer-CMRG"</span> RNG is in use.
+See <code><a href="../../base/html/Random.html">RNG</a></code> for the valid values.</p>
+</td></tr>
+<tr valign="top"><td><code>cl</code></td>
+<td>
+<p>A cluster from this package or package <a href="https://CRAN.R-project.org/package=snow"><span class="pkg">snow</span></a>, or (if
+<code>NULL</code>) the registered cluster.</p>
+</td></tr>
+<tr valign="top"><td><code>iseed</code></td>
+<td>
+<p>An integer to be supplied to <code><a href="../../base/html/Random.html">set.seed</a></code>, or
+<code>NULL</code> not to set reproducible seeds.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>The &lsquo;RngStream&rsquo; interface works with (potentially) multiple
+streams of pseudo-random numbers: this is particularly suitable for
+working with parallel computations since each task can be assigned a
+separate RNG stream.
+</p>
+<p>This uses as its underlying generator <code>RNGkind("L'Ecuyer-CMRG")</code>,
+of L'Ecuyer (1999), which has a seed vector of 6 (signed) integers and a
+period of around <i>2^191</i>.  Each &lsquo;stream&rsquo; is a
+subsequence of the period of length <i>2^127</i> which is in
+turn divided into &lsquo;substreams&rsquo; of length <i>2^76</i>.
+</p>
+<p>The idea of L'Ecuyer <em>et al</em> (2002) is to use a separate stream
+for each of the parallel computations (which ensures that the random
+numbers generated never get into to sync) and the parallel
+computations can themselves use substreams if required.  The original
+interface stores the original seed of the first stream, the original
+seed of the current stream and the current seed: this could be
+implemented in <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>, but it is as easy to work by saving the relevant
+values of <code>.Random.seed</code>: see the examples.
+</p>
+<p><code>clusterSetRNGStream</code> selects the <code>"L'Ecuyer-CMRG"</code> RNG and
+then distributes streams to the members of a cluster, optionally
+setting the seed of the streams by <code>set.seed(iseed)</code> (otherwise
+they are set from the current seed of the master process: after
+selecting the L'Ecuyer generator).
+</p>
+
+
+<h3>Value</h3>
+
+<p>For <code>nextRNGStream</code> and <code>nextRNGSubStream</code>,
+a value which can be assigned to <code>.Random.seed</code>.
+</p>
+
+
+<h3>Note</h3>
+
+<p>Interfaces to L'Ecuyer's C code are available in CRAN
+packages <a href="https://CRAN.R-project.org/package=rlecuyer"><span class="pkg">rlecuyer</span></a> and <a href="https://CRAN.R-project.org/package=rstream"><span class="pkg">rstream</span></a>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Brian Ripley
+</p>
+
+
+<h3>References</h3>
+
+<p>L'Ecuyer, P. (1999).
+Good parameters and implementations for combined multiple recursive
+random number generators.
+<em>Operations Research</em>, <b>47</b>, 159&ndash;164.
+doi: <a href="https://doi.org/10.1287/opre.47.1.159">10.1287/opre.47.1.159</a>.
+</p>
+<p>L'Ecuyer, P., Simard, R.,  Chen, E. J. and Kelton, W. D. (2002).
+An object-oriented random-number package with many long streams
+and substreams.
+<em>Operations Research</em>, <b>50</b>, 1073&ndash;1075.
+doi: <a href="https://doi.org/10.1287/opre.50.6.1073.358">10.1287/opre.50.6.1073.358</a>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="../../base/html/Random.html">RNG</a></code> for fuller details of <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>'s built-in random number
+generators.
+</p>
+<p>The vignette for package <span class="pkg">parallel</span>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+RNGkind("L'Ecuyer-CMRG")
+set.seed(123)
+(s &lt;- .Random.seed)
+## do some work involving random numbers.
+nextRNGStream(s)
+nextRNGSubStream(s)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>parallel</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

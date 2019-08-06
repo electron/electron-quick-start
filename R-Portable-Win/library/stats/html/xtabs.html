@@ -1,0 +1,207 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Cross Tabulation</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for xtabs {stats}"><tr><td>xtabs {stats}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Cross Tabulation</h2>
+
+<h3>Description</h3>
+
+<p>Create a contingency table (optionally a sparse matrix) from
+cross-classifying factors, usually contained in a data frame,
+using a formula interface.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+xtabs(formula = ~., data = parent.frame(), subset, sparse = FALSE,
+      na.action, addNA = FALSE, exclude = if(!addNA) c(NA, NaN),
+      drop.unused.levels = FALSE)
+
+## S3 method for class 'xtabs'
+print(x, na.print = "", ...)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>formula</code></td>
+<td>
+<p>a <a href="formula.html">formula</a> object with the cross-classifying variables
+(separated by <code>+</code>) on the right hand side (or an object which
+can be coerced to a formula).  Interactions are not allowed.  On the
+left hand side, one may optionally give a vector or a matrix of
+counts; in the latter case, the columns are interpreted as
+corresponding to the levels of a variable.  This is useful if the
+data have already been tabulated, see the examples below.</p>
+</td></tr>
+<tr valign="top"><td><code>data</code></td>
+<td>
+<p>an optional matrix or data frame (or similar: see
+<code><a href="model.frame.html">model.frame</a></code>) containing the variables in the
+formula <code>formula</code>.  By default the variables are taken from
+<code>environment(formula)</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>subset</code></td>
+<td>
+<p>an optional vector specifying a subset of observations
+to be used.</p>
+</td></tr>
+<tr valign="top"><td><code>sparse</code></td>
+<td>
+<p>logical specifying if the result should be a
+<em>sparse</em> matrix, i.e., inheriting from
+<code><a href="../../Matrix/html/sparseMatrix-class.html">sparseMatrix</a></code>
+Only works for two factors (since there
+are no higher-order sparse array classes yet).
+</p>
+</td></tr>
+<tr valign="top"><td><code>na.action</code></td>
+<td>
+<p>a function which indicates what should happen when
+the data contain <code><a href="../../base/html/NA.html">NA</a></code>s.  If unspecified, and
+<code>addNA</code> is true, this is set to <code><a href="na.fail.html">na.pass</a></code>.  When it
+is <code>na.pass</code> and <code>formula</code> has a left hand side (with
+counts), <code><a href="../../base/html/sum.html">sum</a>(*, na.rm = TRUE)</code> is used instead of
+<code>sum(*)</code> for the counts.</p>
+</td></tr>
+<tr valign="top"><td><code>addNA</code></td>
+<td>
+<p>logical indicating if <code>NA</code>s should get a separate
+level and be counted, using <code><a href="../../base/html/factor.html">addNA</a>(*, ifany=TRUE)</code> and
+setting the default for <code>na.action</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>exclude</code></td>
+<td>
+<p>a vector of values to be excluded when forming the
+set of levels of the classifying factors.</p>
+</td></tr>
+<tr valign="top"><td><code>drop.unused.levels</code></td>
+<td>
+<p>a logical indicating whether to drop unused
+levels in the classifying factors.  If this is <code>FALSE</code> and
+there are unused levels, the table will contain zero marginals, and
+a subsequent chi-squared test for independence of the factors will
+not work.</p>
+</td></tr>
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>an object of class <code>"xtabs"</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>na.print</code></td>
+<td>
+<p>character string (or <code>NULL</code>) indicating how
+<code><a href="../../base/html/NA.html">NA</a></code> are printed.  The default (<code>""</code>) does not show
+<code>NA</code>s clearly, and <code>na.print = "NA"</code> maybe advisable
+instead.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>further arguments passed to or from other methods.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>There is a <code>summary</code> method for contingency table objects created
+by <code>table</code> or <code>xtabs(*, sparse = FALSE)</code>, which gives basic
+information and performs a chi-squared test for independence of
+factors (note that the function <code><a href="chisq.test.html">chisq.test</a></code> currently
+only handles 2-d tables).
+</p>
+<p>If a left hand side is given in <code>formula</code>, its entries are simply
+summed over the cells corresponding to the right hand side; this also
+works if the lhs does not give counts.
+</p>
+<p>For variables in <code>formula</code> which are factors, <code>exclude</code>
+must be specified explicitly; the default exclusions will not be used.
+</p>
+<p>In <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> versions before 3.4.0, e.g., when <code>na.action = na.pass</code>,
+sometimes zeroes (<code>0</code>) were returned instead of <code>NA</code>s.
+</p>
+
+
+<h3>Value</h3>
+
+<p>By default, when <code>sparse = FALSE</code>,
+a contingency table in array representation of S3 class <code>c("xtabs",
+    "table")</code>, with a <code>"call"</code> attribute storing the matched call.
+</p>
+<p>When <code>sparse = TRUE</code>, a sparse numeric matrix, specifically an
+object of S4 class 
+<code><a href="../../Matrix/html/dgTMatrix-class.html">dgTMatrix</a></code> from package
+<a href="https://CRAN.R-project.org/package=Matrix"><span class="pkg">Matrix</span></a>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="../../base/html/table.html">table</a></code> for traditional cross-tabulation, and
+<code><a href="../../base/html/table.html">as.data.frame.table</a></code> which is the inverse operation of
+<code>xtabs</code> (see the <code>DF</code> example below).
+</p>
+<p><code><a href="../../Matrix/html/sparseMatrix-class.html">sparseMatrix</a></code> on sparse
+matrices in package <a href="https://CRAN.R-project.org/package=Matrix"><span class="pkg">Matrix</span></a>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## 'esoph' has the frequencies of cases and controls for all levels of
+## the variables 'agegp', 'alcgp', and 'tobgp'.
+xtabs(cbind(ncases, ncontrols) ~ ., data = esoph)
+## Output is not really helpful ... flat tables are better:
+ftable(xtabs(cbind(ncases, ncontrols) ~ ., data = esoph))
+## In particular if we have fewer factors ...
+ftable(xtabs(cbind(ncases, ncontrols) ~ agegp, data = esoph))
+
+## This is already a contingency table in array form.
+DF &lt;- as.data.frame(UCBAdmissions)
+## Now 'DF' is a data frame with a grid of the factors and the counts
+## in variable 'Freq'.
+DF
+## Nice for taking margins ...
+xtabs(Freq ~ Gender + Admit, DF)
+## And for testing independence ...
+summary(xtabs(Freq ~ ., DF))
+
+## with NA's
+DN &lt;- DF; DN[cbind(6:9, c(1:2,4,1))] &lt;- NA; DN
+tools::assertError(# 'na.fail' should fail :
+     xtabs(Freq ~ Gender + Admit, DN, na.action=na.fail))
+xtabs(Freq ~ Gender + Admit, DN)
+xtabs(Freq ~ Gender + Admit, DN, na.action = na.pass)
+## The Female:Rejected combination has NA 'Freq' (and NA prints 'invisibly' as "")
+xtabs(Freq ~ Gender + Admit, DN, addNA = TRUE) # ==&gt; count NAs
+
+## Create a nice display for the warp break data.
+warpbreaks$replicate &lt;- rep_len(1:9, 54)
+ftable(xtabs(breaks ~ wool + tension + replicate, data = warpbreaks))
+
+### ---- Sparse Examples ----
+
+if(require("Matrix")) withAutoprint({
+ ## similar to "nlme"s  'ergoStool' :
+ d.ergo &lt;- data.frame(Type = paste0("T", rep(1:4, 9*4)),
+                      Subj = gl(9, 4, 36*4))
+ xtabs(~ Type + Subj, data = d.ergo) # 4 replicates each
+ set.seed(15) # a subset of cases:
+ xtabs(~ Type + Subj, data = d.ergo[sample(36, 10), ], sparse = TRUE)
+
+ ## Hypothetical two-level setup:
+ inner &lt;- factor(sample(letters[1:25], 100, replace = TRUE))
+ inout &lt;- factor(sample(LETTERS[1:5], 25, replace = TRUE))
+ fr &lt;- data.frame(inner = inner, outer = inout[as.integer(inner)])
+ xtabs(~ inner + outer, fr, sparse = TRUE)
+})
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>stats</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

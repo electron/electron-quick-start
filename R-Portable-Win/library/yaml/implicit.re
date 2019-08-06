@@ -1,21 +1,21 @@
 #include "yaml.h"
 
-yaml_char_t *
-find_implicit_tag(str, len)
-  const yaml_char_t *str;
+char *
+Ryaml_find_implicit_tag(str, len)
+  const char *str;
   size_t len;
 {
   /* This bit was taken from implicit.re, which is in the Syck library.
    *
    * Copyright (C) 2003 why the lucky stiff */
 
-  const yaml_char_t *cursor, *limit, *marker;
+  const char *cursor, *limit, *marker;
   cursor = str;
   limit = str + len;
 
 /*!re2c
 
-re2c:define:YYCTYPE  = "yaml_char_t";
+re2c:define:YYCTYPE  = "char";
 re2c:define:YYCURSOR = cursor;
 re2c:define:YYMARKER = marker;
 re2c:define:YYLIMIT  = limit;
@@ -31,12 +31,12 @@ MON = DIGIT DIGIT ;
 SIGN = [-+] ;
 HEX = [0-9a-fA-F,] ;
 OCT = [0-7,] ;
-INTHEX = SIGN? "0x" HEX+ ; 
+INTHEX = SIGN? "0x" HEX+ ;
 INTOCT = SIGN? "0" OCT+ ;
 INTSIXTY = SIGN? DIGIT DIGITSC* ( ":" [0-5]? DIGIT )+ ;
 INTCANON = SIGN? ( "0" | [1-9] DIGITSC* ) ;
-FLOATFIX = SIGN? DIGIT DIGITSC* "." DIGITSC* ;
-FLOATEXP = SIGN? DIGIT DIGITSC* "." DIGITSP* [eE] SIGN DIGIT+ ;
+FLOATFIX = SIGN? ( DIGIT DIGITSC* )? "." DIGITSC* ;
+FLOATEXP = SIGN? ( DIGIT DIGITSC* )? "." DIGITSP* [eE] SIGN DIGIT+ ;
 FLOATSIXTY = SIGN? DIGIT DIGITSC* ( ":" [0-5]? DIGIT )+ "." DIGITSC* ;
 INF = ( "inf" | "Inf" | "INF" ) ;
 FLOATINF = [+]? "." INF ;
@@ -57,53 +57,53 @@ TIMECANON = YEAR "-" MON "-" MON "T" MON ":" MON ":" MON ( "." DIGIT* [1-9]+ )? 
 MERGE = "<<" ;
 DEFAULTKEY = "=" ;
 
-NULLTYPE NULL       {   return (yaml_char_t *)"null"; }
+NULLTYPE NULL       {   return "null"; }
 
-BOOLYES NULL        {   return (yaml_char_t *)"bool#yes"; }
+BOOLYES NULL        {   return "bool#yes"; }
 
-BOOLNO NULL         {   return (yaml_char_t *)"bool#no"; }
+BOOLNO NULL         {   return "bool#no"; }
 
-BOOLNA NULL         {   return (yaml_char_t *)"bool#na"; }
+BOOLNA NULL         {   return "bool#na"; }
 
-INTHEX NULL         {   return (yaml_char_t *)"int#hex"; }
+INTHEX NULL         {   return "int#hex"; }
 
-INTOCT NULL         {   return (yaml_char_t *)"int#oct"; }
+INTOCT NULL         {   return "int#oct"; }
 
-INTSIXTY NULL       {   return (yaml_char_t *)"int#base60"; }
+INTSIXTY NULL       {   return "int#base60"; }
 
-INTNA NULL          {   return (yaml_char_t *)"int#na"; }
+INTNA NULL          {   return "int#na"; }
 
-INTCANON NULL       {   return (yaml_char_t *)"int"; }
+INTCANON NULL       {   return "int"; }
 
-FLOATFIX NULL       {   return (yaml_char_t *)"float#fix"; }
+FLOATFIX NULL       {   return "float#fix"; }
 
-FLOATEXP NULL       {   return (yaml_char_t *)"float#exp"; }
+FLOATEXP NULL       {   return "float#exp"; }
 
-FLOATSIXTY NULL     {   return (yaml_char_t *)"float#base60"; }
+FLOATSIXTY NULL     {   return "float#base60"; }
 
-FLOATINF NULL       {   return (yaml_char_t *)"float#inf"; }
+FLOATINF NULL       {   return "float#inf"; }
 
-FLOATNEGINF NULL    {   return (yaml_char_t *)"float#neginf"; }
+FLOATNEGINF NULL    {   return "float#neginf"; }
 
-FLOATNAN NULL       {   return (yaml_char_t *)"float#nan"; }
+FLOATNAN NULL       {   return "float#nan"; }
 
-FLOATNA NULL        {   return (yaml_char_t *)"float#na"; }
+FLOATNA NULL        {   return "float#na"; }
 
-TIMEYMD NULL        {   return (yaml_char_t *)"timestamp#ymd"; }
+TIMEYMD NULL        {   return "timestamp#ymd"; }
 
-TIMEISO NULL        {   return (yaml_char_t *)"timestamp#iso8601"; }
+TIMEISO NULL        {   return "timestamp#iso8601"; }
 
-TIMESPACED NULL     {   return (yaml_char_t *)"timestamp#spaced"; }
+TIMESPACED NULL     {   return "timestamp#spaced"; }
 
-TIMECANON NULL      {   return (yaml_char_t *)"timestamp"; }
+TIMECANON NULL      {   return "timestamp"; }
 
-STRNA NULL          {   return (yaml_char_t *)"str#na"; }
+STRNA NULL          {   return "str#na"; }
 
-DEFAULTKEY NULL     {   return (yaml_char_t *)"default"; }
+DEFAULTKEY NULL     {   return "default"; }
 
-MERGE NULL          {   return (yaml_char_t *)"merge"; }
+MERGE NULL          {   return "merge"; }
 
-ANY                 {   return (yaml_char_t *)"str"; }
+ANY                 {   return "str"; }
 
 */
 

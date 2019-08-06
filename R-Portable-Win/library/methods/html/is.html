@@ -1,0 +1,153 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Is an Object from a Class?</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for is {methods}"><tr><td>is {methods}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Is an Object from a Class?</h2>
+
+<h3>Description</h3>
+
+<p>Functions to test inheritance relationships between an object and a
+class or between two classes (<code>extends</code>).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+is(object, class2)
+
+extends(class1, class2, maybe = TRUE, fullInfo = FALSE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>object</code></td>
+<td>
+<p>any <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> object.</p>
+</td></tr>
+<tr valign="top"><td><code>class1, class2</code></td>
+<td>
+
+<p>the names of the classes between which <code>is</code> relations are to be
+examined defined, or (more efficiently) the class definition
+objects for the classes.</p>
+</td></tr>
+<tr valign="top"><td><code>fullInfo</code></td>
+<td>
+
+<p>In a call to <code>extends</code>, with <code>class2</code> missing,
+<code>fullInfo</code> is a flag, which if <code>TRUE</code> causes a list of
+objects of class <code><a href="SClassExtension-class.html">SClassExtension</a></code> to be returned, rather than
+just the names of the classes.  Only the distance slot is likely to
+be useful in practice; see the &lsquo;Selecting Superclasses&rsquo; section;
+</p>
+</td></tr>
+<tr valign="top"><td><code>maybe</code></td>
+<td>
+
+<p>What to return for conditional inheritance.  But such
+relationships are rarely used and not recommended, so this
+argument should not be needed.
+</p>
+</td></tr>
+</table>
+
+
+<h3>Selecting Superclasses</h3>
+
+<p>A call to  <code><a href="selectSuperClasses.html">selectSuperClasses</a>(cl)</code> returns a list of
+superclasses, similarly to
+<code>extends(cl)</code>.  Additional arguments restrict the class names
+returned to direct superclasses and/or to non-virtual classes.
+</p>
+<p>Either way, programming with the result, particularly using
+<code><a href="../../base/html/lapply.html">sapply</a></code>, can be useful.
+</p>
+<p>To find superclasses with more generally defined properties, one can program
+with the result returned by <code>extends</code> when called with one
+class as argument.
+By default, the call returns a character vector including the name of the class
+itself and of all its superclasses.
+Alternatively,
+if <code>extends</code> is called with <code>fullInfo =
+    TRUE</code>, the return value is a named list, its names being the previous
+character vector.  The elements of the list corresponding to
+superclasses are objects of class
+<code><a href="SClassExtension-class.html">SClassExtension</a></code>. Of the information in these objects, one piece can be useful:
+the number of generations between the classes, given by the
+<code>"distance"</code> slot.
+</p>
+<p>Programming with the result of the call to <code>extends</code>, particularly using
+<code><a href="../../base/html/lapply.html">sapply</a></code>, can select superclasses.
+The programming technique is to define a test function that returns
+<code>TRUE</code> for superclasses or relationships obeying some
+requirement. For example, to find only next-to-direct superclasses,
+use this function with the list of extension objects:
+</p>
+<p><code>function(what) is(what, "SClassExtension") &amp;&amp; what@distance == 2</code>
+</p>
+<p>or, to find only superclasses from <code>"myPkg"</code>, use this function
+with the simple vector of names:
+</p>
+<p><code>function(what) getClassDef(what)@package == "myPkg"</code>
+</p>
+<p>Giving such functions as an argument to <code><a href="../../base/html/lapply.html">sapply</a></code> called on the output of
+<code>extends</code> allows you to find
+superclasses with desired properties.  See the examples below.
+</p>
+<p>Note that the function using extension objects must test the class of its argument since,
+unfortunately for this purpose, the list returned by <code>extends</code> includes
+<code>class1</code> itself, as the object <code>TRUE</code>.
+</p>
+
+
+<h3>References</h3>
+
+<p>Chambers, John M. (2016)
+<em>Extending R</em>,
+Chapman &amp; Hall.
+(Chapters 9 and 10.)
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Although <code><a href="../../base/html/class.html">inherits</a></code> is defined for S3 classes, it has
+been modified so that the result returned is nearly always equivalent to
+<code>is</code>, both for S4 and non-S4 objects. Since it is implemented
+in C, it is somewhat faster.
+The only non-equivalences arise from use of <code><a href="setIs.html">setIs</a></code>,
+which should rarely be encountered.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Not run: 
+## this example can be run if package XRPython from CRAN is installed.
+supers &lt;- extends("PythonInterface")
+## find all the superclasses from package XR
+fromXR &lt;- sapply(supers,
+    function(what) getClassDef(what)@package == "XR")
+## print them
+supers[fromXR]
+
+## find all the superclasses at distance 2
+superRelations &lt;- extends("PythonInterface", fullInfo = TRUE)
+dist2 &lt;- sapply(superRelations,
+    function(what) is(what, "SClassExtension") &amp;&amp; what@distance == 2)
+## print them
+names(superRelations)[dist2]
+
+
+## End(Not run)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>methods</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

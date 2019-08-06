@@ -1,0 +1,199 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Model Formulae</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for formula {stats}"><tr><td>formula {stats}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Model Formulae</h2>
+
+<h3>Description</h3>
+
+<p>The generic function <code>formula</code> and its specific methods provide a
+way of extracting formulae which have been included in other objects.
+</p>
+<p><code>as.formula</code> is almost identical, additionally preserving
+attributes when <code>object</code> already inherits from
+<code>"formula"</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+formula(x, ...)
+DF2formula(x, env = parent.frame())
+as.formula(object, env = parent.frame())
+
+## S3 method for class 'formula'
+print(x, showEnv = !identical(e, .GlobalEnv), ...)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x, object</code></td>
+<td>
+<p><span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> object, for <code>DF2formula()</code> a <code><a href="../../base/html/data.frame.html">data.frame</a></code>.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>further arguments passed to or from other methods.</p>
+</td></tr>
+<tr valign="top"><td><code>env</code></td>
+<td>
+<p>the environment to associate with the result, if not
+already a formula.</p>
+</td></tr>
+<tr valign="top"><td><code>showEnv</code></td>
+<td>
+<p>logical indicating if the environment should be printed
+as well.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>The models fit by, e.g., the <code><a href="lm.html">lm</a></code> and <code><a href="glm.html">glm</a></code> functions
+are specified in a compact symbolic form.
+The <code>~</code> operator is basic in the formation of such models.
+An expression of the form <code>y ~ model</code> is interpreted
+as a specification that the response <code>y</code> is modelled
+by a linear predictor specified symbolically by <code>model</code>.
+Such a model consists of a series of terms separated
+by <code>+</code> operators.
+The terms themselves consist of variable and factor
+names separated by <code>:</code> operators.
+Such a term is interpreted as the interaction of
+all the variables and factors appearing in the term.
+</p>
+<p>In addition to <code>+</code> and <code>:</code>, a number of other operators are
+useful in model formulae.  The <code>*</code> operator denotes factor
+crossing: <code>a*b</code> interpreted as <code>a+b+a:b</code>.  The <code>^</code>
+operator indicates crossing to the specified degree.  For example
+<code>(a+b+c)^2</code> is identical to <code>(a+b+c)*(a+b+c)</code> which in turn
+expands to a formula containing the main effects for <code>a</code>,
+<code>b</code> and <code>c</code> together with their second-order interactions.
+The <code>%in%</code> operator indicates that the terms on its left are
+nested within those on the right.  For example <code>a + b %in% a</code>
+expands to the formula <code>a + a:b</code>.  The <code>-</code> operator removes
+the specified terms, so that <code>(a+b+c)^2 - a:b</code> is identical to
+<code>a + b + c + b:c + a:c</code>.  It can also used to remove the
+intercept term: when fitting a linear model <code>y ~ x - 1</code> specifies
+a line through the origin.  A model with no intercept can be also
+specified as <code>y ~ x + 0</code> or <code>y ~ 0 + x</code>.
+</p>
+<p>While formulae usually involve just variable and factor
+names, they can also involve arithmetic expressions.
+The formula <code>log(y) ~ a + log(x)</code> is quite legal.
+When such arithmetic expressions involve
+operators which are also used symbolically
+in model formulae, there can be confusion between
+arithmetic and symbolic operator use.
+</p>
+<p>To avoid this confusion, the function <code><a href="../../base/html/AsIs.html">I</a>()</code>
+can be used to bracket those portions of a model
+formula where the operators are used in their
+arithmetic sense.  For example, in the formula
+<code>y ~ a + I(b+c)</code>, the term <code>b+c</code> is to be
+interpreted as the sum of <code>b</code> and <code>c</code>.
+</p>
+<p>Variable names can be quoted by backticks <code>`like this`</code> in
+formulae, although there is no guarantee that all code using formulae
+will accept such non-syntactic names.
+</p>
+<p>Most model-fitting functions accept formulae with right-hand-side
+including the function <code><a href="offset.html">offset</a></code> to indicate terms with a
+fixed coefficient of one.  Some functions accept other
+&lsquo;specials&rsquo; such as <code>strata</code> or <code>cluster</code> (see the
+<code>specials</code> argument of <code><a href="terms.formula.html">terms.formula</a>)</code>.
+</p>
+<p>There are two special interpretations of <code>.</code> in a formula.  The
+usual one is in the context of a <code>data</code> argument of model
+fitting functions and means &lsquo;all columns not otherwise in the
+formula&rsquo;: see <code><a href="terms.formula.html">terms.formula</a></code>.  In the context of
+<code><a href="update.formula.html">update.formula</a></code>, <b>only</b>, it means &lsquo;what was
+previously in this part of the formula&rsquo;.
+</p>
+<p>When <code>formula</code> is called on a fitted model object, either a
+specific method is used (such as that for class <code>"nls"</code>) or the
+default method.  The default first looks for a <code>"formula"</code>
+component of the object (and evaluates it), then a <code>"terms"</code>
+component, then a <code>formula</code> parameter of the call (and evaluates
+its value) and finally a <code>"formula"</code> attribute.
+</p>
+<p>There is a <code>formula</code> method for data frames.  When there's
+<code>"terms"</code> attribute with a formula, e.g., for a
+<code><a href="model.frame.html">model.frame</a>()</code>, that formula is returned.  If you'd like the
+previous (<span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> <i>&lt;=</i> 3.5.x) behavior, use the auxiliary
+<code>DF2formula()</code> which does not consider a <code>"terms"</code> attribute.
+Otherwise, if
+there is only
+one column this forms the RHS with an empty LHS.  For more columns,
+the first column is the LHS of the formula and the remaining columns
+separated by <code>+</code> form the RHS.
+</p>
+
+
+<h3>Value</h3>
+
+<p>All the functions above produce an object of class <code>"formula"</code>
+which contains a symbolic model formula.
+</p>
+
+
+<h3>Environments</h3>
+
+<p>A formula object has an associated environment, and
+this environment (rather than the parent
+environment) is used by <code><a href="model.frame.html">model.frame</a></code> to evaluate variables
+that are not found in the supplied <code>data</code> argument.
+</p>
+<p>Formulas created with the <code>~</code> operator use the
+environment in which they were created.  Formulas created with
+<code>as.formula</code> will use the <code>env</code> argument for their
+environment.
+</p>
+
+
+<h3>References</h3>
+
+<p>Chambers, J. M. and Hastie, T. J. (1992)
+<em>Statistical models.</em>
+Chapter 2 of <em>Statistical Models in S</em>
+eds J. M. Chambers and T. J. Hastie, Wadsworth &amp; Brooks/Cole.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="../../base/html/AsIs.html">I</a></code>, <code><a href="offset.html">offset</a></code>.
+</p>
+<p>For formula manipulation: <code><a href="terms.html">terms</a></code>, and <code><a href="../../base/html/allnames.html">all.vars</a></code>;
+for typical use: <code><a href="lm.html">lm</a></code>, <code><a href="glm.html">glm</a></code>, and
+<code><a href="../../graphics/html/coplot.html">coplot</a></code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+class(fo &lt;- y ~ x1*x2) # "formula"
+fo
+typeof(fo)  # R internal : "language"
+terms(fo)
+
+environment(fo)
+environment(as.formula("y ~ x"))
+environment(as.formula("y ~ x", env = new.env()))
+
+
+## Create a formula for a model with a large number of variables:
+xnam &lt;- paste0("x", 1:25)
+(fmla &lt;- as.formula(paste("y ~ ", paste(xnam, collapse= "+"))))
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>stats</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

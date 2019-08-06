@@ -1,0 +1,226 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Fit Structural Time Series</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for StructTS {stats}"><tr><td>StructTS {stats}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Fit Structural Time Series</h2>
+
+<h3>Description</h3>
+
+<p>Fit a structural model for a time series by maximum likelihood.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+StructTS(x, type = c("level", "trend", "BSM"), init = NULL,
+         fixed = NULL, optim.control = NULL)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>a univariate numeric time series. Missing values are allowed.</p>
+</td></tr>
+<tr valign="top"><td><code>type</code></td>
+<td>
+<p>the class of structural model.  If omitted, a BSM is used
+for a time series with <code>frequency(x) &gt; 1</code>, and a local trend
+model otherwise.  Can be abbreviated.</p>
+</td></tr>
+<tr valign="top"><td><code>init</code></td>
+<td>
+<p>initial values of the variance parameters.</p>
+</td></tr>
+<tr valign="top"><td><code>fixed</code></td>
+<td>
+<p>optional numeric vector of the same length as the total
+number of parameters.  If supplied, only <code>NA</code> entries in
+<code>fixed</code> will be varied.  Probably most useful for setting
+variances to zero.</p>
+</td></tr>
+<tr valign="top"><td><code>optim.control</code></td>
+<td>
+<p>List of control parameters for
+<code><a href="optim.html">optim</a></code>.  Method <code>"L-BFGS-B"</code> is used.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p><em>Structural time series</em> models are (linear Gaussian) state-space
+models for (univariate) time series based on a decomposition of the
+series into a number of components. They are specified by a set of
+error variances, some of which may be zero.
+</p>
+<p>The simplest model is the <em>local level</em> model specified by
+<code>type = "level"</code>.  This has an underlying level <i>m[t]</i> which
+evolves by
+</p>
+<p style="text-align: center;"><i>m[t+1] = m[t] + xi[t], xi[t] ~ N(0, &sigma;^2_&xi;)</i></p>
+
+<p>The observations are
+</p>
+<p style="text-align: center;"><i>x[t] = m[t] + eps[t], eps[t] ~  N(0, &sigma;^2_\eps)</i></p>
+
+<p>There are two parameters, <i>&sigma;^2_&xi;</i>
+and <i>&sigma;^2_eps</i>.  It is an ARIMA(0,1,1) model,
+but with restrictions on the parameter set.
+</p>
+<p>The <em>local linear trend model</em>, <code>type = "trend"</code>, has the same
+measurement equation, but with a time-varying slope in the dynamics for
+<i>m[t]</i>, given by
+</p>
+<p style="text-align: center;"><i>m[t+1] = m[t] + n[t] + xi[t], xi[t] ~ N(0, &sigma;^2_&xi;)</i></p>
+
+<p style="text-align: center;"><i>n[t+1] = n[t] + &zeta;[t],  &zeta;[t] ~ N(0, &sigma;^2_&zeta;)</i></p>
+
+<p>with three variance parameters.  It is not uncommon to find
+<i>&sigma;^2_&zeta; = 0</i> (which reduces to the local
+level model) or <i>&sigma;^2_&xi; = 0</i>, which ensures a
+smooth trend.  This is a restricted ARIMA(0,2,2) model.
+</p>
+<p>The <em>basic structural model</em>, <code>type = "BSM"</code>, is a local
+trend model with an additional seasonal component. Thus the measurement
+equation is
+</p>
+<p style="text-align: center;"><i>x[t] = m[t] + s[t] + eps[t], eps[t] ~  N(0, &sigma;^2_eps)</i></p>
+
+<p>where <i>s[t]</i> is a seasonal component with dynamics
+</p>
+<p style="text-align: center;"><i>s[t+1] = -s[t] - &hellip; - s[t - s + 2] + w[t],  w[t] ~ N(0, &sigma;^2_w)</i></p>
+
+<p>The boundary case <i>&sigma;^2_w = 0</i> corresponds
+to a deterministic (but arbitrary) seasonal pattern.  (This is
+sometimes known as the &lsquo;dummy variable&rsquo; version of the BSM.)
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list of class <code>"StructTS"</code> with components:
+</p>
+<table summary="R valueblock">
+<tr valign="top"><td><code>coef</code></td>
+<td>
+<p>the estimated variances of the components.</p>
+</td></tr>
+<tr valign="top"><td><code>loglik</code></td>
+<td>
+<p>the maximized log-likelihood.  Note that as all these
+models are non-stationary this includes a diffuse prior for some
+observations and hence is not comparable to <code><a href="arima.html">arima</a></code>
+nor different types of structural models.</p>
+</td></tr>
+<tr valign="top"><td><code>loglik0</code></td>
+<td>
+<p>the maximized log-likelihood with the constant used
+prior to <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> 3.0.0, for backwards compatibility.</p>
+</td></tr>
+<tr valign="top"><td><code>data</code></td>
+<td>
+<p>the time series <code>x</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>residuals</code></td>
+<td>
+<p>the standardized residuals.</p>
+</td></tr>
+<tr valign="top"><td><code>fitted</code></td>
+<td>
+<p>a multiple time series with one component for the level,
+slope and seasonal components, estimated contemporaneously (that is
+at time <i>t</i> and not at the end of the series).</p>
+</td></tr>
+<tr valign="top"><td><code>call</code></td>
+<td>
+<p>the matched call.</p>
+</td></tr>
+<tr valign="top"><td><code>series</code></td>
+<td>
+<p>the name of the series <code>x</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>code</code></td>
+<td>
+<p>the <code>convergence</code> code returned by <code><a href="optim.html">optim</a></code>.</p>
+</td></tr>
+<tr valign="top"><td><code>model, model0</code></td>
+<td>
+<p>Lists representing the Kalman Filter used in the
+fitting.  See <code><a href="KalmanLike.html">KalmanLike</a></code>.  <code>model0</code> is the
+initial state of the filter, <code>model</code> its final state.</p>
+</td></tr>
+<tr valign="top"><td><code>xtsp</code></td>
+<td>
+<p>the <code>tsp</code> attributes of <code>x</code>.</p>
+</td></tr>
+</table>
+
+
+<h3>Note</h3>
+
+<p>Optimization of structural models is a lot harder than many of the
+references admit.  For example, the <code><a href="../../datasets/html/AirPassengers.html">AirPassengers</a></code> data
+are considered in Brockwell &amp; Davis (1996): their solution appears to
+be a local maximum, but nowhere near as good a fit as that produced by
+<code>StructTS</code>.  It is quite common to find fits with one or more
+variances zero, and this can include <i>sigma^2_eps</i>.
+</p>
+
+
+<h3>References</h3>
+
+<p>Brockwell, P. J. &amp; Davis, R. A. (1996).
+<em>Introduction to Time Series and Forecasting</em>.
+Springer, New York.
+Sections 8.2 and 8.5.
+</p>
+<p>Durbin, J. and Koopman, S. J. (2001) <em>Time Series Analysis by
+State Space Methods.</em>  Oxford University Press.
+</p>
+<p>Harvey, A. C. (1989)
+<em>Forecasting, Structural Time Series Models and the Kalman Filter</em>.
+Cambridge University Press.
+</p>
+<p>Harvey, A. C. (1993) <em>Time Series Models</em>.
+2nd Edition, Harvester Wheatsheaf.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="KalmanLike.html">KalmanLike</a></code>, <code><a href="tsSmooth.html">tsSmooth</a></code>;
+<code><a href="stl.html">stl</a></code> for different kind of (seasonal) decomposition.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## see also JohnsonJohnson, Nile and AirPassengers
+require(graphics)
+
+trees &lt;- window(treering, start = 0)
+(fit &lt;- StructTS(trees, type = "level"))
+plot(trees)
+lines(fitted(fit), col = "green")
+tsdiag(fit)
+
+(fit &lt;- StructTS(log10(UKgas), type = "BSM"))
+par(mfrow = c(4, 1)) # to give appropriate aspect ratio for next plot.
+plot(log10(UKgas))
+plot(cbind(fitted(fit), resids=resid(fit)), main = "UK gas consumption")
+
+## keep some parameters fixed; trace optimizer:
+StructTS(log10(UKgas), type = "BSM", fixed = c(0.1,0.001,NA,NA),
+         optim.control = list(trace = TRUE))
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>stats</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

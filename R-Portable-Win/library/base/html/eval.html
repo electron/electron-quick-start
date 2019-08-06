@@ -1,0 +1,203 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Evaluate an (Unevaluated) Expression</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for eval {base}"><tr><td>eval {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Evaluate an (Unevaluated) Expression</h2>
+
+<h3>Description</h3>
+
+<p>Evaluate an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> expression in a specified environment.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+eval(expr, envir = parent.frame(),
+           enclos = if(is.list(envir) || is.pairlist(envir))
+                       parent.frame() else baseenv())
+evalq(expr, envir, enclos)
+eval.parent(expr, n = 1)
+local(expr, envir = new.env())
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>expr</code></td>
+<td>
+<p>an object to be evaluated.  See &lsquo;Details&rsquo;.</p>
+</td></tr>
+<tr valign="top"><td><code>envir</code></td>
+<td>
+<p>the <code><a href="environment.html">environment</a></code> in which <code>expr</code> is to
+be evaluated.  May also be <code>NULL</code>, a list, a data frame,
+a pairlist or an integer as specified to <code><a href="sys.parent.html">sys.call</a></code>.</p>
+</td></tr>
+<tr valign="top"><td><code>enclos</code></td>
+<td>
+<p>Relevant when <code>envir</code> is a (pair)list or a data frame.
+Specifies the enclosure, i.e., where <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> looks for objects not found
+in <code>envir</code>.  This can be <code>NULL</code> (interpreted as the base
+package environment, <code><a href="environment.html">baseenv</a>()</code>) or an environment.</p>
+</td></tr>
+<tr valign="top"><td><code>n</code></td>
+<td>
+<p>number of parent generations to go back</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p><code>eval</code> evaluates the <code>expr</code> argument in the
+environment specified by <code>envir</code> and returns the computed value.
+If <code>envir</code> is not specified, then the default is
+<code><a href="sys.parent.html">parent.frame</a>()</code> (the environment where the call to
+<code>eval</code> was made).
+</p>
+<p>Objects to be evaluated can be of types <code><a href="call.html">call</a></code> or
+<code><a href="expression.html">expression</a></code> or <a href="name.html">name</a> (when the name is looked
+up in the current scope and its binding is evaluated), a <a href="delayedAssign.html">promise</a>
+or any of the basic types such as vectors, functions and environments
+(which are returned unchanged).
+</p>
+<p>The <code>evalq</code> form is equivalent to <code>eval(quote(expr), ...)</code>.
+<code>eval</code> evaluates its first argument in the current scope
+before passing it to the evaluator: <code>evalq</code> avoids this.
+</p>
+<p><code>eval.parent(expr, n)</code> is a shorthand for
+<code>eval(expr, parent.frame(n))</code>.
+</p>
+<p>If <code>envir</code> is a list (such as a data frame) or pairlist, it is
+copied into a temporary environment (with enclosure <code>enclos</code>),
+and the temporary environment is used for evaluation.  So if
+<code>expr</code> changes any of the components named in the (pair)list, the
+changes are lost.
+</p>
+<p>If <code>envir</code> is <code>NULL</code> it is interpreted as an empty list so
+no values could be found in <code>envir</code> and look-up goes directly to
+<code>enclos</code>.
+</p>
+<p><code>local</code> evaluates an expression in a local environment.  It is
+equivalent to <code>evalq</code> except that its default argument creates a
+new, empty environment.  This is useful to create anonymous recursive
+functions and as a kind of limited namespace feature since variables
+defined in the environment are not visible from the outside.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The result of evaluating the object: for an expression vector this is
+the result of evaluating the last element.
+</p>
+
+
+<h3>Note</h3>
+
+<p>Due to the difference in scoping rules, there are some differences
+between <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> and S in this area.  In particular, the default enclosure
+in S is the global environment.
+</p>
+<p>When evaluating expressions in a data frame that has been passed as an
+argument to a function, the relevant enclosure is often the caller's
+environment, i.e., one needs
+<code>eval(x, data, parent.frame())</code>.
+</p>
+
+
+<h3>References</h3>
+
+<p>Becker, R. A., Chambers, J. M. and Wilks, A. R. (1988)
+<em>The New S Language</em>.
+Wadsworth &amp; Brooks/Cole.  (<code>eval</code> only.)
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="expression.html">expression</a></code>, <code><a href="substitute.html">quote</a></code>, <code><a href="sys.parent.html">sys.frame</a></code>,
+<code><a href="sys.parent.html">parent.frame</a></code>, <code><a href="environment.html">environment</a></code>.
+</p>
+<p>Further, <code><a href="force.html">force</a></code> to <em>force</em> evaluation, typically of
+function arguments.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+eval(2 ^ 2 ^ 3)
+mEx &lt;- expression(2^2^3); mEx; 1 + eval(mEx)
+eval({ xx &lt;- pi; xx^2}) ; xx
+
+a &lt;- 3 ; aa &lt;- 4 ; evalq(evalq(a+b+aa, list(a = 1)), list(b = 5)) # == 10
+a &lt;- 3 ; aa &lt;- 4 ; evalq(evalq(a+b+aa, -1), list(b = 5))        # == 12
+
+ev &lt;- function() {
+   e1 &lt;- parent.frame()
+   ## Evaluate a in e1
+   aa &lt;- eval(expression(a), e1)
+   ## evaluate the expression bound to a in e1
+   a &lt;- expression(x+y)
+   list(aa = aa, eval = eval(a, e1))
+}
+tst.ev &lt;- function(a = 7) { x &lt;- pi; y &lt;- 1; ev() }
+tst.ev()  #-&gt; aa : 7,  eval : 4.14
+
+a &lt;- list(a = 3, b = 4)
+with(a, a &lt;- 5) # alters the copy of a from the list, discarded.
+
+##
+## Example of evalq()
+##
+
+N &lt;- 3
+env &lt;- new.env()
+assign("N", 27, envir = env)
+## this version changes the visible copy of N only, since the argument
+## passed to eval is '4'.
+eval(N &lt;- 4, env)
+N
+get("N", envir = env)
+## this version does the assignment in env, and changes N only there.
+evalq(N &lt;- 5, env)
+N
+get("N", envir = env)
+
+
+##
+## Uses of local()
+##
+
+# Mutually recursive.
+# gg gets value of last assignment, an anonymous version of f.
+
+gg &lt;- local({
+    k &lt;- function(y)f(y)
+    f &lt;- function(x) if(x) x*k(x-1) else 1
+})
+gg(10)
+sapply(1:5, gg)
+
+# Nesting locals: a is private storage accessible to k
+gg &lt;- local({
+    k &lt;- local({
+        a &lt;- 1
+        function(y){print(a &lt;&lt;- a+1);f(y)}
+    })
+    f &lt;- function(x) if(x) x*k(x-1) else 1
+})
+sapply(1:5, gg)
+
+ls(envir = environment(gg))
+ls(envir = environment(get("k", envir = environment(gg))))
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

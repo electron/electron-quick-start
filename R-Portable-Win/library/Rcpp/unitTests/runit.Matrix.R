@@ -197,6 +197,16 @@ if (.runThisTest) {
       checkEquals(m, matrix(c(0, 1, 2, 3), nrow = 2))
     }
 
+    test.NumericMatrix.no.init.ctor <- function() {
+        m <- runit_no_init_matrix_ctor()
+        checkEquals(m, matrix(c(0, 1, 2, 3), nrow = 2))
+    }
+
+    test.NumericMatrix.no.init.ctor.nrow <- function() {
+        nrow <- runit_no_init_matrix_ctor_nrow()
+        checkEquals(nrow, 2L)
+    }
+
     test.NumericMatrix.const.Column <- function(){
       m <- matrix(as.numeric(1:9), nrow = 3)
       res <- runit_const_Matrix_column(m)
@@ -241,7 +251,7 @@ if (.runThisTest) {
         colnames(M) <- LETTERS[1:ncol(M)]
         checkEquals(transposeCharacter(M), t(M), msg="character transpose with row and colnames")
     }
-    
+
     test.Matrix.Scalar.op <- function() {
         M <- matrix(c(1:12), 3, 4)
         checkEquals(matrix_scalar_plus(M, 2), M + 2, msg="matrix + scalar")
@@ -253,26 +263,26 @@ if (.runThisTest) {
     ## 23 October 2016
     ## eye function
     test.Matrix.eye <- function() {
-        
+
         checkEquals(
             dbl_eye(3),
             diag(1.0, 3, 3),
             "eye - numeric"
         )
-        
+
         checkEquals(
             int_eye(3),
             diag(1L, 3, 3),
             "eye - integer"
         )
-        
+
         checkEquals(
             cx_eye(3),
             diag(1.0 + 0i, 3, 3),
             "eye - complex"
         )
-        
-        ## diag(TRUE, 3, 3) was registering as 
+
+        ## diag(TRUE, 3, 3) was registering as
         ## a numeric matrix on Travis for some reason
         mat <- matrix(FALSE, 3, 3)
         diag(mat) <- TRUE
@@ -282,86 +292,86 @@ if (.runThisTest) {
             "eye - logical"
         )
     }
-    
+
     ## ones function
     test.Matrix.ones <- function() {
-        
+
         checkEquals(
             dbl_ones(3),
             matrix(1.0, 3, 3),
             "ones - numeric"
         )
-        
+
         checkEquals(
             int_ones(3),
             matrix(1L, 3, 3),
             "ones - integer"
         )
-        
+
         checkEquals(
             cx_ones(3),
             matrix(1.0 + 0i, 3, 3),
             "ones - complex"
         )
-        
+
         checkEquals(
             lgl_ones(3),
             matrix(TRUE, 3, 3),
             "ones - logical"
         )
     }
-    
+
     ## zeros function
     test.Matrix.zeros <- function() {
-        
+
         checkEquals(
             dbl_zeros(3),
             matrix(0.0, 3, 3),
             "zeros - numeric"
         )
-        
+
         checkEquals(
             int_zeros(3),
             matrix(0L, 3, 3),
             "zeros - integer"
         )
-        
+
         checkEquals(
             cx_zeros(3),
             matrix(0.0 + 0i, 3, 3),
             "zeros - complex"
         )
-        
+
         checkEquals(
             lgl_zeros(3),
             matrix(FALSE, 3, 3),
             "zeros - logical"
         )
     }
-    
-    
+
+
     test.Matrix.diagfill <- function() {
-        
+
         checkEquals(num_diag_fill(diag(1.0, 2, 4), 0.0),
                     matrix(0.0, 2, 4),
                     msg = "diagonal fill - case: n < p")
-        
+
         checkEquals(num_diag_fill(diag(1.0, 4, 2), 0.0),
                     matrix(0.0, 4, 2),
                     msg = "diagonal fill - case: n > p")
-        
+
         checkEquals(num_diag_fill(diag(1.0, 3, 3), 0.0),
                     matrix(0.0, 3, 3),
                     msg = "diagonal fill - case: n = p")
-        
+
         m <- matrix("", 2, 4)
         diag(m) <- letters[1:2]
-        
-        checkEquals(char_diag_fill(m, ""), 
+
+        checkEquals(char_diag_fill(m, ""),
                     matrix("", 2, 4),
                     msg = "diagonal fill - char")
-        
-        
+
+
     }
 
 }

@@ -2,7 +2,7 @@
 //
 // unroll.h: Rcpp R/C++ interface class library -- loop unrolling macro
 //
-// Copyright (C) 2010 - 2011 Dirk Eddelbuettel and Romain Francois
+// Copyright (C) 2010 - 2017 Dirk Eddelbuettel and Romain Francois
 //
 // This file is part of Rcpp.
 //
@@ -23,8 +23,8 @@
 #define Rcpp__macros_unroll_h
 
 #define RCPP_LOOP_UNROLL_PTR(TARGET,SOURCE)    \
-int __trip_count = n >> 2 ;                    \
-int i = 0 ;                                    \
+R_xlen_t __trip_count = n >> 2 ;               \
+R_xlen_t i = 0 ;                               \
 for ( ; __trip_count > 0 ; --__trip_count) {   \
 	*TARGET++ = SOURCE[i++] ;                  \
 	*TARGET++ = SOURCE[i++] ;                  \
@@ -44,46 +44,46 @@ switch (n - i){                                \
 }
 
 
-#define RCPP_LOOP_UNROLL(TARGET,SOURCE)           \
-int __trip_count = n >> 2 ;                       \
-int i = 0 ;                                       \
-for ( ; __trip_count > 0 ; --__trip_count) {      \
-	TARGET[i] = SOURCE[i] ; i++ ;                 \
-	TARGET[i] = SOURCE[i] ; i++ ;                 \
-	TARGET[i] = SOURCE[i] ; i++ ;                 \
-	TARGET[i] = SOURCE[i] ; i++ ;                 \
-}                                                 \
-switch (n - i){                                   \
-  case 3:                                         \
-      TARGET[i] = SOURCE[i] ; i++ ;               \
-  case 2:                                         \
-      TARGET[i] = SOURCE[i] ; i++ ;               \
-  case 1:                                         \
-      TARGET[i] = SOURCE[i] ; i++ ;               \
-  case 0:                                         \
-  default:                                        \
-      {}                                          \
+#define RCPP_LOOP_UNROLL(TARGET,SOURCE)               \
+R_xlen_t __trip_count = n >> 2 ;                      \
+R_xlen_t i = 0 ;                                      \
+for ( ; __trip_count > 0 ; --__trip_count) {          \
+        TARGET[i] = SOURCE[i] ; i++ ;                 \
+        TARGET[i] = SOURCE[i] ; i++ ;                 \
+        TARGET[i] = SOURCE[i] ; i++ ;                 \
+        TARGET[i] = SOURCE[i] ; i++ ;                 \
+}                                                     \
+switch (n - i){                                       \
+  case 3:                                             \
+      TARGET[i] = SOURCE[i] ; i++ ; /* fallthrough */ \
+  case 2:                                             \
+      TARGET[i] = SOURCE[i] ; i++ ; /* fallthrough */ \
+  case 1:                                             \
+      TARGET[i] = SOURCE[i] ; i++ ; /* fallthrough */ \
+  case 0:                                             \
+  default:                                            \
+      {}                                              \
 }
 
-#define RCPP_LOOP_UNROLL_LHSFUN(TARGET,FUN,SOURCE)           \
-int __trip_count = n >> 2 ;                       \
-int i = 0 ;                                       \
-for ( ; __trip_count > 0 ; --__trip_count) {      \
-	TARGET[FUN(i)] = SOURCE[i] ; i++ ;                 \
-	TARGET[FUN(i)] = SOURCE[i] ; i++ ;                 \
-	TARGET[FUN(i)] = SOURCE[i] ; i++ ;                 \
-	TARGET[FUN(i)] = SOURCE[i] ; i++ ;                 \
-}                                                 \
-switch (n - i){                                   \
-  case 3:                                         \
-      TARGET[FUN(i)] = SOURCE[i] ; i++ ;               \
-  case 2:                                         \
-      TARGET[FUN(i)] = SOURCE[i] ; i++ ;               \
-  case 1:                                         \
-      TARGET[FUN(i)] = SOURCE[i] ; i++ ;               \
-  case 0:                                         \
-  default:                                        \
-      {}                                          \
+#define RCPP_LOOP_UNROLL_LHSFUN(TARGET,FUN,SOURCE)         \
+R_xlen_t __trip_count = n >> 2 ;                           \
+R_xlen_t i = 0 ;                                           \
+for ( ; __trip_count > 0 ; --__trip_count) {               \
+    TARGET[FUN(i)] = SOURCE[i] ; i++ ;                     \
+    TARGET[FUN(i)] = SOURCE[i] ; i++ ;                     \
+    TARGET[FUN(i)] = SOURCE[i] ; i++ ;                     \
+    TARGET[FUN(i)] = SOURCE[i] ; i++ ;                     \
+}                                                          \
+switch (n - i){                                            \
+  case 3:                                                  \
+      TARGET[FUN(i)] = SOURCE[i] ; i++ ; /* fallthrough */ \
+  case 2:                                                  \
+      TARGET[FUN(i)] = SOURCE[i] ; i++ ; /* fallthrough */ \
+  case 1:                                                  \
+      TARGET[FUN(i)] = SOURCE[i] ; i++ ; /* fallthrough */ \
+  case 0:                                                  \
+  default:                                                 \
+      {}                                                   \
 }
 
 #endif

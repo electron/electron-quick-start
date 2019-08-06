@@ -203,8 +203,8 @@ vfit2$means
 ### code chunk number 19: split4
 ###################################################
 quantile(veteran$karno)
-cdata <- data.frame(tstart= rep(c(0,30,60), 2),
-                    time =  rep(c(30,60, 100), 2),
+cdata <- data.frame(tstart= rep(c(0,90,180), 2),
+                    time =  rep(c(90,180, 365), 2),
                     status= rep(0,6),   #necessary, but ignored
                     tgroup= rep(1:3, 2),
                     trt  =  rep(1,6),
@@ -214,7 +214,7 @@ cdata <- data.frame(tstart= rep(c(0,30,60), 2),
 cdata
 sfit <- survfit(vfit2, newdata=cdata, id=curve)
 km <- survfit(Surv(time, status) ~ I(karno>60), veteran)
-plot(km, xmax=120, col=1:2, lwd=2, 
+plot(km, xmax= 365, col=1:2, lwd=2, 
      xlab="Days from enrollment", ylab="Survival")
 lines(sfit, col=1:2, lty=2, lwd=2)
 
@@ -244,7 +244,39 @@ abline(coef(vfit3)[3:4], col=2)
 
 
 ###################################################
-### code chunk number 23: pbctime
+### code chunk number 23: ties1
+###################################################
+data1 <- read.table(col.names=c("id", "diabetes", "lfu", "status"),
+                          header=FALSE, text="
+1   5 30  1
+2  10 15  1
+3  NA 60  0
+4  NA 80  1
+5  10 80  0
+6  NA 90  1
+7  30 95  1
+")
+
+data1$d2 <- pmin(data1$diabetes, 300, na.rm=TRUE) #replace NA with 300
+fit1 <- coxph(Surv(lfu, status) ~ tt(d2), data=data1,
+              tt = function(d2, t, ...) ifelse(t > d2, 1, 0))
+fit2 <- coxph(Surv(lfu, status) ~ tt(d2), data=data1,
+              tt = function(d2, t, ...) ifelse(t < d2, 0, 1))
+c(coef(fit1), coef(fit2))
+
+
+###################################################
+### code chunk number 24: ties2
+###################################################
+data2 <- tmerge(data1, data1, id=id, dstat=event(lfu, status),
+                diab = tdc(diabetes))
+subset(data2, id %in% c(1,7), c(id, tstart:diab))               
+fit3 <- coxph(Surv(tstart, tstop, dstat) ~ diab, data2)
+c(coef(fit1), coef(fit2), coef(fit3))
+
+
+###################################################
+### code chunk number 25: pbctime
 ###################################################
 pfit1 <- coxph(Surv(time, status==2) ~ log(bili) + ascites + age, pbc)
 pfit2 <- coxph(Surv(time, status==2) ~ log(bili) + ascites + tt(age),
@@ -260,7 +292,7 @@ anova(pfit2)
 
 
 ###################################################
-### code chunk number 24: expand
+### code chunk number 26: expand
 ###################################################
 dtimes <- sort(unique(with(pbc, time[status==2])))
 tdata <- survSplit(Surv(time, status==2) ~., pbc, cut=dtimes)
@@ -271,7 +303,20 @@ rbind(coef(pfit2), coef(pfit3))
 
 
 ###################################################
-### code chunk number 25: timedep.Rnw:1078-1085
+### code chunk number 27: expand2
+###################################################
+dtime2 <- 1:11 * 365.25
+tdata2 <-survSplit(Surv(time, status==2) ~., pbc, cut=dtime2)
+tdata2$c.age <- tdata2$age + tdata2$time/365.25 -50  #current age, centered at 50
+pfit4 <- coxph(Surv(tstart, time, event) ~ log(bili) + ascites + c.age + 
+    I(c.age^2) + I(c.age^3), data=tdata2)
+rbind('1 day grid'= coef(pfit3), '1 year grid'= coef(pfit4))
+#
+c(tdata=nrow(tdata), tdata2=nrow(tdata2)) 
+
+
+###################################################
+### code chunk number 28: timedep.Rnw:1175-1182
 ###################################################
 function(x, t, riskset, weights){ 
     obrien <- function(x) {
@@ -283,7 +328,7 @@ function(x, t, riskset, weights){
 
 
 ###################################################
-### code chunk number 26: timedep.Rnw:1095-1097
+### code chunk number 29: timedep.Rnw:1192-1194
 ###################################################
 function(x, t, riskset, weights) 
     unlist(tapply(x, riskset, rank))

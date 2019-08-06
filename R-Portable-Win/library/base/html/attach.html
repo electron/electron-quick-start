@@ -1,0 +1,182 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Attach Set of R Objects to Search Path</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for attach {base}"><tr><td>attach {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Attach Set of R Objects to Search Path</h2>
+
+<h3>Description</h3>
+
+<p>The database is attached to the <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> search path.  This means that the
+database is searched by <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> when evaluating a variable, so objects in
+the database can be accessed by simply giving their names.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+attach(what, pos = 2L, name = deparse(substitute(what), backtick=FALSE),
+       warn.conflicts = TRUE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>what</code></td>
+<td>
+<p>&lsquo;database&rsquo;.  This can be a
+<code>data.frame</code> or a <code>list</code> or a <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> data file created with
+<code><a href="save.html">save</a></code> or <code>NULL</code> or an environment.  See also
+&lsquo;Details&rsquo;.</p>
+</td></tr>
+<tr valign="top"><td><code>pos</code></td>
+<td>
+<p>integer specifying position in <code><a href="search.html">search</a>()</code> where
+to attach.</p>
+</td></tr>
+<tr valign="top"><td><code>name</code></td>
+<td>
+<p>name to use for the attached database. Names starting with
+<code>package:</code> are reserved for <code><a href="library.html">library</a></code>.</p>
+</td></tr>
+<tr valign="top"><td><code>warn.conflicts</code></td>
+<td>
+<p>logical.  If <code>TRUE</code>, warnings are
+printed about <code><a href="conflicts.html">conflicts</a></code> from attaching the database,
+unless that database contains an object <code>.conflicts.OK</code>.  A
+conflict is a function masking a function, or a non-function masking
+a non-function.
+</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>When evaluating a variable or function name <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> searches for
+that name in the databases listed by <code><a href="search.html">search</a></code>.  The first
+name of the appropriate type is used.
+</p>
+<p>By attaching a data frame (or list) to the search path it is possible
+to refer to the variables in the data frame by their names alone,
+rather than as components of the data frame (e.g., in the example below,
+<code>height</code> rather than <code>women$height</code>).
+</p>
+<p>By default the database is attached in position 2 in the search path,
+immediately after the user's workspace and before all previously
+attached packages and previously attached databases.  This can be
+altered to attach later in the search path with the <code>pos</code> option,
+but you cannot attach at <code>pos = 1</code>.
+</p>
+<p>The database is not actually attached.  Rather, a new environment is
+created on the search path and the elements of a list (including
+columns of a data frame) or objects in a save file or an environment
+are <em>copied</em> into the new environment.  If you use
+<code><a href="assignOps.html">&lt;&lt;-</a></code> or <code><a href="assign.html">assign</a></code> to assign to an attached
+database, you only alter the attached copy, not the original object.
+(Normal assignment will place a modified version in the user's
+workspace: see the examples.)  For this reason <code>attach</code> can lead
+to confusion.
+</p>
+<p>One useful &lsquo;trick&rsquo; is to use <code>what = NULL</code> (or equivalently a
+length-zero list) to create a new environment on the search path into
+which objects can be assigned by <code><a href="assign.html">assign</a></code> or
+<code><a href="load.html">load</a></code> or <code><a href="sys.source.html">sys.source</a></code>.
+</p>
+<p>Names starting <code>"package:"</code> are reserved for
+<code><a href="library.html">library</a></code> and should not be used by end users.  Attached
+files are by default given the name <code>file:<var>what</var></code>.  The
+<code>name</code> argument given for the attached environment will be used
+by <code><a href="search.html">search</a></code> and can be used as the argument to
+<code><a href="as.environment.html">as.environment</a></code>.
+</p>
+<p>There are hooks to attach user-defined table objects of class
+<code>"UserDefinedDatabase"</code>, supported by the Omegahat package
+<span class="pkg">RObjectTables</span>.  See <a href="http://www.omegahat.net/RObjectTables/">http://www.omegahat.net/RObjectTables/</a>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The <code><a href="environment.html">environment</a></code> is returned invisibly with a
+<code>"name"</code> attribute.
+</p>
+
+
+<h3>Good practice</h3>
+
+<p><code>attach</code> has the side effect of altering the search path and this
+can easily lead to the wrong object of a particular name being found.
+People do often forget to <code><a href="detach.html">detach</a></code> databases.
+</p>
+<p>In interactive use, <code><a href="with.html">with</a></code> is usually preferable to the
+use of <code>attach</code>/<code>detach</code>, unless <code>what</code> is a
+<code><a href="save.html">save</a>()</code>-produced file in which case
+<code>attach()</code> is a (safety) wrapper for <code><a href="load.html">load</a>()</code>.
+</p>
+<p>In programming, functions should not change the search path unless
+that is their purpose.  Often <code><a href="with.html">with</a></code> can be used within a
+function. If not, good practice is to
+</p>
+
+<ul>
+<li><p> Always use a distinctive <code>name</code> argument, and
+</p>
+</li>
+<li><p> To immediately follow the <code>attach</code> call by an
+<code><a href="on.exit.html">on.exit</a></code> call to <code>detach</code> using the distinctive name.
+</p>
+</li></ul>
+
+<p>This ensures that the search path is left unchanged even if the
+function is interrupted or if code after the <code>attach</code> call
+changes the search path.
+</p>
+
+
+<h3>References</h3>
+
+<p>Becker, R. A., Chambers, J. M. and Wilks, A. R. (1988)
+<em>The New S Language</em>.
+Wadsworth &amp; Brooks/Cole.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="library.html">library</a></code>, <code><a href="detach.html">detach</a></code>, <code><a href="search.html">search</a></code>,
+<code><a href="ls.html">objects</a></code>, <code><a href="environment.html">environment</a></code>, <code><a href="with.html">with</a></code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+require(utils)
+
+summary(women$height)   # refers to variable 'height' in the data frame
+attach(women)
+summary(height)         # The same variable now available by name
+height &lt;- height*2.54   # Don't do this. It creates a new variable
+                        # in the user's workspace
+find("height")
+summary(height)         # The new variable in the workspace
+rm(height)
+summary(height)         # The original variable.
+height &lt;&lt;- height*25.4  # Change the copy in the attached environment
+find("height")
+summary(height)         # The changed copy
+detach("women")
+summary(women$height)   # unchanged
+
+## Not run: ## create an environment on the search path and populate it
+sys.source("myfuns.R", envir = attach(NULL, name = "myfuns"))
+
+## End(Not run)</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

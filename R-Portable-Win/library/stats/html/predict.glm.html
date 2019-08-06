@@ -1,0 +1,160 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Predict Method for GLM Fits</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for predict.glm {stats}"><tr><td>predict.glm {stats}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Predict Method for GLM Fits</h2>
+
+<h3>Description</h3>
+
+<p>Obtains predictions and optionally estimates standard errors of those
+predictions from a fitted generalized linear model object.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+## S3 method for class 'glm'
+predict(object, newdata = NULL,
+            type = c("link", "response", "terms"),
+            se.fit = FALSE, dispersion = NULL, terms = NULL,
+            na.action = na.pass, ...)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>object</code></td>
+<td>
+<p>a fitted object of class inheriting from <code>"glm"</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>newdata</code></td>
+<td>
+<p>optionally, a data frame in which to look for variables with
+which to predict.  If omitted, the fitted linear predictors are used.</p>
+</td></tr>
+<tr valign="top"><td><code>type</code></td>
+<td>
+<p>the type of prediction required.  The default is on the
+scale of the linear predictors; the alternative <code>"response"</code>
+is on the scale of the response variable.  Thus for a default
+binomial model the default predictions are of log-odds (probabilities
+on logit scale) and <code>type = "response"</code> gives the predicted
+probabilities.  The <code>"terms"</code> option returns a matrix giving the
+fitted values of each term in the model formula on the linear predictor
+scale.
+</p>
+<p>The value of this argument can be abbreviated.
+</p>
+</td></tr>
+<tr valign="top"><td><code>se.fit</code></td>
+<td>
+<p>logical switch indicating if standard errors are required.</p>
+</td></tr>
+<tr valign="top"><td><code>dispersion</code></td>
+<td>
+<p>the dispersion of the GLM fit to be assumed in
+computing the standard errors.  If omitted, that returned by
+<code>summary</code> applied to the object is used.</p>
+</td></tr>
+<tr valign="top"><td><code>terms</code></td>
+<td>
+<p>with <code>type = "terms"</code> by default all terms are returned.
+A character vector specifies which terms are to be returned</p>
+</td></tr>
+<tr valign="top"><td><code>na.action</code></td>
+<td>
+<p>function determining what should be done with missing
+values in <code>newdata</code>.  The default is to predict <code>NA</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>further arguments passed to or from other methods.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>If <code>newdata</code> is omitted the predictions are based on the data
+used for the fit.  In that case how cases with missing values in the
+original fit is determined by the <code>na.action</code> argument of that
+fit.  If <code>na.action = na.omit</code> omitted cases will not appear in
+the residuals, whereas if <code>na.action = na.exclude</code> they will
+appear (in predictions and standard errors), with residual value
+<code>NA</code>.  See also <code><a href="nafns.html">napredict</a></code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>If <code>se.fit = FALSE</code>, a vector or matrix of predictions.
+For <code>type = "terms"</code> this is a matrix with a column per term, and
+may have an attribute <code>"constant"</code>.
+</p>
+<p>If <code>se.fit = TRUE</code>, a list with components
+</p>
+<table summary="R valueblock">
+<tr valign="top"><td><code>fit</code></td>
+<td>
+<p>Predictions, as for <code>se.fit = FALSE</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>se.fit</code></td>
+<td>
+<p>Estimated standard errors.</p>
+</td></tr>
+<tr valign="top"><td><code>residual.scale</code></td>
+<td>
+<p>A scalar giving the square root of the
+dispersion used in computing the standard errors.</p>
+</td></tr>
+</table>
+
+
+<h3>Note</h3>
+
+<p>Variables are first looked for in <code>newdata</code> and then searched for
+in the usual way (which will include the environment of the formula
+used in the fit).  A warning will be given if the
+variables found are not of the same length as those in <code>newdata</code>
+if it was supplied.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="glm.html">glm</a></code>, <code><a href="makepredictcall.html">SafePrediction</a></code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+require(graphics)
+
+## example from Venables and Ripley (2002, pp. 190-2.)
+ldose &lt;- rep(0:5, 2)
+numdead &lt;- c(1, 4, 9, 13, 18, 20, 0, 2, 6, 10, 12, 16)
+sex &lt;- factor(rep(c("M", "F"), c(6, 6)))
+SF &lt;- cbind(numdead, numalive = 20-numdead)
+budworm.lg &lt;- glm(SF ~ sex*ldose, family = binomial)
+summary(budworm.lg)
+
+plot(c(1,32), c(0,1), type = "n", xlab = "dose",
+     ylab = "prob", log = "x")
+text(2^ldose, numdead/20, as.character(sex))
+ld &lt;- seq(0, 5, 0.1)
+lines(2^ld, predict(budworm.lg, data.frame(ldose = ld,
+   sex = factor(rep("M", length(ld)), levels = levels(sex))),
+   type = "response"))
+lines(2^ld, predict(budworm.lg, data.frame(ldose = ld,
+   sex = factor(rep("F", length(ld)), levels = levels(sex))),
+   type = "response"))
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>stats</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

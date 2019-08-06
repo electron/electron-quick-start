@@ -1,0 +1,442 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: A Completion Generator for R</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for rcompgen {utils}"><tr><td>rcompgen {utils}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>A Completion Generator for R</h2>
+
+<h3>Description</h3>
+
+<p>This page documents a mechanism to generate relevant completions
+from a partially completed command line.  It is not intended to be
+useful by itself, but rather in conjunction with other mechanisms that
+use it as a backend.  The functions listed in the usage section
+provide a simple control and query mechanism.  The actual interface
+consists of a few unexported functions described further down.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+
+rc.settings(ops, ns, args, dots, func, ipck, S3, data, help,
+            argdb, fuzzy, quotes, files)
+
+rc.status()
+rc.getOption(name)
+rc.options(...)
+
+.DollarNames(x, pattern)
+
+## Default S3 method:
+.DollarNames(x, pattern = "")
+## S3 method for class 'list'
+.DollarNames(x, pattern = "")
+## S3 method for class 'environment'
+.DollarNames(x, pattern = "")
+
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>ops, ns, args, dots, func, ipck, S3, data, help, argdb, fuzzy, quotes, files</code></td>
+<td>
+
+<p>logical, turning some optional completion features on and off.
+</p>
+
+<dl>
+<dt><code>ops</code>:</dt><dd><p> Activates completion after the <code>$</code> and
+<code>@</code> operators. </p>
+</dd>
+<dt><code>ns</code>:</dt><dd><p> Controls namespace related completions. </p>
+</dd>
+<dt><code>args</code>:</dt><dd><p> Enables completion of function arguments. </p>
+</dd>
+<dt><code>dots</code>:</dt><dd><p> If disabled, drops <code>...</code> from list of
+function arguments. Relevant only if <code>args</code> is enabled.
+</p>
+</dd>
+<dt><code>func</code>:</dt><dd><p> Enables detection of functions.  If enabled,
+a customizable extension (<code>"("</code> by default) is appended to
+function names.  The process of determining whether a potential
+completion is a function requires evaluation, including for lazy
+loaded symbols.  This is undesirable for large objects, because
+of potentially wasteful use of memory in addition to the time
+overhead associated with loading.  For this reason, this feature
+is disabled by default. </p>
+</dd>
+<dt><code>S3</code>:</dt><dd><p> When <code>args = TRUE</code>, activates completion on
+arguments of all S3 methods (otherwise just the generic, which
+usually has very few arguments). </p>
+</dd>
+<dt><code>ipck</code>:</dt><dd><p> Enables completion of installed package names
+inside <code><a href="../../base/html/library.html">library</a></code> and <code><a href="../../base/html/library.html">require</a></code>. </p>
+</dd>
+<dt><code>data</code>:</dt><dd><p> Enables completion of data sets (including
+those already visible) inside <code><a href="data.html">data</a></code>. </p>
+</dd>
+<dt><code>help</code>:</dt><dd><p> Enables completion of help requests starting
+with a question mark, by looking inside help index files. </p>
+</dd>
+<dt><code>argdb</code>:</dt><dd><p> When <code>args = TRUE</code>, completion is
+attempted on function arguments.  Generally, the list of valid
+arguments is determined by dynamic calls to <code><a href="../../base/html/args.html">args</a></code>.
+While this gives results that are technically correct, the use
+of the <code>...</code> argument often hides some useful arguments.
+To give more flexibility in this regard, an optional table of
+valid arguments names for specific functions is retained
+internally.  Setting <code>argdb = TRUE</code> enables preferential
+lookup in this internal data base for functions with an entry in
+it.  Of course, this is useful only when the data base contains
+information about the function of interest.  Some functions are
+already included, and more can be added by the user through the
+unexported function <code>.addFunctionInfo</code> (see below).  </p>
+</dd>
+<dt><code>fuzzy</code>:</dt><dd><p> Enables fuzzy matching, where close but
+non-exact matches (e.g., with different case) are considered if
+no exact matches are found.  This feature is experimental and
+the details can change.  </p>
+</dd>
+<dt><code>quotes</code>:</dt><dd><p> Enables completion in <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> code when inside
+quotes.  This normally leads to filename completion, but can be
+otherwise depending on context (for example, when the open quote
+is preceded by <code>?</code>), help completion is invoked.  Setting
+this to <code>FALSE</code> relegates completion to the underlying
+completion front-end, which may do its own processing (for
+example, <code>readline</code> on Unix-alikes will do filename
+completion).  </p>
+</dd>
+<dt><code>files</code>:</dt><dd><p> Deprecated.  Use <code>quotes</code> instead.  </p>
+</dd>
+</dl>
+
+<p>All settings are turned on by default except <code>ipck</code>,
+<code>func</code>, and <code>fuzzy</code>.  Turn more off if your CPU cycles are
+valuable; you will still retain basic completion on names of objects
+in the search list.  See below for additional details.
+</p>
+</td></tr>
+<tr valign="top"><td><code>name, ...</code></td>
+<td>
+<p> user-settable options.  Currently valid names are
+</p>
+
+<dl>
+<dt><code>function.suffix</code>:</dt><dd><p> default <code>"("</code> </p>
+</dd>
+<dt><code>funarg.suffix</code>:</dt><dd><p> default <code>" = "</code> </p>
+</dd>
+<dt><code>package.suffix</code></dt><dd><p> default <code>"::"</code> </p>
+</dd>
+</dl>
+
+<p>Usage is similar to that of <code><a href="../../base/html/options.html">options</a></code>.
+</p>
+</td></tr>
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p> An R object for which valid names after <code>"$"</code>
+are computed and returned.
+</p>
+</td></tr>
+<tr valign="top"><td><code>pattern</code></td>
+<td>
+<p> A regular expression.  Only matching names are
+returned.
+</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>There are several types of completion, some of which can be disabled
+using <code>rc.settings</code>.  The most basic level, which can not be
+turned off once the completion functionality is activated, provides
+completion on names visible on the search path, along with a few
+special keywords (e.g., <code>TRUE</code>).  This type of completion is not
+attempted if the partial &lsquo;word&rsquo; (a.k.a. token) being completed
+is empty (since there would be too many completions).  The more
+advanced types of completion are described below.
+</p>
+
+<dl>
+<dt><b>Completion after extractors <code>$</code> and <code>@</code></b>:</dt><dd>
+<p>When the <code>ops</code> setting is turned on, completion after
+<code>$</code> and <code>@</code> is attempted.  This requires the prefix to
+be evaluated, which is attempted unless it involves an explicit
+function call (implicit function calls involving the use of
+<code>[</code>, <code>$</code>, etc <em>do not</em> inhibit evaluation).
+</p>
+<p>Valid completions after the <code>$</code> extractor are determined by
+the generic function <code>.DollarNames</code>.  Some basic methods are
+provided, and more can be written for custom classes.
+</p>
+</dd>
+<dt><b>Completion inside namespaces</b>:</dt><dd>
+<p>When the <code>ns</code> setting is turned on, completion inside
+namespaces is attempted when a token is preceded by the <code>::</code>
+or <code>:::</code> operators.  Additionally, the basic completion
+mechanism is extended to include all loaded namespaces, i.e.,
+<code>foopkg::</code> becomes a valid completion of <code>foo</code> if
+<code>"foopkg"</code> is a loaded namespace.
+</p>
+<p>The completion of package namespaces applies only to already
+loaded namespaces, i.e. if <code>MASS</code> is not loaded,
+<code>MAS</code> will not complete to <code>MASS::</code>.  However, attempted
+completion <em>inside</em> an apparent namespace will attempt to
+load the namespace if it is not already loaded,
+e.g. trying to complete on <code>MASS::fr</code> will load
+<code>MASS</code> if it is not already loaded.
+</p>
+</dd>
+<dt><b>Completion for help items</b>:</dt><dd>
+<p>When the <code>help</code> setting is turned on, completion on help
+topics is attempted when a token is preceded by <code>?</code>.
+Prefixes (such as <code>class</code>, <code>method</code>) are supported, as
+well as quoted help topics containing special characters.
+</p>
+</dd>
+<dt><b>Completion of function arguments</b>:</dt><dd>
+<p>When the <code>args</code> setting is turned on, completion on function
+arguments is attempted whenever deemed appropriate.  The mechanism
+used will currently fail if the relevant function (at the point
+where completion is requested) was entered on a previous prompt
+(which implies in particular that the current line is being typed
+in response to a continuation prompt, usually <code>+</code>).  Note
+that separation by newlines is fine.
+</p>
+<p>The list of possible argument completions that is generated can be
+misleading.  There is no problem for non-generic functions (except
+that <code>...</code> is listed as a completion; this is intentional
+as it signals the fact that the function can accept further
+arguments).  However, for generic functions, it is practically
+impossible to give a reliable argument list without evaluating
+arguments (and not even then, in some cases), which is risky (in
+addition to being difficult to code, which is the real reason it
+hasn't even been tried), especially when that argument is itself
+an inline function call.  Our compromise is to consider arguments
+of <em>all</em> currently available methods of that generic.  This
+has two drawbacks.  First, not all listed completions may be
+appropriate in the call currently being constructed.  Second, for
+generics with many methods (like <code>print</code> and <code>plot</code>),
+many matches will need to be considered, which may take a
+noticeable amount of time.  Despite these drawbacks, we believe
+this behaviour to be more useful than the only other practical
+alternative, which is to list arguments of the generic only.
+</p>
+<p>Only S3 methods are currently supported in this fashion, and that
+can be turned off using the <code>S3</code> setting.
+</p>
+<p>Since arguments can be unnamed in <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> function calls, other types
+of completion are also appropriate whenever argument completion
+is.  Since there are usually many many more visible objects than
+formal arguments of any particular function, possible argument
+completions are often buried in a bunch of other possibilities.
+However, recall that basic completion is suppressed for blank
+tokens.  This can be useful to list possible arguments of a
+function.  For example, trying to complete <code>seq([TAB]</code> and
+<code>seq(from = 1, [TAB])</code> will both list only the arguments of
+<code>seq</code> (or any of its methods), whereas trying to complete
+<code>seq(length[TAB]</code> will list both the <code>length.out</code>
+argument and the <code>length(</code> function as possible completions.
+Note that no attempt is made to remove arguments already supplied,
+as that would incur a further speed penalty.
+</p>
+</dd>
+<dt><b>Special functions</b>:</dt><dd>
+<p>For a few special functions (<code><a href="../../base/html/library.html">library</a></code>,
+<code><a href="data.html">data</a></code>, etc), the first argument is treated specially,
+in the sense that normal completion is suppressed, and some
+function specific completions are enabled if so requested by the
+settings.  The <code>ipck</code> setting, which controls whether
+<code><a href="../../base/html/library.html">library</a></code> and <code><a href="../../base/html/library.html">require</a></code> will complete on
+<em>installed packages</em>, is disabled by default because the
+first call to <code><a href="installed.packages.html">installed.packages</a></code> is potentially time
+consuming (e.g., when packages are installed on a remote network
+file server).  Note, however, that the results of a call to
+<code><a href="installed.packages.html">installed.packages</a></code> is cached, so subsequent calls
+are usually fast, so turning this option on is not particularly
+onerous even in such situations.
+</p>
+</dd>
+</dl>
+
+
+
+<h3>Value</h3>
+
+<p>If <code>rc.settings</code> is called without any arguments, it returns the
+current settings as a named logical vector.  Otherwise, it returns
+<code>NULL</code> invisibly. 
+</p>
+<p><code>rc.status</code> returns, as a list, the contents of an internal
+(unexported) environment that is used to record the results of the
+last completion attempt.  This can be useful for debugging.  For such
+use, one must resist the temptation to use completion when typing the
+call to <code>rc.status</code> itself, as that then becomes the last attempt
+by the time the call is executed.
+</p>
+<p>The items of primary interest in the returned list are:
+</p>
+<table summary="R valueblock">
+<tr valign="top"><td><code>comps</code></td>
+<td>
+<p> The possible completions generated by the last
+call to <code>.completeToken</code>, as a character vector. </p>
+</td></tr>
+<tr valign="top"><td><code>token</code></td>
+<td>
+<p> The token that was (or, is to be) completed, as
+set by the last call to <code>.assignToken</code> (possibly inside a call
+to <code>.guessTokenFromLine</code>). </p>
+</td></tr>
+<tr valign="top"><td><code>linebuffer</code></td>
+<td>
+<p> The full line, as set by the last call to
+<code>.assignLinebuffer</code>. </p>
+</td></tr>
+<tr valign="top"><td><code>start</code></td>
+<td>
+<p> The start position of the token in the line
+buffer, as set by the last call to <code>.assignStart</code>. </p>
+</td></tr>
+<tr valign="top"><td><code>end</code></td>
+<td>
+<p> The end position of the token in the line
+buffer, as set by the last call to <code>.assignEnd</code>. </p>
+</td></tr>
+<tr valign="top"><td><code>fileName</code></td>
+<td>
+<p> Logical, indicating whether the cursor is
+currently inside quotes. </p>
+</td></tr>
+<tr valign="top"><td><code>fguess</code></td>
+<td>
+<p> The name of the function the cursor is currently inside. </p>
+</td></tr>
+<tr valign="top"><td><code>isFirstArg</code></td>
+<td>
+<p> Logical.  If cursor is inside a function, is it the
+first argument? </p>
+</td></tr>
+</table>
+<p>In addition, the components <code>settings</code> and <code>options</code> give
+the current values of settings and options respectively.
+</p>
+<p><code>rc.getOption</code> and <code>rc.options</code> behave much like
+<code><a href="../../base/html/options.html">getOption</a></code> and <code><a href="../../base/html/options.html">options</a></code> respectively.
+</p>
+
+
+<h3>Unexported API</h3>
+
+<p>There are several unexported functions in the package.  Of these,
+a few are special because they provide the API through which other
+mechanisms can make use of the facilities provided by this package
+(they are unexported because they are not meant to be called directly
+by users).  The usage of these functions are:
+</p>
+<pre>    .assignToken(text)
+    .assignLinebuffer(line)
+    .assignStart(start)
+    .assignEnd(end)
+
+    .completeToken()
+    .retrieveCompletions()
+    .getFileComp()
+
+    .guessTokenFromLine()
+    .win32consoleCompletion(linebuffer, cursorPosition,
+                            check.repeat = TRUE,
+                            minlength = -1)
+
+    .addFunctionInfo(...)
+</pre>
+<p>The first four functions set up a completion attempt by specifying the
+token to be completed (<code>text</code>), and indicating where
+(<code>start</code> and <code>end</code>, which should be integers) the token is
+placed within the complete line typed so far (<code>line</code>).
+</p>
+<p>Potential completions of the token are generated by
+<code>.completeToken</code>, and the completions can be retrieved as an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>
+character vector using <code>.retrieveCompletions</code>. It is possible for
+the user to specify a replacement for this function by setting
+<code>rc.options("custom.completer")</code>; if not <code>NULL</code>, this
+function is called to compute potential completions.  This facility is
+meant to help in situations where completing as R code is not
+appropriate. See source code for more details.
+</p>
+<p>If the cursor is inside quotes, completion may be suppressed.  The
+function <code>.getFileComp</code> can be used after a call to
+<code>.completeToken</code> to determine if this is the case (returns
+<code>TRUE</code>), and alternative completions generated as deemed useful.
+In most cases, filename completion is a reasonable fallback.
+</p>
+<p>The <code>.guessTokenFromLine</code> function is provided for use with
+backends that do not already break a line into tokens.  It requires
+the linebuffer and endpoint (cursor position) to be already set, and
+itself sets the token and the start position.  It returns the token as
+a character string.
+</p>
+<p>The <code>.win32consoleCompletion</code> is similar in spirit, but is more
+geared towards the Windows GUI (or rather, any front-end that has no
+completion facilities of its own).  It requires the linebuffer
+and cursor position as arguments, and returns a list with three
+components, <code>addition</code>, <code>possible</code> and <code>comps</code>.  If
+there is an unambiguous extension at the current position,
+<code>addition</code> contains the additional text that should be inserted
+at the cursor.  If there is more than one possibility, these are
+available either as a character vector of preformatted strings in
+<code>possible</code>, or as a single string in <code>comps</code>.
+<code>possible</code> consists of lines formatted using the current
+<code>width</code> option, so that printing them on the console one line at
+a time will be a reasonable way to list them.  <code>comps</code> is a space
+separated (collapsed) list of the same completions, in case the
+front-end wishes to display it in some other fashion.
+</p>
+<p>The <code>minlength</code> argument can be used to suppress completion when
+the token is too short (which can be useful if the front-end is set up
+to try completion on every keypress).  If <code>check.repeat</code> is
+<code>TRUE</code>, it is detected if the same completion is being requested
+more than once in a row, and ambiguous completions are returned only
+in that case.  This is an attempt to emulate GNU Readline behaviour,
+where a single TAB completes up to any unambiguous part, and multiple
+possibilities are reported only on two consecutive TABs.
+</p>
+<p>As the various front-end interfaces evolve, the details of these
+functions are likely to change as well.
+</p>
+<p>The function <code>.addFunctionInfo</code> can be used to add information
+about the permitted argument names for specific functions.  Multiple
+named arguments are allowed in calls to it, where the tags are names
+of functions and values are character vectors representing valid
+arguments.  When the <code>argdb</code> setting is <code>TRUE</code>, these are
+used as a source of valid argument names for the relevant functions.
+</p>
+
+
+<h3>Note</h3>
+
+<p>If you are uncomfortable with unsolicited evaluation of pieces of
+code, you should set <code>ops = FALSE</code>.  Otherwise, trying to
+complete <code>foo@ba</code> will evaluate <code>foo</code>, trying to complete
+<code>foo[i, 1:10]$ba</code> will evaluate <code>foo[i, 1:10]</code>, etc.  This
+should not be too bad, as explicit function calls (involving
+parentheses) are not evaluated in this manner.  However, this
+<em>will</em> affect promises and lazy loaded symbols.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p> Deepayan Sarkar, <a href="mailto:deepayan.sarkar@r-project.org">deepayan.sarkar@r-project.org</a> </p>
+
+<hr /><div style="text-align: center;">[Package <em>utils</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

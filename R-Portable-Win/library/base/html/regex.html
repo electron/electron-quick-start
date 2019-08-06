@@ -1,0 +1,372 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Regular Expressions as used in R</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for regex {base}"><tr><td>regex {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Regular Expressions as used in R</h2>
+
+<h3>Description</h3>
+
+<p>This help page documents the regular expression patterns supported by
+<code><a href="grep.html">grep</a></code> and related functions <code>grepl</code>, <code>regexpr</code>,
+<code>gregexpr</code>, <code>sub</code> and <code>gsub</code>, as well as by
+<code><a href="strsplit.html">strsplit</a></code>.
+</p>
+
+
+<h3>Details</h3>
+
+<p>A &lsquo;regular expression&rsquo; is a pattern that describes a set of
+strings.  Two types of regular expressions are used in <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>,
+<em>extended</em> regular expressions (the default) and
+<em>Perl-like</em> regular expressions used by <code>perl = TRUE</code>.
+There is also <code>fixed = TRUE</code> which can be considered to use a
+<em>literal</em> regular expression.
+</p>
+<p>Other functions which use regular expressions (often via the use of
+<code>grep</code>) include <code>apropos</code>, <code>browseEnv</code>,
+<code>help.search</code>, <code>list.files</code> and <code>ls</code>.
+These will all use <em>extended</em> regular expressions.
+</p>
+<p>Patterns are described here as they would be printed by <code>cat</code>:
+(<em>do remember that backslashes need to be doubled when entering <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>
+character strings</em>, e.g. from the keyboard).
+</p>
+<p>Long regular expression patterns may or may not be accepted: the POSIX
+standard only requires up to 256 <em>bytes</em>.
+</p>
+
+
+<h3>Extended Regular Expressions</h3>
+
+<p>This section covers the regular expressions allowed in the default
+mode of <code>grep</code>, <code>grepl</code>, <code>regexpr</code>, <code>gregexpr</code>,
+<code>sub</code>, <code>gsub</code>, <code>regexec</code> and <code>strsplit</code>.  They use
+an implementation of the POSIX 1003.2 standard: that allows some scope
+for interpretation and the interpretations here are those currently
+used by <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>.  The implementation supports some extensions to the
+standard.
+</p>
+<p>Regular expressions are constructed analogously to arithmetic
+expressions, by using various operators to combine smaller
+expressions.  The whole expression matches zero or more characters
+(read &lsquo;character&rsquo; as &lsquo;byte&rsquo; if <code>useBytes = TRUE</code>).
+</p>
+<p>The fundamental building blocks are the regular expressions that match
+a single character.  Most characters, including all letters and
+digits, are regular expressions that match themselves.  Any
+metacharacter with special meaning may be quoted by preceding it with
+a backslash.  The metacharacters in extended regular expressions are
+<span class="samp">. \ | ( ) [ { ^ $ * + ?</span>, but note that whether these have a
+special meaning depends on the context.
+</p>
+<p>Escaping non-metacharacters with a backslash is
+implementation-dependent.  The current implementation interprets
+<span class="samp">\a</span> as <span class="samp">BEL</span>, <span class="samp">\e</span> as <span class="samp">ESC</span>, <span class="samp">\f</span> as
+<span class="samp">FF</span>, <span class="samp">\n</span> as <span class="samp">LF</span>, <span class="samp">\r</span> as <span class="samp">CR</span> and
+<span class="samp">\t</span> as <span class="samp">TAB</span>.  (Note that these will be interpreted by
+<span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>'s parser in literal character strings.)
+</p>
+<p>A <em>character class</em> is a list of characters enclosed between
+<span class="samp">[</span> and <span class="samp">]</span> which matches any single character in that list;
+unless the first character of the list is the caret <span class="samp">^</span>, when it
+matches any character <em>not</em> in the list.  For example, the
+regular expression <span class="samp">[0123456789]</span> matches any single digit, and
+<span class="samp">[^abc]</span> matches anything except the characters <span class="samp">a</span>,
+<span class="samp">b</span> or <span class="samp">c</span>.  A range of characters may be specified by
+giving the first and last characters, separated by a hyphen.  (Because
+their interpretation is locale- and implementation-dependent,
+character ranges are best avoided.)  The only portable way to specify
+all ASCII letters is to list them all as the character class<br />
+<span class="samp">[ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz]</span>.<br /> (The
+current implementation uses numerical order of the encoding.)
+</p>
+<p>Certain named classes of characters are predefined.  Their
+interpretation depends on the <em>locale</em> (see <a href="locales.html">locales</a>); the
+interpretation below is that of the POSIX locale.
+</p>
+
+<dl>
+<dt><span class="samp">[:alnum:]</span></dt><dd><p>Alphanumeric characters: <span class="samp">[:alpha:]</span>
+and <span class="samp">[:digit:]</span>.</p>
+</dd>
+<dt><span class="samp">[:alpha:]</span></dt><dd><p>Alphabetic characters: <span class="samp">[:lower:]</span> and
+<span class="samp">[:upper:]</span>.</p>
+</dd>
+<dt><span class="samp">[:blank:]</span></dt><dd><p>Blank characters: space and tab, and
+possibly other locale-dependent characters such as non-breaking
+space.</p>
+</dd>
+<dt><span class="samp">[:cntrl:]</span></dt><dd>
+<p>Control characters.  In ASCII, these characters have octal codes
+000 through 037, and 177 (<code>DEL</code>).  In another character set,
+these are the equivalent characters, if any.</p>
+</dd>
+<dt><span class="samp">[:digit:]</span></dt><dd><p>Digits: <span class="samp">0 1 2 3 4 5 6 7 8 9</span>.</p>
+</dd>
+<dt><span class="samp">[:graph:]</span></dt><dd><p>Graphical characters: <span class="samp">[:alnum:]</span> and
+<span class="samp">[:punct:]</span>.</p>
+</dd>
+<dt><span class="samp">[:lower:]</span></dt><dd><p>Lower-case letters in the current locale.</p>
+</dd>
+<dt><span class="samp">[:print:]</span></dt><dd>
+<p>Printable characters: <span class="samp">[:alnum:]</span>, <span class="samp">[:punct:]</span> and space.</p>
+</dd>
+<dt><span class="samp">[:punct:]</span></dt><dd><p>Punctuation characters:<br />
+<span class="samp">! " # $ % &amp; ' ( ) * + , - . / : ; &lt; = &gt; ? @ [ \ ] ^ _ ` { | } ~</span>.</p>
+</dd>
+</dl>
+
+<dl>
+<dt><span class="samp">[:space:]</span></dt><dd>
+<p>Space characters: tab, newline, vertical tab, form feed, carriage
+return, space and possibly other locale-dependent characters.</p>
+</dd>
+<dt><span class="samp">[:upper:]</span></dt><dd><p>Upper-case letters in the current locale.</p>
+</dd>
+<dt><span class="samp">[:xdigit:]</span></dt><dd><p>Hexadecimal digits:<br />
+<span class="samp">0 1 2 3 4 5 6 7 8 9 A B C D E F a b c d e f</span>.</p>
+</dd>
+</dl>
+
+<p>For example, <span class="samp">[[:alnum:]]</span> means <span class="samp">[0-9A-Za-z]</span>, except the
+latter depends upon the locale and the character encoding, whereas the
+former is independent of locale and character set.  (Note that the
+brackets in these class names are part of the symbolic names, and must
+be included in addition to the brackets delimiting the bracket list.)
+Most metacharacters lose their special meaning inside a character
+class.  To include a literal <span class="samp">]</span>, place it first in the list.
+Similarly, to include a literal <span class="samp">^</span>, place it anywhere but first.
+Finally, to include a literal <span class="samp">-</span>, place it first or last (or,
+for <code>perl = TRUE</code> only, precede it by a backslash).  (Only
+<span class="samp">^ - \ ]</span> are special inside character classes.)
+</p>
+<p>The period <span class="samp">.</span> matches any single character.  The symbol
+<span class="samp">\w</span> matches a &lsquo;word&rsquo; character (a synonym for
+<span class="samp">[[:alnum:]_]</span>, an extension) and <span class="samp">\W</span> is its negation
+(<span class="samp">[^[:alnum:]_]</span>).  Symbols <span class="samp">\d</span>, <span class="samp">\s</span>, <span class="samp">\D</span>
+and <span class="samp">\S</span> denote the digit and space classes and their negations
+(these are all extensions).
+</p>
+<p>The caret <span class="samp">^</span> and the dollar sign <span class="samp">$</span> are metacharacters
+that respectively match the empty string at the beginning and end of a
+line.  The symbols <span class="samp">\&lt;</span> and <span class="samp">\&gt;</span> match the empty string at
+the beginning and end of a word.  The symbol <span class="samp">\b</span> matches the
+empty string at either edge of a word, and <span class="samp">\B</span> matches the
+empty string provided it is not at an edge of a word.  (The
+interpretation of &lsquo;word&rsquo; depends on the locale and
+implementation: these are all extensions.)
+</p>
+<p>A regular expression may be followed by one of several repetition
+quantifiers:
+</p>
+
+<dl>
+<dt><span class="samp">?</span></dt><dd><p>The preceding item is optional and will be matched
+at most once.</p>
+</dd>
+<dt><span class="samp">*</span></dt><dd><p>The preceding item will be matched zero or more
+times.</p>
+</dd>
+<dt><span class="samp">+</span></dt><dd><p>The preceding item will be matched one or more
+times.</p>
+</dd>
+<dt><span class="samp">{n}</span></dt><dd><p>The preceding item is matched exactly <code>n</code>
+times.</p>
+</dd>
+<dt><span class="samp">{n,}</span></dt><dd><p>The preceding item is matched <code>n</code> or more
+times.</p>
+</dd>
+<dt><span class="samp">{n,m}</span></dt><dd><p>The preceding item is matched at least <code>n</code>
+times, but not more than <code>m</code> times.</p>
+</dd>
+</dl>
+
+<p>By default repetition is greedy, so the maximal possible number of
+repeats is used.  This can be changed to &lsquo;minimal&rsquo; by appending
+<code>?</code> to the quantifier.  (There are further quantifiers that allow
+approximate matching: see the TRE documentation.)
+</p>
+<p>Regular expressions may be concatenated; the resulting regular
+expression matches any string formed by concatenating the substrings
+that match the concatenated subexpressions.
+</p>
+<p>Two regular expressions may be joined by the infix operator <span class="samp">|</span>;
+the resulting regular expression matches any string matching either
+subexpression.   For example, <span class="samp">abba|cde</span> matches either the
+string <code>abba</code> or the string <code>cde</code>.  Note that alternation
+does not work inside character classes, where <span class="samp">|</span> has its literal
+meaning.
+</p>
+<p>Repetition takes precedence over concatenation, which in turn takes
+precedence over alternation.  A whole subexpression may be enclosed in
+parentheses to override these precedence rules.
+</p>
+<p>The backreference <span class="samp">\N</span>, where <span class="samp">N = 1 ... 9</span>, matches
+the substring previously matched by the Nth parenthesized
+subexpression of the regular expression.  (This is an
+extension for extended regular expressions: POSIX defines them only
+for basic ones.)
+</p>
+
+
+<h3>Perl-like Regular Expressions</h3>
+
+<p>The <code>perl = TRUE</code> argument to <code>grep</code>, <code>regexpr</code>,
+<code>gregexpr</code>, <code>sub</code>, <code>gsub</code> and <code>strsplit</code> switches
+to the PCRE library that implements regular expression pattern
+matching using the same syntax and semantics as Perl 5.x,
+with just a few differences.
+</p>
+<p>For complete details please consult the man pages for PCRE (and not
+PCRE2), especially <code>man pcrepattern</code> and <code>man
+  pcreapi</code>, on your system or from the sources at
+<a href="http://www.pcre.org">http://www.pcre.org</a>.  (The version in use can be found by
+calling <code><a href="extSoftVersion.html">extSoftVersion</a></code>.  It need not be the version
+described in the system's man page.  As PCRE has been feature-frozen
+for some time (essentially 2012), the man pages at
+<a href="http://www.pcre.org/original/doc/html/">http://www.pcre.org/original/doc/html/</a> should be a good match.)
+</p>
+<p>Perl regular expressions can be computed byte-by-byte or
+(UTF-8) character-by-character: the latter is used in all multibyte
+locales and if any of the inputs are marked as UTF-8 (see
+<code><a href="Encoding.html">Encoding</a></code>).
+</p>
+<p>All the regular expressions described for extended regular expressions
+are accepted except <span class="samp">\&lt;</span> and <span class="samp">\&gt;</span>: in Perl all backslashed
+metacharacters are alphanumeric and backslashed symbols always are
+interpreted as a literal character. <span class="samp">{</span> is not special if it
+would be the start of an invalid interval specification.  There can be
+more than 9 backreferences (but the replacement in <code><a href="grep.html">sub</a></code>
+can only refer to the first 9).
+</p>
+<p>Character ranges are interpreted in the numerical order of the
+characters, either as bytes in a single-byte locale or as Unicode code
+points in UTF-8 mode.  So in either case <span class="samp">[A-Za-z]</span> specifies the
+set of ASCII letters.
+</p>
+<p>In UTF-8 mode the named character classes only match ASCII characters:
+see <span class="samp">\p</span> below for an alternative.
+</p>
+<p>The construct <span class="samp">(?...)</span> is used for Perl extensions in a variety
+of ways depending on what immediately follows the <span class="samp">?</span>.
+</p>
+<p>Perl-like matching can work in several modes, set by the options
+<span class="samp">(?i)</span> (caseless, equivalent to Perl's <span class="samp">/i</span>), <span class="samp">(?m)</span>
+(multiline, equivalent to Perl's <span class="samp">/m</span>), <span class="samp">(?s)</span> (single line,
+so a dot matches all characters, even new lines: equivalent to Perl's
+<span class="samp">/s</span>) and <span class="samp">(?x)</span> (extended, whitespace data characters are
+ignored unless escaped and comments are allowed: equivalent to Perl's
+<span class="samp">/x</span>).  These can be concatenated, so for example, <span class="samp">(?im)</span>
+sets caseless multiline matching.  It is also possible to unset these
+options by preceding the letter with a hyphen, and to combine setting
+and unsetting such as <span class="samp">(?im-sx)</span>.  These settings can be applied
+within patterns, and then apply to the remainder of the pattern.
+Additional options not in Perl include <span class="samp">(?U)</span> to set
+&lsquo;ungreedy&rsquo; mode (so matching is minimal unless <span class="samp">?</span> is used
+as part of the repetition quantifier, when it is greedy).  Initially
+none of these options are set.
+</p>
+<p>If you want to remove the special meaning from a sequence of
+characters, you can do so by putting them between <span class="samp">\Q</span> and
+<span class="samp">\E</span>. This is different from Perl in that <span class="samp">$</span> and <span class="samp">@</span> are
+handled as literals in <span class="samp">\Q...\E</span> sequences in PCRE, whereas in
+Perl, <span class="samp">$</span> and <span class="samp">@</span> cause variable interpolation.
+</p>
+<p>The escape sequences <span class="samp">\d</span>, <span class="samp">\s</span> and <span class="samp">\w</span> represent
+any decimal digit, space character and &lsquo;word&rsquo; character
+(letter, digit or underscore in the current locale: in UTF-8 mode only
+ASCII letters and digits are considered) respectively, and their
+upper-case versions represent their negation.  Vertical tab was not
+regarded as a space character in a <code>C</code> locale before PCRE 8.34.
+Sequences <span class="samp">\h</span>, <span class="samp">\v</span>, <span class="samp">\H</span> and <span class="samp">\V</span> match
+horizontal and vertical space or the negation.  (In UTF-8 mode, these
+do match non-ASCII Unicode code points.)
+</p>
+<p>There are additional escape sequences: <span class="samp">\cx</span> is
+<span class="samp">cntrl-x</span> for any <span class="samp">x</span>, <span class="samp">\ddd</span> is the
+octal character (for up to three digits unless
+interpretable as a backreference, as <span class="samp">\1</span> to <span class="samp">\7</span> always
+are), and <span class="samp">\xhh</span> specifies a character by two hex digits.
+In a UTF-8 locale, <span class="samp">\x{h...}</span> specifies a Unicode code point
+by one or more hex digits.  (Note that some of these will be
+interpreted by <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>'s parser in literal character strings.)
+</p>
+<p>Outside a character class, <span class="samp">\A</span> matches at the start of a
+subject (even in multiline mode, unlike <span class="samp">^</span>), <span class="samp">\Z</span> matches
+at the end of a subject or before a newline at the end, <span class="samp">\z</span>
+matches only at end of a subject. and <span class="samp">\G</span> matches at first
+matching position in a subject (which is subtly different from Perl's
+end of the previous match).  <span class="samp">\C</span> matches a single
+byte, including a newline, but its use is warned against.  In UTF-8
+mode, <span class="samp">\R</span> matches any Unicode newline character (not just CR),
+and <span class="samp">\X</span> matches any number of Unicode characters that form an
+extended Unicode sequence.
+</p>
+<p>In UTF-8 mode, some Unicode properties may be supported via
+<span class="samp">\p{xx}</span> and <span class="samp">\P{xx}</span> which match characters with and
+without property <span class="samp">xx</span> respectively.  For a list of supported
+properties see the PCRE documentation, but for example <span class="samp">Lu</span> is
+&lsquo;upper case letter&rsquo; and <span class="samp">Sc</span> is &lsquo;currency symbol&rsquo;.
+(This support depends on the PCRE library being compiled with
+&lsquo;Unicode property support&rsquo; which can be checked <em>via</em>
+<code><a href="pcre_config.html">pcre_config</a></code>.)
+</p>
+<p>The sequence <span class="samp">(?#</span> marks the start of a comment which continues
+up to the next closing parenthesis.  Nested parentheses are not
+permitted.  The characters that make up a comment play no part at all in
+the pattern matching.
+</p>
+<p>If the extended option is set, an unescaped <span class="samp">#</span> character outside
+a character class introduces a comment that continues up to the next
+newline character in the pattern.
+</p>
+<p>The pattern <span class="samp">(?:...)</span> groups characters just as parentheses do
+but does not make a backreference.
+</p>
+<p>Patterns <span class="samp">(?=...)</span> and <span class="samp">(?!...)</span> are zero-width positive and
+negative lookahead <em>assertions</em>: they match if an attempt to
+match the <code>...</code> forward from the current position would succeed
+(or not), but use up no characters in the string being processed.
+Patterns <span class="samp">(?&lt;=...)</span> and <span class="samp">(?&lt;!...)</span> are the lookbehind
+equivalents: they do not allow repetition quantifiers nor <span class="samp">\C</span>
+in <code>...</code>.
+</p>
+<p><code>regexpr</code> and <code>gregexpr</code> support &lsquo;named capture&rsquo;.  If
+groups are named, e.g., <code>"(?&lt;first&gt;[A-Z][a-z]+)"</code> then the
+positions of the matches are also returned by name.  (Named
+backreferences are not supported by <code>sub</code>.)
+</p>
+<p>Atomic grouping, possessive qualifiers and conditional
+and recursive patterns are not covered here.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>This help page is based on the TRE documentation and the POSIX
+standard, and the <code>pcrepattern</code> man page from PCRE 8.36.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="grep.html">grep</a></code>, <code><a href="../../utils/html/apropos.html">apropos</a></code>, <code><a href="../../utils/html/browseEnv.html">browseEnv</a></code>,
+<code><a href="../../utils/html/glob2rx.html">glob2rx</a></code>, <code><a href="../../utils/html/help.search.html">help.search</a></code>, <code><a href="list.files.html">list.files</a></code>,
+<code><a href="ls.html">ls</a></code> and <code><a href="strsplit.html">strsplit</a></code>.
+</p>
+<p>The TRE documentation at
+<a href="http://laurikari.net/tre/documentation/regex-syntax/">http://laurikari.net/tre/documentation/regex-syntax/</a>.
+</p>
+<p>The POSIX 1003.2 standard at
+<a href="http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap09.html">http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap09.html</a>.
+</p>
+<p>The <code>pcrepattern</code> <code>man</code> page (found as part of
+<a href="http://www.pcre.org/original/pcre.txt">http://www.pcre.org/original/pcre.txt</a>), and details of Perl's own
+implementation at <a href="http://perldoc.perl.org/perlre.html">http://perldoc.perl.org/perlre.html</a>.
+</p>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

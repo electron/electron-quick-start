@@ -1,0 +1,367 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Download File from the Internet</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for download.file {utils}"><tr><td>download.file {utils}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Download File from the Internet</h2>
+
+<h3>Description</h3>
+
+<p>This function can be used to download a file from the Internet.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+download.file(url, destfile, method, quiet = FALSE, mode = "w",
+              cacheOK = TRUE,
+              extra = getOption("download.file.extra"),
+              headers = NULL, ...)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>url</code></td>
+<td>
+<p>a <code><a href="../../base/html/character.html">character</a></code> string (or longer vector e.g.,
+for the <code>"libcurl"</code> method) naming the URL of a resource to be
+downloaded.</p>
+</td></tr>
+<tr valign="top"><td><code>destfile</code></td>
+<td>
+<p>a character string (or vector, see <code>url</code>) with
+the name where the downloaded file is saved.  Tilde-expansion is
+performed.</p>
+</td></tr>
+<tr valign="top"><td><code>method</code></td>
+<td>
+<p>Method to be used for downloading files.  Current
+download methods are <code>"internal"</code>, <code>"wininet"</code> (Windows
+only) <code>"libcurl"</code>, <code>"wget"</code> and <code>"curl"</code>, and there
+is a value <code>"auto"</code>: see &lsquo;Details&rsquo; and &lsquo;Note&rsquo;.
+</p>
+<p>The method can also be set through the option
+<code>"download.file.method"</code>: see <code><a href="../../base/html/options.html">options</a>()</code>.
+</p>
+</td></tr>
+<tr valign="top"><td><code>quiet</code></td>
+<td>
+<p>If <code>TRUE</code>, suppress status messages (if any), and
+the progress bar.</p>
+</td></tr>
+<tr valign="top"><td><code>mode</code></td>
+<td>
+<p>character.  The mode with which to write the file.  Useful
+values are <code>"w"</code>, <code>"wb"</code> (binary), <code>"a"</code> (append) and
+<code>"ab"</code>.  Not used for methods <code>"wget"</code> and <code>"curl"</code>.
+See also &lsquo;Details&rsquo;, notably about using <code>"wb"</code> for Windows.
+</p>
+</td></tr>
+<tr valign="top"><td><code>cacheOK</code></td>
+<td>
+<p>logical.  Is a server-side cached value acceptable?</p>
+</td></tr>
+<tr valign="top"><td><code>extra</code></td>
+<td>
+<p>character vector of additional command-line arguments for
+the <code>"wget"</code> and <code>"curl"</code> methods.</p>
+</td></tr>
+<tr valign="top"><td><code>headers</code></td>
+<td>
+<p>named character vector of HTTP headers to use in HTTP
+requests.  It is ignored for non-HTTP URLs.  The <code>User-Agent</code>
+header, coming from the <code>HTTPUserAgent</code> option (see
+<code><a href="../../base/html/options.html">options</a></code>) is used as the first header, automatically.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>allow additional arguments to be passed, unused.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>The function <code>download.file</code> can be used to download a single
+file as described by <code>url</code> from the internet and store it in
+<code>destfile</code>.
+The <code>url</code> must start with a scheme such as
+<span class="samp">http://</span>, <span class="samp">https://</span>, <span class="samp">ftp://</span> or <span class="samp">file://</span>.
+</p>
+<p>If <code>method = "auto"</code> is chosen (the default), the behavior
+depends on the platform:
+</p>
+
+<ul>
+<li><p> On a Unix-alike method <code>"libcurl"</code> is used except
+<code>"internal"</code> for <span class="samp">file://</span> URLs, where <code>"libcurl"</code>
+uses the library of that name (<a href="http://curl.haxx.se/libcurl/">http://curl.haxx.se/libcurl/</a>).
+</p>
+</li>
+<li><p> On Windows the <code>"wininet"</code> method is used apart from for
+<span class="samp">ftps://</span> URLs where <code>"libcurl"</code> is tried.  The
+<code>"wininet"</code> method uses the WinINet functions (part of the OS).
+
+</p>
+<p>Support for method <code>"libcurl"</code> is optional on Windows: use
+<code><a href="../../base/html/capabilities.html">capabilities</a>("libcurl")</code> to see if it is supported on
+your build.  It uses an external library of that name
+(<a href="http://curl.haxx.se/libcurl/">http://curl.haxx.se/libcurl/</a>) against which <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> can be compiled.
+</p>
+</li></ul>
+
+<p>When method <code>"libcurl"</code> is used, it provides
+(non-blocking) access to <span class="samp">https://</span> and (usually) <span class="samp">ftps://</span>
+URLs.  There is support for simultaneous downloads, so <code>url</code> and
+<code>destfile</code> can be character vectors of the same length greater
+than one (but the method has to be specified explicitly and not
+<em>via</em> <code>"auto"</code>).  For a single URL and <code>quiet = FALSE</code>
+a progress bar is shown in interactive use.
+</p>
+<p>For methods <code>"wget"</code> and <code>"curl"</code> a system call is made to
+the tool given by <code>method</code>, and the respective program must be
+installed on your system and be in the search path for executables.
+They will block all other activity on the <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> process until they
+complete: this may make a GUI unresponsive.
+</p>
+<p><code>cacheOK = FALSE</code> is useful for <span class="samp">http://</span> and
+<span class="samp">https://</span> URLs: it will attempt to get a copy directly from the
+site rather than from an intermediate cache.  It is used by
+<code><a href="available.packages.html">available.packages</a></code>.
+</p>
+<p>The <code>"libcurl"</code> and <code>"wget"</code> methods follow <span class="samp">http://</span>
+and <span class="samp">https://</span> redirections to any scheme they support: the
+<code>"internal"</code> method follows <span class="samp">http://</span> to <span class="samp">http://</span>
+redirections only.  (For method <code>"curl"</code> use argument
+<code>extra = "-L"</code>.  To disable redirection in <code>wget</code>, use
+<code>extra = "--max-redirect=0"</code>.)
+The <code>"wininet"</code> method supports some
+redirections but not all.  (For method <code>"libcurl"</code>, messages will
+quote the endpoint of redirections.)
+</p>
+<p>Note that <span class="samp">https://</span> URLs are not supported by the
+<code>"internal"</code> method but are supported by the <code>"libcurl"</code>
+method and the <code>"wininet"</code> method on Windows.
+</p>
+<p>See <code><a href="../../base/html/connections.html">url</a></code> for how <span class="samp">file://</span> URLs are interpreted,
+especially on Windows.  The <code>"internal"</code> and <code>"wininet"</code>
+methods do not percent-decode <span class="samp">file://</span> URLs, but the
+<code>"libcurl"</code> and <code>"curl"</code> methods do: method <code>"wget"</code>
+does not support them.
+</p>
+<p>Most methods do not percent-encode special characters such as spaces
+in URLs (see <code><a href="URLencode.html">URLencode</a></code>), but it seems the
+<code>"wininet"</code> method does.
+</p>
+<p>The remaining details apply to the <code>"internal"</code>, <code>"wininet"</code>
+and <code>"libcurl"</code> methods only.
+</p>
+<p>The timeout for many parts of the transfer can be set by the option
+<code>timeout</code> which defaults to 60 seconds.
+</p>
+<p>The level of detail provided during transfer can be set by the
+<code>quiet</code> argument and the <code>internet.info</code> option: the details
+depend on the platform and scheme.  For the <code>"internal"</code> method
+setting option <code>internet.info</code> to 0 gives all available details,
+including all server responses.  Using 2 (the default) gives only
+serious messages, and 3 or more suppresses all messages.  For the
+<code>"libcurl"</code> method values of the option less than 2 give verbose
+output.
+</p>
+<p>A progress bar tracks the transfer platform specifically:
+</p>
+
+<dl>
+<dt>On Windows</dt><dd><p>If the file length is known, the
+full width of the bar is the known length.  Otherwise the initial
+width represents 100 Kbytes and is doubled whenever the current width
+is exceeded.  (In non-interactive use this uses a text version.  If the
+file length is known, an equals sign represents 2% of the transfer
+completed: otherwise a dot represents 10Kb.)</p>
+</dd>
+<dt>On a unix-alike</dt><dd><p>If the file length is known, an
+equals sign represents 2% of the transfer completed: otherwise a dot
+represents 10Kb.</p>
+</dd>
+</dl>
+
+<p>The choice of binary transfer (<code>mode = "wb"</code> or <code>"ab"</code>) is
+important on Windows, since unlike Unix-alikes it does distinguish
+between text and binary files and for text transfers changes <code>\n</code>
+line endings to <code>\r\n</code> (aka &lsquo;<span class="file">CRLF</span>&rsquo;).
+</p>
+<p>On Windows, if <code>mode</code> is not supplied (<code><a href="../../base/html/missing.html">missing</a>()</code>)
+and <code>url</code> ends in one of
+<code>.gz</code>, <code>.bz2</code>, <code>.xz</code>, <code>.tgz</code>, <code>.zip</code>,
+<code>.rda</code>, <code>.rds</code> or <code>.RData</code>, <code>mode = "wb"</code> is set
+such that a binary transfer is done to help unwary users.
+</p>
+<p>Code written to download binary files must use <code>mode = "wb"</code> (or
+<code>"ab"</code>), but the problems incurred by a text transfer will only
+be seen on Windows.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An (invisible) integer code, <code>0</code> for success and non-zero for
+failure.  For the <code>"wget"</code> and <code>"curl"</code> methods this is the
+status code returned by the external program.  The <code>"internal"</code>
+method can return <code>1</code>, but will in most cases throw an error.
+</p>
+<p>What happens to the destination file(s) in the case of error depends
+on the method and <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> version. Currently the <code>"internal"</code>,
+<code>"wininet"</code> and <code>"libcurl"</code> methods will remove the file if
+there the URL is unavailable except when <code>mode</code> specifies
+appending when the file should be unchanged.
+</p>
+
+
+<h3>Setting Proxies</h3>
+
+<p>For the Windows-only method <code>"wininet"</code>, the &lsquo;Internet
+Options&rsquo; of the system are used to choose proxies and so on; these are
+set in the Control Panel and are those used for Internet Explorer.
+</p>
+<p>The next two paragraphs apply to the internal code only.
+</p>
+<p>Proxies can be specified via environment variables.
+Setting <span class="env">no_proxy</span> to <code>*</code> stops any proxy being tried.
+Otherwise the setting of <span class="env">http_proxy</span> or <span class="env">ftp_proxy</span>
+(or failing that, the all upper-case version) is consulted and if
+non-empty used as a proxy site.  For FTP transfers, the username
+and password on the proxy can be specified by <span class="env">ftp_proxy_user</span>
+and <span class="env">ftp_proxy_password</span>.  The form of <span class="env">http_proxy</span>
+should be <code>http://proxy.dom.com/</code> or
+<code>http://proxy.dom.com:8080/</code> where the port defaults to
+<code>80</code> and the trailing slash may be omitted.  For
+<span class="env">ftp_proxy</span> use the form <code>ftp://proxy.dom.com:3128/</code>
+where the default port is <code>21</code>.  These environment variables
+must be set before the download code is first used: they cannot be
+altered later by calling <code><a href="../../base/html/Sys.setenv.html">Sys.setenv</a></code>.
+</p>
+<p>Usernames and passwords can be set for HTTP proxy transfers via
+environment variable <span class="env">http_proxy_user</span> in the form
+<code>user:passwd</code>.  Alternatively, <span class="env">http_proxy</span> can be of the
+form <code>http://user:pass@proxy.dom.com:8080/</code> for compatibility
+with <code>wget</code>.  Only the HTTP/1.0 basic authentication scheme is
+supported.
+<br />
+Under Windows, if <span class="env">http_proxy_user</span> is set to <code>ask</code> then
+a dialog box will come up for the user to enter the username and
+password.  <b>NB:</b> you will be given only one opportunity to enter this,
+but if proxy authentication is required and fails there will be one
+further prompt per download.
+</p>
+<p>Much the same scheme is supported by <code>method = "libcurl"</code>, including
+<span class="env">no_proxy</span>, <span class="env">http_proxy</span> and <span class="env">ftp_proxy</span>, and for the last
+two a contents of <code>[user:password@]machine[:port]</code> where the
+parts in brackets are optional.  See
+<a href="http://curl.haxx.se/libcurl/c/libcurl-tutorial.html">http://curl.haxx.se/libcurl/c/libcurl-tutorial.html</a> for details.
+</p>
+
+
+<h3>Secure URLs</h3>
+
+<p>Methods which access <span class="samp">https://</span> and <span class="samp">ftps://</span> URLs should
+try to verify the site certificates.  This is usually done using the CA
+root certificates installed by the OS (although we have seen instances
+in which these got removed rather than updated). For further information
+see <a href="http://curl.haxx.se/docs/sslcerts.html">http://curl.haxx.se/docs/sslcerts.html</a>.
+</p>
+<p>This is an issue for <code>method = "libcurl"</code> on Windows, where the
+OS does not provide a suitable CA certificate bundle, so by default on
+Windows certificates are not verified.  To turn verification on, set
+environment variable <span class="env">CURL_CA_BUNDLE</span> to the path to a certificate
+bundle file, usually named &lsquo;<span class="file">ca-bundle.crt</span>&rsquo; or
+&lsquo;<span class="file">curl-ca-bundle.crt</span>&rsquo;.  (This is normally done for a binary
+installation of <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>, which installs
+&lsquo;<span class="file"><var>R_HOME</var>/etc/curl-ca-bundle.crt</span>&rsquo; and sets
+<span class="env">CURL_CA_BUNDLE</span> to point to it if that environment variable is not
+already set.)  For an updated certificate bundle, see
+<a href="http://curl.haxx.se/docs/sslcerts.html">http://curl.haxx.se/docs/sslcerts.html</a>.
+Currently one can download a copy from
+<a href="https://raw.githubusercontent.com/bagder/ca-bundle/master/ca-bundle.crt">https://raw.githubusercontent.com/bagder/ca-bundle/master/ca-bundle.crt</a>
+and set <span class="env">CURL_CA_BUNDLE</span> to the full path to the downloaded file.
+</p>
+<p>Note that the root certificates used by <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> may or may not be the same
+as used in a browser, and indeed different browsers may use different
+certificate bundles (there is typically a build option to choose
+either their own or the system ones).
+</p>
+
+
+<h3>FTP sites</h3>
+
+<p><span class="samp">ftp:</span> URLs are accessed using the FTP protocol which has a
+number of variants.  One distinction is between &lsquo;active&rsquo; and
+&lsquo;(extended) passive&rsquo; modes: which is used is chosen by the
+client.  The <code>"internal"</code> and <code>"libcurl"</code> methods use passive
+mode, and that is almost universally used by browsers.  Prior to <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>
+3.2.3 the <code>"wininet"</code> method used active mode: nowadays it first
+tries passive and then active.
+</p>
+
+
+<h3>Good practice</h3>
+
+<p>Setting the <code>method</code> should be left to the end user.  Neither of
+the <code>wget</code> nor <code>curl</code> commands is widely available:
+you can check if one is available <em>via</em> <code><a href="../../base/html/Sys.which.html">Sys.which</a></code>,
+and should do so in a package or script.
+</p>
+<p>If you use <code>download.file</code> in a package or script, you must check
+the return value, since it is possible that the download will fail
+with a non-zero status but not an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> error. (This was more likely
+prior to <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> 3.4.0.)
+</p>
+<p>The supported <code>method</code>s do change: method <code>libcurl</code> was
+introduced in <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> 3.2.0 and is still optional on Windows &ndash; use
+<code><a href="../../base/html/capabilities.html">capabilities</a>("libcurl")</code> in a program to see if it is
+available.
+</p>
+
+
+<h3>Note</h3>
+
+<p>Files of more than 2GB are supported on 64-bit builds of <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>; they
+may be truncated on some 32-bit builds.
+</p>
+<p>Methods <code>"wget"</code> and <code>"curl"</code> are mainly for historical
+compatibility but provide may provide capabilities not supported by
+the <code>"libcurl"</code> or <code>"wininet"</code> methods.
+</p>
+<p>Method <code>"wget"</code> can be used with proxy firewalls which require
+user/password authentication if proper values are stored in the
+configuration file for <code>wget</code>.
+</p>
+<p><code>wget</code> (<a href="http://www.gnu.org/software/wget/">http://www.gnu.org/software/wget/</a>) is commonly
+installed on Unix-alikes (but not macOS).  Windows binaries are
+available from Cygwin, gnuwin32 and elsewhere.
+</p>
+<p><code>curl</code> (<a href="http://curl.haxx.se/">http://curl.haxx.se/</a>) is installed on macOS and
+commonly on Unix-alikes.  Windows binaries are available at that URL.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="../../base/html/options.html">options</a></code> to set the <code>HTTPUserAgent</code>, <code>timeout</code>
+and <code>internet.info</code> options used by some of the methods.
+</p>
+<p><code><a href="../../base/html/connections.html">url</a></code> for a finer-grained way to read data from URLs.
+</p>
+<p><code><a href="url.show.html">url.show</a></code>, <code><a href="available.packages.html">available.packages</a></code>,
+<code><a href="download.packages.html">download.packages</a></code> for applications.
+</p>
+<p>Contributed package <a href="https://CRAN.R-project.org/package=RCurl"><span class="pkg">RCurl</span></a> provides more comprehensive
+facilities to download from URLs.
+</p>
+
+<hr /><div style="text-align: center;">[Package <em>utils</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

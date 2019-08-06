@@ -1,0 +1,226 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Initialization at Start of an R Session</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for Startup {base}"><tr><td>Startup {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Initialization at Start of an R Session</h2>
+
+<h3>Description</h3>
+
+<p>In <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>, the startup mechanism is as follows.
+</p>
+<p>Unless <span class="option">--no-environ</span> was given on the command line, <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>
+searches for site and user files to process for setting environment
+variables.  The name of the site file is the one pointed to by the
+environment variable <span class="env">R_ENVIRON</span>; if this is unset,
+&lsquo;<span class="file"><var><a href="Rhome.html">R_HOME</a></var>/etc/Renviron.site</span>&rsquo; is used (if it exists,
+which it does not in a &lsquo;factory-fresh&rsquo; installation).  The name
+of the user file can be specified by the <span class="env">R_ENVIRON_USER</span>
+environment variable; if this is unset, the files searched for are
+&lsquo;<span class="file">.Renviron</span>&rsquo; in the current or in the user's home directory (in
+that order).  See &lsquo;Details&rsquo; for how the files are read.
+</p>
+<p>Then <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> searches for the site-wide startup profile file of <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> code
+unless the command line option <span class="option">--no-site-file</span> was given.  The
+path of this file is taken from the value of the <span class="env">R_PROFILE</span>
+environment variable (after <a href="path.expand.html">tilde expansion</a>).  If this variable
+is unset, the default is &lsquo;<span class="file"><var><a href="Rhome.html">R_HOME</a></var>/etc/Rprofile.site</span>&rsquo;,
+which is used if it exists
+(it contains settings from the installer in a &lsquo;factory-fresh&rsquo;
+installation).
+This code is sourced into the <span class="pkg">base</span> package.  Users need to be
+careful not to unintentionally overwrite objects in <span class="pkg">base</span>, and it
+is normally advisable to use <code><a href="eval.html">local</a></code> if code needs to be
+executed: see the examples.
+</p>
+<p>Then, unless <span class="option">--no-init-file</span> was given, <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> searches for a user
+profile, a file of <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> code.  The path of this file can be specified by
+the <span class="env">R_PROFILE_USER</span> environment variable (and
+<a href="path.expand.html">tilde expansion</a> will be performed).  If this is unset, a file
+called &lsquo;<span class="file">.Rprofile</span>&rsquo; is searched for in the current directory or in
+the user's home directory (in that order).  The user profile file is
+sourced into the workspace.
+</p>
+<p>Note that when the site and user profile files are sourced only the
+<span class="pkg">base</span> package is loaded, so objects in other packages need to be
+referred to by e.g. <code>utils::dump.frames</code> or after explicitly
+loading the package concerned.
+</p>
+<p><span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> then loads a saved image of the user workspace from &lsquo;<span class="file">.RData</span>&rsquo;
+in the current directory if there is one (unless
+<span class="option">--no-restore-data</span> or <span class="option">--no-restore</span> was specified on
+the command line).
+</p>
+<p>Next, if a function <code>.First</code> is found on the search path,
+it is executed as <code>.First()</code>.  Finally, function
+<code>.First.sys()</code> in the <span class="pkg">base</span> package is run.  This calls
+<code><a href="library.html">require</a></code> to attach the default packages specified by
+<code><a href="options.html">options</a>("defaultPackages")</code>.  If the <span class="pkg">methods</span>
+package is included, this will have been attached earlier (by function
+<code>.OptRequireMethods()</code>) so that namespace initializations such
+as those from the user workspace will proceed correctly.
+</p>
+<p>A function <code>.First</code> (and <code><a href="quit.html">.Last</a></code>) can be defined in
+appropriate &lsquo;<span class="file">.Rprofile</span>&rsquo; or &lsquo;<span class="file">Rprofile.site</span>&rsquo; files or have
+been saved in &lsquo;<span class="file">.RData</span>&rsquo;.  If you want a different set of packages
+than the default ones when you start, insert a call to
+<code><a href="options.html">options</a></code> in the &lsquo;<span class="file">.Rprofile</span>&rsquo; or &lsquo;<span class="file">Rprofile.site</span>&rsquo;
+file.  For example, <code>options(defaultPackages = character())</code> will
+attach no extra packages on startup (only the <span class="pkg">base</span> package) (or
+set <code>R_DEFAULT_PACKAGES=NULL</code> as an environment variable before
+running <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>).  Using <code>options(defaultPackages = "")</code> or
+<code>R_DEFAULT_PACKAGES=""</code> enforces the R <em>system</em> default.
+</p>
+<p>On front-ends which support it, the commands history is read from the
+file specified by the environment variable <span class="env">R_HISTFILE</span> (default
+&lsquo;<span class="file">.Rhistory</span>&rsquo; in the current directory) unless
+<span class="option">--no-restore-history</span> or <span class="option">--no-restore</span> was specified.
+</p>
+<p>The command-line option <span class="option">--vanilla</span> implies
+<span class="option">--no-site-file</span>, <span class="option">--no-init-file</span>,
+<span class="option">--no-environ</span> and (except for <code>R CMD</code>)
+<span class="option">--no-restore</span>
+Under Windows, it also implies <span class="option">--no-Rconsole</span>, which
+prevents loading the &lsquo;<span class="file"><a href="../../utils/html/Rconsole.html">Rconsole</a></span>&rsquo; file.
+</p>
+
+
+<h3>Details</h3>
+
+<p>Note that there are two sorts of files used in startup:
+<em>environment files</em> which contain lists of environment variables
+to be set, and <em>profile files</em> which contain <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> code.
+</p>
+<p>Lines in a site or user environment file should be either comment
+lines starting with <code>#</code>, or lines of the form
+<code><var>name</var>=<var>value</var></code>. The latter sets the environmental
+variable <code><var>name</var></code> to <code><var>value</var></code>, overriding an
+existing value.  If <code><var>value</var></code> contains an expression of the
+form <code>${foo-bar}</code>, the value is that of the environmental
+variable <code>foo</code> if that exists and is set to a non-empty value,
+otherwise <code>bar</code>.  (If it is of the form <code>${foo}</code>, the
+default is <code>""</code>.)  This construction can be nested, so <code>bar</code>
+can be of the same form (as in <code>${foo-${bar-blah}}</code>).  Note that
+the braces are essential: for example <code>$HOME</code> will not be interpreted.
+</p>
+<p>Leading and trailing white space in <code><var>value</var></code> are stripped.
+<code><var>value</var></code> is then processed in a similar way to a Unix shell:
+in particular the outermost level of (single or double) quotes is
+stripped, and backslashes are removed except inside quotes.
+</p>
+<p>On systems with sub-architectures (mainly Windows), the
+files &lsquo;<span class="file">Renviron.site</span>&rsquo; and &lsquo;<span class="file">Rprofile.site</span>&rsquo; are looked for
+first in architecture-specific directories,
+e.g. &lsquo;<span class="file"><var><a href="Rhome.html">R_HOME</a></var>/etc/i386/Renviron.site</span>&rsquo;.
+And e.g. &lsquo;<span class="file">.Renviron.i386</span>&rsquo; will be used in preference
+to &lsquo;<span class="file">.Renviron</span>&rsquo;.
+</p>
+
+
+<h3>Note</h3>
+
+<p>It is not intended that there be interaction with the user during
+startup code.  Attempting to do so can crash the <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> process.
+</p>
+<p>The startup options are for <code>Rgui</code>, <code>Rterm</code> and
+<code>R</code> but not for <code>Rcmd</code>: attempting to use
+e.g. <span class="option">--vanilla</span> with the latter will give a warning or error.
+</p>
+<p>Unix versions of <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> have a file &lsquo;<span class="file"><var><a href="Rhome.html">R_HOME</a></var>/etc/Renviron</span>&rsquo;
+which is read very early in the start-up processing.  It contains
+environment variables set by <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> in the configure process, and is not
+used on <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> for Windows.
+</p>
+<p><code>R CMD check</code> and <code>R CMD build</code> do not always read the
+standard startup files, but they do always read specific
+<span class="samp">Renviron</span> files.  The location of these can be controlled by the
+environment variables <span class="env">R_CHECK_ENVIRON</span> and <span class="env">R_BUILD_ENVIRON</span>.
+If these are set their value is used as the path for the
+<span class="samp">Renviron</span> file; otherwise, files &lsquo;<span class="file">~/.R/check.Renviron</span>&rsquo; or
+&lsquo;<span class="file">~/.R/build.Renviron</span>&rsquo; or sub-architecture-specific versions are
+employed.
+</p>
+<p>If you want &lsquo;<span class="file">~/.Renviron</span>&rsquo; or &lsquo;<span class="file">~/.Rprofile</span>&rsquo; to be ignored by
+child <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> processes (such as those run by <code>R CMD check</code> and
+<code>R CMD build</code>), set the appropriate environment variable
+<span class="env">R_ENVIRON_USER</span> or <span class="env">R_PROFILE_USER</span> to (if possible, which it
+is not on Windows) <code>""</code> or to the name of a non-existent file.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>For the definition of the &lsquo;home&rsquo; directory on Windows see the
+&lsquo;<span class="file">rw-FAQ</span>&rsquo; Q2.14.  It can be found from a running <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> by
+<code>Sys.getenv("R_USER")</code>.
+</p>
+<p><code><a href="quit.html">.Last</a></code> for final actions at the close of an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> session.
+<code><a href="commandArgs.html">commandArgs</a></code> for accessing the command line arguments.
+</p>
+<p>There are examples of using startup files to set defaults for graphics
+devices in the help for
+<code><a href="../../grDevices/html/windows.options.html">windows.options</a></code>.
+</p>
+<p><em>An Introduction to R</em> for more command-line options: those
+affecting memory management are covered in the help file for
+<a href="Memory.html">Memory</a>.
+</p>
+<p><code><a href="readRenviron.html">readRenviron</a></code> to read &lsquo;<span class="file">.Renviron</span>&rsquo; files.
+</p>
+<p>For profiling code, see <code><a href="../../utils/html/Rprof.html">Rprof</a></code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Not run: 
+## Example ~/.Renviron on Unix
+R_LIBS=~/R/library
+PAGER=/usr/local/bin/less
+
+## Example .Renviron on Windows
+R_LIBS=C:/R/library
+MY_TCLTK="c:/Program Files/Tcl/bin"
+
+## Example of setting R_DEFAULT_PACKAGES (from R CMD check)
+R_DEFAULT_PACKAGES='utils,grDevices,graphics,stats'
+# this loads the packages in the order given, so they appear on
+# the search path in reverse order.
+
+## Example of .Rprofile
+options(width=65, digits=5)
+options(show.signif.stars=FALSE)
+setHook(packageEvent("grDevices", "onLoad"),
+        function(...) grDevices::ps.options(horizontal=FALSE))
+set.seed(1234)
+.First &lt;- function() cat("\n   Welcome to R!\n\n")
+.Last &lt;- function()  cat("\n   Goodbye!\n\n")
+
+## Example of Rprofile.site
+local({
+  # add MASS to the default packages, set a CRAN mirror
+  old &lt;- getOption("defaultPackages"); r &lt;- getOption("repos")
+  r["CRAN"] &lt;- "http://my.local.cran"
+  options(defaultPackages = c(old, "MASS"), repos = r)
+  ## (for Unix terminal users) set the width from COLUMNS if set
+  cols &lt;- Sys.getenv("COLUMNS")
+  if(nzchar(cols)) options(width = as.integer(cols))
+  # interactive sessions get a fortune cookie (needs fortunes package)
+  if (interactive())
+    fortunes::fortune()
+})
+
+## if .Renviron contains
+FOOBAR="coo\bar"doh\ex"abc\"def'"
+
+## then we get
+# &gt; cat(Sys.getenv("FOOBAR"), "\n")
+# coo\bardoh\exabc"def'
+
+## End(Not run)</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

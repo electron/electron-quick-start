@@ -1,0 +1,254 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Get or Test for the Definition of a Method</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for getMethod {methods}"><tr><td>getMethod {methods}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Get or Test for the Definition of a Method</h2>
+
+<h3>Description</h3>
+
+<p>The function <code>selectMethod()</code> returns the method that
+would be selected for a call to function <code>f</code> if the arguments had
+classes as specified by <code>signature</code>.  Failing to find a method
+is an error, unless argument <code>optional = TRUE</code>, in which case
+<code>NULL</code> is returned.
+</p>
+<p>The function <code>findMethod()</code> returns a list of
+environments that contain a method for the specified function and signature; by
+default, these are a subset of the packages in the current search
+list.  See section &ldquo;Using <code>findMethod()</code>&rdquo; for details.
+</p>
+<p>The function <code>getMethod()</code> returns the method corresponding to the
+function and signature supplied similarly to <code>selectMethod</code>, but
+without using inheritance or group generics.
+</p>
+<p>The functions  <code>hasMethod()</code>  and
+<code>existsMethod()</code> test whether <code>selectMethod()</code> or
+<code>getMethod()</code>, respectively, finds a matching method.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+  selectMethod(f, signature, optional = FALSE, useInherited =,
+             mlist = , fdef = , verbose = , doCache = )
+
+  findMethod(f, signature, where)
+
+  getMethod(f, signature = character(), where, optional = FALSE,
+             mlist, fdef)
+
+  existsMethod(f, signature = character(), where)
+
+  hasMethod(f, signature = character(), where)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>f</code></td>
+<td>
+<p>a generic function or the character-string name of one.</p>
+</td></tr>
+<tr valign="top"><td><code>signature</code></td>
+<td>
+<p>the signature of classes to match to the arguments
+of <code>f</code>.  See the details below.</p>
+</td></tr>
+<tr valign="top"><td><code>where</code></td>
+<td>
+<p>the environment in which to look for the
+method(s).  By default, if the call comes from the command line, the table of methods defined in the generic
+function itself is used, except for <code>findMethod</code> (see the
+section below).</p>
+</td></tr>
+<tr valign="top"><td><code>optional</code></td>
+<td>
+<p>if the selection in <code>selectMethod</code> does not find
+a valid method an error is generated, unless <code>optional</code> is
+<code>TRUE</code>,  in which case the value returned is <code>NULL</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>mlist, fdef, useInherited, verbose, doCache</code></td>
+<td>
+<p>optional arguments
+to  <code>getMethod</code> and <code>selectMethod</code> for internal use.  Avoid
+these: some will work as expected and others will not, and none of
+them is required for normal use of the functions.  But see the
+section &ldquo;Methods for <code>as()</code>&rdquo; for nonstandard inheritance.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>The <code>signature</code> argument specifies classes, corresponding to
+formal arguments of the generic function; to be precise, to the
+<code>signature</code> slot of the generic function object.  The argument
+may be a vector of strings identifying classes, and may be named or
+not.  Names, if supplied, match the names of those formal arguments
+included in the signature of the generic.  That signature is normally
+all the arguments except ....  However, generic functions can be
+specified with only a subset of the arguments permitted, or with the
+signature taking the arguments in a different order.
+</p>
+<p>It's a good idea to name the arguments in the signature to avoid
+confusion, if you're dealing with a generic that does something
+special with its signature.  In any case, the elements of the
+signature are matched to the formal signature by the same rules used
+in matching arguments in function calls (see
+<code><a href="../../base/html/match.call.html">match.call</a></code>).
+</p>
+<p>The strings in the signature may be class names, <code>"missing"</code> or
+<code>"ANY"</code>.  See <a href="Methods_Details.html">Methods_Details</a> for the meaning of these in method
+selection.  Arguments not supplied in the signature implicitly
+correspond to class <code>"ANY"</code>; in particular, giving an empty
+signature means to look for the default method.
+</p>
+<p>A call to <code>getMethod</code> returns the method for a particular
+function and signature.   The search for the method makes no use of
+inheritance.
+</p>
+<p>The function <code>selectMethod</code> also looks for a method given the
+function and signature, but makes full use of the method dispatch
+mechanism; i.e., inherited methods and group generics are taken into
+account just as they would be in dispatching a method for the
+corresponding signature, with the one exception that conditional
+inheritance is not used.  Like <code>getMethod</code>, <code>selectMethod</code>
+returns <code>NULL</code> or generates an error if
+the method is not found, depending on the argument <code>optional</code>.
+</p>
+<p>Both <code>selectMethod</code> and <code>getMethod</code> will normally use the
+current version of the generic function in the R session, which has a
+table of the methods obtained from all the packages loaded in the
+session. Optional arguments can cause a search for the generic function from a
+specified environment, but this is rarely a useful idea.  In contrast,
+<code>findMethod</code> has a different default and the optional
+<code>where=</code> argument may be needed.  See the  section &ldquo;Using
+<code>findMethod()</code>&rdquo;.
+</p>
+<p>The functions <code>existsMethod</code> and <code>hasMethod</code> return
+<code>TRUE</code> or <code>FALSE</code> according to whether a method is found,
+the first corresponding to <code>getMethod</code> (no inheritance) and the
+second to <code>selectMethod</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The call to <code>selectMethod</code> or <code>getMethod</code> returns  the selected method, if
+one is found.
+(This class extends <code>function</code>, so you can use the result
+directly as a function if that is what you want.)
+Otherwise an error is thrown if <code>optional</code> is <code>FALSE</code>  and  <code>NULL</code> is returned if
+<code>optional</code> is <code>TRUE</code>.
+</p>
+<p>The returned method object is a
+<code><a href="MethodDefinition-class.html">MethodDefinition</a></code> object, <em>except</em> that the default method for a primitive function is required to be the primitive itself.
+Note therefore that the only reliable test that the search failed is
+<code>is.null()</code>.
+</p>
+<p>The returned value of <code>findMethod</code> is a list of
+environments in which a corresponding method was found; that is, a
+table of methods including the one specified.
+</p>
+
+
+<h3>Using <code>findMethod()</code></h3>
+
+<p>As its name suggests, this function is intended to behave like
+<code><a href="../../utils/html/apropos.html">find</a></code>, which produces a list of the packages on the
+current search list which have, and have exported, the object named.
+That's what <code>findMethod</code> does also, by default.  The
+&ldquo;exported&rdquo; part in this case means that the package's namespace
+has an <code>exportMethods</code> directive for this generic function.
+</p>
+<p>An important distinction is that the absence of such a directive does
+not prevent methods from the package from being called once the
+package is loaded.  Otherwise, the code in the package could not use
+un-exported methods.
+</p>
+<p>So, if your question is whether loading package <code>thisPkg</code> will define a
+method for this function and signature, you need to ask that question
+about the namespace of the package:
+</p>
+<p><code>findMethod(f, signature, where = asNamespace("thisPkg"))</code>
+</p>
+<p>If the package did not export the method, attaching it and calling
+<code>findMethod</code> with no <code>where</code> argument will not find the
+method.
+</p>
+<p>Notice also that the length of the signature must be what the
+corresponding package used.  If <code>thisPkg</code> had only methods for
+one argument, only length-1 signatures will match (no trailing
+<code>"ANY"</code>), even if another currently loaded package had signatures
+with more arguments.
+</p>
+
+
+<h3>Methods for <code>as()</code></h3>
+
+<p>The function <code><a href="setAs.html">setAs</a></code> allows packages to define methods for
+coercing one class of objects to another class.  This works internally
+by defining methods for the generic function <code><a href="setAs.html">coerce</a>(from,
+to)</code>,
+which can not be called directly.
+</p>
+<p>The <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> evaluator selects
+methods for this purpose using a different form of inheritance.  While
+methods can be inherited for the object being coerced, they cannot
+inherit for the target class, since the result would not be a valid
+object from that class.
+If you want to
+examine the selection procedure, you must supply the optional argument
+<code>useInherited = c(TRUE, FALSE)</code> to <code>selectMethod</code>.
+</p>
+
+
+<h3>References</h3>
+
+<p>Chambers, John M. (2016)
+<em>Extending R</em>,
+Chapman &amp; Hall.
+(Chapters 9 and 10.)
+</p>
+<p>Chambers, John M. (2008)
+<em>Software for Data Analysis: Programming with R</em>
+Springer. (Section 10.6 for some details of method selection.)
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="Methods_Details.html">Methods_Details</a></code> for the details of method
+selection; <code><a href="GenericFunctions.html">GenericFunctions</a></code> for other functions
+manipulating methods and generic function objects;
+<code><a href="MethodDefinition-class.html">MethodDefinition</a></code> for the class that represents
+method definitions.</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+testFun &lt;-  function(x)x
+setGeneric("testFun")
+setMethod("testFun", "numeric", function(x)x+1)
+
+hasMethod("testFun", "numeric") # TRUE
+
+hasMethod("testFun", "integer") #TRUE, inherited
+
+existsMethod("testFun", "integer") #FALSE
+
+hasMethod("testFun") # TRUE, default method
+
+hasMethod("testFun", "ANY")
+
+
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>methods</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

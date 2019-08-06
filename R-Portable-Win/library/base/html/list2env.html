@@ -1,0 +1,114 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: From A List, Build or Add To an Environment</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for list2env {base}"><tr><td>list2env {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>From A List, Build or Add To an Environment</h2>
+
+<h3>Description</h3>
+
+<p>From a <em>named</em> <code><a href="list.html">list</a> x</code>, create an
+<code><a href="environment.html">environment</a></code> containing all list components as objects, or
+&ldquo;multi-assign&rdquo; from <code>x</code> into a pre-existing environment.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+list2env(x, envir = NULL, parent = parent.frame(),
+         hash = (length(x) &gt; 100), size = max(29L, length(x)))
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>a <code><a href="list.html">list</a></code>, where <code><a href="names.html">names</a>(x)</code> must
+not contain empty (<code>""</code>) elements.</p>
+</td></tr>
+<tr valign="top"><td><code>envir</code></td>
+<td>
+<p>an <code><a href="environment.html">environment</a></code> or <code>NULL</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>parent</code></td>
+<td>
+<p>(for the case <code>envir = NULL</code>): a parent frame aka
+enclosing environment, see <code><a href="environment.html">new.env</a></code>.</p>
+</td></tr>
+<tr valign="top"><td><code>hash</code></td>
+<td>
+<p>(for the case <code>envir = NULL</code>): logical indicating
+if the created environment should use hashing, see <code><a href="environment.html">new.env</a></code>.</p>
+</td></tr>
+<tr valign="top"><td><code>size</code></td>
+<td>
+<p>(in the case <code>envir = NULL, hash = TRUE</code>): hash size,
+see <code><a href="environment.html">new.env</a></code>.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>This will be very slow for large inputs unless hashing is used on the
+environment.
+</p>
+<p>Environments must have uniquely named entries, but named lists need
+not: where the list has duplicate names it is the <em>last</em> element
+with the name that is used.  Empty names throw an error.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An <code><a href="environment.html">environment</a></code>, either newly created (as by
+<code><a href="environment.html">new.env</a></code>) if the <code>envir</code> argument was <code>NULL</code>,
+otherwise the updated environment <code>envir</code>.  Since environments
+are never duplicated, the argument <code>envir</code> is also changed.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Martin Maechler</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="environment.html">environment</a></code>, <code><a href="environment.html">new.env</a></code>,
+<code><a href="as.environment.html">as.environment</a></code>; further, <code><a href="assign.html">assign</a></code>.
+</p>
+<p>The (semantical) &ldquo;inverse&rdquo;: <code><a href="list.html">as.list.environment</a></code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+L &lt;- list(a = 1, b = 2:4, p = pi, ff = gl(3, 4, labels = LETTERS[1:3]))
+e &lt;- list2env(L)
+ls(e)
+stopifnot(ls(e) == sort(names(L)),
+          identical(L$b, e$b)) # "$" working for environments as for lists
+
+## consistency, when we do the inverse:
+ll &lt;- as.list(e)  # -&gt; dispatching to the as.list.environment() method
+rbind(names(L), names(ll)) # not in the same order, typically,
+                           # but the same content:
+stopifnot(identical(L [sort.list(names(L ))],
+                    ll[sort.list(names(ll))]))
+
+## now add to e -- can be seen as a fast "multi-assign":
+list2env(list(abc = LETTERS, note = "just an example",
+              df = data.frame(x = rnorm(20), y = rbinom(20, 1, pr = 0.2))),
+         envir = e)
+utils::ls.str(e)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

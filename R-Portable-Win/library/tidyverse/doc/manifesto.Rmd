@@ -1,0 +1,104 @@
+---
+title: "The tidy tools manifesto"
+author: "Hadley Wickham"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{The tidy tools manifesto}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+This document lays out the consistent principles that unify the packages in the tidyverse. The goal of these principles is to provide a uniform interface so that tidyverse packages work together naturally, and once you've mastered one, you have a head start on mastering the others.
+
+This is my first attempt at writing down these principles. That means that this manifesto is both aspirational and likely to change heavily in the future. Currently no packages precisely meet the design goals, and while the underlying ideas are stable, I expect their expression in prose will change substantially as I struggle to make explicit my process and thinking.
+
+There are many other excellent packages that are not part of the tidyverse, because they are designed with a different set of underlying principles. This doesn't make them better or worse, just different. In other words, the complement to the tidyverse is not the **messy**verse, but many other universes of interrelated packages.
+
+There are four basic principles to a tidy API:
+
+1.  Reuse existing data structures.
+
+1.  Compose simple functions with the pipe.
+
+1.  Embrace functional programming.
+
+1.  Design for humans.
+
+## Reuse existing data structures
+
+Where possible, re-use existing data structures, rather than creating custom data structures for your own package. Generally, I think it's better to prefer common existing data structures over custom data structures, even if slightly ill-fitting.
+
+Many R packages (e.g. ggplot2, dplyr, tidyr) work with rectangular datasets made up of observations and variables. If this is true for your package, work with data in either a data frame or [tibble](https://github.com/hadley/tibble/). Assume the data is tidy, with  variables in the columns, and observations in the rows (see [_Tidy Data_](https://www.jstatsoft.org/article/view/v059i10) for more details).
+
+Some packages work at a lower level, focussing on a single type of variable. For example, __stringr__ for strings, __lubridate__ for date/times, and __forcats__ for factors. Generally prefer existing base R vector types, but when this is not possible, create your own using an S3 class built on top of an atomic vector or list. 
+
+If you need "non-standard scoping", where you refer to variables inside a data frame as if they are in the global environment, prefer formulas over non-standard evaluation. See [lazyeval](http://rpubs.com/hadley/lazyeval) for more details.
+
+## Compose simple functions with the pipe
+
+> No matter how complex and polished the individual operations are, 
+> it is often the quality of the glue that most directly determines 
+> the power of the system. 
+>
+> --- Hal Abelson
+
+A powerful strategy for solving complex problems is to combine many simple pieces. Each piece should be easily understood in isolation, and have a standard way to combine with other pieces. In R, this strategy plays out by composing single functions with the pipe. The pipe, `%>%`, is a common composition tool that works across all packages.
+
+Some things to bear in mind when writing functions:
+
+*   Strive to keep functions as simple as possible (but no simpler!).
+    Generally, each function should do one thing well, and you should be 
+    able to describe the purpose of the function in one sentence. 
+
+*   Avoid mixing side-effects with transformations. Ensure each function
+    either returns an object, or has a side-effect. Don't do both.
+    (This is a slight simplification: functions called primarily for 
+    their side-effects should return the primary input invisibly so that
+    they can still be combined in a pipeline.)
+
+*   Function names should be verbs. The exception is when many functions 
+    use the same verb (typically something like "modify", or "add", or
+    "compute"). In that case, avoid duplicating the common verb, and instead
+    focus on the noun. A good example of this is ggplot2: almost every
+    function adds something to an existing plot.
+
+An advantage of a pipeable API is that it is not compulsory: if you do not like using the pipe, you can compose functions in whatever way you prepare. Compare this to an operator-overloading approach (such as the `+` in ggplot2), or an object composition approach (such as the `...` approach in httr). 
+
+## Embrace functional programming
+
+R is a functional programming language; embrace it, don't fight it. If you're familiar with an object-oriented language like Python or C#, this is going to take some adjustment. But in the long run you will be much better off working with the language rather than fighting it.
+
+Generally, this means you should favour:
+
+*   Immutable objects and copy-on-modify semantics. This makes your code
+    easier to reason about.
+
+*   The generic functions provided by S3 and S4. These work very naturally
+    inside a pipe. If you do need mutable state, try to make it an internal
+    implementation detail, rather than exposing it to the user.
+
+*   Tools that abstract over for-loops, like the apply family of functions
+    or the map functions in purrr. 
+
+## Design for humans
+
+> Programs must be written for people to read, and only incidentally
+> for machines to execute.
+> 
+> --- Hal Abelson
+
+Design your API primarily so that it is easy to use by humans. Computer efficiency is a secondary concern because the bottleneck in most data analysis is thinking time, not computing time.
+
+*   Invest time in naming your functions. Evocative function names 
+    make your API easier to use and remember.
+
+*   Favour explicit, lengthy names, over short, implicit, names. 
+    Save the shortest names for the most important operations.
+
+*   Think about how autocomplete can also make an API that's easy to 
+    write. Make sure that function families are identified by a 
+    common prefix, not a common suffix. This makes autocomplete more
+    helpful, as you can jog your memory with the prompts. For smaller
+    packages, this may mean that every function has a common prefix 
+    (e.g. stringr, xml2, rvest).

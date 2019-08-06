@@ -1,0 +1,142 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Convert Integer Vectors to or from UTF-8-encoded Character...</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for utf8Conversion {base}"><tr><td>utf8Conversion {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Convert Integer Vectors to or from UTF-8-encoded Character Vectors</h2>
+
+<h3>Description</h3>
+
+<p>Conversion of UTF-8 encoded character vectors to and from integer
+vectors representing a UTF-32 encoding.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+utf8ToInt(x)
+intToUtf8(x, multiple = FALSE, allow_surrogate_pairs = FALSE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>object to be converted.</p>
+</td></tr>
+<tr valign="top"><td><code>multiple</code></td>
+<td>
+<p>logical: should the conversion be to a single
+character string or multiple individual characters?</p>
+</td></tr>
+<tr valign="top"><td><code>allow_surrogate_pairs</code></td>
+<td>
+<p>logical: should interpretation of
+surrogate pairs be attempted?  (See &lsquo;Details&rsquo;.)
+Only supported for <code>multiple = FALSE</code> and in <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> 3.5.0 and later.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>These will work in any locale, including on platforms that do not
+otherwise support multi-byte character sets.
+</p>
+<p>Unicode defines a name and a number of all of the glyphs it
+encompasses: the numbers are called <em>code points</em>: since RFC3629
+they run from <code>0</code> to <code>0x10FFFF</code> (with about 12% being
+assigned by version 10.0 of the Unicode standard).
+</p>
+<p><code>intToUtf8</code> does not by default handle surrogate pairs: inputs in
+the surrogate ranges are mapped to <code>NA</code>.  They might occur if a
+UTF-16 byte stream has been read as 2-byte integers (in the correct
+byte order), in which case <code>allow_surrogate_pairs = TRUE</code> will
+try to interpret them (with unmatched surrogate values still treated
+as <code>NA</code>).
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>utf8ToInt</code> converts a length-one character string encoded in
+UTF-8 to an integer vector of Unicode code points.
+</p>
+<p><code>intToUtf8</code> converts a numeric vector of Unicode code points
+either (default) to a single character string or a character vector of
+single characters. Non-integral numeric values are truncated to
+integers.  For output to a single character string <code>0</code> is
+silently omitted: otherwise <code>0</code> is mapped to <code>""</code>.  The
+<code><a href="Encoding.html">Encoding</a></code> of a non-<code>NA</code> return value is declared as
+<code>"UTF-8"</code>.
+</p>
+<p>Invalid and <code>NA</code> inputs are mapped to <code>NA</code> output.
+</p>
+
+
+<h3>Validity</h3>
+
+<p>Which code points are regarded as valid has changed over the lifetime
+of UTF-8.  Originally all 32-bit unsigned integers were potentially
+valid and could be converted to up to 6 bytes in UTF-8.  Since 2003 it
+has been stated that there will never be valid code points larger than
+<code>0x10FFFF</code>, and so valid UTF-8 encodings are never more than 4
+bytes.
+</p>
+<p>The code points in the surrogate-pair range <code>0xD000</code> to
+<code>0xDFFF</code> are prohibited in UTF-8 and so are regarded as invalid
+by <code>utf8ToInt</code> and by default by <code>intToUtf8</code>.
+</p>
+<p>The position of &lsquo;noncharacters&rsquo; (notably <code>0xFFFE</code> and
+<code>0xFFFF</code>) was clarified by &lsquo;Corrigendum 9&rsquo; in 2013.  These
+are valid but will never be given an official interpretation.  (In some
+earlier versions of <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> <code>utf8ToInt</code> treated them as invalid.)
+</p>
+
+
+<h3>References</h3>
+
+<p><a href="https://tools.ietf.org/html/rfc3629">https://tools.ietf.org/html/rfc3629</a>, the current standard for UTF-8.
+</p>
+<p><a href="http://www.unicode.org/versions/corrigendum9.html">http://www.unicode.org/versions/corrigendum9.html</a> for non-characters.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## will only display in some locales and fonts
+intToUtf8(0x03B2L) # Greek beta
+
+utf8ToInt("bi\u00dfchen")
+utf8ToInt("\xfa\xb4\xbf\xbf\x9f")
+
+## A valid UTF-16 surrogate pair (for U+10437)
+x &lt;- c(0xD801, 0xDC37)
+intToUtf8(x)
+intToUtf8(x, TRUE)
+(xx &lt;- intToUtf8(x, , TRUE)) # will only display in some locales and fonts
+charToRaw(xx)
+
+## Not run: ## An example of how surrogate pairs might occur
+x &lt;- "\U10437"
+charToRaw(x)
+foo &lt;- tempfile()
+writeLines(x, file(foo, encoding = "UTF-16LE"))
+## next two are OS-specific, but are mandated by POSIX
+system(paste("od -x", foo)) # 2-byte units, correct on little-endian platform
+system(paste("od -t x1", foo)) # single bytes as hex
+y &lt;- readBin(foo, "integer", 2, 2, FALSE, endian = "little")
+sprintf("%X", y)
+intToUtf8(y, , TRUE)
+
+## End(Not run)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

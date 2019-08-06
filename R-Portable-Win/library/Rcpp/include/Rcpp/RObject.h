@@ -48,7 +48,7 @@ namespace Rcpp{
          */
         template <typename T>
         RObject_Impl& operator=(const T& other) {
-            Storage::set__( wrap(other) ) ;
+            Storage::set__(Shield<SEXP>(wrap(other)));
             return *this;
         }
 

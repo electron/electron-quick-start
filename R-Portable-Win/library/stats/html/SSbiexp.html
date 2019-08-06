@@ -1,0 +1,112 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Self-Starting Nls Biexponential model</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for SSbiexp {stats}"><tr><td>SSbiexp {stats}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Self-Starting Nls Biexponential model</h2>
+
+<h3>Description</h3>
+
+<p>This <code>selfStart</code> model evaluates the biexponential model function
+and its gradient.  It has an <code>initial</code> attribute that
+creates initial estimates of the parameters <code>A1</code>, <code>lrc1</code>,
+<code>A2</code>, and <code>lrc2</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+SSbiexp(input, A1, lrc1, A2, lrc2)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>input</code></td>
+<td>
+<p>a numeric vector of values at which to evaluate the model.</p>
+</td></tr>
+<tr valign="top"><td><code>A1</code></td>
+<td>
+<p>a numeric parameter representing the multiplier of the first
+exponential.</p>
+</td></tr>
+<tr valign="top"><td><code>lrc1</code></td>
+<td>
+<p>a numeric parameter representing the natural logarithm of
+the rate constant of the first exponential.</p>
+</td></tr>
+<tr valign="top"><td><code>A2</code></td>
+<td>
+<p>a numeric parameter representing the multiplier of the second
+exponential.</p>
+</td></tr>
+<tr valign="top"><td><code>lrc2</code></td>
+<td>
+<p>a numeric parameter representing the natural logarithm of
+the rate constant of the second exponential.</p>
+</td></tr>
+</table>
+
+
+<h3>Value</h3>
+
+<p>a numeric vector of the same length as <code>input</code>.  It is the value of
+the expression
+<code>A1*exp(-exp(lrc1)*input)+A2*exp(-exp(lrc2)*input)</code>.
+If all of the arguments <code>A1</code>, <code>lrc1</code>, <code>A2</code>, and
+<code>lrc2</code> are names of objects, the gradient matrix with respect to
+these names is attached as an attribute named <code>gradient</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>José Pinheiro and Douglas Bates</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="nls.html">nls</a></code>, <code><a href="selfStart.html">selfStart</a></code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+Indo.1 &lt;- Indometh[Indometh$Subject == 1, ]
+SSbiexp( Indo.1$time, 3, 1, 0.6, -1.3 )  # response only
+A1 &lt;- 3; lrc1 &lt;- 1; A2 &lt;- 0.6; lrc2 &lt;- -1.3
+SSbiexp( Indo.1$time, A1, lrc1, A2, lrc2 ) # response and gradient
+print(getInitial(conc ~ SSbiexp(time, A1, lrc1, A2, lrc2), data = Indo.1),
+      digits = 5)
+## Initial values are in fact the converged values
+fm1 &lt;- nls(conc ~ SSbiexp(time, A1, lrc1, A2, lrc2), data = Indo.1)
+summary(fm1)
+
+## Show the model components visually
+  require(graphics)
+
+  xx &lt;- seq(0, 5, len = 101)
+  y1 &lt;- 3.5 * exp(-4*xx)
+  y2 &lt;- 1.5 * exp(-xx)
+  plot(xx, y1 + y2, type = "l", lwd=2, ylim = c(-0.2,6), xlim = c(0, 5),
+       main = "Components of the SSbiexp model")
+  lines(xx, y1, lty = 2, col="tomato"); abline(v=0, h=0, col="gray40")
+  lines(xx, y2, lty = 3, col="blue2" )
+  legend("topright", c("y1+y2", "y1 = 3.5 * exp(-4*x)", "y2 = 1.5 * exp(-x)"),
+         lty=1:3, col=c("black","tomato","blue2"), bty="n")
+  axis(2, pos=0, at = c(3.5, 1.5), labels = c("A1","A2"), las=2)
+
+## and how you could have got their sum via SSbiexp():
+  ySS &lt;- SSbiexp(xx, 3.5, log(4), 1.5, log(1))
+  ##                      ---          ---
+  stopifnot(all.equal(y1+y2, ySS, tolerance = 1e-15))
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>stats</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

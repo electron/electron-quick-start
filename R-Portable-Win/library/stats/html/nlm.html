@@ -1,0 +1,251 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Non-Linear Minimization</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for nlm {stats}"><tr><td>nlm {stats}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Non-Linear Minimization</h2>
+
+<h3>Description</h3>
+
+<p>This function carries out a minimization of the function <code>f</code>
+using a Newton-type algorithm.  See the references for details.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+nlm(f, p, ..., hessian = FALSE, typsize = rep(1, length(p)),
+    fscale = 1, print.level = 0, ndigit = 12, gradtol = 1e-6,
+    stepmax = max(1000 * sqrt(sum((p/typsize)^2)), 1000),
+    steptol = 1e-6, iterlim = 100, check.analyticals = TRUE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>f</code></td>
+<td>
+<p>the function to be minimized, returning a single numeric
+value.  This should be a function with first argument a vector of
+the length of <code>p</code> followed by any other arguments specified by
+the <code>...</code> argument.
+</p>
+<p>If the function value has an attribute called <code>gradient</code> or
+both <code>gradient</code> and <code>hessian</code> attributes, these will be
+used in the calculation of updated parameter values.  Otherwise,
+numerical derivatives are used. <code><a href="deriv.html">deriv</a></code> returns a
+function with suitable <code>gradient</code> attribute and optionally a
+<code>hessian</code> attribute.</p>
+</td></tr>
+<tr valign="top"><td><code>p</code></td>
+<td>
+<p>starting parameter values for the minimization.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>additional arguments to be passed to <code>f</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>hessian</code></td>
+<td>
+<p>if <code>TRUE</code>, the hessian of <code>f</code>
+at the minimum is returned.</p>
+</td></tr>
+<tr valign="top"><td><code>typsize</code></td>
+<td>
+<p>an estimate of the size of each parameter
+at the minimum.</p>
+</td></tr>
+<tr valign="top"><td><code>fscale</code></td>
+<td>
+<p>an estimate of the size of <code>f</code> at the minimum.</p>
+</td></tr>
+<tr valign="top"><td><code>print.level</code></td>
+<td>
+<p>this argument determines the level of printing
+which is done during the minimization process.  The default
+value of <code>0</code> means that no printing occurs, a value of <code>1</code>
+means that initial and final details are printed and a value
+of 2 means that full tracing information is printed.</p>
+</td></tr>
+<tr valign="top"><td><code>ndigit</code></td>
+<td>
+<p>the number of significant digits in the function <code>f</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>gradtol</code></td>
+<td>
+<p>a positive scalar giving the tolerance at which the
+scaled gradient is considered close enough to zero to
+terminate the algorithm.  The scaled gradient is a
+measure of the relative change in <code>f</code> in each direction
+<code>p[i]</code> divided by the relative change in <code>p[i]</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>stepmax</code></td>
+<td>
+<p>a positive scalar which gives the maximum allowable
+scaled step length.  <code>stepmax</code> is used to prevent steps which
+would cause the optimization function to overflow, to prevent the
+algorithm from leaving the area of interest in parameter space, or to
+detect divergence in the algorithm. <code>stepmax</code> would be chosen
+small enough to prevent the first two of these occurrences, but should
+be larger than any anticipated reasonable step.</p>
+</td></tr>
+<tr valign="top"><td><code>steptol</code></td>
+<td>
+<p>A positive scalar providing the minimum allowable
+relative step length.</p>
+</td></tr>
+<tr valign="top"><td><code>iterlim</code></td>
+<td>
+<p>a positive integer specifying the maximum number of
+iterations to be performed before the program is terminated.</p>
+</td></tr>
+<tr valign="top"><td><code>check.analyticals</code></td>
+<td>
+<p>a logical scalar specifying whether the
+analytic gradients and Hessians, if they are supplied, should be
+checked against numerical derivatives at the initial parameter
+values. This can help detect incorrectly formulated gradients or
+Hessians.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>Note that arguments after <code>...</code> must be matched exactly.
+</p>
+<p>If a gradient or hessian is supplied but evaluates to the wrong mode
+or length, it will be ignored if <code>check.analyticals = TRUE</code> (the
+default) with a warning.  The hessian is not even checked unless the
+gradient is present and passes the sanity checks.
+</p>
+<p>The C code for the &ldquo;perturbed&rdquo; cholesky, <code>choldc()</code> has
+had a bug in all <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> versions before 3.4.1.
+</p>
+<p>From the three methods available in the original source, we always use
+method &ldquo;1&rdquo; which is line search.
+</p>
+<p>The functions supplied should always return finite (including not
+<code>NA</code> and not <code>NaN</code>) values: for the function value itself
+non-finite values are replaced by the maximum positive value with a warning.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list containing the following components:
+</p>
+<table summary="R valueblock">
+<tr valign="top"><td><code>minimum</code></td>
+<td>
+<p>the value of the estimated minimum of <code>f</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>estimate</code></td>
+<td>
+<p>the point at which the minimum value of
+<code>f</code> is obtained.</p>
+</td></tr>
+<tr valign="top"><td><code>gradient</code></td>
+<td>
+<p>the gradient at the estimated minimum of <code>f</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>hessian</code></td>
+<td>
+<p>the hessian at the estimated minimum of <code>f</code> (if
+requested).</p>
+</td></tr>
+<tr valign="top"><td><code>code</code></td>
+<td>
+<p>an integer indicating why the optimization process terminated.
+</p>
+
+<dl>
+<dt>1:</dt><dd><p>relative gradient is close to zero, current iterate is
+probably solution.</p>
+</dd>
+<dt>2:</dt><dd><p>successive iterates within tolerance, current iterate
+is probably solution.</p>
+</dd>
+<dt>3:</dt><dd><p>last global step failed to locate a point lower than
+<code>estimate</code>.  Either <code>estimate</code> is an approximate local
+minimum of the function or <code>steptol</code> is too small.</p>
+</dd>
+<dt>4:</dt><dd><p>iteration limit exceeded.</p>
+</dd>
+<dt>5:</dt><dd><p>maximum step size <code>stepmax</code> exceeded five consecutive
+times.  Either the function is unbounded below,
+becomes asymptotic to a finite value from above in
+some direction or <code>stepmax</code> is too small.</p>
+</dd>
+</dl>
+
+</td></tr>
+<tr valign="top"><td><code>iterations</code></td>
+<td>
+<p>the number of iterations performed.</p>
+</td></tr>
+</table>
+
+
+<h3>Source</h3>
+
+<p>The current code is by Saikat DebRoy and the R Core team, using a C
+translation of Fortran code by Richard H. Jones.
+</p>
+
+
+<h3>References</h3>
+
+<p>Dennis, J. E. and Schnabel, R. B. (1983).
+<em>Numerical Methods for Unconstrained Optimization and Nonlinear
+Equations</em>.
+Prentice-Hall, Englewood Cliffs, NJ.
+</p>
+<p>Schnabel, R. B., Koontz, J. E. and Weiss, B. E. (1985).
+A modular system of algorithms for unconstrained minimization.
+<em>ACM Transactions on Mathematical Software</em>, <b>11</b>, 419&ndash;440.
+doi: <a href="https://doi.org/10.1145/6187.6192">10.1145/6187.6192</a>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="optim.html">optim</a></code> and <code><a href="nlminb.html">nlminb</a></code>.
+</p>
+<p><code><a href="constrOptim.html">constrOptim</a></code> for constrained optimization,
+<code><a href="optimize.html">optimize</a></code> for one-dimensional
+minimization and <code><a href="uniroot.html">uniroot</a></code> for root finding.
+<code><a href="deriv.html">deriv</a></code> to calculate analytical derivatives.
+</p>
+<p>For nonlinear regression, <code><a href="nls.html">nls</a></code> may be better.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+f &lt;- function(x) sum((x-1:length(x))^2)
+nlm(f, c(10,10))
+nlm(f, c(10,10), print.level = 2)
+utils::str(nlm(f, c(5), hessian = TRUE))
+
+f &lt;- function(x, a) sum((x-a)^2)
+nlm(f, c(10,10), a = c(3,5))
+f &lt;- function(x, a)
+{
+    res &lt;- sum((x-a)^2)
+    attr(res, "gradient") &lt;- 2*(x-a)
+    res
+}
+nlm(f, c(10,10), a = c(3,5))
+
+## more examples, including the use of derivatives.
+## Not run: demo(nlm)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>stats</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

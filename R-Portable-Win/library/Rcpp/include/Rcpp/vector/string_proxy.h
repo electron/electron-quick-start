@@ -2,7 +2,7 @@
 //
 // string_proxy.h: Rcpp R/C++ interface class library --
 //
-// Copyright (C) 2010 - 2013 Dirk Eddelbuettel and Romain Francois
+// Copyright (C) 2010 - 2018 Dirk Eddelbuettel and Romain Francois
 //
 // This file is part of Rcpp.
 //
@@ -25,10 +25,11 @@
 namespace Rcpp{
 namespace internal{
 
-	template<int RTYPE> class string_proxy {
+	template<int RTYPE, template <class> class StoragePolicy>
+	class string_proxy {
 	public:
 
-		typedef typename ::Rcpp::Vector<RTYPE> VECTOR ;
+		typedef typename ::Rcpp::Vector<RTYPE, StoragePolicy> VECTOR ;
 		typedef const char* iterator ;
 		typedef const char& reference ;
 
@@ -43,7 +44,8 @@ namespace internal{
 		string_proxy( VECTOR& v, R_xlen_t index_ ) : parent(&v), index(index_){}
 
 		string_proxy( const string_proxy& other ) :
-			parent(other.parent), index(other.index){} ;
+			parent(other.parent), index(other.index)
+		{} ;
 
 		/**
 		 * lhs use. Assign the value of the referred element to
@@ -52,12 +54,19 @@ namespace internal{
 		 *
 		 * @param rhs another proxy, possibly from another vector
 		 */
-		string_proxy& operator=(const string_proxy& other){
-			set( other.get() ) ;
-			return *this ;
+		string_proxy& operator=( const string_proxy<RTYPE, StoragePolicy>& other) {
+		    set( other.get() ) ;
+		    return *this ;
 		}
 
-		string_proxy& operator=( const const_string_proxy<RTYPE>& other) ;
+		template <template <class> class StoragePolicy2>
+		string_proxy& operator=( const string_proxy<RTYPE, StoragePolicy2>& other) {
+		    set( other.get() ) ;
+		    return *this ;
+		}
+
+		template <template <class> class StoragePolicy2>
+		string_proxy& operator=( const const_string_proxy<RTYPE, StoragePolicy2>& other) ;
 
 		string_proxy& operator=( const String& s) ;
 
@@ -178,31 +187,33 @@ namespace internal{
 			std::for_each( begin(), end(), op );
 		}
 
-		bool operator==( const char* other){
+		bool operator==( const char* other) const {
 			return strcmp( begin(), other ) == 0 ;
 		}
-		bool operator!=( const char* other){
+		bool operator!=( const char* other) const {
 			return strcmp( begin(), other ) != 0 ;
 		}
 
-		bool operator==( const string_proxy& other){
+		template<template <class> class SP>
+		bool operator==( const string_proxy<STRSXP, SP>& other) const {
 			return strcmp( begin(), other.begin() ) == 0 ;
 		}
-		bool operator!=( const string_proxy& other){
+
+		template<template <class> class SP>
+		bool operator!=( const string_proxy<STRSXP,SP>& other) const {
 			return strcmp( begin(), other.begin() ) != 0 ;
 		}
 
-                bool operator==( SEXP other ) const {
-                    return get() == other;
-                }
+        bool operator==( SEXP other ) const {
+            return get() == other;
+        }
 
-                bool operator!=( SEXP other ) const {
-                    return get() != other;
-                }
+        bool operator!=( SEXP other ) const {
+            return get() != other;
+        }
 
-
-		private:
-			static std::string buffer ;
+	private:
+		static std::string buffer ;
 
 	} ;
 
@@ -238,7 +249,7 @@ namespace internal{
 			) <= 0 ;
 	}
 
-	template<int RTYPE> std::string string_proxy<RTYPE>::buffer ;
+	template<int RTYPE, template <class> class StoragePolicy> std::string string_proxy<RTYPE, StoragePolicy>::buffer ;
 
 	inline std::ostream& operator<<(std::ostream& os, const string_proxy<STRSXP>& proxy) {
 	    os << static_cast<const char*>(proxy) ;

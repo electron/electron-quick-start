@@ -1,0 +1,221 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Choose a model by AIC in a Stepwise Algorithm</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for step {stats}"><tr><td>step {stats}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>
+Choose a model by AIC in a Stepwise Algorithm
+</h2>
+
+<h3>Description</h3>
+
+<p>Select a formula-based model by AIC.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+step(object, scope, scale = 0,
+     direction = c("both", "backward", "forward"),
+     trace = 1, keep = NULL, steps = 1000, k = 2, ...)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>object</code></td>
+<td>
+
+<p>an object representing a model of an appropriate class (mainly
+<code>"lm"</code> and <code>"glm"</code>).
+This is used as the initial model in the stepwise search.
+</p>
+</td></tr>
+<tr valign="top"><td><code>scope</code></td>
+<td>
+
+<p>defines the range of models examined in the stepwise search.
+This should be either a single formula, or a list containing
+components <code>upper</code> and <code>lower</code>, both formulae.  See the
+details for how to specify the formulae and how they are used.
+</p>
+</td></tr>
+<tr valign="top"><td><code>scale</code></td>
+<td>
+
+<p>used in the definition of the AIC statistic for selecting the models,
+currently only for <code><a href="lm.html">lm</a></code>, <code><a href="aov.html">aov</a></code> and
+<code><a href="glm.html">glm</a></code> models.  The default value, <code>0</code>, indicates
+the scale should be estimated: see <code><a href="extractAIC.html">extractAIC</a></code>.
+</p>
+</td></tr>
+<tr valign="top"><td><code>direction</code></td>
+<td>
+
+<p>the mode of stepwise search, can be one of <code>"both"</code>,
+<code>"backward"</code>, or <code>"forward"</code>, with a default of <code>"both"</code>.
+If the <code>scope</code> argument is missing the default for
+<code>direction</code> is <code>"backward"</code>.  Values can be abbreviated.
+</p>
+</td></tr>
+<tr valign="top"><td><code>trace</code></td>
+<td>
+
+<p>if positive, information is printed during the running of <code>step</code>.
+Larger values may give more detailed information.
+</p>
+</td></tr>
+<tr valign="top"><td><code>keep</code></td>
+<td>
+
+<p>a filter function whose input is a fitted model object and the
+associated <code>AIC</code> statistic, and whose output is arbitrary.
+Typically <code>keep</code> will select a subset of the components of
+the object and return them. The default is not to keep anything.
+</p>
+</td></tr>
+<tr valign="top"><td><code>steps</code></td>
+<td>
+
+<p>the maximum number of steps to be considered.  The default is 1000
+(essentially as many as required).  It is typically used to stop the
+process early.
+</p>
+</td></tr>
+<tr valign="top"><td><code>k</code></td>
+<td>
+
+<p>the multiple of the number of degrees of freedom used for the penalty.
+Only <code>k = 2</code> gives the genuine AIC: <code>k = log(n)</code> is sometimes
+referred to as BIC or SBC.
+</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+
+<p>any additional arguments to <code><a href="extractAIC.html">extractAIC</a></code>.
+</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p><code>step</code> uses <code><a href="add1.html">add1</a></code> and <code><a href="add1.html">drop1</a></code>
+repeatedly; it will work for any method for which they work, and that
+is determined by having a valid method for <code><a href="extractAIC.html">extractAIC</a></code>.
+When the additive constant can be chosen so that AIC is equal to
+Mallows' <i>Cp</i>, this is done and the tables are labelled
+appropriately.
+</p>
+<p>The set of models searched is determined by the <code>scope</code> argument.
+The right-hand-side of its <code>lower</code> component is always included
+in the model, and right-hand-side of the model is included in the
+<code>upper</code> component.  If <code>scope</code> is a single formula, it
+specifies the <code>upper</code> component, and the <code>lower</code> model is
+empty.  If <code>scope</code> is missing, the initial model is used as the
+<code>upper</code> model.
+</p>
+<p>Models specified by <code>scope</code> can be templates to update
+<code>object</code> as used by <code><a href="update.formula.html">update.formula</a></code>.  So using
+<code>.</code> in a <code>scope</code> formula means &lsquo;what is
+already there&rsquo;, with <code>.^2</code> indicating all interactions of
+existing terms.
+</p>
+<p>There is a potential problem in using <code><a href="glm.html">glm</a></code> fits with a
+variable <code>scale</code>, as in that case the deviance is not simply
+related to the maximized log-likelihood.  The <code>"glm"</code> method for
+function <code><a href="extractAIC.html">extractAIC</a></code> makes the
+appropriate adjustment for a <code>gaussian</code> family, but may need to be
+amended for other cases.  (The <code>binomial</code> and <code>poisson</code>
+families have fixed <code>scale</code> by default and do not correspond
+to a particular maximum-likelihood problem for variable <code>scale</code>.)
+</p>
+
+
+<h3>Value</h3>
+
+<p>the stepwise-selected model is returned, with up to two additional
+components.  There is an <code>"anova"</code> component corresponding to the
+steps taken in the search, as well as a <code>"keep"</code> component if the
+<code>keep=</code> argument was supplied in the call. The
+<code>"Resid. Dev"</code> column of the analysis of deviance table refers
+to a constant minus twice the maximized log likelihood: it will be a
+deviance only in cases where a saturated model is well-defined
+(thus excluding <code>lm</code>, <code>aov</code> and <code>survreg</code> fits,
+for example).
+</p>
+
+
+<h3>Warning</h3>
+
+<p>The model fitting must apply the models to the same dataset. This
+may be a problem if there are missing values and <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>'s default of
+<code>na.action = na.omit</code> is used.  We suggest you remove the
+missing values first.
+</p>
+<p>Calls to the function <code><a href="nobs.html">nobs</a></code> are used to check that the
+number of observations involved in the fitting process remains unchanged.
+</p>
+
+
+<h3>Note</h3>
+
+<p>This function differs considerably from the function in S, which uses a
+number of approximations and does not in general compute the correct AIC.
+</p>
+<p>This is a minimal implementation.  Use <code><a href="../../MASS/html/stepAIC.html">stepAIC</a></code>
+in package <a href="https://CRAN.R-project.org/package=MASS"><span class="pkg">MASS</span></a> for a wider range of object classes.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>B. D. Ripley: <code>step</code> is a slightly simplified version of
+<code><a href="../../MASS/html/stepAIC.html">stepAIC</a></code> in package <a href="https://CRAN.R-project.org/package=MASS"><span class="pkg">MASS</span></a> (Venables &amp;
+Ripley, 2002 and earlier editions).
+</p>
+<p>The idea of a <code>step</code> function follows that described in Hastie &amp;
+Pregibon (1992); but the implementation in <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> is more general.
+</p>
+
+
+<h3>References</h3>
+
+<p>Hastie, T. J. and Pregibon, D. (1992)
+<em>Generalized linear models.</em>
+Chapter 6 of <em>Statistical Models in S</em>
+eds J. M. Chambers and T. J. Hastie, Wadsworth &amp; Brooks/Cole.
+</p>
+<p>Venables, W. N. and Ripley, B. D. (2002)
+<em>Modern Applied Statistics with S.</em>
+New York: Springer (4th ed).
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="../../MASS/html/stepAIC.html">stepAIC</a></code> in <a href="https://CRAN.R-project.org/package=MASS"><span class="pkg">MASS</span></a>, <code><a href="add1.html">add1</a></code>,
+<code><a href="add1.html">drop1</a></code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## following on from example(lm)
+
+step(lm.D9)
+
+summary(lm1 &lt;- lm(Fertility ~ ., data = swiss))
+slm1 &lt;- step(lm1)
+summary(slm1)
+slm1$anova
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>stats</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

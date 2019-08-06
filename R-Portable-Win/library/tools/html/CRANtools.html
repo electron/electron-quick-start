@@ -1,0 +1,170 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: CRAN Package Repository Tools</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for CRANtools {tools}"><tr><td>CRANtools {tools}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>CRAN Package Repository Tools</h2>
+
+<h3>Description</h3>
+
+<p>Tools for obtaining information about current packages in the
+<acronym><span class="acronym">CRAN</span></acronym> package repository, and their check status.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+CRAN_package_db()
+
+CRAN_check_results(flavors = NULL)
+CRAN_check_details(flavors = NULL)
+CRAN_check_issues()
+summarize_CRAN_check_status(packages,
+                            results = NULL,
+                            details = NULL,
+                            issues = NULL)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>packages</code></td>
+<td>
+<p>a character vector of package names.</p>
+</td></tr>
+<tr valign="top"><td><code>flavors</code></td>
+<td>
+<p>a character vector of <acronym><span class="acronym">CRAN</span></acronym> check flavor names, or
+<code>NULL</code> (default), corresponding to all available flavors.</p>
+</td></tr>
+<tr valign="top"><td><code>results</code></td>
+<td>
+<p>the return value of <code>CRAN_check_results()</code>
+(default), or a subset of this.</p>
+</td></tr>
+<tr valign="top"><td><code>details</code></td>
+<td>
+<p>the return value of <code>CRAN_check_details()</code>
+(default), or a subset of this.</p>
+</td></tr>
+<tr valign="top"><td><code>issues</code></td>
+<td>
+<p>the return value of <code>CRAN_check_issues()</code>
+(default), or a subset of this.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p><code>CRAN_package_db()</code> returns a character data frame with most
+&lsquo;<span class="file">DESCRIPTION</span>&rsquo; metadata for the current packages in the CRAN
+package repository, including in particular the Description and
+Maintainer information not provided by
+<code>utils::<a href="../../utils/html/available.packages.html">available.packages</a>()</code>.
+</p>
+<p><code>CRAN_check_results()</code> returns a data frame with the basic
+<acronym><span class="acronym">CRAN</span></acronym> package check results including timings, with columns
+<code>Package</code>, <code>Flavor</code> and <code>Status</code> giving the package
+name, check flavor, and overall check status, respectively.
+</p>
+<p><code>CRAN_check_details()</code> returns a data frame inheriting from class
+<code>"check_details"</code> (which has useful <code>print</code> and
+<code>format</code> methods) with details on the check results, providing
+check name, status and output for every non-OK check (<em>via</em>
+columns <code>Check</code>, <code>Status</code> and <code>Output</code>, respectively).
+Packages with all-OK checks are indicated via a <code>*</code> <code>Check</code>
+wildcard name and OK <code>Status</code>.
+</p>
+<p><code>CRAN_check_issues()</code> returns a character frame with additional
+check issues (including the memory-access check results made available
+from <a href="https://www.stats.ox.ac.uk/pub/bdr/memtests/">https://www.stats.ox.ac.uk/pub/bdr/memtests/</a> and the
+without-long-double check results from
+<a href="https://www.stats.ox.ac.uk/pub/bdr/noLD">https://www.stats.ox.ac.uk/pub/bdr/noLD</a>), as a character frame
+with variables <code>Package</code>, <code>Version</code>, <code>kind</code> (an
+identifier for the issue) and <code>href</code> (a URL with information on
+the issue).
+</p>
+<p><code>CRAN_memtest_notes()</code> is now deprecated, with its functionality
+integrated into that of <code>CRAN_check_issues()</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>See &lsquo;Details&rsquo;.  Note that the results are collated on
+<acronym><span class="acronym">CRAN</span></acronym>: currently this is done in a locale which sorts
+<code>aAbB</code> ....
+</p>
+
+
+<h3>Which CRAN?</h3>
+
+<p>The main functions access a <acronym><span class="acronym">CRAN</span></acronym> mirror specified by the
+environment variable <span class="env">R_CRAN_WEB</span>, defaulting to one specified in
+the &lsquo;<span class="file">repositories</span>&rsquo; file (see <code><a href="../../utils/html/setRepositories.html">setRepositories</a></code>): if
+that specifies <code>@CRAN@</code> (the default) then
+<a href="https://CRAN.R-project.org">https://CRAN.R-project.org</a> is used.  (Note that
+<code><a href="../../base/html/options.html">options</a>("repos")</code> is not consulted.)
+</p>
+<p>Note that these access parts of <acronym><span class="acronym">CRAN</span></acronym> under
+&lsquo;<span class="file">web/contrib</span>&rsquo; and &lsquo;<span class="file">web/packages</span>&rsquo; so if you have specified a
+mirror of just &lsquo;<span class="file">src/contrib</span>&rsquo; for installing packages you will
+need to set <span class="env">R_CRAN_WEB</span> to point to a full mirror.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## This can be rather slow, especially with a non-local CRAN mirror
+## and would fail (slowly) without Internet access in that case.
+
+set.seed(11)  # but the packages chosen will change as soon as CRAN does.
+pdb &lt;- CRAN_package_db()
+dim(pdb)
+## DESCRIPTION fields included:
+colnames(pdb)
+## Summarize publication dates:
+summary(as.Date(pdb$Published))
+## Summarize numbers of packages according to maintainer:
+summary(lengths(split(pdb$Package, pdb$Maintainer)))
+## Packages with 'LASSO' in their Description:
+pdb$Package[grepl("LASSO", pdb$Description)]
+
+results &lt;- CRAN_check_results()
+## Available variables:
+names(results)
+## Tabulate overall check status according to flavor:
+with(results, table(Flavor, Status))
+
+details &lt;- CRAN_check_details()
+## Available variables:
+names(details)
+## Tabulate checks according to their status:
+tab &lt;- with(details, table(Check, Status))
+## Inspect some installation problems:
+bad &lt;- subset(details,
+              ((Check == "whether package can be installed") &amp;
+               (Status != "OK")))
+## Show a random sample of up to 6
+head(bad[sample(seq_len(NROW(bad)), NROW(bad)), ])
+
+issues &lt;- CRAN_check_issues()
+head(issues)
+## Show counts of issues according to kind:
+table(issues[, "kind"])
+
+## Summarize CRAN check status for 10 randomly-selected packages
+## (reusing the information already read in):
+pos &lt;- sample(seq_len(NROW(pdb)), 10L)
+summarize_CRAN_check_status(pdb[pos, "Package"],
+                            results, details, issues)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>tools</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

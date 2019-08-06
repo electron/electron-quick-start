@@ -1,0 +1,242 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Ordering Permutation</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for order {base}"><tr><td>order {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Ordering Permutation</h2>
+
+<h3>Description</h3>
+
+<p><code>order</code> returns a permutation which rearranges its first
+argument into ascending or descending order, breaking ties by further
+arguments. <code>sort.list</code> is the same, using only one argument.<br />
+See the examples for how to use these functions to sort data frames,
+etc.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+order(..., na.last = TRUE, decreasing = FALSE,
+      method = c("auto", "shell", "radix"))
+
+sort.list(x, partial = NULL, na.last = TRUE, decreasing = FALSE,
+          method = c("auto", "shell", "quick", "radix"))
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>a sequence of numeric, complex, character or logical
+vectors, all of the same length, or a classed <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> object.</p>
+</td></tr>
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>an atomic vector.</p>
+</td></tr>
+<tr valign="top"><td><code>partial</code></td>
+<td>
+<p>vector of indices for partial sorting.
+(Non-<code>NULL</code> values are not implemented.)</p>
+</td></tr>
+<tr valign="top"><td><code>decreasing</code></td>
+<td>
+<p>logical.  Should the sort order be increasing or
+decreasing? For the <code>"radix"</code> method, this can be a vector of
+length equal to the number of arguments in <code>...</code>. For the
+other methods, it must be length one.</p>
+</td></tr>
+<tr valign="top"><td><code>na.last</code></td>
+<td>
+<p>for controlling the treatment of <code>NA</code>s.
+If <code>TRUE</code>, missing values in the data are put last; if
+<code>FALSE</code>, they are put first; if <code>NA</code>, they are removed
+(see &lsquo;Note&rsquo;.)</p>
+</td></tr>
+<tr valign="top"><td><code>method</code></td>
+<td>
+<p>the method to be used: partial matches are allowed.  The
+default (<code>"auto"</code>) implies <code>"radix"</code> for short numeric vectors,
+integer vectors, logical vectors and factors.
+Otherwise, it implies <code>"shell"</code>.
+For details of methods <code>"shell"</code>, 
+<code>"quick"</code>, and <code>"radix"</code>,
+see the help for <code><a href="sort.html">sort</a></code>.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>In the case of ties in the first vector, values in the second are used
+to break the ties.  If the values are still tied, values in the later
+arguments are used to break the tie (see the first example).
+The sort used is <em>stable</em> (except for <code>method = "quick"</code>),
+so any unresolved ties will be left in their original ordering.
+</p>
+<p>Complex values are sorted first by the real part, then the imaginary
+part.
+</p>
+<p>Except for method <code>"radix"</code>, the sort order for character vectors
+will depend on the collating sequence of the locale in use: see
+<code><a href="Comparison.html">Comparison</a></code>.
+</p>
+<p>The <code>"shell"</code> method is generally the safest bet and is the
+default method, except for short factors, numeric vectors,
+integer vectors and logical vectors, where <code>"radix"</code> is assumed.
+Method <code>"radix"</code> stably sorts logical,
+numeric and character vectors in linear time. It outperforms the other
+methods, although there are caveats (see <code><a href="sort.html">sort</a></code>).  Method
+<code>"quick"</code> for <code>sort.list</code> is only supported for numeric
+<code>x</code> with <code>na.last = NA</code>, is not stable, and is slower than
+<code>"radix"</code>. 
+</p>
+<p><code>partial = NULL</code> is supported for compatibility with other
+implementations of S, but no other values are accepted and ordering is
+always complete.
+</p>
+<p>For a classed <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> object, the sort order is taken from
+<code><a href="xtfrm.html">xtfrm</a></code>: as its help page notes, this can be slow unless a
+suitable method has been defined or <code><a href="numeric.html">is.numeric</a>(x)</code> is
+true.  For factors, this sorts on the internal codes, which is
+particularly appropriate for ordered factors.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An integer vector unless any of the inputs has <i>2^31</i> or
+more elements, when it is a double vector.
+</p>
+
+
+<h3>Warning</h3>
+
+<p>In programmatic use it is unsafe to name the <code>...</code> arguments,
+as the names could match current or future control
+arguments such as <code>decreasing</code>.  A sometimes-encountered unsafe
+practice is to call <code>do.call('order', df_obj)</code> where
+<code>df_obj</code> might be a data frame: copy <code>df_obj</code> and
+remove any names, for example using <code><a href="unname.html">unname</a></code>.
+</p>
+
+
+<h3>Note</h3>
+
+<p><code>sort.list</code> can get called by mistake as a method for
+<code><a href="sort.html">sort</a></code> with a list argument: it gives a suitable error
+message for list <code>x</code>.
+</p>
+<p>There is a historical difference in behaviour for <code>na.last = NA</code>:
+<code>sort.list</code> removes the <code>NA</code>s and then computes the order
+amongst the remaining elements: <code>order</code> computes the order
+amongst the non-<code>NA</code> elements of the original vector.  Thus
+</p>
+<pre>   x[order(x, na.last = NA)]
+   zz &lt;- x[!is.na(x)]; zz[sort.list(x, na.last = NA)]
+</pre>
+<p>both sort the non-<code>NA</code> values of <code>x</code>.
+</p>
+<p>Prior to <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> 3.3.0 <code>method = "radix"</code> was only supported for
+integers of range less than 100,000.
+</p>
+
+
+<h3>References</h3>
+
+<p>Becker, R. A., Chambers, J. M. and Wilks, A. R. (1988)
+<em>The New S Language</em>.
+Wadsworth &amp; Brooks/Cole.
+</p>
+<p>Knuth, D. E. (1998)
+<em>The Art of Computer Programming, Volume 3: Sorting and
+Searching.</em> 2nd ed. Addison-Wesley.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="sort.html">sort</a></code>, <code><a href="rank.html">rank</a></code>, <code><a href="xtfrm.html">xtfrm</a></code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+require(stats)
+
+(ii &lt;- order(x &lt;- c(1,1,3:1,1:4,3), y &lt;- c(9,9:1), z &lt;- c(2,1:9)))
+## 6  5  2  1  7  4 10  8  3  9
+rbind(x, y, z)[,ii] # shows the reordering (ties via 2nd &amp; 3rd arg)
+
+## Suppose we wanted descending order on y.
+## A simple solution for numeric 'y' is
+rbind(x, y, z)[, order(x, -y, z)]
+## More generally we can make use of xtfrm
+cy &lt;- as.character(y)
+rbind(x, y, z)[, order(x, -xtfrm(cy), z)]
+## The radix sort supports multiple 'decreasing' values:
+rbind(x, y, z)[, order(x, cy, z, decreasing = c(FALSE, TRUE, FALSE),
+                       method="radix")]
+
+## Sorting data frames:
+dd &lt;- transform(data.frame(x, y, z),
+                z = factor(z, labels = LETTERS[9:1]))
+## Either as above {for factor 'z' : using internal coding}:
+dd[ order(x, -y, z), ]
+## or along 1st column, ties along 2nd, ... *arbitrary* no.{columns}:
+dd[ do.call(order, dd), ]
+
+set.seed(1)  # reproducible example:
+d4 &lt;- data.frame(x = round(   rnorm(100)), y = round(10*runif(100)),
+                 z = round( 8*rnorm(100)), u = round(50*runif(100)))
+(d4s &lt;- d4[ do.call(order, d4), ])
+(i &lt;- which(diff(d4s[, 3]) == 0))
+#   in 2 places, needed 3 cols to break ties:
+d4s[ rbind(i, i+1), ]
+
+## rearrange matched vectors so that the first is in ascending order
+x &lt;- c(5:1, 6:8, 12:9)
+y &lt;- (x - 5)^2
+o &lt;- order(x)
+rbind(x[o], y[o])
+
+## tests of na.last
+a &lt;- c(4, 3, 2, NA, 1)
+b &lt;- c(4, NA, 2, 7, 1)
+z &lt;- cbind(a, b)
+(o &lt;- order(a, b)); z[o, ]
+(o &lt;- order(a, b, na.last = FALSE)); z[o, ]
+(o &lt;- order(a, b, na.last = NA)); z[o, ]
+
+
+##  speed examples on an average laptop for long vectors:
+##  factor/small-valued integers:
+x &lt;- factor(sample(letters, 1e7, replace = TRUE))
+system.time(o &lt;- sort.list(x, method = "quick", na.last = NA)) # 0.1 sec
+stopifnot(!is.unsorted(x[o]))
+system.time(o &lt;- sort.list(x, method = "radix")) # 0.05 sec, 2X faster
+stopifnot(!is.unsorted(x[o]))
+##  large-valued integers:
+xx &lt;- sample(1:200000, 1e7, replace = TRUE)
+system.time(o &lt;- sort.list(xx, method = "quick", na.last = NA)) # 0.3 sec
+system.time(o &lt;- sort.list(xx, method = "radix")) # 0.2 sec
+##  character vectors:
+xx &lt;- sample(state.name, 1e6, replace = TRUE)
+system.time(o &lt;- sort.list(xx, method = "shell")) # 2 sec
+system.time(o &lt;- sort.list(xx, method = "radix")) # 0.007 sec, 300X faster
+##  double vectors:
+xx &lt;- rnorm(1e6)
+system.time(o &lt;- sort.list(xx, method = "shell")) # 0.4 sec
+system.time(o &lt;- sort.list(xx, method = "quick", na.last = NA)) # 0.1 sec
+system.time(o &lt;- sort.list(xx, method = "radix")) # 0.05 sec, 2X faster
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

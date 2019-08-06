@@ -40,16 +40,16 @@ namespace Rcpp{
 	        return *this ;
 	    }
 	    Dimension(const size_t& n1) : dims(1){
-	        dims[0] = n1 ;
+	        dims[0] = static_cast<int>(n1) ;
 	    }
 	    Dimension(const size_t& n1, const size_t& n2) : dims(2){
-	        dims[0] = n1 ;
-	        dims[1] = n2 ;
+	        dims[0] = static_cast<int>(n1) ;
+	        dims[1] = static_cast<int>(n2) ;
 	    }
 	    Dimension(const size_t& n1, const size_t& n2, const size_t& n3) : dims(3){
-	        dims[0] = n1 ;
-	        dims[1] = n2 ;
-	        dims[2] = n3 ;
+	        dims[0] = static_cast<int>(n1) ;
+	        dims[1] = static_cast<int>(n2) ;
+	        dims[2] = static_cast<int>(n3) ;
 	    }
 	    operator SEXP() const ;
 

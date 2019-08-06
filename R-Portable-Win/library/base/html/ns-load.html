@@ -1,0 +1,199 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Loading and Unloading Name Spaces</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for ns-load {base}"><tr><td>ns-load {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Loading and Unloading Name Spaces</h2>
+
+<h3>Description</h3>
+
+<p>Functions to load and unload name spaces.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+attachNamespace(ns, pos = 2L, depends = NULL, exclude, include.only)
+loadNamespace(package, lib.loc = NULL,
+              keep.source = getOption("keep.source.pkgs"),
+              partial = FALSE, versionCheck = NULL,
+              keep.parse.data = getOption("keep.parse.data.pkgs"))
+requireNamespace(package, ..., quietly = FALSE)
+loadedNamespaces()
+unloadNamespace(ns)
+isNamespaceLoaded(name)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>ns</code></td>
+<td>
+<p>string or name space object.</p>
+</td></tr>
+<tr valign="top"><td><code>pos</code></td>
+<td>
+<p>integer specifying position to attach.</p>
+</td></tr>
+<tr valign="top"><td><code>depends</code></td>
+<td>
+<p><code>NULL</code> or a character vector of dependencies to be
+recorded in object <code>.Depends</code> in the package.</p>
+</td></tr>
+<tr valign="top"><td><code>package</code></td>
+<td>
+<p>string naming the package/name space to load.</p>
+</td></tr>
+<tr valign="top"><td><code>lib.loc</code></td>
+<td>
+<p>character vector specifying library search path.</p>
+</td></tr>
+<tr valign="top"><td><code>keep.source</code></td>
+<td>
+<p>Now ignored except during package installation.</p>
+</td></tr>
+<tr valign="top"><td><code>keep.parse.data</code></td>
+<td>
+<p>Ignored except during package installation.</p>
+</td></tr>
+<tr valign="top"><td><code>partial</code></td>
+<td>
+<p>logical; if true, stop just after loading code.</p>
+</td></tr>
+<tr valign="top"><td><code>versionCheck</code></td>
+<td>
+<p><code>NULL</code> or a version specification (a list
+with components <code>op</code> and <code>version</code>).</p>
+</td></tr>
+<tr valign="top"><td><code>quietly</code></td>
+<td>
+<p>logical: should progress and error messages be suppressed?</p>
+</td></tr>
+<tr valign="top"><td><code>name</code></td>
+<td>
+<p>string or &lsquo;name&rsquo;, see <code><a href="name.html">as.symbol</a></code>,
+of a package, e.g., <code>"stats"</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>exclude, include.only</code></td>
+<td>
+<p>character vectors; see <code><a href="library.html">library</a></code>.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>further arguments to be passed to <code>loadNamespace</code>.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>The functions <code>loadNamespace</code> and <code>attachNamespace</code> are
+usually called implicitly when <code><a href="library.html">library</a></code> is used to load a name
+space and any imports needed.  However it may be useful at times to
+call these functions directly.
+</p>
+<p><code>loadNamespace</code> loads the specified name space and registers it in
+an internal data base.  A request to load a name space when one of that
+name is already loaded has no effect.  The arguments have the same
+meaning as the corresponding arguments to <code><a href="library.html">library</a></code>, whose
+help page explains the details of how a particular installed package
+comes to be chosen.  After loading, <code>loadNamespace</code> looks for a
+hook function named <code><a href="ns-hooks.html">.onLoad</a></code> as an internal variable in
+the name space (it should not be exported).  Partial loading is used
+to support installation with lazy-loading.
+</p>
+<p>Optionally the package licence is checked during loading: see section
+&lsquo;Licenses&rsquo; in the help for <code><a href="library.html">library</a></code>.
+</p>
+<p><code>loadNamespace</code> does not attach the name space it loads to the
+search path.  <code>attachNamespace</code> can be used to attach a frame
+containing the exported values of a name space to the search path (but
+this is almost always done <em>via</em> <code><a href="library.html">library</a></code>).  The
+hook function <code><a href="ns-hooks.html">.onAttach</a></code> is run after the name space
+exports are attached.
+</p>
+<p><code>requireNamespace</code> is a wrapper for <code>loadNamespace</code>
+analogous to <code><a href="library.html">require</a></code> that returns a logical value.
+</p>
+<p><code>loadedNamespaces</code> returns a character vector of the names of
+the loaded name spaces.
+</p>
+<p><code>isNamespaceLoaded(pkg)</code> is equivalent to but more efficient than
+<code>pkg %in% loadedNamespaces()</code>.
+</p>
+<p><code>unloadNamespace</code> can be used to attempt to force a name space to
+be unloaded.  If the name space is attached, it is first
+<code><a href="detach.html">detach</a></code>ed, thereby running a <code><a href="ns-hooks.html">.onDetach</a></code> or
+<code>.Last.lib</code> function in the name space if one is exported.  An
+error is signaled and the name space is not unloaded if the name space
+is imported by other loaded name spaces.  If defined, a hook function
+<code><a href="ns-hooks.html">.onUnload</a></code> is run before removing the name space from the
+internal registry.
+</p>
+<p>See the comments in the help for <code><a href="detach.html">detach</a></code> about some
+issues with unloading and reloading name spaces.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>attachNamespace</code> returns invisibly the package environment it
+adds to the search path.
+</p>
+<p><code>loadNamespace</code> returns the name space environment, either one
+already loaded or the one the function causes to be loaded.
+</p>
+<p><code>requireNamespace</code> returns <code>TRUE</code> if it succeeds or
+<code>FALSE</code>.
+</p>
+<p><code>loadedNamespaces</code> returns a <code><a href="character.html">character</a></code> vector.
+</p>
+<p><code>unloadNamespace</code> returns <code>NULL</code>, invisibly.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Luke Tierney and R-core</p>
+
+
+<h3>References</h3>
+
+<p>The &lsquo;Writing R Extensions&rsquo; manual, section &ldquo;Package namespaces&rdquo;.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="ns-reflect.html">getNamespace</a></code>, <code><a href="ns-internal.html">asNamespace</a></code>,
+<code><a href="ns-topenv.html">topenv</a></code>, <code><a href="ns-hooks.html">.onLoad</a></code> (etc);
+further <code><a href="environment.html">environment</a></code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+ (lns &lt;- loadedNamespaces())
+ statL &lt;- isNamespaceLoaded("stats")
+ stopifnot( identical(statL, "stats" %in% lns) )
+
+ ## The string "foo" and the symbol 'foo' can be used interchangably here:
+ stopifnot( identical(isNamespaceLoaded(  "foo"   ), FALSE),
+            identical(isNamespaceLoaded(quote(foo)), FALSE),
+            identical(isNamespaceLoaded(quote(stats)), statL))
+
+hasS &lt;- isNamespaceLoaded("splines") # (to restore if needed)
+Sns &lt;- asNamespace("splines") # loads it if not already
+stopifnot(   isNamespaceLoaded("splines"))
+unloadNamespace(Sns) # unloading the NS 'object'
+stopifnot( ! isNamespaceLoaded("splines"))
+if (hasS) loadNamespace("splines") # (restoring previous state)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

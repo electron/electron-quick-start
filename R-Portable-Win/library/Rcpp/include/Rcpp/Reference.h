@@ -59,7 +59,7 @@ namespace Rcpp{
         Reference_Impl( const std::string& klass ) {
             SEXP newSym = Rf_install("new");
             Shield<SEXP> call( Rf_lang2( newSym, Rf_mkString( klass.c_str() ) ) );
-            Storage::set__( Rcpp_eval( call , Rcpp::internal::get_Rcpp_namespace()) );
+            Storage::set__( Rcpp_fast_eval( call , Rcpp::internal::get_Rcpp_namespace()) );
         }
 
         void update( SEXP x){

@@ -235,6 +235,7 @@ t1 <- test(); t1$with.start
 ## found wrong n in 2.3.x
 ## finally worked in 2.4.0
 ##__no.start: failed in 3.0.2
+## 2018-09 fails on macOS with Accelerate framework.
 stopifnot(all.equal(.n(t1[[1]]), .n(t1[[2]])))
 rm(a,b)
 t2 <- test(FALSE)
@@ -250,7 +251,6 @@ getExpmat <- function(theta, t)
         for(i in 1:length(theta)) conc[, i] <- exp(-theta[i] * t)
         conc
 }
-
 expsum <- as.vector(getExpmat(c(.05,.005), 1:100) %*% c(1,1))
 expsumNoisy <- expsum + max(expsum) *.001 * rnorm(100)
 expsum.df <-data.frame(expsumNoisy)
@@ -276,8 +276,39 @@ y <- b0 + b1*x + rnorm(200, sd=0.05)
 fit <- nls(y~b0[fac] + b1*x, start = list(b0=c(1,1), b1=1),
            algorithm ="port", upper = c(100, 100, 100))
 # next did not "fail" in proposed fix:
-fit <- nls(y~b0[fac] + b1*x, start = list(b0=c(1,1), b1=101),
+fiB <- nls(y~b0[fac] + b1*x, start = list(b0=c(1,1), b1=101),
            algorithm ="port", upper = c(100, 100, 100),
            control = list(warnOnly=TRUE))# warning ..
-with(fit$convInfo, ## start par. violates constraints
+with(fiB$convInfo, ## start par. violates constraints
      stopifnot(isConv == FALSE, stopCode == 300))
+
+
+## PR#17367 -- nls() quoting non-syntactical variable names
+##
+op <- options(warn = 2)# no warnings allowed from here
+##
+dN <- data.frame('NO [µmol/l]' = c(1,3,8,17), t = 1:4, check.names=FALSE)
+fnN <- `NO [µmol/l]` ~ a + k* exp(t)
+## lm() works,  nls() should too
+lm.N  <- lm(`NO [µmol/l]` ~ exp(t) ,                          data = dN)
+summary(lm.N) -> slmN
+nm. <- nls(`NO [µmol/l]` ~ a + k*exp(t), start=list(a=0,k=1), data = dN)
+## In R <= 3.4.x : Error in eval(predvars, data, env) : object 'NO' not found
+nmf <- nls(fnN,                          start=list(a=0,k=1), data = dN)
+## (ditto; gave identical error)
+noC  <- function(L) L[-match("call", names(L))]
+stopifnot(all.equal(noC (nm.), noC (nmf)))
+##
+## with list for which  as.data.frame() does not work [-> different branch, not using model.frame!]
+## list version (has been valid "forever", still doubtful, rather give error [FIXME] ?)
+lsN <- c(as.list(dN), list(foo="bar")); lsN[["t"]] <- 1:8
+nmL <- nls(`NO [µmol/l]` ~ a + k*exp(t), start=list(a=0,k=1), data = lsN)
+stopifnot(all.equal(coef(nmL), c(a = 5.069866, k = 0.003699669), tol = 4e-7))# seen 4.2e-8
+
+## trivial RHS -- should work even w/o 'start='
+fi1 <- nls(y ~ a, start = list(a=1))
+## -> 2 deprecation warnings "length 1 in vector-arithmetic" from nlsModel()  in R 3.4.x ..
+options(op) # warnings about missing 'start' ok:
+f.1 <- nls(y ~ a) # failed in R 3.4.x
+stopifnot(all.equal(noC(f.1), noC(fi1)),
+	  all.equal(coef(f.1), c(a = mean(y))))

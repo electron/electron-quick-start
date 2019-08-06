@@ -501,10 +501,78 @@ logsplit <- function(y, wt, x, parms, continuous)
     list(goodness=goodness, direction=direction)
 }
 @
+
+\section{Categorical splits}
+A common question from users concerns the splitting rules for a categorical
+predictor.
+If a categorical predictor has 5 levels, why don't we need to evaluate all
+$2^4 = 16$ possible ways of splitting this into two groups?
+The result is based on a fairly simple observation.
+Think of the choice of a split as two problems: selection of a pair of
+predicted values $p1$ and $p2$, and selection of the observations into
+two groups $g1$ and $g2$.
+Then the problem is to find
+\begin{equation*}
+  \min_{g1, g2} \left[\min_{p1, p2} \sum_{i \in g1} E(y_i, p1) +  
+    \sum_{i \in g2} E(y_i, p2)  \right]
+\end{equation*}
+where $E$ is our error in prediction function.
+The inner optimization is trivial for most problems, so we normally
+don't think about it.
+For a continuous $y$ variable for instance the error is
+$E(y,p) = (y=p)^2$ and $p1$ is the mean $y$ value of all subjects in
+group 1.
+
+Now reverse the order of the above equation, and instead think of the
+``outer loop'' of the optimization as first a selection of the two predicted
+values $p1$ and $p2$, followed by finding the optimal grouping for those
+predicted values.  
+When the predictor $x$ is categorical this reduces to checking
+whether $\sum E(y, p1)$ or $\sum E(y, p2)$ is smaller, 
+when summed over all the observations having each particular level of $x$,
+and then assigning that level to group $g1$ or $g2$ accordingly.
+
+For squared error loss it is easy to see that this last step will be to
+assign a subset to group $g1$ if mean($y$), over that subset, is closer to
+$p1$ than to $p2$.  
+Thus, whatever the values of $p1$ and $p2$, the best split of the data
+divides the groups according to low versus high values of $\overline y$.
+If $x$ has $k$ levels, this shows that the only \emph{admissible} splits
+are the $k-1$ groupings that first order the data according to the 
+within level means: as $p1$ and $p2$ range over the entire real plane these
+are the only inner loop solutions that will arise.  
+Knowing this, the computer code does not have to try all values of 
+$p1$ and $p2$, it uses the first form of the minimum but can restrict the
+outer loop to this small set of cases.
+
+Each different type of $y$ value and loss function requires it's own version
+of the paragraph just above.  For Poisson loss the optimal ordering turns out
+to be by the within level event rate, for instance.
+A similar partition can be shown for many loss functions.
+For categorical $y$ and the Gini criterion the result is particularly
+interesting.
+Assume that the response $y$ has $m$ levels, and summarize each of the
+distinct groups of observations corresponding to a categorical predictor
+$x$ by it proportion vector: the proportion with $y=1$, proportion with $y=2$
+etc.  If $x$ has $k$ levels, these proportions are $k$ points lying on the
+$m$ dimensional simplex,
+and the set of admissible splits are all partitions of these points by a 
+plane.  For the information criterion the points lie on a curved surface in
+$m$ space but again the admissible set are all partitions by a plane.
+When $m=2$ the points lie on a 1-dimensional curve and the problem reduces to
+ordering the groups by mean($y$).
+For $m>2$ the total number of admissible partitions of $k$ points can be much
+smaller than $2^k$ and efficient methods for enumerating
+them have been described \cite{Sleumer}, but this has not been
+incorporated into rpart.  
+
 \begin{thebibliography}{9}
 \bibitem{Chen07} Chen J, Yu K, Hsing A and Therneau TM.
   \emph{A partially linear tree-based regression model for assessing complex
         joint gene-gene and gene-environment effects},
 Genet Epidemiol, 2007(3), 238-51.
+\bibitem{Sleumer} Nora Sleumer, \emph{Hyperplane arrangements: construction
+  visualization and applications}, PhD dissertation, Swiss Federal Institute
+  of Technology, 1969.
 \end{thebibliography}
 \end{document}

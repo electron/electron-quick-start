@@ -1,0 +1,144 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Select One of a List of Alternatives</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for switch {base}"><tr><td>switch {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Select One of a List of Alternatives</h2>
+
+<h3>Description</h3>
+
+<p><code>switch</code> evaluates <code>EXPR</code> and accordingly chooses one of the
+further arguments (in <code>...</code>).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+switch(EXPR, ...)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>EXPR</code></td>
+<td>
+<p>an expression evaluating to a number or a character
+string.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>the list of alternatives.  If it is intended that
+<code>EXPR</code> has a character-string value these will be
+named, perhaps except for one alternative to be used as a
+&lsquo;default&rsquo; value.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p><code>switch</code> works in two distinct ways depending whether the first
+argument evaluates to a character string or a number.
+</p>
+<p>If the value of <code>EXPR</code> is not a character string it is coerced to
+integer.  Note that this also happens for <code><a href="factor.html">factor</a></code>s, with
+a warning, as typically the character level is meant.  If the integer
+is between 1 and <code>nargs()-1</code> then the corresponding element of
+<code>...</code> is evaluated and the result returned: thus if the first
+argument is <code>3</code> then the fourth argument is evaluated and
+returned.
+</p>
+<p>If <code>EXPR</code> evaluates to a character string then that string is
+matched (exactly) to the names of the elements in <code>...</code>.  If
+there is a match then that element is evaluated unless it is missing,
+in which case the next non-missing element is evaluated, so for
+example <code>switch("cc", a = 1, cc =, cd =, d = 2)</code> evaluates to
+<code>2</code>.  If there is more than one match, the first matching element
+is used.  In the case of no match, if there is a unnamed element of
+<code>...</code> its value is returned.  (If there is more than one such
+argument an error is signaled.)
+</p>
+<p>The first argument is always taken to be <code>EXPR</code>: if it is named
+its name must (partially) match.
+</p>
+<p>A warning is signaled if no alternatives are provides, as this is
+usually a coding error.
+</p>
+<p>This is implemented as a <a href="Primitive.html">primitive</a> function that only evaluates
+its first argument and one other if one is selected.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The value of one of the elements of <code>...</code>, or <code>NULL</code>,
+invisibly (whenever no element is selected).
+</p>
+<p>The result has the visibility (see <code><a href="invisible.html">invisible</a></code>) of the
+element evaluated.
+</p>
+
+
+<h3>Warning</h3>
+
+<p>It is possible to write calls to <code>switch</code> that can be confusing
+and may not work in the same way in earlier versions of <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>.  For
+compatibility (and clarity), always have <code>EXPR</code> as the first
+argument, naming it if partial matching is a possibility.  For the
+character-string form, have a single unnamed argument as the default
+after the named values.
+</p>
+
+
+<h3>References</h3>
+
+<p>Becker, R. A., Chambers, J. M. and Wilks, A. R. (1988)
+<em>The New S Language</em>.
+Wadsworth &amp; Brooks/Cole.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+require(stats)
+centre &lt;- function(x, type) {
+  switch(type,
+         mean = mean(x),
+         median = median(x),
+         trimmed = mean(x, trim = .1))
+}
+x &lt;- rcauchy(10)
+centre(x, "mean")
+centre(x, "median")
+centre(x, "trimmed")
+
+ccc &lt;- c("b","QQ","a","A","bb")
+# note: cat() produces no output for NULL
+for(ch in ccc)
+    cat(ch,":", switch(EXPR = ch, a = 1, b = 2:3), "\n")
+for(ch in ccc)
+    cat(ch,":", switch(EXPR = ch, a =, A = 1, b = 2:3, "Otherwise: last"),"\n")
+
+## switch(f, *) with a factor f
+ff &lt;- gl(3,1, labels=LETTERS[3:1])
+ff[1] # C
+## so one might expect " is C" here, but
+switch(ff[1], A = "I am A", B="Bb..", C=" is C")# -&gt; "I am A"
+## so we give a warning
+
+## Numeric EXPR does not allow a default value to be specified
+## -- it is always NULL
+for(i in c(-1:3, 9))  print(switch(i, 1, 2 , 3, 4))
+
+## visibility
+switch(1, invisible(pi), pi)
+switch(2, invisible(pi), pi)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

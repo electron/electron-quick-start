@@ -20,6 +20,11 @@ public:
 };
 
 inline void init_r(Severity maxSeverity = none) {
+  if (!_PLOGR_ENABLE) {
+    Rf_warning("Logging not enabled, #define PLOGR_ENABLE when compiling the package");
+    return;
+  }
+
   static bool initialized = false;
   static RAppender<FuncMessageFormatter> appender;
   if (!initialized) {

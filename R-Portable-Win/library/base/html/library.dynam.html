@@ -1,0 +1,185 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Loading DLLs from Packages</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for library.dynam {base}"><tr><td>library.dynam {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Loading DLLs from Packages</h2>
+
+<h3>Description</h3>
+
+<p>Load the specified file of compiled code if it has not been loaded
+already, or unloads it.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+library.dynam(chname, package, lib.loc,
+              verbose = getOption("verbose"),
+              file.ext = .Platform$dynlib.ext, ...)
+
+library.dynam.unload(chname, libpath,
+                     verbose = getOption("verbose"),
+                     file.ext = .Platform$dynlib.ext)
+
+.dynLibs(new)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>chname</code></td>
+<td>
+<p>a character string naming a DLL (also known as a dynamic
+shared object or library) to load.</p>
+</td></tr>
+<tr valign="top"><td><code>package</code></td>
+<td>
+<p>a character vector with the name of package.</p>
+</td></tr>
+<tr valign="top"><td><code>lib.loc</code></td>
+<td>
+<p>a character vector describing the location of <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>
+library trees to search through.</p>
+</td></tr>
+<tr valign="top"><td><code>libpath</code></td>
+<td>
+<p>the path to the loaded package whose DLL is to be unloaded.</p>
+</td></tr>
+<tr valign="top"><td><code>verbose</code></td>
+<td>
+<p>a logical value indicating whether an announcement
+is printed on the console before loading the DLL.  The
+default value is taken from the verbose entry in the system
+<code><a href="options.html">options</a></code>.</p>
+</td></tr>
+<tr valign="top"><td><code>file.ext</code></td>
+<td>
+<p>the extension (including <span class="samp">.</span> if used) to append
+to the file name to specify the library to be loaded.  This defaults
+to the appropriate value for the operating system.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>additional arguments needed by some libraries that
+are passed to the call to <code><a href="dynload.html">dyn.load</a></code> to control
+how the library and its dependencies are loaded.</p>
+</td></tr>
+<tr valign="top"><td><code>new</code></td>
+<td>
+<p>a list of <code>"DLLInfo"</code> objects corresponding to the
+DLLs loaded by packages.  Can be missing.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>See <code><a href="dynload.html">dyn.load</a></code> for what sort of objects these functions handle.
+</p>
+<p><code>library.dynam</code> is designed to be used inside a package rather
+than at the command line, and should really only be used inside
+<code><a href="ns-hooks.html">.onLoad</a></code>.  The system-specific extension for DLLs (e.g.,
+&lsquo;<span class="file">.so</span>&rsquo; or &lsquo;<span class="file">.sl</span>&rsquo; on Unix-alike systems,
+&lsquo;<span class="file">.dll</span>&rsquo; on Windows) should not be added.
+</p>
+<p>If <code>...</code> does not include a named argument <code>DLLpath</code>,
+<code><a href="dynload.html">dyn.load</a></code> is called with <code>DLLpath</code> set to the
+package's &lsquo;<span class="file">libs</span>&rsquo; directory.  See the &ldquo;Windows&rdquo; section of
+the help on <code><a href="dynload.html">dyn.load</a></code> for how to control where dependent
+DLLs are found.
+</p>
+<p>See <code><a href="dynload.html">dyn.load</a></code> for comments about diagnostic messages
+which may be seen on Windows.
+</p>
+<p><code>library.dynam.unload</code> is designed for use in
+<code><a href="ns-hooks.html">.onUnload</a></code>: it unloads the DLL and updates the value of
+<code>.dynLibs()</code>
+</p>
+<p><code>.dynLibs</code> is used for getting (with no argument) or setting the
+DLLs which are currently loaded by packages (using <code>library.dynam</code>).
+</p>
+
+
+<h3>Value</h3>
+
+<p>If <code>chname</code> is not specified, <code>library.dynam</code> returns an
+object of class <code>"<a href="getLoadedDLLs.html">DLLInfoList</a>"</code> corresponding to the DLLs
+loaded by packages.
+</p>
+<p>If <code>chname</code> is specified, an object of class
+<code>"<a href="getLoadedDLLs.html">DLLInfo</a>"</code> that identifies the DLL and which can be used
+in future calls is returned invisibly.  Note that the class
+<code>"<a href="getLoadedDLLs.html">DLLInfo</a>"</code> has a method for <code>$</code> which can be used to
+resolve native symbols within that DLL.
+</p>
+<p><code>library.dynam.unload</code> invisibly returns an object of class
+<code>"<a href="getLoadedDLLs.html">DLLInfo</a>"</code> identifying the DLL successfully unloaded.
+</p>
+<p><code>.dynLibs</code> returns an object of class <code>"<a href="getLoadedDLLs.html">DLLInfoList</a>"</code>
+corresponding corresponding to its current value.
+</p>
+
+
+<h3>Warning</h3>
+
+<p>Do not use <code><a href="dynload.html">dyn.unload</a></code> on a DLL loaded by
+<code>library.dynam</code>: use <code>library.dynam.unload</code> to ensure
+that <code>.dynLibs</code> gets updated.  Otherwise a subsequent call to
+<code>library.dynam</code> will be told the object is already loaded.
+</p>
+<p>Note that whether or not it is possible to unload a DLL and then
+reload a revised version of the same file is OS-dependent: see the
+&lsquo;Value&rsquo; section of the help for  <code><a href="dynload.html">dyn.unload</a></code>.
+</p>
+
+
+<h3>References</h3>
+
+<p>Becker, R. A., Chambers, J. M. and Wilks, A. R. (1988)
+<em>The New S Language</em>.
+Wadsworth &amp; Brooks/Cole.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="getLoadedDLLs.html">getLoadedDLLs</a></code> for information on <code>"DLLInfo"</code> and
+<code>"DLLInfoList"</code> objects.
+</p>
+<p><code><a href="ns-hooks.html">.onLoad</a></code>, <code><a href="library.html">library</a></code>,
+<code><a href="dynload.html">dyn.load</a></code>, <code><a href="zpackages.html">.packages</a></code>,
+<code><a href="libPaths.html">.libPaths</a></code>
+</p>
+<p><code><a href="../../utils/html/SHLIB.html">SHLIB</a></code> for how to create suitable DLLs.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Which DLLs were dynamically loaded by packages?
+library.dynam()
+
+## More on library.dynam.unload() :
+require(nlme)
+nlme:::.onUnload # shows library.dynam.unload() call
+detach("package:nlme")  # by default, unload=FALSE ,  so,
+tail(library.dynam(), 2)# nlme still there
+
+## How to unload the DLL ?
+## Best is to unload the namespace,  unloadNamespace("nlme")
+## If we need to do it separately which should be exceptional:
+pd.file &lt;- attr(packageDescription("nlme"), "file")
+library.dynam.unload("nlme", libpath = sub("/Meta.*", '', pd.file))
+tail(library.dynam(), 2)# 'nlme' is gone now
+unloadNamespace("nlme") # now gives warning
+
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

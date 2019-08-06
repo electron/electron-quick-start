@@ -1,12 +1,20 @@
-#  Copyright (C) 1997-2013 The R Core Team
+#  Copyright (C) 1997-2018 The R Core Team
 
-## being a 'builtin' function is not the same as being in base
-ls.base <- ls("package:base", all=TRUE)
+### The Base package has a couple of non-functions:
+##
+## These may be in "base" when they exist;  discount them here
+## (see also  'dont.mind' in checkConflicts() inside library()) :
+xtraBaseNms <- c("last.dump", "last.warning", ".Last.value",
+                 ".Random.seed", ".Traceback")
+ls.base <- Filter(function(nm) is.na(match(nm, xtraBaseNms)),
+                  ls("package:base", all=TRUE))
 base.is.f <- sapply(ls.base, function(x) is.function(get(x)))
-cat("\nNumber of base objects:\t\t", length(ls.base),
-    "\nNumber of functions in base:\t", sum(base.is.f),
+cat("\nNumber of all base objects:\t", length(ls.base),
+    "\nNumber of functions from these:\t", sum(base.is.f),
     "\n\t starting with 'is.' :\t  ",
     sum(grepl("^is\\.", ls.base[base.is.f])), "\n", sep = "")
+## R ver.| #{is*()}
+## ------+---------
 ## 0.14  : 31
 ## 0.50  : 33
 ## 0.60  : 34
@@ -15,6 +23,13 @@ cat("\nNumber of base objects:\t\t", length(ls.base),
 ## 1.3.0 : 41
 ## 1.6.0 : 45
 ## 2.0.0 : 45
+## 2.7.0 : 48
+## 3.0.0 : 49
+if(interactive()) {
+    nonDots <- function(nm) substr(nm, 1L, 1L) != "."
+    cat("Base non-functions not starting with \".\":\n")
+    Filter(nonDots, ls.base[!base.is.f])
+}
 
 ## Do we have a method (probably)?
 is.method <- function(fname) {

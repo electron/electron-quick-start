@@ -1,0 +1,128 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Execute a Function Call</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for do.call {base}"><tr><td>do.call {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Execute a Function Call</h2>
+
+<h3>Description</h3>
+
+<p><code>do.call</code> constructs and executes a function call from a name or
+a function and a list of arguments to be passed to it.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+do.call(what, args, quote = FALSE, envir = parent.frame())
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>what</code></td>
+<td>
+<p>either a function or a non-empty character string naming the
+function to be called.</p>
+</td></tr>
+<tr valign="top"><td><code>args</code></td>
+<td>
+<p>a <em>list</em> of arguments to the function call.  The
+<code>names</code> attribute of <code>args</code> gives the argument names.</p>
+</td></tr>
+<tr valign="top"><td><code>quote</code></td>
+<td>
+<p>a logical value indicating whether to quote the
+arguments.</p>
+</td></tr>
+<tr valign="top"><td><code>envir</code></td>
+<td>
+<p>an environment within which to evaluate the call.  This
+will be most useful if <code>what</code> is a character string and
+the arguments are symbols or quoted expressions.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>If <code>quote</code> is <code>FALSE</code>, the default, then the arguments are
+evaluated (in the calling environment, not in <code>envir</code>).  If
+<code>quote</code> is <code>TRUE</code> then each argument is quoted (see
+<code><a href="substitute.html">quote</a></code>) so that the effect of argument evaluation is to
+remove the quotes &ndash; leaving the original arguments unevaluated when the
+call is constructed.
+</p>
+<p>The behavior of some functions, such as <code><a href="substitute.html">substitute</a></code>,
+will not be the same for functions evaluated using <code>do.call</code> as
+if they were evaluated from the interpreter.  The precise semantics
+are currently undefined and subject to change.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The result of the (evaluated) function call.
+</p>
+
+
+<h3>Warning</h3>
+
+<p>This should not be used to attempt to evade restrictions on the use of
+<code>.Internal</code> and other non-API calls.
+</p>
+
+
+<h3>References</h3>
+
+<p>Becker, R. A., Chambers, J. M. and Wilks, A. R. (1988)
+<em>The New S Language</em>.
+Wadsworth &amp; Brooks/Cole.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="call.html">call</a></code> which creates an unevaluated call.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+do.call("complex", list(imag = 1:3))
+
+## if we already have a list (e.g., a data frame)
+## we need c() to add further arguments
+tmp &lt;- expand.grid(letters[1:2], 1:3, c("+", "-"))
+do.call("paste", c(tmp, sep = ""))
+
+do.call(paste, list(as.name("A"), as.name("B")), quote = TRUE)
+
+## examples of where objects will be found.
+A &lt;- 2
+f &lt;- function(x) print(x^2)
+env &lt;- new.env()
+assign("A", 10, envir = env)
+assign("f", f, envir = env)
+f &lt;- function(x) print(x)
+f(A)                                      # 2
+do.call("f", list(A))                     # 2
+do.call("f", list(A), envir = env)        # 4
+do.call(f, list(A), envir = env)          # 2
+do.call("f", list(quote(A)), envir = env) # 100
+do.call(f, list(quote(A)), envir = env)   # 10
+do.call("f", list(as.name("A")), envir = env) # 100
+
+eval(call("f", A))                      # 2
+eval(call("f", quote(A)))               # 2
+eval(call("f", A), envir = env)         # 4
+eval(call("f", quote(A)), envir = env)  # 100
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

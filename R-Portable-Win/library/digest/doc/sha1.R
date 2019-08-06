@@ -73,17 +73,17 @@ lm_terms <- lm_SR$terms
 class(lm_model) # handled by sha1()
 class(lm_terms) # not handled by sha1()
 # define a method for formula
-sha1.formula <- function(x, digits = 14, zapsmall = 7){
-    sha1(as.character(x), digits = digits, zapsmall = zapsmall)
+sha1.formula <- function(x, digits = 14, zapsmall = 7, ..., algo = "sha1"){
+    sha1(as.character(x), digits = digits, zapsmall = zapsmall, algo = algo)
 }
 sha1(lm_terms)
 sha1(lm_model)
 # define a method for lm
-sha1.lm <- function(x, digits = 14, zapsmall = 7){
+sha1.lm <- function(x, digits = 14, zapsmall = 7, ..., algo = "sha1"){
     lm_model <- x$model
     lm_terms <- x$terms
     combined <- list(lm_model, lm_terms)
-    sha1(combined, digits = digits, zapsmall = zapsmall)
+    sha1(combined, digits = digits, zapsmall = zapsmall, ..., algo = algo)
 }
 sha1(lm_SR)
 sha1(lm_SR2)

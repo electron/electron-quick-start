@@ -1,0 +1,109 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: User-supplied Random Number Generation</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for Random.user {base}"><tr><td>Random.user {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>User-supplied Random Number Generation</h2>
+
+<h3>Description</h3>
+
+<p>Function <code><a href="Random.html">RNGkind</a></code> allows user-coded uniform and
+normal random number generators to be supplied.  The details are given
+here.
+</p>
+
+
+<h3>Details</h3>
+
+<p>A user-specified uniform RNG is called from entry points in
+dynamically-loaded compiled code.  The user must supply the entry point
+<code>user_unif_rand</code>, which takes no arguments and returns a
+<em>pointer to</em> a double. The example below will show the general
+pattern. The generator should have at least 25 bits of precision.
+</p>
+<p>Optionally, the user can supply the entry point <code>user_unif_init</code>,
+which is called with an <code>unsigned int</code> argument when
+<code><a href="Random.html">RNGkind</a></code> (or <code>set.seed</code>) is called, and is intended
+to be used to initialize the user's RNG code.  The argument is intended
+to be used to set the &lsquo;seeds&rsquo;; it is the <code>seed</code> argument to
+<code>set.seed</code> or an essentially random seed if <code><a href="Random.html">RNGkind</a></code>
+is called.
+</p>
+<p>If only these functions are supplied, no information about the
+generator's state is recorded in <code>.Random.seed</code>.  Optionally,
+functions <code>user_unif_nseed</code> and <code>user_unif_seedloc</code> can be
+supplied which are called with no arguments and should return pointers
+to the number of seeds and to an integer (specifically, <span class="samp">Int32</span>)
+array of seeds.  Calls to <code>GetRNGstate</code> and <code>PutRNGstate</code>
+will then copy this array to and from <code>.Random.seed</code>.
+</p>
+<p>A user-specified normal RNG is specified by a single entry point
+<code>user_norm_rand</code>, which takes no arguments and returns a
+<em>pointer to</em> a double.
+</p>
+
+
+<h3>Warning</h3>
+
+<p>As with all compiled code, mis-specifying these
+functions can crash <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>.  Do include the &lsquo;<span class="file">R_ext/Random.h</span>&rsquo;
+header file for type checking.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>## Not run: 
+##  Marsaglia's congruential PRNG
+#include &lt;R_ext/Random.h&gt;
+
+static Int32 seed;
+static double res;
+static int nseed = 1;
+
+double * user_unif_rand()
+{
+    seed = 69069 * seed + 1;
+    res = seed * 2.32830643653869e-10;
+    return &amp;res;
+}
+
+void  user_unif_init(Int32 seed_in) { seed = seed_in; }
+int * user_unif_nseed() { return &amp;nseed; }
+int * user_unif_seedloc() { return (int *) &amp;seed; }
+
+/*  ratio-of-uniforms for normal  */
+#include &lt;math.h&gt;
+static double x;
+
+double * user_norm_rand()
+{
+    double u, v, z;
+    do {
+        u = unif_rand();
+        v = 0.857764 * (2. * unif_rand() - 1);
+        x = v/u; z = 0.25 * x * x;
+        if (z &lt; 1. - u) break;
+        if (z &gt; 0.259/u + 0.35) continue;
+    } while (z &gt; -log(u));
+    return &amp;x;
+}
+
+## Use under Unix:
+R CMD SHLIB urand.c
+R
+&gt; dyn.load("urand.so")
+&gt; RNGkind("user")
+&gt; runif(10)
+&gt; .Random.seed
+&gt; RNGkind(, "user")
+&gt; rnorm(10)
+&gt; RNGkind()
+[1] "user-supplied" "user-supplied"
+
+## End(Not run)</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

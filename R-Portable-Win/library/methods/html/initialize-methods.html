@@ -1,0 +1,127 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Methods to Initialize New Objects from a Class</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for initialize-methods {methods}"><tr><td>initialize-methods {methods}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Methods to Initialize New Objects from a Class</h2>
+
+<h3>Description</h3>
+
+<p>The arguments to function <code><a href="new.html">new</a></code> to create an object from a
+particular class can be interpreted specially for that class, by the
+definition of a method for function <code>initialize</code> for the class.
+This documentation describes some existing methods, and also outlines
+how to write new ones.
+</p>
+
+
+<h3>Methods</h3>
+
+
+<dl>
+<dt><code>signature(.Object = "ANY")</code></dt><dd>
+<p>The default method for <code>initialize</code> takes either named or
+unnamed arguments.  Argument names must be the names of slots in
+this class definition, and the corresponding arguments must be
+valid objects for the slot (that is, have the same class as
+specified for the slot, or some superclass of that class).  If the
+object comes from a superclass, it is not coerced strictly, so
+normally it will retain its current class (specifically,
+<code><a href="as.html">as</a>(object, Class, strict = FALSE)</code>).
+</p>
+<p>Unnamed arguments must be objects of this class, of one of its
+superclasses, or one of its subclasses (from the class, from a
+class this class extends, or from a class that extends this
+class). If the object is from a superclass, this normally defines
+some of the slots in the object.  If the object is from a
+subclass, the new object is that argument, coerced to the current
+class.
+</p>
+<p>Unnamed arguments are processed first, in the order they appear.
+Then named arguments are processed.  Therefore, explicit values
+for slots always override any values inferred from superclass or
+subclass arguments.
+</p>
+</dd>
+<dt><code>signature(.Object = "traceable")</code></dt><dd>
+<p>Objects of a class that extends <code>traceable</code> are used to
+implement debug tracing (see class <a href="TraceClasses.html">traceable</a> and
+<code><a href="../../base/html/trace.html">trace</a></code>).
+</p>
+<p>The <code>initialize</code> method for these classes takes special
+arguments <code>def, tracer, exit, at, print</code>.  The first of these
+is the object to use as the original definition (e.g., a
+function).  The others correspond to the arguments to
+<code><a href="../../base/html/trace.html">trace</a></code>.
+</p>
+</dd>
+<dt><code>signature(.Object = "environment")</code>, <code>signature(.Object = ".environment")</code></dt><dd>
+<p>The <code>initialize</code> method for environments takes a named list
+of objects to be used to initialize the environment.  Subclasses
+of <code>"environment"</code> inherit an initialize method through
+<code>".environment"</code>, which has the additional effect of
+allocating a new environment.  If you define your own method for
+such a subclass, be sure either to call the existing method via
+<code><a href="NextMethod.html">callNextMethod</a></code> or allocate an environment in your
+method, since environments are references and are not duplicated
+automatically.
+</p>
+</dd>
+<dt><code>signature(.Object = "signature")</code></dt><dd>
+<p>This is a method for internal use only.
+It takes an optional <code>functionDef</code> argument to provide a
+generic function with a <code>signature</code> slot to define the
+argument names.  See <a href="Methods_Details.html">Methods_Details</a> for details.
+</p>
+</dd>
+</dl>
+
+
+
+<h3>Writing Initialization Methods</h3>
+
+<p>Initialization methods provide a general mechanism corresponding to
+generator functions in other languages.
+</p>
+<p>The arguments to <code><a href="new.html">initialize</a></code> are <code>.Object</code> and
+.... Nearly always, <code>initialize</code> is called from <code>new</code>,
+not directly.  The <code>.Object</code> argument is then the
+prototype object from the class.
+</p>
+<p>Two techniques are often appropriate for <code>initialize</code> methods:
+special argument names and <code>callNextMethod</code>.
+</p>
+<p>You may want argument names that are more natural to your users than
+the (default) slot names.  These will be the formal arguments to
+your method definition, in addition to <code>.Object</code> (always) and
+... (optionally).  For example, the method for class
+<code>"traceable"</code> documented above would be created by a call to
+<code><a href="setMethod.html">setMethod</a></code> of the form:
+</p>
+<pre>    setMethod("initialize", "traceable",
+      function(.Object, def, tracer, exit, at, print) \dots
+    )
+</pre>
+<p>In this example, no other arguments are meaningful, and the resulting
+method will throw an error if other names are supplied.
+</p>
+<p>When your new class extends another class, you may want to call the
+initialize method for this superclass (either a special method or the
+default).  For example, suppose you want to define a method for your
+class, with special argument <code>x</code>, but you also want users to be
+able to set slots specifically.  If you want <code>x</code> to override the
+slot information, the beginning of your method definition might look
+something like this:
+</p>
+<pre>    function(.Object, x, ...) {
+      Object &lt;- callNextMethod(.Object, ...)
+      if(!missing(x)) { # do something with x
+</pre>
+<p>You could also choose to have the inherited method override, by first
+interpreting <code>x</code>, and then calling the next method.
+</p>
+
+<hr /><div style="text-align: center;">[Package <em>methods</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

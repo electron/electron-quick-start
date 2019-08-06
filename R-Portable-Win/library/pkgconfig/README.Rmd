@@ -1,11 +1,11 @@
 
 # Private configuration for R packages
 
-[![Linux Build Status](https://travis-ci.org/gaborcsardi/pkgconfig.svg?branch=master)](https://travis-ci.org/gaborcsardi/pkgconfig)
-[![Windows Build status](https://ci.appveyor.com/api/projects/status/github/gaborcsardi/pkgconfig?svg=true)](https://ci.appveyor.com/project/gaborcsardi/pkgconfig)
+[![Linux Build Status](https://travis-ci.org/r-lib/pkgconfig.svg?branch=master)](https://travis-ci.org/r-lib/pkgconfig)
+[![Windows Build status](https://ci.appveyor.com/api/projects/status/github/r-lib/pkgconfig?svg=true)](https://ci.appveyor.com/project/gaborcsardi/pkgconfig)
 [![](http://www.r-pkg.org/badges/version/pkgconfig)](http://www.r-pkg.org/pkg/pkgconfig)
 [![](http://cranlogs.r-pkg.org/badges/pkgconfig)](http://www.r-pkg.org/pkg/pkgconfig)
-[![Coverage Status](https://img.shields.io/codecov/c/github/gaborcsardi/pkgconfig/master.svg)](https://codecov.io/github/gaborcsardi/pkgconfig?branch=master)
+[![Coverage Status](https://img.shields.io/codecov/c/github/r-lib/pkgconfig/master.svg)](https://codecov.io/github/r-lib/pkgconfig?branch=master)
 
 Easy way to create configuration parameters in your R package. Configuration
 values set in different packages are independent.
@@ -18,7 +18,7 @@ Call `get_config()` to query it.
 Use the `devtools` package:
 
 ```r
-devtools::install_github("gaborcsardi/pkgconfig")
+devtools::install_github("r-lib/pkgconfig")
 ```
 
 ## Typical usage
@@ -105,7 +105,7 @@ not contain a call to `pkgA` of course.)
 ## Feedback
 
 Please comment in the
-[Github issue tracker](https://github.com/gaborcsardi/pkgconfig/issues)
+[Github issue tracker](https://github.com/r-lib/pkgconfig/issues)
 of the project.
 
 ## License

@@ -1,0 +1,156 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Declarations Used in Checking a Package</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for globalVariables {utils}"><tr><td>globalVariables {utils}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>
+Declarations Used in Checking a Package
+</h2>
+
+<h3>Description</h3>
+
+<p>For <code>globalVariables</code>, the names supplied are of functions or
+other objects that should be regarded as defined globally when the
+<code>check</code> tool is applied to this package.  The call to
+<code>globalVariables</code> will be included in the package's source.
+Repeated calls in the same package accumulate the names of the
+global variables.
+</p>
+<p>Typical examples are the fields and methods in reference classes,
+which appear to be global objects to <code>codetools</code>.
+(This case is handled automatically by <code><a href="../../methods/html/refClass.html">setRefClass</a>()</code> and
+friends, using the supplied field and method names.)
+</p>
+<p>For <code>suppressForeignCheck</code>, the names supplied are of variables
+used as <code>.NAME</code> in foreign function calls which should not be
+checked by <code><a href="../../tools/html/checkFF.html">checkFF</a>(registration = TRUE)</code>.  Without this
+declaration, expressions other than simple character strings are
+assumed to evaluate to registered native symbol objects.  The type of
+call (<code>.Call</code>, <code>.External</code>, etc.) and argument counts will
+be checked.  With this declaration, checks on those names will usually
+be suppressed.  (If the code uses an expression that should only be
+evaluated at runtime, the message can be suppressed by wrapping it in
+a <code><a href="../../base/html/dontCheck.html">dontCheck</a></code> function call, or by saving it to a local
+variable, and suppressing messages about that variable. See the
+example below.)
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+globalVariables(names, package, add = TRUE)
+suppressForeignCheck(names, package, add = TRUE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>names</code></td>
+<td>
+
+<p>The character vector of object names.  If omitted, the current list of
+global variables declared in the package will be returned, unchanged.
+</p>
+</td></tr>
+<tr valign="top"><td><code>package</code></td>
+<td>
+
+<p>The relevant package, usually the character string name of the package
+but optionally its corresponding namespace environment.
+</p>
+<p>When the call to <code>globalVariables</code> or
+<code>suppressForeignCheck</code> comes in the package's source file,
+the argument is normally omitted, as in the example below.
+</p>
+</td></tr>
+<tr valign="top"><td><code>add</code></td>
+<td>
+
+<p>Should the contents of <code>names</code> be added to the current global
+variables or replace it?
+</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>The lists of declared global variables and native symbol objects are
+stored in a metadata object in the package's namespace, assuming the
+<code>globalVariables</code> or <code>suppressForeignCheck</code> call(s) occur
+as top-level calls in the package's source code.
+</p>
+<p>The check command, as implemented in package <code>tools</code>, queries
+the list before checking the <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> source code in the package for
+possible problems.
+</p>
+<p><code>globalVariables</code> was introduced in <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> 2.15.1 and
+<code>suppressForeignCheck</code> was introduced in <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> 3.1.0 so both
+should be used conditionally: see the example.  
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>globalVariables</code> returns the current list of declared global
+variables, possibly modified by this call.
+</p>
+<p><code>suppressForeignCheck</code> returns the current list of native
+symbol objects which are not to be checked.  
+</p>
+
+
+<h3>Note</h3>
+
+<p>The global variables list really belongs to a restricted scope (a
+function or a group of method definitions, for example) rather than
+the package as a whole.  However, implementing finer control would
+require changes in <code>check</code> and/or in <code>codetools</code>, so in this
+version the information is stored at the package level.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>John Chambers and Duncan Murdoch
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code>dontCheck</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Not run: 
+## assume your package has some code that assigns ".obj1" and ".obj2"
+## but not in a way that codetools can find.
+## In the same source file (to remind you that you did it) add:
+if(getRversion() &gt;= "2.15.1")  utils::globalVariables(c(".obj1", "obj2"))
+
+## To suppress messages about a run-time calculated native symbol, 
+## save it to a local variable.
+
+## At top level, put this:
+if(getRversion() &gt;= "3.1.0") utils::suppressForeignCheck("localvariable")
+
+## Within your function, do the call like this:
+localvariable &lt;- if (condition) entry1 else entry2
+.Call(localvariable, 1, 2, 3)
+
+## HOWEVER, it is much better practice to write code
+## that can be checked thoroughly, e.g.
+if(condition) .Call(entry1, 1, 2, 3) else .Call(entry2, 1, 2, 3)
+
+## End(Not run)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>utils</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

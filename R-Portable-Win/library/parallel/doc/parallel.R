@@ -1,13 +1,92 @@
 ### R code from vignette source 'parallel.Rnw'
 
 ###################################################
-### code chunk number 1: parallel.Rnw:473-474 (eval = FALSE)
+### code chunk number 1: Ecuyer-ex (eval = FALSE)
+###################################################
+## RNGkind("L'Ecuyer-CMRG")
+## set.seed(2002) # something
+## M <- 16 ## start M workers
+## s <- .Random.seed
+## for (i in 1:M) {
+##     s <- nextRNGStream(s)
+##     # send s to worker i as .Random.seed
+## }
+
+
+###################################################
+### code chunk number 2: affinity-ex (eval = FALSE)
+###################################################
+## ## Exemplary variance filter executed on three different matrices in parallel.
+## ## Can be used in gene expression analysis as a prefilter
+## ## for the number of covariates.
+## 
+## library(parallel)
+## n <- 300   # observations
+## p <- 20000 # covariates
+## 
+## ## Different sized matrices as filter inputs
+## ## Matrix A and B form smaller work loads
+## ## while matrix C forms a bigger workload (2*p)
+## library(stats)
+## A <- matrix(replicate( p,  rnorm(n, sd = runif(1, 0.1, 10))), n, p)
+## B <- matrix(replicate( p,  rnorm(n, sd = runif(1, 0.1, 10))), n, p)
+## C <- matrix(replicate(2*p, rnorm(n, sd = runif(1, 0.1, 10))), n, 2*p)
+## 
+## varFilter <- function (X, nSim = 20) {
+##   for (i in 1:nSim) {
+##     train <- sample(nrow(X), 2 / 3 * nrow(X))
+##     colVars <- apply(X[train, ], 2, var)
+##     keep <- names(head(sort(colVars, decreasing = TRUE), 100))
+##     # myAlgorithm(X[, keep])
+##   }
+## }
+## 
+## ## Runtime comparison -----------------------------------
+## 
+## ## mclapply with affinity.list
+## ## CPU mapping: A and B run on CPU 1 while C runs on CPU 2:
+## affinity <- c(1,1,2)
+## system.time(
+##   mclapply(X = list(A,B,C), FUN = varFilter,
+##            mc.preschedule = FALSE, affinity.list = affinity))
+## ##   user  system elapsed
+## ## 34.909   0.873  36.720
+## 
+## 
+## ## mclapply without affinity.list
+## system.time(
+##   mclapply(X = list(A,B,C), FUN = varFilter, mc.cores = 2,
+##            mc.preschedule = FALSE) )
+## ##   user  system elapsed
+## ## 72.893   1.588  55.982
+## 
+## 
+## ## mclapply with prescheduling
+## system.time(
+##    mclapply(X = list(A,B,C), FUN = varFilter, mc.cores = 2,
+##             mc.preschedule = TRUE) )
+## ##   user  system elapsed
+## ## 53.455   1.326  53.399
+
+
+###################################################
+### code chunk number 3: parallel.Rnw:530-535 (eval = FALSE)
+###################################################
+## ## Restricts all elements of X to run on CPU 1 and 2.
+## X <- list(1, 2, 3)
+## affinity.list <- list(c(1,2), c(1,2), c(1,2))
+## mclapply(X = X, FUN = function (i) i*i,
+##          mc.preschedule = FALSE, affinity.list = affinity.list)
+
+
+###################################################
+### code chunk number 4: parallel.Rnw:567-568 (eval = FALSE)
 ###################################################
 ## library(parallel)
 
 
 ###################################################
-### code chunk number 2: parallel.Rnw:499-506 (eval = FALSE)
+### code chunk number 5: parallel.Rnw:593-600 (eval = FALSE)
 ###################################################
 ## library(boot)
 ## cd4.rg <- function(data, mle) MASS::mvrnorm(nrow(data), mle$m, mle$v)
@@ -19,7 +98,7 @@
 
 
 ###################################################
-### code chunk number 3: parallel.Rnw:511-521 (eval = FALSE)
+### code chunk number 6: parallel.Rnw:605-615 (eval = FALSE)
 ###################################################
 ## cd4.rg <- function(data, mle) MASS::mvrnorm(nrow(data), mle$m, mle$v)
 ## cd4.mle <- list(m = colMeans(cd4), v = var(cd4))
@@ -34,13 +113,13 @@
 
 
 ###################################################
-### code chunk number 4: parallel.Rnw:526-527 (eval = FALSE)
+### code chunk number 7: parallel.Rnw:620-621 (eval = FALSE)
 ###################################################
 ## do.call(c, lapply(seq_len(mc), run1))
 
 
 ###################################################
-### code chunk number 5: parallel.Rnw:531-546 (eval = FALSE)
+### code chunk number 8: parallel.Rnw:625-640 (eval = FALSE)
 ###################################################
 ## run1 <- function(...) {
 ##    library(boot)
@@ -60,7 +139,7 @@
 
 
 ###################################################
-### code chunk number 6: parallel.Rnw:556-569 (eval = FALSE)
+### code chunk number 9: parallel.Rnw:650-663 (eval = FALSE)
 ###################################################
 ## cl <- makeCluster(mc)
 ## cd4.rg <- function(data, mle) MASS::mvrnorm(nrow(data), mle$m, mle$v)
@@ -78,7 +157,7 @@
 
 
 ###################################################
-### code chunk number 7: parallel.Rnw:574-588 (eval = FALSE)
+### code chunk number 10: parallel.Rnw:668-682 (eval = FALSE)
 ###################################################
 ## R <- 999; M <- 999 ## we would like at least 999 each
 ## cd4.nest <- boot(cd4, nested.corr, R=R, stype="w", t0=corr(cd4), M=M)
@@ -97,7 +176,7 @@
 
 
 ###################################################
-### code chunk number 8: parallel.Rnw:593-601 (eval = FALSE)
+### code chunk number 11: parallel.Rnw:687-695 (eval = FALSE)
 ###################################################
 ## mc <- 9
 ## R <- 999; M <- 999; RR <- floor(R/mc)
@@ -110,7 +189,7 @@
 
 
 ###################################################
-### code chunk number 9: parallel.Rnw:615-626 (eval = FALSE)
+### code chunk number 12: parallel.Rnw:709-720 (eval = FALSE)
 ###################################################
 ## library(spatial)
 ## towns <- ppinit("towns.dat")
@@ -126,7 +205,7 @@
 
 
 ###################################################
-### code chunk number 10: parallel.Rnw:630-639 (eval = FALSE)
+### code chunk number 13: parallel.Rnw:724-733 (eval = FALSE)
 ###################################################
 ## run3 <- function(c) {
 ##     library(spatial)
@@ -140,7 +219,7 @@
 
 
 ###################################################
-### code chunk number 11: parallel.Rnw:643-647 (eval = FALSE)
+### code chunk number 14: parallel.Rnw:737-741 (eval = FALSE)
 ###################################################
 ## cl <- makeForkCluster(10)  # fork after the variables have been set up
 ## run4 <- function(c)  mean(replicate(R, tget(Strauss(69, c=c, r=3.5))))
@@ -149,14 +228,14 @@
 
 
 ###################################################
-### code chunk number 12: parallel.Rnw:650-652 (eval = FALSE)
+### code chunk number 15: parallel.Rnw:744-746 (eval = FALSE)
 ###################################################
 ## run4 <- function(c)  mean(replicate(R, tget(Strauss(69, c=c, r=3.5))))
 ## res <- c(0, unlist(mclapply(c[-1], run4, mc.cores = 10)))
 
 
 ###################################################
-### code chunk number 13: parallel.Rnw:683-717 (eval = FALSE)
+### code chunk number 16: parallel.Rnw:777-811 (eval = FALSE)
 ###################################################
 ## pkgs <- "<names of packages to be installed>"
 ## M <- 20 # number of parallel installs
@@ -195,7 +274,7 @@
 
 
 ###################################################
-### code chunk number 14: parallel.Rnw:730-747 (eval = FALSE)
+### code chunk number 17: parallel.Rnw:824-841 (eval = FALSE)
 ###################################################
 ##     fn <- function(r) statistic(data, i[r, ], ...)
 ##     RR <- sum(R)
@@ -217,7 +296,7 @@
 
 
 ###################################################
-### code chunk number 15: parallel.Rnw:750-751 (eval = FALSE)
+### code chunk number 18: parallel.Rnw:844-845 (eval = FALSE)
 ###################################################
 ##             list(...) # evaluate any promises
 

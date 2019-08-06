@@ -1,0 +1,146 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Control Multiple Devices</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for dev {grDevices}"><tr><td>dev {grDevices}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Control Multiple Devices</h2>
+
+<h3>Description</h3>
+
+<p>These functions provide control over multiple graphics devices.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+dev.cur()
+dev.list()
+dev.next(which = dev.cur())
+dev.prev(which = dev.cur())
+dev.off(which = dev.cur())
+dev.set(which = dev.next())
+dev.new(..., noRStudioGD = FALSE)
+graphics.off()
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>which</code></td>
+<td>
+<p>An integer specifying a device number.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>arguments to be passed to the device selected.</p>
+</td></tr>
+<tr valign="top"><td><code>noRStudioGD</code></td>
+<td>
+<p>Do not use the RStudio graphics device even if
+specified as the default device: it does not accept arguments such
+as <code>width</code> and <code>height</code>.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>Only one device is the &lsquo;active&rsquo; device: this is the device in
+which all graphics operations occur.  There is a <code>"null device"</code>
+which is always open but is really a placeholder: any attempt to use
+it will open a new device specified by
+<code><a href="../../base/html/options.html">getOption</a>("device")</code>.
+</p>
+<p>Devices are associated with a name (e.g., <code>"X11"</code> or
+<code>"postscript"</code>) and a number in the range 1 to 63; the
+<code>"null device"</code> is always device 1.  Once a device has been
+opened the null device is not considered as a possible active device.
+There is a list of open devices, and this is considered as a circular
+list not including the null device.  <code>dev.next</code> and
+<code>dev.prev</code> select the next open device in the appropriate
+direction, unless no device is open.
+</p>
+<p><code>dev.off</code> shuts down the specified (by default the current)
+device.  If the current device is shut down and any other devices are
+open, the next open device is made current.  It is an error to
+attempt to shut down device 1.  <code>graphics.off()</code> shuts down all
+open graphics devices.  Normal termination of a session runs the
+internal equivalent of <code>graphics.off()</code>.
+</p>
+<p><code>dev.set</code> makes the specified device the active device.  If there
+is no device with that number, it is equivalent to <code>dev.next</code>.
+If <code>which = 1</code> it opens a new device and selects that.
+</p>
+<p><code>dev.new</code> opens a new device.  Normally <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> will open a new device
+automatically when needed, but this enables you to open further
+devices in a platform-independent way.  (For which device is used see
+<code><a href="../../base/html/options.html">getOption</a>("device")</code>.)  Note that care is needed with
+file-based devices such as <code><a href="pdf.html">pdf</a></code> and
+<code><a href="postscript.html">postscript</a></code> and in that case file names such as
+&lsquo;<span class="file">Rplots.pdf</span>&rsquo;, &lsquo;<span class="file">Rplots1.pdf</span>&rsquo;, ..., &lsquo;<span class="file">Rplots999.pdf</span>&rsquo; are
+tried in turn.  Only named arguments are passed to the device, and
+then only if they match the argument list of the device.  Even so,
+care is needed with the interpretation of e.g. <code>width</code>, and for
+the standard bitmap devices <code>units = "in", res = 72</code> is forced if
+neither is supplied but both <code>width</code> and <code>height</code> are.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>dev.cur</code> returns a length-one named integer vector giving the
+number and name of the active device, or 1, the null device, if none
+is active.
+</p>
+<p><code>dev.list</code> returns the numbers of all open devices, except device
+1, the null device.  This is a numeric vector with a
+<code><a href="../../base/html/names.html">names</a></code> attribute giving the device names, or <code>NULL</code> is
+there is no open device.
+</p>
+<p><code>dev.next</code> and <code>dev.prev</code> return the number and name of the
+next / previous device in the list of devices.  This will be the null
+device if and only if there are no open devices.
+</p>
+<p><code>dev.off</code> returns the number and name of the new active device
+(after the specified device has been shut down).
+</p>
+<p><code>dev.set</code> returns the number and name of the new active device.
+</p>
+<p><code>dev.new</code> returns the return value of the device opened, usually
+invisible <code>NULL</code>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="Devices.html">Devices</a></code>, such as <code><a href="postscript.html">postscript</a></code>, etc.
+</p>
+<p><code><a href="../../graphics/html/layout.html">layout</a></code> and its links for setting up plotting regions
+on the current device.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Not run: ## Unix-specific example
+x11()
+plot(1:10)
+x11()
+plot(rnorm(10))
+dev.set(dev.prev())
+abline(0, 1) # through the 1:10 points
+dev.set(dev.next())
+abline(h = 0, col = "gray") # for the residual plot
+dev.set(dev.prev())
+dev.off(); dev.off() #- close the two X devices
+
+## End(Not run)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>grDevices</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

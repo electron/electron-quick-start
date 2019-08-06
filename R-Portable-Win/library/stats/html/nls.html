@@ -1,0 +1,423 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Nonlinear Least Squares</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for nls {stats}"><tr><td>nls {stats}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Nonlinear Least Squares</h2>
+
+<h3>Description</h3>
+
+<p>Determine the nonlinear (weighted) least-squares estimates of the
+parameters of a nonlinear model.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+nls(formula, data, start, control, algorithm,
+    trace, subset, weights, na.action, model,
+    lower, upper, ...)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>formula</code></td>
+<td>
+<p>a nonlinear model <a href="formula.html">formula</a> including variables and
+parameters.  Will be coerced to a formula if necessary.</p>
+</td></tr>
+<tr valign="top"><td><code>data</code></td>
+<td>
+<p>an optional data frame in which to evaluate the variables in
+<code>formula</code> and <code>weights</code>.  Can also be a list or an
+environment, but not a matrix.</p>
+</td></tr>
+<tr valign="top"><td><code>start</code></td>
+<td>
+<p>a named list or named numeric vector of starting
+estimates.  When <code>start</code> is missing (and <code>formula</code> is not
+a self-starting model, see <code><a href="selfStart.html">selfStart</a></code>), a very cheap
+guess for <code>start</code> is tried (if <code>algorithm != "plinear"</code>).
+</p>
+</td></tr>
+<tr valign="top"><td><code>control</code></td>
+<td>
+<p>an optional list of control settings.  See
+<code><a href="nls.control.html">nls.control</a></code> for the names of the settable control
+values and their effect.</p>
+</td></tr>
+<tr valign="top"><td><code>algorithm</code></td>
+<td>
+<p>character string specifying the algorithm to use.
+The default algorithm is a Gauss-Newton algorithm.  Other possible
+values are <code>"plinear"</code> for the Golub-Pereyra algorithm for
+partially linear least-squares models and <code>"port"</code> for the
+&lsquo;nl2sol&rsquo; algorithm from the Port library &ndash; see the
+references.  Can be abbreviated.</p>
+</td></tr>
+<tr valign="top"><td><code>trace</code></td>
+<td>
+<p>logical value indicating if a trace of the iteration
+progress should be printed.  Default is <code>FALSE</code>.  If
+<code>TRUE</code> the residual (weighted) sum-of-squares and the
+parameter values are printed at the conclusion of each iteration.
+When the <code>"plinear"</code> algorithm is used, the conditional
+estimates of the linear parameters are printed after the nonlinear
+parameters.  When the <code>"port"</code> algorithm is used the
+objective function value printed is half the residual (weighted)
+sum-of-squares.</p>
+</td></tr>
+<tr valign="top"><td><code>subset</code></td>
+<td>
+<p>an optional vector specifying a subset of observations
+to be used in the fitting process.</p>
+</td></tr>
+<tr valign="top"><td><code>weights</code></td>
+<td>
+<p>an optional numeric vector of (fixed) weights.  When
+present, the objective function is weighted least squares.</p>
+</td></tr>
+<tr valign="top"><td><code>na.action</code></td>
+<td>
+<p>a function which indicates what should happen
+when the data contain <code>NA</code>s.  The default is set by
+the <code>na.action</code> setting of <code><a href="../../base/html/options.html">options</a></code>, and is
+<code><a href="na.fail.html">na.fail</a></code> if that is unset.  The &lsquo;factory-fresh&rsquo;
+default is <code><a href="na.fail.html">na.omit</a></code>.  Value <code><a href="na.fail.html">na.exclude</a></code>
+can be useful.</p>
+</td></tr>
+<tr valign="top"><td><code>model</code></td>
+<td>
+<p>logical.  If true, the model frame is returned as part of
+the object. Default is <code>FALSE</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>lower, upper</code></td>
+<td>
+<p>vectors of lower and upper bounds, replicated to
+be as long as <code>start</code>.  If unspecified, all parameters are
+assumed to be unconstrained.  Bounds can only be used with the
+<code>"port"</code> algorithm.  They are ignored, with a warning, if given
+for other algorithms.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>Additional optional arguments.  None are used at present.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>An <code>nls</code> object is a type of fitted model object.  It has methods
+for the generic functions <code><a href="anova.html">anova</a></code>, <code><a href="coef.html">coef</a></code>,
+<code><a href="confint.html">confint</a></code>, <code><a href="deviance.html">deviance</a></code>,
+<code><a href="df.residual.html">df.residual</a></code>, <code><a href="fitted.values.html">fitted</a></code>,
+<code><a href="formula.html">formula</a></code>, <code><a href="logLik.html">logLik</a></code>, <code><a href="predict.html">predict</a></code>,
+<code><a href="../../base/html/print.html">print</a></code>, <code><a href="profile.html">profile</a></code>, <code><a href="residuals.html">residuals</a></code>,
+<code><a href="../../base/html/summary.html">summary</a></code>, <code><a href="vcov.html">vcov</a></code> and <code><a href="weights.html">weights</a></code>.
+</p>
+<p>Variables in <code>formula</code> (and <code>weights</code> if not missing) are
+looked for first in <code>data</code>, then the environment of
+<code>formula</code> and finally along the search path.  Functions in
+<code>formula</code> are searched for first in the environment of
+<code>formula</code> and then along the search path.
+</p>
+<p>Arguments <code>subset</code> and <code>na.action</code> are supported only when
+all the variables in the formula taken from <code>data</code> are of the
+same length: other cases give a warning.
+</p>
+<p>Note that the <code><a href="anova.html">anova</a></code> method does not check that the
+models are nested: this cannot easily be done automatically, so use
+with care.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list of
+</p>
+<table summary="R valueblock">
+<tr valign="top"><td><code>m</code></td>
+<td>
+<p>an <code>nlsModel</code> object incorporating the model.</p>
+</td></tr>
+<tr valign="top"><td><code>data</code></td>
+<td>
+<p>the expression that was passed to <code>nls</code> as the data
+argument.  The actual data values are present in the environment of
+the <code>m</code> component.</p>
+</td></tr>
+<tr valign="top"><td><code>call</code></td>
+<td>
+<p>the matched call with several components, notably
+<code>algorithm</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>na.action</code></td>
+<td>
+<p>the <code>"na.action"</code> attribute (if any) of the
+model frame.</p>
+</td></tr>
+<tr valign="top"><td><code>dataClasses</code></td>
+<td>
+<p>the <code>"dataClasses"</code> attribute (if any) of the
+<code>"terms"</code> attribute of the model frame.</p>
+</td></tr>
+<tr valign="top"><td><code>model</code></td>
+<td>
+<p>if <code>model = TRUE</code>, the model frame.</p>
+</td></tr>
+<tr valign="top"><td><code>weights</code></td>
+<td>
+<p>if <code>weights</code> is supplied, the weights.</p>
+</td></tr>
+<tr valign="top"><td><code>convInfo</code></td>
+<td>
+<p>a list with convergence information.</p>
+</td></tr>
+<tr valign="top"><td><code>control</code></td>
+<td>
+<p>the control <code>list</code> used, see the <code>control</code>
+argument.</p>
+</td></tr>
+<tr valign="top"><td><code>convergence, message</code></td>
+<td>
+<p>for an <code>algorithm = "port"</code> fit only,
+a convergence code (<code>0</code> for convergence) and message.
+</p>
+<p>To use these is <em>deprecated</em>, as they are available from
+<code>convInfo</code> now.
+</p>
+</td></tr>
+</table>
+
+
+<h3>Warning</h3>
+
+<p><b>Do not use <code>nls</code> on artificial &quot;zero-residual&quot; data.</b>
+</p>
+<p>The <code>nls</code> function uses a relative-offset convergence criterion
+that compares the numerical imprecision at the current parameter
+estimates to the residual sum-of-squares.  This performs well on data of
+the form </p>
+<p style="text-align: center;"><i>y = f(x, &theta;) + eps</i></p>
+<p> (with
+<code>var(eps) &gt; 0</code>).  It fails to indicate convergence on data of the form
+</p>
+<p style="text-align: center;"><i>y = f(x, &theta;)</i></p>
+<p> because the criterion amounts to
+comparing two components of the round-off error.  If you wish to test
+<code>nls</code> on artificial data please add a noise component, as shown
+in the example below.
+</p>
+<p>The <code>algorithm = "port"</code> code appears unfinished, and does
+not even check that the starting value is within the bounds.
+Use with caution, especially where bounds are supplied.
+</p>
+
+
+<h3>Note</h3>
+
+<p>Setting <code>warnOnly = TRUE</code> in the <code>control</code>
+argument (see <code><a href="nls.control.html">nls.control</a></code>) returns a non-converged
+object (since <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> version 2.5.0) which might be useful for further
+convergence analysis, <em>but <b>not</b> for inference</em>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Douglas M. Bates and Saikat DebRoy: David M. Gay for the Fortran code
+used by <code>algorithm = "port"</code>.
+</p>
+
+
+<h3>References</h3>
+
+<p>Bates, D. M. and Watts, D. G. (1988)
+<em>Nonlinear Regression Analysis and Its Applications</em>,
+Wiley
+</p>
+<p>Bates, D. M. and Chambers, J. M. (1992)
+<em>Nonlinear models.</em>
+Chapter 10 of <em>Statistical Models in S</em>
+eds J. M. Chambers and T. J. Hastie, Wadsworth &amp; Brooks/Cole.
+</p>
+<p><a href="http://www.netlib.org/port/">http://www.netlib.org/port/</a> for the Port library
+documentation.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="summary.nls.html">summary.nls</a></code>, <code><a href="predict.nls.html">predict.nls</a></code>,
+<code><a href="profile.nls.html">profile.nls</a></code>.
+</p>
+<p>Self starting models (with &lsquo;automatic initial values&rsquo;):
+<code><a href="selfStart.html">selfStart</a></code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+
+require(graphics)
+
+DNase1 &lt;- subset(DNase, Run == 1)
+
+## using a selfStart model
+fm1DNase1 &lt;- nls(density ~ SSlogis(log(conc), Asym, xmid, scal), DNase1)
+summary(fm1DNase1)
+## the coefficients only:
+coef(fm1DNase1)
+## including their SE, etc:
+coef(summary(fm1DNase1))
+
+## using conditional linearity
+fm2DNase1 &lt;- nls(density ~ 1/(1 + exp((xmid - log(conc))/scal)),
+                 data = DNase1,
+                 start = list(xmid = 0, scal = 1),
+                 algorithm = "plinear")
+summary(fm2DNase1)
+
+## without conditional linearity
+fm3DNase1 &lt;- nls(density ~ Asym/(1 + exp((xmid - log(conc))/scal)),
+                 data = DNase1,
+                 start = list(Asym = 3, xmid = 0, scal = 1))
+summary(fm3DNase1)
+
+## using Port's nl2sol algorithm
+fm4DNase1 &lt;- nls(density ~ Asym/(1 + exp((xmid - log(conc))/scal)),
+                 data = DNase1,
+                 start = list(Asym = 3, xmid = 0, scal = 1),
+                 algorithm = "port")
+summary(fm4DNase1)
+
+## weighted nonlinear regression
+Treated &lt;- Puromycin[Puromycin$state == "treated", ]
+weighted.MM &lt;- function(resp, conc, Vm, K)
+{
+    ## Purpose: exactly as white book p. 451 -- RHS for nls()
+    ##  Weighted version of Michaelis-Menten model
+    ## ----------------------------------------------------------
+    ## Arguments: 'y', 'x' and the two parameters (see book)
+    ## ----------------------------------------------------------
+    ## Author: Martin Maechler, Date: 23 Mar 2001
+
+    pred &lt;- (Vm * conc)/(K + conc)
+    (resp - pred) / sqrt(pred)
+}
+
+Pur.wt &lt;- nls( ~ weighted.MM(rate, conc, Vm, K), data = Treated,
+              start = list(Vm = 200, K = 0.1))
+summary(Pur.wt)
+
+## Passing arguments using a list that can not be coerced to a data.frame
+lisTreat &lt;- with(Treated,
+                 list(conc1 = conc[1], conc.1 = conc[-1], rate = rate))
+
+weighted.MM1 &lt;- function(resp, conc1, conc.1, Vm, K)
+{
+     conc &lt;- c(conc1, conc.1)
+     pred &lt;- (Vm * conc)/(K + conc)
+    (resp - pred) / sqrt(pred)
+}
+Pur.wt1 &lt;- nls( ~ weighted.MM1(rate, conc1, conc.1, Vm, K),
+               data = lisTreat, start = list(Vm = 200, K = 0.1))
+stopifnot(all.equal(coef(Pur.wt), coef(Pur.wt1)))
+
+## Chambers and Hastie (1992) Statistical Models in S  (p. 537):
+## If the value of the right side [of formula] has an attribute called
+## 'gradient' this should be a matrix with the number of rows equal
+## to the length of the response and one column for each parameter.
+
+weighted.MM.grad &lt;- function(resp, conc1, conc.1, Vm, K)
+{
+  conc &lt;- c(conc1, conc.1)
+
+  K.conc &lt;- K+conc
+  dy.dV &lt;- conc/K.conc
+  dy.dK &lt;- -Vm*dy.dV/K.conc
+  pred &lt;- Vm*dy.dV
+  pred.5 &lt;- sqrt(pred)
+  dev &lt;- (resp - pred) / pred.5
+  Ddev &lt;- -0.5*(resp+pred)/(pred.5*pred)
+  attr(dev, "gradient") &lt;- Ddev * cbind(Vm = dy.dV, K = dy.dK)
+  dev
+}
+
+Pur.wt.grad &lt;- nls( ~ weighted.MM.grad(rate, conc1, conc.1, Vm, K),
+                   data = lisTreat, start = list(Vm = 200, K = 0.1))
+
+rbind(coef(Pur.wt), coef(Pur.wt1), coef(Pur.wt.grad))
+
+## In this example, there seems no advantage to providing the gradient.
+## In other cases, there might be.
+
+
+## The two examples below show that you can fit a model to
+## artificial data with noise but not to artificial data
+## without noise.
+x &lt;- 1:10
+y &lt;- 2*x + 3                            # perfect fit
+yeps &lt;- y + rnorm(length(y), sd = 0.01) # added noise
+nls(yeps ~ a + b*x, start = list(a = 0.12345, b = 0.54321))
+## terminates in an error, because convergence cannot be confirmed:
+try(nls(y ~ a + b*x, start = list(a = 0.12345, b = 0.54321)))
+
+## the nls() internal cheap guess for starting values can be sufficient:
+
+x &lt;- -(1:100)/10
+y &lt;- 100 + 10 * exp(x / 2) + rnorm(x)/10
+nlmod &lt;- nls(y ~  Const + A * exp(B * x))
+
+plot(x,y, main = "nls(*), data, true function and fit, n=100")
+curve(100 + 10 * exp(x / 2), col = 4, add = TRUE)
+lines(x, predict(nlmod), col = 2)
+
+
+
+## The muscle dataset in MASS is from an experiment on muscle
+## contraction on 21 animals.  The observed variables are Strip
+## (identifier of muscle), Conc (Cacl concentration) and Length
+## (resulting length of muscle section).
+utils::data(muscle, package = "MASS")
+
+## The non linear model considered is
+##       Length = alpha + beta*exp(-Conc/theta) + error
+## where theta is constant but alpha and beta may vary with Strip.
+
+with(muscle, table(Strip)) # 2, 3 or 4 obs per strip
+
+## We first use the plinear algorithm to fit an overall model,
+## ignoring that alpha and beta might vary with Strip.
+
+## IGNORE_RDIFF_BEGIN
+musc.1 &lt;- nls(Length ~ cbind(1, exp(-Conc/th)), muscle,
+              start = list(th = 1), algorithm = "plinear")
+summary(musc.1)
+## IGNORE_RDIFF_END
+
+## Then we use nls' indexing feature for parameters in non-linear
+## models to use the conventional algorithm to fit a model in which
+## alpha and beta vary with Strip.  The starting values are provided
+## by the previously fitted model.
+## Note that with indexed parameters, the starting values must be
+## given in a list (with names):
+b &lt;- coef(musc.1)
+musc.2 &lt;- nls(Length ~ a[Strip] + b[Strip]*exp(-Conc/th), muscle,
+              start = list(a = rep(b[2], 21), b = rep(b[3], 21), th = b[1]))
+## IGNORE_RDIFF_BEGIN
+summary(musc.2)
+## IGNORE_RDIFF_END
+
+
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>stats</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

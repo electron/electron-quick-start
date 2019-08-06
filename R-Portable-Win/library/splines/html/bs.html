@@ -1,0 +1,135 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: B-Spline Basis for Polynomial Splines</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for bs {splines}"><tr><td>bs {splines}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>B-Spline Basis for Polynomial Splines</h2>
+
+<h3>Description</h3>
+
+<p>Generate the B-spline basis matrix for a polynomial spline.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+bs(x, df = NULL, knots = NULL, degree = 3, intercept = FALSE,
+   Boundary.knots = range(x))
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>the predictor variable.  Missing values are allowed.</p>
+</td></tr>
+<tr valign="top"><td><code>df</code></td>
+<td>
+<p>degrees of freedom; one can specify <code>df</code> rather than
+<code>knots</code>; <code>bs()</code> then chooses <code>df-degree</code> (minus one
+if there is an intercept) knots at suitable quantiles of <code>x</code>
+(which will ignore missing values).  The default, <code>NULL</code>,
+takes the number of inner knots as <code>length(knots)</code>.  If that is
+zero as per default, that corresponds to <code>df = degree - intercept</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>knots</code></td>
+<td>
+<p>the <em>internal</em> breakpoints that define the
+spline.  The default is <code>NULL</code>, which results in a basis for
+ordinary polynomial regression.  Typical values are the mean or
+median for one knot, quantiles for more knots.  See also
+<code>Boundary.knots</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>degree</code></td>
+<td>
+<p>degree of the piecewise polynomial&mdash;default is <code>3</code> for
+cubic splines.</p>
+</td></tr>
+<tr valign="top"><td><code>intercept</code></td>
+<td>
+<p>if <code>TRUE</code>, an intercept is included in the
+basis; default is <code>FALSE</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>Boundary.knots</code></td>
+<td>
+<p>boundary points at which to anchor the B-spline
+basis (default the range of the non-<code><a href="../../base/html/NA.html">NA</a></code> data).  If both
+<code>knots</code> and <code>Boundary.knots</code> are supplied, the basis
+parameters do not depend on <code>x</code>.  Data can extend beyond
+<code>Boundary.knots</code>.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p><code>bs</code> is based on the function <code><a href="splineDesign.html">splineDesign</a></code>.
+It generates a basis matrix for
+representing the family of piecewise polynomials with the specified
+interior knots and degree, evaluated at the values of <code>x</code>.  A
+primary use is in modeling formulas to directly specify a piecewise
+polynomial term in a model.
+</p>
+<p>When <code>Boundary.knots</code> are set <em>inside</em> <code>range(x)</code>,
+<code>bs()</code> now uses a &lsquo;pivot&rsquo; inside the respective boundary
+knot which is important for derivative evaluation.  In <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> versions
+<i>&lt;=</i> 3.2.2, the boundary knot itself had been used as
+pivot, which lead to somewhat wrong extrapolations.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A matrix of dimension <code>c(length(x), df)</code>, where either <code>df</code>
+was supplied or if <code>knots</code> were supplied, <code>df =
+  length(knots) + degree</code> plus one if there is an intercept.  Attributes
+are returned that correspond to the arguments to <code>bs</code>, and
+explicitly give the <code>knots</code>, <code>Boundary.knots</code> etc for use by
+<code>predict.bs()</code>.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Douglas Bates and Bill Venables.  Tweaks by R Core, and a patch
+fixing extrapolation &ldquo;outside&rdquo; <code>Boundary.knots</code> by Trevor
+Hastie.
+</p>
+
+
+<h3>References</h3>
+
+<p>Hastie, T. J. (1992)
+Generalized additive models.
+Chapter 7 of <em>Statistical Models in S</em>
+eds J. M. Chambers and T. J. Hastie, Wadsworth &amp; Brooks/Cole.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="ns.html">ns</a></code>, <code><a href="../../stats/html/poly.html">poly</a></code>, <code><a href="../../stats/html/smooth.spline.html">smooth.spline</a></code>,
+<code><a href="predict.bs.html">predict.bs</a></code>, <code><a href="../../stats/html/makepredictcall.html">SafePrediction</a></code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+require(stats); require(graphics)
+bs(women$height, df = 5)
+summary(fm1 &lt;- lm(weight ~ bs(height, df = 5), data = women))
+
+## example of safe prediction
+plot(women, xlab = "Height (in)", ylab = "Weight (lb)")
+ht &lt;- seq(57, 73, length.out = 200)
+lines(ht, predict(fm1, data.frame(height = ht)))
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>splines</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

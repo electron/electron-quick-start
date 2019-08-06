@@ -112,6 +112,7 @@ ggplot(mpg, aes(displ, hwy)) +
   stat_lm(formula = y ~ poly(x, 10), geom = "point", colour = "red", n = 20)
 
 ## ------------------------------------------------------------------------
+#' @export
 #' @inheritParams ggplot2::stat_identity
 #' @param formula The modelling formula passed to \code{lm}. Should only 
 #'   involve \code{y} and \code{x}
@@ -171,7 +172,7 @@ ggplot(mpg, aes(displ, colour = drv)) +
 ## ------------------------------------------------------------------------
 StatDensityCommon <- ggproto("StatDensity2", Stat, 
   required_aes = "x",
-  default_aes = aes(y = ..density..),
+  default_aes = aes(y = stat(density)),
 
   compute_group = function(data, scales, bandwidth = 1) {
     d <- density(data$x, bw = bandwidth)
@@ -179,7 +180,7 @@ StatDensityCommon <- ggproto("StatDensity2", Stat,
   }  
 )
 
-ggplot(mpg, aes(displ, drv, colour = ..density..)) + 
+ggplot(mpg, aes(displ, drv, colour = stat(density))) + 
   stat_density_common(bandwidth = 1, geom = "point")
 
 ## ------------------------------------------------------------------------
@@ -189,7 +190,7 @@ ggplot(mpg, aes(displ, fill = drv)) +
 ## ------------------------------------------------------------------------
 StatDensityCommon <- ggproto("StatDensityCommon", Stat, 
   required_aes = "x",
-  default_aes = aes(y = ..density..),
+  default_aes = aes(y = stat(density)),
 
   setup_params = function(data, params) {
     min <- min(data$x) - 3 * params$bandwidth
@@ -211,7 +212,7 @@ StatDensityCommon <- ggproto("StatDensityCommon", Stat,
 
 ggplot(mpg, aes(displ, fill = drv)) + 
   stat_density_common(bandwidth = 1, geom = "area", position = "stack")
-ggplot(mpg, aes(displ, drv, fill = ..density..)) + 
+ggplot(mpg, aes(displ, drv, fill = stat(density))) + 
   stat_density_common(bandwidth = 1, geom = "raster")
 
 ## ----GeomSimplePoint-----------------------------------------------------
@@ -220,8 +221,8 @@ GeomSimplePoint <- ggproto("GeomSimplePoint", Geom,
   default_aes = aes(shape = 19, colour = "black"),
   draw_key = draw_key_point,
 
-  draw_panel = function(data, panel_scales, coord) {
-    coords <- coord$transform(data, panel_scales)
+  draw_panel = function(data, panel_params, coord) {
+    coords <- coord$transform(data, panel_params)
     grid::pointsGrob(
       coords$x, coords$y,
       pch = coords$shape,
@@ -254,11 +255,11 @@ GeomSimplePolygon <- ggproto("GeomPolygon", Geom,
 
   draw_key = draw_key_polygon,
 
-  draw_group = function(data, panel_scales, coord) {
+  draw_group = function(data, panel_params, coord) {
     n <- nrow(data)
     if (n <= 2) return(grid::nullGrob())
 
-    coords <- coord$transform(data, panel_scales)
+    coords <- coord$transform(data, panel_params)
     # A polygon can only have a single colour, fill, etc, so take from first row
     first_row <- coords[1, , drop = FALSE]
 
@@ -333,7 +334,7 @@ layout <- function(data, params) {
 
 ## ------------------------------------------------------------------------
 mapping <- function(data, layout, params) {
-  if (plyr::empty(data)) {
+  if (is.null(data) || nrow(data) == 0) {
     return(cbind(data, PANEL = integer(0)))
   }
   rbind(
@@ -457,7 +458,7 @@ FacetTrans <- ggproto("FacetTrans", Facet,
   },
   # Same as before
   map_data = function(data, layout, params) {
-    if (plyr::empty(data)) {
+    if (is.null(data) || nrow(data) == 0) {
       return(cbind(data, PANEL = integer(0)))
     }
     rbind(
@@ -469,7 +470,7 @@ FacetTrans <- ggproto("FacetTrans", Facet,
   init_scales = function(layout, x_scale = NULL, y_scale = NULL, params) {
     scales <- list()
     if (!is.null(x_scale)) {
-      scales$x <- plyr::rlply(max(layout$SCALE_X), x_scale$clone())
+      scales$x <- lapply(seq_len(max(layout$SCALE_X)), function(i) x_scale$clone())
     }
     if (!is.null(y_scale)) {
       y_scale_orig <- y_scale$clone()
@@ -508,7 +509,7 @@ FacetTrans <- ggproto("FacetTrans", Facet,
     }
     data
   },
-  # A few changes from before to accomodate that axes are now not duplicate of each other
+  # A few changes from before to accommodate that axes are now not duplicate of each other
   # We also add a panel strip to annotate the different panels
   draw_panels = function(panels, layout, x_scales, y_scales, ranges, coord,
                          data, theme, params) {
@@ -555,28 +556,29 @@ FacetTrans <- ggproto("FacetTrans", Facet,
     axis_width_l <- grobWidths(axes$y$left)
     axis_width_r <- grobWidths(axes$y$right)
     ## We do it reverse so we don't change the position of panels when we add axes
-    for (i in rev(seq_along(panel_pos_h))) {
-      panel_table <- gtable::gtable_add_cols(panel_table, axis_width_r[i], panel_pos_h[i])
-      if (params$horizontal) {
-        panel_table <- gtable::gtable_add_grob(panel_table, 
-          rep(axes$y$right[i], length(panel_pos_v)), t = panel_pos_v, l = panel_pos_h[i] + 1, 
+    if (params$horizontal) {
+      for (i in rev(seq_along(panel_pos_h))) {
+        panel_table <- gtable::gtable_add_cols(panel_table, axis_width_r[i], panel_pos_h[i])
+        panel_table <- gtable::gtable_add_grob(panel_table,
+          axes$y$right[i], t = panel_pos_v, l = panel_pos_h[i] + 1,
           clip = "off")
-      } else {
-        panel_table <- gtable::gtable_add_grob(panel_table, 
-          rep(axes$y$right, length(panel_pos_v)), t = panel_pos_v, l = panel_pos_h[i] + 1, 
+
+        panel_table <- gtable::gtable_add_cols(panel_table, axis_width_l[i], panel_pos_h[i] - 1)
+        panel_table <- gtable::gtable_add_grob(panel_table,
+          axes$y$left[i], t = panel_pos_v, l = panel_pos_h[i],
           clip = "off")
       }
-      panel_table <- gtable::gtable_add_cols(panel_table, axis_width_l[i], panel_pos_h[i] - 1)
-      if (params$horizontal) {
-        panel_table <- gtable::gtable_add_grob(panel_table, 
-        rep(axes$y$left[i], length(panel_pos_v)), t = panel_pos_v, l = panel_pos_h[i], 
-        clip = "off")
-      } else {
-        panel_table <- gtable::gtable_add_grob(panel_table, 
-        rep(axes$y$left, length(panel_pos_v)), t = panel_pos_v, l = panel_pos_h[i], 
-        clip = "off")
+    } else {
+        panel_table <- gtable::gtable_add_cols(panel_table, axis_width_r[1], panel_pos_h)
+        panel_table <- gtable::gtable_add_grob(panel_table,
+          axes$y$right, t = panel_pos_v, l = panel_pos_h + 1,
+          clip = "off")
+        panel_table <- gtable::gtable_add_cols(panel_table, axis_width_l[1], panel_pos_h - 1)
+        panel_table <- gtable::gtable_add_grob(panel_table,
+          axes$y$left, t = panel_pos_v, l = panel_pos_h,
+          clip = "off")
       }
-    }
+
     ## Recalculate as gtable has changed
     panel_pos_h <- panel_cols(panel_table)$l
     panel_pos_v <- panel_rows(panel_table)$t

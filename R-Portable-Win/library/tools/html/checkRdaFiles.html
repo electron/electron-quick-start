@@ -1,0 +1,112 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Report on Details of Saved Images or Re-saves them</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for checkRdaFiles {tools}"><tr><td>checkRdaFiles {tools}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>
+Report on Details of Saved Images or Re-saves them
+</h2>
+
+<h3>Description</h3>
+
+<p>This reports for each of the files produced by <code>save</code> the size,
+if it was saved in ASCII or XDR binary format, and if it was
+compressed (and if so in what format).
+</p>
+<p>Usually such files have extension &lsquo;<span class="file">.rda</span>&rsquo; or &lsquo;<span class="file">.RData</span>&rsquo;, hence
+the name of the function.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+checkRdaFiles(paths)
+resaveRdaFiles(paths, compress = c("auto", "gzip", "bzip2", "xz"),
+               compression_level, version = NULL)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>paths</code></td>
+<td>
+<p>A character vector of paths to <code>save</code> files.  If
+this specifies a single directory, it is taken to refer to all
+&lsquo;<span class="file">.rda</span>&rsquo; and &lsquo;<span class="file">.RData</span>&rsquo; files in that directory.</p>
+</td></tr>
+<tr valign="top"><td><code>compress, compression_level</code></td>
+<td>
+<p>Type and level of compression: see
+<code><a href="../../base/html/save.html">save</a></code>.  Values of <code>compress</code> can be abbreviated.</p>
+</td></tr>
+<tr valign="top"><td><code>version</code></td>
+<td>
+<p>The format to be used when re-saving: see
+<code><a href="../../base/html/save.html">save</a></code>.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p><code>compress = "auto"</code> asks <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> to choose the compression and ignores
+<code>compression_level</code>.  It will try <code>"gzip"</code>, <code>"bzip2"</code>
+and if the <code>"gzip"</code> compressed size is over 10Kb, <code>"xz"</code> and
+choose the smallest compressed file (but with a 10% bias towards
+<code>"gzip"</code>).  This can be slow.
+</p>
+<p>For back-compatibility, <code>version = NULL</code> is interpreted to mean
+version 2: however version-3 files will only be saved as version 3.
+</p>
+
+
+<h3>Value</h3>
+
+<p>For <code>checkRdaFiles</code>, a data frame with rows names <code>paths</code>
+and columns
+</p>
+<table summary="R valueblock">
+<tr valign="top"><td><code>size</code></td>
+<td>
+<p>numeric: file size in bytes, <code>NA</code> if the file does
+not exist.</p>
+</td></tr>
+<tr valign="top"><td><code>ASCII</code></td>
+<td>
+<p>logical: true for save(ASCII = TRUE), <code>NA</code> if the
+format is not that of an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> save file.</p>
+</td></tr>
+<tr valign="top"><td><code>compress</code></td>
+<td>
+<p>character: type of compression.  One of <code>"gzip"</code>,
+<code>"bzip2"</code>, <code>"xz"</code>, <code>"none"</code> or <code>"unknown"</code> (which
+means that if this is an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> save file it is from a later version of
+<span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>).</p>
+</td></tr>
+<tr valign="top"><td><code>version</code></td>
+<td>
+<p>integer: the version of the save &ndash; usually <code>2</code>
+but <code>1</code> for very old files, and <code>NA</code> for other files.
+Unfortunately <code>2</code> means &lsquo;version 2 or later&rsquo;.</p>
+</td></tr>
+</table>
+
+
+<h3>Examples</h3>
+
+<pre>## Not run: 
+## from a package top-level source directory
+paths &lt;- sort(Sys.glob(c("data/*.rda", "data/*.RData")))
+(res &lt;- checkRdaFiles(paths))
+## pick out some that may need attention
+bad &lt;- is.na(res$ASCII) | res$ASCII | (res$size &gt; 1e4 &amp; res$compress == "none")
+res[bad, ]
+
+## End(Not run)</pre>
+
+<hr /><div style="text-align: center;">[Package <em>tools</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

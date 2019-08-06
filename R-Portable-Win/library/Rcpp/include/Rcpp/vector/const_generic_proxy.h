@@ -1,6 +1,6 @@
 // const_generic_proxy.h: Rcpp R/C++ interface class library --
 //
-// Copyright (C) 2013 Romain Francois
+// Copyright (C) 2013 - 2018 Romain Francois
 //
 // This file is part of Rcpp.
 //
@@ -23,10 +23,10 @@
 namespace Rcpp{
 namespace internal{
 
-    template <int RTYPE>
-	class const_generic_proxy : public GenericProxy< const_generic_proxy<RTYPE> > {
+    template <int RTYPE, template <class> class StoragePolicy>
+	class const_generic_proxy : public GenericProxy< const_generic_proxy<RTYPE, StoragePolicy> > {
 		public:
-			typedef typename ::Rcpp::Vector<RTYPE> VECTOR ;
+			typedef typename ::Rcpp::Vector<RTYPE, StoragePolicy> VECTOR ;
 
 			const_generic_proxy(): parent(0), index(-1){}
 
@@ -48,7 +48,7 @@ namespace internal{
 			operator int() const { return ::Rcpp::as<int>(get()) ; }
 
 			inline void move(R_xlen_t n) { index += n ; }
-			
+
 			const VECTOR* parent;
 			R_xlen_t index ;
 

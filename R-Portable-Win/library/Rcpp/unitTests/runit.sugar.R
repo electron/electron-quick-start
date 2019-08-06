@@ -1,7 +1,7 @@
 #!/usr/bin/env r
 #                     -*- mode: R; ess-indent-level: 4; indent-tabs-mode: nil; -*-
 #
-# Copyright (C) 2010 - 2015  Dirk Eddelbuettel and Romain Francois
+# Copyright (C) 2010 - 2019  Dirk Eddelbuettel and Romain Francois
 #
 # This file is part of Rcpp.
 #
@@ -21,6 +21,9 @@
 .runThisTest <- Sys.getenv("RunAllRcppTests") == "yes"
 
 if (.runThisTest) {
+
+    ## Needed for a change in R 3.6.0 reducing a bias in very large samples
+    suppressWarnings(RNGversion("3.5.0"))
 
     .setUp <- Rcpp:::unitTestSetup("sugar.cpp")
 
@@ -681,6 +684,36 @@ if (.runThisTest) {
             sort(unique(x), na.last = TRUE),
             sort(runit_unique_dbl(x), na.last = TRUE),
             "unique / numeric / with NA"
+        )
+    }
+
+    test.sort_unique <- function() {
+
+        set.seed(123)
+        x <- sample(LETTERS[1:5], 10, TRUE)
+        checkEquals(
+            sort(unique(x), decreasing = TRUE),
+            runit_sort_unique_ch(x, decreasing = TRUE),
+            "unique / character / without NA / decreasing sort"
+        )
+
+        checkEquals(
+            sort(unique(x), decreasing = FALSE),
+            runit_sort_unique_ch(x, decreasing = FALSE),
+            "unique / character / without NA / increasing sort"
+        )
+
+        x <- c(x, NA, NA)
+        checkEquals(
+            sort(unique(x), decreasing = TRUE, na.last = FALSE),
+            runit_sort_unique_ch(x, decreasing = TRUE),
+            "unique / character / with NA / decreasing sort"
+        )
+
+        checkEquals(
+            sort(unique(x), decreasing = FALSE, na.last = TRUE),
+            runit_sort_unique_ch(x, decreasing = FALSE),
+            "unique / character / with NA / increasing sort"
         )
     }
 
@@ -2179,4 +2212,21 @@ if (.runThisTest) {
 
     }
 
+    ## 21 July 2018
+    ## min/max
+    test.sugar.min.max <- function() {
+        # min(empty) gives NA for integer, Inf for numeric (#844)
+        checkTrue(is.na(intmin(integer(0))),    "min(integer(0))")
+        checkEquals(doublemin(numeric(0)), Inf, "min(numeric(0))")
+
+        # max(empty_ gives NA for integer, Inf for numeric (#844)
+        checkTrue(is.na(intmax(integer(0))),     "max(integer(0))")
+        checkEquals(doublemax(numeric(0)), -Inf, "max(numeric(0))")
+
+        # 'normal' values
+        checkEquals(intmin(c(1:10)),        1L,   "min(integer(...))")
+        checkEquals(doublemin(1.0*c(1:10)), 1.0,  "min(numeric(...))")
+        checkEquals(intmax(c(1:10)),        10L,  "min(integer(...))")
+        checkEquals(doublemax(1.0*c(1:10)), 10.0, "min(numeric(...))")
+    }
 }

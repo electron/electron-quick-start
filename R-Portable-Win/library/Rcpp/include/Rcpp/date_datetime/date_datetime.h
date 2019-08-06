@@ -2,7 +2,7 @@
 //
 // date_datetime.h: Rcpp R/C++ interface class library -- Date and Datetime support
 //
-// Copyright (C) 2016         Dirk Eddelbuettel
+// Copyright (C) 2016 - 2017  Dirk Eddelbuettel
 //
 // This file is part of Rcpp.
 //
@@ -32,7 +32,7 @@
 
 namespace Rcpp {
 
-    // this will not be on by default 
+    // this is on by default since Rcpp 0.12.14
     #if defined(RCPP_NEW_DATE_DATETIME_VECTORS)
 
         typedef newDateVector DateVector;

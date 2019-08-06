@@ -23,6 +23,7 @@ extern "C" {
 #include <Rdefines.h>
 #include <Rconfig.h>
 #include "cholmod.h" //--->  M_cholmod_*() declarations
+// "Implementation" of these in ---> ./Matrix_stubs.c
 
 #ifdef HAVE_VISIBILITY_ATTRIBUTE
 # define attribute_hidden __attribute__ ((visibility ("hidden")))

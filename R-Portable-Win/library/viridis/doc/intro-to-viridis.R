@@ -30,12 +30,13 @@ library(scales)
 library(colorspace)
 library(dichromat)
 
-## ----show_scales, echo=FALSE,fig.height=2.86-----------------------------
-par(mfrow=c(4, 1), mar=rep(1, 4))
+## ----show_scales, echo=FALSE,fig.height=3.575----------------------------
+par(mfrow=c(5, 1), mar=rep(1, 4))
 img(rev(viridis(n_col)), "viridis")
 img(rev(magma(n_col)), "magma")
 img(rev(plasma(n_col)), "plasma")
 img(rev(inferno(n_col)), "inferno")
+img(rev(cividis(n_col)), "cividis")
 
 ## ----01_normal, echo=FALSE-----------------------------------------------
 par(mfrow=c(7, 1), mar=rep(1, 4))

@@ -47,50 +47,73 @@ public:
 	}
 
 	inline R_xlen_t size() const { return static_cast<const VECTOR*>(this)->size() ; }
-
-	class iterator {
-	public:
-		typedef stored_type reference ;
+	
+	// We now have the structure to correct const-correctness, but without
+    // major changes to the proxy mechanism, we cannot do it correctly.  As
+    // a result, it turns out that both Vector iterators are effectively
+    // const, but this has always been the way it is so we won't break any
+    // compatibility.  TODO: Fix proxies and make this const correct.
+	struct iter_traits
+	{
+	    typedef stored_type & reference ;
 		typedef stored_type* pointer ;
 		typedef R_xlen_t difference_type ;
 		typedef stored_type value_type;
 		typedef std::random_access_iterator_tag iterator_category ;
+	};
+	
+	struct const_iter_traits
+	{
+	    typedef stored_type reference ;
+		typedef stored_type const * pointer ;
+		typedef R_xlen_t difference_type ;
+		typedef const stored_type value_type;
+		typedef std::random_access_iterator_tag iterator_category ;
+	};
+	
+	template< typename TRAITS >
+	class iter_base {
+	public:
+		typedef typename TRAITS::reference reference;
+		typedef typename TRAITS::pointer pointer;
+		typedef typename TRAITS::difference_type difference_type;
+		typedef typename TRAITS::value_type value_type;
+		typedef typename TRAITS::iterator_category iterator_category;
 
-		iterator( const VectorBase& object_, R_xlen_t index_ ) : object(object_.get_ref()), index(index_){}
-		iterator( const iterator& other) : object(other.object), index(other.index){};
-
-		inline iterator& operator++(){
+		iter_base( const VectorBase& object_, R_xlen_t index_ ) : object(object_.get_ref()), index(index_){}
+		
+		inline iter_base& operator++(){
 			index++ ;
 			return *this ;
 		}
-		inline iterator operator++(int){
+		inline iter_base operator++(int){
 			iterator orig(*this);
 		    ++(*this) ;
 			return orig ;
 		}
 
-		inline iterator& operator--(){
+		inline iter_base& operator--(){
 			index-- ;
 			return *this ;
 		}
-		inline iterator operator--(int){
+		inline iter_base operator--(int){
 			iterator orig(*this);
 		    --(*this) ;
 			return orig ;
 		}
 
-		inline iterator operator+(difference_type n) const {
+		inline iter_base operator+(difference_type n) const {
 			return iterator( object, index+n ) ;
 		}
-		inline iterator operator-(difference_type n) const {
+		inline iter_base operator-(difference_type n) const {
 			return iterator( object, index-n ) ;
 		}
 
-		inline iterator& operator+=(difference_type n) {
+		inline iter_base& operator+=(difference_type n) {
 			index += n ;
 			return *this ;
 		}
-		inline iterator& operator-=(difference_type n) {
+		inline iter_base& operator-=(difference_type n) {
 			index -= n;
 			return *this ;
 		}
@@ -106,26 +129,26 @@ public:
 			return &object[index] ;
 		}
 
-		inline bool operator==( const iterator& y) const {
+		inline bool operator==( const iter_base& y) const {
 			return ( index == y.index ) ;
 		}
-		inline bool operator!=( const iterator& y) const {
+		inline bool operator!=( const iter_base& y) const {
 			return ( index != y.index ) ;
 		}
-		inline bool operator<( const iterator& other ) const {
+		inline bool operator<( const iter_base& other ) const {
 			return index < other.index ;
 		}
-		inline bool operator>( const iterator& other ) const {
+		inline bool operator>( const iter_base& other ) const {
 			return index > other.index ;
 		}
-		inline bool operator<=( const iterator& other ) const {
+		inline bool operator<=( const iter_base& other ) const {
 			return index <= other.index ;
 		}
-		inline bool operator>=( const iterator& other ) const {
+		inline bool operator>=( const iter_base& other ) const {
 			return index >= other.index ;
 		}
 
-		inline difference_type operator-(const iterator& other) const {
+		inline difference_type operator-(const iter_base& other) const {
 			return index - other.index ;
 		}
 
@@ -134,11 +157,15 @@ public:
 		const VECTOR& object ;
 		R_xlen_t index;
 	} ;
-
-        typedef iterator const_iterator;
-
-	inline iterator begin() const { return iterator(*this, 0) ; }
-	inline iterator end() const { return iterator(*this, size() ) ; }
+	
+    typedef iter_base< iter_traits > iterator;
+    typedef iter_base< const_iter_traits > const_iterator;
+	
+	inline const_iterator begin() const { return const_iterator(*this, 0) ; }
+	inline const_iterator end() const { return const_iterator(*this, size() ) ; }
+	
+	inline const_iterator cbegin() const { return const_iterator(*this, 0) ; }
+	inline const_iterator cend() const { return const_iterator(*this, size() ) ; }
 
 } ;
 

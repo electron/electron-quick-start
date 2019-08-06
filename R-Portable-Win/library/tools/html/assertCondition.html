@@ -1,0 +1,140 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Asserting Error Conditions</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for assertCondition {tools}"><tr><td>assertCondition {tools}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Asserting Error Conditions</h2>
+
+<h3>Description</h3>
+
+<p>When testing code, it is not sufficient to check that results are correct,
+but also that errors or warnings are signalled in appropriate
+situations.  The functions described here provide a convenient
+facility for doing so.  The three functions check that evaluating the
+supplied expression produces an error, a warning or one of a
+specified list of conditions, respectively.  If the assertion fails,
+an error is signalled.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+assertError(expr, verbose = FALSE)
+assertWarning(expr, verbose = FALSE)
+assertCondition(expr, ..., .exprString = , verbose = FALSE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>expr</code></td>
+<td>
+<p>an unevaluated <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> expression which will be evaluated via
+<code><a href="../../base/html/conditions.html">tryCatch</a>(expr, ..)</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p><code><a href="../../base/html/character.html">character</a></code> strings corresponding to the
+classes of the conditions that would satisfy the assertion; e.g., <code>"error"</code> or
+<code>"warning"</code>. If none are specified, any condition will
+satisfy the assertion.  See the details section. </p>
+</td></tr>
+<tr valign="top"><td><code>.exprString</code></td>
+<td>
+<p>The string to be printed corresponding to
+<code>expr</code>. By default, the actual <code>expr</code> will be
+deparsed.  Will be omitted if the function is supplied with the
+actual expression to be tested.  If <code>assertCondition()</code> is
+called from another function, with the actual expression passed as
+an argument to that function, supply the deparsed version.</p>
+</td></tr>
+<tr valign="top"><td><code>verbose</code></td>
+<td>
+<p>If <code>TRUE</code>, a message is printed when the
+condition is satisfied.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p><code>assertCondition()</code> uses the general condition mechanism to
+check all the conditions generated in evaluating <code>expr</code>.  The
+occurrence of any of the supplied condition classes among these satisfies the
+assertion regardless of what other conditions may be signalled.
+</p>
+<p><code>assertError()</code> is a convenience function for asserting errors;
+it calls <code>assertCondition()</code>.
+</p>
+<p><code>assertWarning()</code> asserts that a warning will be signalled, but
+<em>not</em> an error, whereas <code>assertCondition(expr, "warning")</code>
+will be satisfied even if an error follows the warning.  See the examples.
+</p>
+
+
+<h3>Value</h3>
+
+<p>If the assertion is satisfied, a list of all the condition objects
+signalled is returned, invisibly. See <code><a href="../../base/html/conditions.html">conditionMessage</a></code> for the
+interpretation of these objects.  Note that <em>all</em> conditions
+signalled during the evaluation are returned, whether or not they
+were among the requirements.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>John Chambers and Martin Maechler</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="../../base/html/stop.html">stop</a></code>, <code><a href="../../base/html/warning.html">warning</a></code>;
+<code><a href="../../base/html/conditions.html">signalCondition</a></code>, <code><a href="../../base/html/conditions.html">tryCatch</a></code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+  assertError(sqrt("abc"))
+  assertWarning(matrix(1:8, 4,3))
+
+  assertCondition( ""-1 ) # ok, any condition would satisfy this
+
+try( assertCondition(sqrt(2), "warning") )
+## .. Failed to get warning in evaluating sqrt(2)
+     assertCondition(sqrt("abc"), "error")   # ok
+try( assertCondition(sqrt("abc"), "warning") )# -&gt; error: had no warning
+     assertCondition(sqrt("abc"), "error")
+  ## identical to assertError() call above
+
+assertCondition(matrix(1:5, 2,3), "warning")
+try( assertCondition(matrix(1:8, 4,3), "error") )
+## .. Failed to get expected error ....
+
+## either warning or worse:
+assertCondition(matrix(1:8, 4,3), "error","warning") # OK
+assertCondition(matrix(1:8, 4, 3), "warning") # OK
+
+## when both are signalled:
+ff &lt;- function() { warning("my warning"); stop("my error") }
+    assertCondition(ff(), "warning")
+## but assertWarning does not allow an error to follow
+try(assertWarning(ff()))
+    assertCondition(ff(), "error")          # ok
+assertCondition(ff(), "error", "warning") # ok (quietly, catching warning)
+
+## assert that assertC..() does not assert [and use *one* argument only]
+assertCondition( assertCondition(sqrt( 2   ), "warning") )
+assertCondition( assertCondition(sqrt("abc"), "warning"), "error")
+assertCondition( assertCondition(matrix(1:8, 4,3), "error"),
+                "error")
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>tools</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

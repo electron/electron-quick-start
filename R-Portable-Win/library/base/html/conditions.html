@@ -1,0 +1,287 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Condition Handling and Recovery</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for conditions {base}"><tr><td>conditions {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Condition Handling and Recovery</h2>
+
+<h3>Description</h3>
+
+<p>These functions provide a mechanism for handling unusual conditions,
+including errors and warnings.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+tryCatch(expr, ..., finally)
+withCallingHandlers(expr, ...)
+
+signalCondition(cond)
+
+simpleCondition(message, call = NULL)
+simpleError    (message, call = NULL)
+simpleWarning  (message, call = NULL)
+simpleMessage  (message, call = NULL)
+
+errorCondition(message, ..., class = NULL, call = NULL)
+warningCondition(message, ..., class = NULL, call = NULL)
+
+## S3 method for class 'condition'
+as.character(x, ...)
+## S3 method for class 'error'
+as.character(x, ...)
+## S3 method for class 'condition'
+print(x, ...)
+## S3 method for class 'restart'
+print(x, ...)
+
+conditionCall(c)
+## S3 method for class 'condition'
+conditionCall(c)
+conditionMessage(c)
+## S3 method for class 'condition'
+conditionMessage(c)
+
+withRestarts(expr, ...)
+
+computeRestarts(cond = NULL)
+findRestart(name, cond = NULL)
+invokeRestart(r, ...)
+invokeRestartInteractively(r)
+
+isRestart(x)
+restartDescription(r)
+restartFormals(r)
+
+suspendInterrupts(expr)
+allowInterrupts(expr)
+
+.signalSimpleWarning(msg, call)
+.handleSimpleError(h, msg, call)
+.tryResumeInterrupt()
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>c</code></td>
+<td>
+<p>a condition object.</p>
+</td></tr>
+<tr valign="top"><td><code>call</code></td>
+<td>
+<p>call expression.</p>
+</td></tr>
+<tr valign="top"><td><code>cond</code></td>
+<td>
+<p>a condition object.</p>
+</td></tr>
+<tr valign="top"><td><code>expr</code></td>
+<td>
+<p>expression to be evaluated.</p>
+</td></tr>
+<tr valign="top"><td><code>finally</code></td>
+<td>
+<p>expression to be evaluated before returning or exiting.</p>
+</td></tr>
+<tr valign="top"><td><code>h</code></td>
+<td>
+<p>function.</p>
+</td></tr>
+<tr valign="top"><td><code>message</code></td>
+<td>
+<p>character string.</p>
+</td></tr>
+<tr valign="top"><td><code>msg</code></td>
+<td>
+<p>character string.</p>
+</td></tr>
+<tr valign="top"><td><code>name</code></td>
+<td>
+<p>character string naming a restart.</p>
+</td></tr>
+<tr valign="top"><td><code>r</code></td>
+<td>
+<p>restart object.</p>
+</td></tr>
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>object.</p>
+</td></tr>
+<tr valign="top"><td><code>class</code></td>
+<td>
+<p>character string naming a condition class.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>additional arguments; see details below.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>The condition system provides a mechanism for signaling and
+handling unusual conditions, including errors and warnings.
+Conditions are represented as objects that contain information
+about the condition that occurred, such as a message and the call in
+which the condition occurred.  Currently conditions are S3-style
+objects, though this may eventually change.
+</p>
+<p>Conditions are objects inheriting from the abstract class
+<code>condition</code>.  Errors and warnings are objects inheriting
+from the abstract subclasses <code>error</code> and <code>warning</code>.
+The class <code>simpleError</code> is the class used by <code>stop</code>
+and all internal error signals.  Similarly, <code>simpleWarning</code>
+is used by <code>warning</code>, and <code>simpleMessage</code> is used by
+<code>message</code>.  The constructors by the same names take a string
+describing the condition as argument and an optional call.  The
+functions <code>conditionMessage</code> and <code>conditionCall</code> are
+generic functions that return the message and call of a condition.
+</p>
+<p>The function <code>errorCondition</code> and <code>warningCondition</code> can be
+used to construct error conditions of a particular class with
+additional fields specified as the <code>...</code> argument.
+<code>warningCondition</code> is analogous for warnings.
+</p>
+<p>Conditions are signaled by <code>signalCondition</code>.  In addition,
+the <code>stop</code> and <code>warning</code> functions have been modified to
+also accept condition arguments.
+</p>
+<p>The function <code>tryCatch</code> evaluates its expression argument
+in a context where the handlers provided in the <code>...</code>
+argument are available.  The <code>finally</code> expression is then
+evaluated in the context in which <code>tryCatch</code> was called; that
+is, the handlers supplied to the current <code>tryCatch</code> call are
+not active when the <code>finally</code> expression is evaluated.
+</p>
+<p>Handlers provided in the <code>...</code> argument to <code>tryCatch</code>
+are established for the duration of the evaluation of <code>expr</code>.
+If no condition is signaled when evaluating <code>expr</code> then
+<code>tryCatch</code> returns the value of the expression.
+</p>
+<p>If a condition is signaled while evaluating <code>expr</code> then
+established handlers are checked, starting with the most recently
+established ones, for one matching the class of the condition.
+When several handlers are supplied in a single <code>tryCatch</code> then
+the first one is considered more recent than the second.  If a
+handler is found then control is transferred to the
+<code>tryCatch</code> call that established the handler, the handler
+found and all more recent handlers are disestablished, the handler
+is called with the condition as its argument, and the result
+returned by the handler is returned as the value of the
+<code>tryCatch</code> call.
+</p>
+<p>Calling handlers are established by <code>withCallingHandlers</code>.  If
+a condition is signaled and the applicable handler is a calling
+handler, then the handler is called by <code>signalCondition</code> in
+the context where the condition was signaled but with the available
+handlers restricted to those below the handler called in the
+handler stack.  If the handler returns, then the next handler is
+tried; once the last handler has been tried, <code>signalCondition</code>
+returns <code>NULL</code>.
+</p>
+<p>User interrupts signal a condition of class <code>interrupt</code> that
+inherits directly from class <code>condition</code> before executing the
+default interrupt action.
+</p>
+<p>Restarts are used for establishing recovery protocols.  They can be
+established using <code>withRestarts</code>.  One pre-established restart is
+an <code>abort</code> restart that represents a jump to top level.
+</p>
+<p><code>findRestart</code> and <code>computeRestarts</code> find the available
+restarts.  <code>findRestart</code> returns the most recently established
+restart of the specified name.  <code>computeRestarts</code> returns a
+list of all restarts.  Both can be given a condition argument and
+will then ignore restarts that do not apply to the condition.
+</p>
+<p><code>invokeRestart</code> transfers control to the point where the
+specified restart was established and calls the restart's handler with the
+arguments, if any, given as additional arguments to
+<code>invokeRestart</code>.  The restart argument to <code>invokeRestart</code>
+can be a character string, in which case <code>findRestart</code> is used
+to find the restart.
+</p>
+<p>New restarts for <code>withRestarts</code> can be specified in several ways.
+The simplest is in <code>name = function</code> form where the function is
+the handler to call when the restart is invoked.  Another simple
+variant is as <code>name = string</code> where the string is stored in the
+<code>description</code> field of the restart object returned by
+<code>findRestart</code>; in this case the handler ignores its arguments
+and returns <code>NULL</code>.  The most flexible form of a restart
+specification is as a list that can include several fields, including
+<code>handler</code>, <code>description</code>, and <code>test</code>.  The
+<code>test</code> field should contain a function of one argument, a
+condition, that returns <code>TRUE</code> if the restart applies to the
+condition and <code>FALSE</code> if it does not; the default function
+returns <code>TRUE</code> for all conditions.
+</p>
+<p>One additional field that can be specified for a restart is
+<code>interactive</code>.  This should be a function of no arguments that
+returns a list of arguments to pass to the restart handler.  The list
+could be obtained by interacting with the user if necessary.  The
+function <code>invokeRestartInteractively</code> calls this function to
+obtain the arguments to use when invoking the restart.  The default
+<code>interactive</code> method queries the user for values for the
+formal arguments of the handler function.
+</p>
+<p>Interrupts can be suspended while evaluating an expression using
+<code>suspendInterrupts</code>.  Subexpression can be evaluated with
+interrupts enabled using <code>allowInterrupts</code>.  These functions
+can be used to make sure cleanup handlers cannot be interrupted.
+</p>
+<p><code>.signalSimpleWarning</code>, <code>.handleSimpleError</code>, and
+<code>.tryResumeInterrupt</code> are used internally and should not be
+called directly.
+</p>
+
+
+<h3>References</h3>
+
+<p>The <code>tryCatch</code> mechanism is similar to Java
+error handling.  Calling handlers are based on Common Lisp and
+Dylan.  Restarts are based on the Common Lisp restart mechanism.</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="stop.html">stop</a></code> and <code><a href="warning.html">warning</a></code> signal conditions,
+and <code><a href="try.html">try</a></code> is essentially a simplified version of
+<code>tryCatch</code>.
+<code><a href="../../tools/html/assertCondition.html">assertCondition</a></code> in package <span class="pkg">tools</span> <em>tests</em>
+that conditions are signalled and works with several of the above
+handlers.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+tryCatch(1, finally = print("Hello"))
+e &lt;- simpleError("test error")
+## Not run: 
+ stop(e)
+ tryCatch(stop(e), finally = print("Hello"))
+ tryCatch(stop("fred"), finally = print("Hello"))
+
+## End(Not run)
+tryCatch(stop(e), error = function(e) e, finally = print("Hello"))
+tryCatch(stop("fred"),  error = function(e) e, finally = print("Hello"))
+withCallingHandlers({ warning("A"); 1+2 }, warning = function(w) {})
+## Not run: 
+ { withRestarts(stop("A"), abort = function() {}); 1 }
+
+## End(Not run)
+withRestarts(invokeRestart("foo", 1, 2), foo = function(x, y) {x + y})
+
+##--&gt; More examples are part of
+##--&gt;   demo(error.catching)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

@@ -1,0 +1,199 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Functions to Access the Function Call Stack</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for sys.parent {base}"><tr><td>sys.parent {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Functions to Access the Function Call Stack</h2>
+
+<h3>Description</h3>
+
+<p>These functions provide access to <code><a href="environment.html">environment</a></code>s
+(&lsquo;frames&rsquo; in S terminology) associated with functions further
+up the calling stack.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+sys.call(which = 0)
+sys.frame(which = 0)
+sys.nframe()
+sys.function(which = 0)
+sys.parent(n = 1)
+
+sys.calls()
+sys.frames()
+sys.parents()
+sys.on.exit()
+sys.status()
+parent.frame(n = 1)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>which</code></td>
+<td>
+<p>the frame number if non-negative, the number of frames
+to go back if negative.</p>
+</td></tr>
+<tr valign="top"><td><code>n</code></td>
+<td>
+<p>the number of generations to go back.  (See the
+&lsquo;Details&rsquo; section.)</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p><code><a href="environment.html">.GlobalEnv</a></code> is given number 0 in the list of frames.
+Each subsequent function evaluation increases the frame stack by 1
+and the call, function definition and the environment for evaluation
+of that function are returned by <code>sys.call</code>, <code>sys.function</code>
+and <code>sys.frame</code> with the appropriate index.
+</p>
+<p><code>sys.call</code>, <code>sys.frame</code> and <code>sys.function</code> accept
+integer values for the argument <code>which</code>.  Non-negative values of
+<code>which</code> are frame numbers whereas negative values are
+counted back from the frame number of the current evaluation.
+</p>
+<p>The parent frame of a function evaluation is the environment in which
+the function was called.  It is not necessarily numbered one less than
+the frame number of the current evaluation, nor is it the environment
+within which the function was defined.  <code>sys.parent</code> returns the
+number of the parent frame if <code>n</code> is 1 (the default), the
+grandparent if <code>n</code> is 2, and so on.  See also the &lsquo;Note&rsquo;.
+</p>
+<p><code>sys.nframe</code> returns an integer, the number of the current frame
+as described in the first paragraph.
+</p>
+<p><code>sys.calls</code> and <code>sys.frames</code> give a pairlist of all the
+active calls and frames, respectively, and <code>sys.parents</code> returns
+an integer vector of indices of the parent frames of each of those
+frames.
+</p>
+<p>Notice that even though the <code>sys.</code><em>xxx</em> functions (except
+<code>sys.status</code>) are interpreted, their contexts are not counted nor
+are they reported.  There is no access to them.
+</p>
+<p><code>sys.status()</code> returns a list with components <code>sys.calls</code>,
+<code>sys.parents</code> and <code>sys.frames</code>, the results of calls to
+those three functions (which this will include the call to
+<code>sys.status</code>: see the first example).
+</p>
+<p><code>sys.on.exit()</code> returns the expression stored for use by
+<code><a href="on.exit.html">on.exit</a></code> in the function currently being evaluated.
+(Note that this differs from S, which returns a list of expressions
+for the current frame and its parents.)
+</p>
+<p><code>parent.frame(n)</code> is a convenient shorthand for
+<code>sys.frame(sys.parent(n))</code> (implemented slightly more efficiently).
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>sys.call</code> returns a call, <code>sys.function</code> a function
+definition, and <code>sys.frame</code> and <code>parent.frame</code> return an
+environment.
+</p>
+<p>For the other functions, see the &lsquo;Details&rsquo; section.
+</p>
+
+
+<h3>Note</h3>
+
+<p>Strictly, <code>sys.parent</code> and <code>parent.frame</code> refer to the
+<em>context</em> of the parent interpreted function.  So internal
+functions (which may or may not set contexts and so may or may not
+appear on the call stack) may not be counted, and S3 methods can also do
+surprising things.
+</p>
+<p>Beware of the effect of lazy evaluation: these two functions look at
+the call stack at the time they are evaluated, not at the time they
+are called.  Passing calls to them as function arguments is unlikely to
+be a good idea.
+</p>
+
+
+<h3>References</h3>
+
+<p>Becker, R. A., Chambers, J. M. and Wilks, A. R. (1988)
+<em>The New S Language</em>.
+Wadsworth &amp; Brooks/Cole.  (Not <code>parent.frame</code>.)
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="eval.html">eval</a></code> for a usage of <code>sys.frame</code> and <code>parent.frame</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+require(utils)
+
+## Note: the first two examples will give different results
+## if run by example().
+ff &lt;- function(x) gg(x)
+gg &lt;- function(y) sys.status()
+str(ff(1))
+
+gg &lt;- function(y) {
+    ggg &lt;- function() {
+        cat("current frame is", sys.nframe(), "\n")
+        cat("parents are", sys.parents(), "\n")
+        print(sys.function(0)) # ggg
+        print(sys.function(2)) # gg
+    }
+    if(y &gt; 0) gg(y-1) else ggg()
+}
+gg(3)
+
+t1 &lt;- function() {
+  aa &lt;- "here"
+  t2 &lt;- function() {
+    ## in frame 2 here
+    cat("current frame is", sys.nframe(), "\n")
+    str(sys.calls()) ## list with two components t1() and t2()
+    cat("parents are frame numbers", sys.parents(), "\n") ## 0 1
+    print(ls(envir = sys.frame(-1))) ## [1] "aa" "t2"
+    invisible()
+  }
+  t2()
+}
+t1()
+
+test.sys.on.exit &lt;- function() {
+  on.exit(print(1))
+  ex &lt;- sys.on.exit()
+  str(ex)
+  cat("exiting...\n")
+}
+test.sys.on.exit()
+## gives 'language print(1)', prints 1 on exit
+
+## An example where the parent is not the next frame up the stack
+## since method dispatch uses a frame.
+as.double.foo &lt;- function(x)
+{
+    str(sys.calls())
+    print(sys.frames())
+    print(sys.parents())
+    print(sys.frame(-1)); print(parent.frame())
+    x
+}
+t2 &lt;- function(x) as.double(x)
+a &lt;- structure(pi, class = "foo")
+t2(a)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

@@ -1,0 +1,173 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Convert between Colour Spaces</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for convertColor {grDevices}"><tr><td>convertColor {grDevices}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Convert between Colour Spaces</h2>
+
+<h3>Description</h3>
+
+<p>Convert colours between their representations in standard
+colour spaces.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+convertColor(color, from, to, from.ref.white, to.ref.white,
+             scale.in = 1, scale.out = 1, clip = TRUE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>color</code></td>
+<td>
+<p>A matrix whose rows specify colors.
+The function will also accept a data frame, but will silently
+convert to a matrix internally. </p>
+</td></tr>
+<tr valign="top"><td><code>from, to</code></td>
+<td>
+<p>Input and output color spaces.  See &lsquo;Details&rsquo; below.</p>
+</td></tr>
+<tr valign="top"><td><code>from.ref.white, to.ref.white</code></td>
+<td>
+<p>Reference whites or <code>NULL</code>
+if these are built in to the definition, as for RGB
+spaces. <code>D65</code> is the default, see &lsquo;Details&rsquo; for others.
+</p>
+</td></tr>
+<tr valign="top"><td><code>scale.in, scale.out</code></td>
+<td>
+<p>Input is divided by <code>scale.in</code>, output
+is multiplied by <code>scale.out</code>. Use <code>NULL</code> to suppress
+scaling when input or output is not numeric.</p>
+</td></tr>
+<tr valign="top"><td><code>clip</code></td>
+<td>
+<p>If <code>TRUE</code>, truncate RGB output to [0,1],
+<code>FALSE</code> return out-of-range RGB, <code>NA</code> set out of range
+colors to <code>NaN</code>.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>Color spaces are specified by objects of class <code>colorConverter</code>,
+created by <code><a href="make.rgb.html">colorConverter</a></code> or <code><a href="make.rgb.html">make.rgb</a></code>.
+Built-in color spaces may be referenced by strings: <code>"XYZ"</code>,
+<code>"sRGB"</code>, <code>"Apple RGB"</code>, <code>"CIE RGB"</code>, <code>"Lab"</code>,
+<code>"Luv"</code>.  The converters for these colour spaces are in the object
+<code>colorspaces</code>.
+</p>
+<p>The <code>"sRGB"</code> color space is that used by standard PC monitors.
+<code>"Apple RGB"</code> is used by Apple monitors. <code>"Lab"</code> and
+<code>"Luv"</code> are approximately perceptually uniform
+spaces standardized by the Commission Internationale
+d'Eclairage. <code>XYZ</code> is a 1931 CIE standard capable of representing
+all visible colors (and then some), but not in a perceptually uniform
+way.
+</p>
+<p>The <code>Lab</code> and <code>Luv</code> spaces describe colors of objects, and
+so require the specification of a reference &lsquo;white light&rsquo;
+color.  Illuminant <code>D65</code> is a standard indirect daylight,
+Illuminant <code>D50</code> is close to direct sunlight, and Illuminant
+<code>A</code> is the light from a standard incandescent bulb. Other
+standard CIE illuminants supported are <code>B</code>, <code>C</code>, <code>E</code> and
+<code>D55</code>.  RGB colour spaces are defined relative to a particular
+reference white, and can be only approximately translated to other
+reference whites.  The von Kries chromatic adaptation algorithm is used
+for this.  Prior to R 3.6, color conversions involving color spaces
+created with <code><a href="make.rgb.html">make.rgb</a></code> were carried out assuming a <code>D65</code>
+illuminant, irrespective of the actual illuminant used in the creation of the
+color space.  This affected the built-in <code>"CIE RGB"</code> color space.
+</p>
+<p>The RGB color spaces are specific to a particular class of display.
+An RGB space cannot represent all colors, and the <code>clip</code> option
+controls what is done to out-of-range colors.
+</p>
+<p>For the named color spaces <code>color</code> must be a matrix of values in
+the <code>from</code> color space: in particular opaque colors.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A 3-column matrix whose rows specify the colors.
+</p>
+
+
+<h3>References</h3>
+
+<p>For all the conversion equations <a href="http://www.brucelindbloom.com/">http://www.brucelindbloom.com/</a>.
+</p>
+<p>For the white points
+<a href="http://www.efg2.com/Lab/Graphics/Colors/Chromaticity.htm">http://www.efg2.com/Lab/Graphics/Colors/Chromaticity.htm</a>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="col2rgb.html">col2rgb</a></code> and <code><a href="colors.html">colors</a></code> for ways to specify
+colors in graphics.
+</p>
+<p><code><a href="make.rgb.html">make.rgb</a></code> for specifying other colour spaces.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## The displayable colors from four planes of Lab space
+ab &lt;- expand.grid(a = (-10:15)*10,
+                  b = (-15:10)*10)
+require(graphics); require(stats) # for na.omit
+par(mfrow = c(2, 2), mar = .1+c(3, 3, 3, .5), mgp = c(2,  .8,  0))
+
+Lab &lt;- cbind(L = 20, ab)
+srgb &lt;- convertColor(Lab, from = "Lab", to = "sRGB", clip = NA)
+clipped &lt;- attr(na.omit(srgb), "na.action")
+srgb[clipped, ] &lt;- 0
+cols &lt;- rgb(srgb[, 1], srgb[, 2], srgb[, 3])
+image((-10:15)*10, (-15:10)*10, matrix(1:(26*26), ncol = 26), col = cols,
+  xlab = "a", ylab = "b", main = "Lab: L=20")
+
+Lab &lt;- cbind(L = 40, ab)
+srgb &lt;- convertColor(Lab, from = "Lab", to = "sRGB", clip = NA)
+clipped &lt;- attr(na.omit(srgb), "na.action")
+srgb[clipped, ] &lt;- 0
+cols &lt;- rgb(srgb[, 1], srgb[, 2], srgb[, 3])
+image((-10:15)*10, (-15:10)*10, matrix(1:(26*26), ncol = 26), col = cols,
+  xlab = "a", ylab = "b", main = "Lab: L=40")
+
+Lab &lt;- cbind(L = 60, ab)
+srgb &lt;- convertColor(Lab, from = "Lab", to = "sRGB", clip = NA)
+clipped &lt;- attr(na.omit(srgb), "na.action")
+srgb[clipped, ] &lt;- 0
+cols &lt;- rgb(srgb[, 1], srgb[, 2], srgb[, 3])
+image((-10:15)*10, (-15:10)*10, matrix(1:(26*26), ncol = 26), col = cols,
+  xlab = "a", ylab = "b", main = "Lab: L=60")
+
+Lab &lt;- cbind(L = 80, ab)
+srgb &lt;- convertColor(Lab, from = "Lab", to = "sRGB", clip = NA)
+clipped &lt;- attr(na.omit(srgb), "na.action")
+srgb[clipped, ] &lt;- 0
+cols &lt;- rgb(srgb[, 1], srgb[, 2], srgb[, 3])
+image((-10:15)*10, (-15:10)*10, matrix(1:(26*26), ncol = 26), col = cols,
+  xlab = "a", ylab = "b", main = "Lab: L=80")
+
+cols &lt;- t(col2rgb(palette())); rownames(cols) &lt;- palette(); cols
+zapsmall(lab &lt;- convertColor(cols, from = "sRGB", to = "Lab", scale.in = 255))
+stopifnot(all.equal(cols, # converting back.. getting the original:
+   round(convertColor(lab, from = "Lab", to = "sRGB", scale.out = 255)),
+                    check.attributes = FALSE))
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>grDevices</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

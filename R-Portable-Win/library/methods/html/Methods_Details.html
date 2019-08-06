@@ -1,0 +1,410 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: General Information on Methods</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for Methods_Details {methods}"><tr><td>Methods_Details {methods}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>General Information on Methods</h2>
+
+<h3>Description</h3>
+
+<p>This documentation covers some general topics on how methods
+work and how the <span class="pkg">methods</span> package interacts with the rest of <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>.  The
+information is usually not needed to get started with methods and
+classes, but may be helpful for moderately ambitious projects, or when
+something doesn't work as expected.
+</p>
+<p>For additional information  see documentation for
+the important steps: (<code><a href="setMethod.html">setMethod</a>()</code>,
+<code><a href="setClass.html">setClass</a>()</code> and <code><a href="setGeneric.html">setGeneric</a>()</code>). Also
+<code><a href="Methods_for_Nongenerics.html">Methods_for_Nongenerics</a></code> on defining formal methods for
+functions  that are not currently generic functions;
+<a href="Methods_for_S3.html">Methods_for_S3</a> for the relation to S3 classes and methods;
+<code><a href="Classes_Details.html">Classes_Details</a></code> for class definitions and
+Chapters 9 and 10 of the reference.
+</p>
+
+
+<h3>How Methods Work</h3>
+
+<p>A call to a generic function selects a method matching the actual
+arguments in the call. The body of the method is evaluated in the
+frame of the call to the generic function.
+A generic function is identified by its name and by the package to
+which it correspond.  Unlike ordinary functions, the generic has a
+slot that specifies its package.
+</p>
+<p>In an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> session, there is one version of each such generic,
+regardless of where the call to that generic originated, and
+the generic function has a table of all the methods currently
+available for it; that is, all the methods
+in packages currently loaded into the session.
+</p>
+<p>Methods are frequently defined for functions that are non-generic in
+their original package,.
+for example, for function <code>plot()</code> in
+package <span class="pkg">graphics</span>.
+An identical version of the corresponding generic function may exist
+in several packages.  All methods will be dispatched consistently
+from the <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> session.
+</p>
+<p>Each <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> package with a call to <code><a href="setMethod.html">setMethod</a></code> in its source code
+will include  a methods metadata object for that generic.
+When the package is loaded into an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> session, the methods for each
+generic function are <em>cached</em>, that is, added to the
+environment of the generic function.  This merged table of methods is used to
+dispatch or select methods from the generic, using class inheritance
+and possibly group generic functions (see
+<code><a href="S4groupGeneric.html">GroupGenericFunctions</a></code>) to find an applicable method.
+See the &ldquo;Method Selection and Dispatch&rdquo; section below.
+The caching computations ensure that only one version of each
+generic function is visible globally; although different attached
+packages may contain a copy of the generic function, these behave
+identically with respect to method selection.
+</p>
+<p>In contrast, it is possible for the same function name to refer to
+more than one generic function, when these have different
+<code>package</code> slots.  In the latter case, <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> considers the
+functions unrelated:  A generic function is defined by the
+combination of name and package.  See the &ldquo;Generic Functions&rdquo;
+section below.
+</p>
+<p>The methods for a generic are stored according to the
+corresponding <code>signature</code> in the call to <code><a href="setMethod.html">setMethod</a></code>
+that defined  the method.  The signature associates one
+class name with each of a subset of the formal arguments to the
+generic function.  Which formal arguments are available, and the
+order in which they appear, are determined by the <code>"signature"</code>
+slot of the generic function itself.  By default, the signature of the
+generic consists of all the formal arguments except ..., in the
+order they appear in the function definition.
+</p>
+<p>Trailing arguments in the signature of the generic will be <em>inactive</em>  if no
+method has yet been specified that included those arguments in its signature.
+Inactive arguments are not needed or used in labeling the cached
+methods.  (The distinction does not change which methods are
+dispatched, but ignoring inactive arguments improves the
+efficiency of dispatch.)
+</p>
+<p>All arguments in the signature of the generic function will be evaluated when the
+function is called, rather than using lazy
+evaluation.  Therefore, it's important to <em>exclude</em>
+from the signature any arguments that need to be dealt with
+symbolically (such as the <code>expr</code> argument to function
+<code><a href="../../base/html/with.html">with</a></code>).  Note that only actual arguments are
+evaluated, not default expressions.
+A missing argument enters into the method selection as class
+<code>"missing"</code>.
+</p>
+<p>The cached methods are stored in an
+environment object.  The names used for assignment are a
+concatenation of the class names for the active arguments in the method signature.
+</p>
+
+
+<h3>Method Selection: Details</h3>
+
+<p>When a call to a generic function is evaluated, a method is selected corresponding
+to the classes of the actual arguments in the signature.
+First, the cached methods table is searched for an  exact match;
+that is, a method stored under the signature defined by
+the string value of <code>class(x)</code> for each non-missing
+argument, and <code>"missing"</code> for each missing argument.
+If no method is found directly for the actual arguments in a call to a
+generic function, an attempt is made to match the available methods to
+the arguments by using the superclass information about the actual
+classes.
+A method found by this search is cached
+in the generic function so that future calls with the same argument classes will
+not require repeating the search.  In any likely application, the
+search for inherited methods will be a negligible overhead.
+</p>
+<p>Each class definition may include a list of  one or more direct
+<em>superclasses</em> of the new class.
+The simplest and most common specification is by the <code>contains=</code> argument in
+the  call to <code><a href="setClass.html">setClass</a></code>.
+Each class named in this argument is a superclass of the new class.
+A class will also have as a direct superclass any class union to which
+it is a member.
+Class unions are created by
+a call to <code><a href="setClassUnion.html">setClassUnion</a></code>.
+Additional members can be added to the union by a simple call to
+<code><a href="setIs.html">setIs</a></code>.
+Superclasses specified by either mechanism are the <em>direct</em> superclasses.
+</p>
+<p>Inheritance specified in either of these forms is <em>simple</em> in the
+sense that all the information needed for the superclass is asserted
+to be directly available from the object.
+<span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> inherited from S a more general form of inheritance in which
+inheritance may require some transformation or be conditional on a
+test.
+This more general form has not proved to be useful in general
+practical situations.   Since it also adds some computational costs
+non-simple inheritance is not recommended.  See <code><a href="setIs.html">setIs</a></code>
+for the general version.
+</p>
+<p>The direct superclasses themselves may
+have  direct superclasses and
+similarly through further generations.  Putting all this information together produces
+the full list of superclasses for this class.
+The superclass list is included in the definition of the class that is
+cached during the <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> session.
+The <em>distance</em> between the two classes is defined to be the
+number of generations:
+<code>1</code> for direct superclasses (regardless of which mechanism
+defined them), then <code>2</code> for the direct superclasses of those
+classes, and so on.
+To see all the superclasses, with their distance, print the class
+definition by calling <code><a href="getClass.html">getClass</a></code>.
+In addition, any class implicitly has class <code>"ANY"</code> as a superclass.  The
+distance to <code>"ANY"</code> is treated as larger than the distance to any
+actual class.
+The special class <code>"missing"</code> corresponding to missing arguments
+has only <code>"ANY"</code> as a superclass, while <code>"ANY"</code> has no
+superclasses.
+</p>
+<p>When a method is to be selected by inheritance, a search is made in
+the table for all methods corresponding to a combination of
+either the direct class or one of its superclasses, for each argument
+in the active signature.
+For an example, suppose there is only one argument in the signature and that the class of
+the corresponding object was <code>"dgeMatrix"</code> (from the recommended package
+<code>Matrix</code>).
+This class has (currently) three direct superclasses and through these
+additional superclasses at distances 2 through 4.
+A method that had been defined for any of these classes or for class
+<code>"ANY"</code> (the default method) would be eligible.
+Methods for the shortest difference are preferred.
+If there is only one best method in this sense, method selection is unambiguous.
+</p>
+<p>When there are multiple arguments in the signature, each argument will
+generate a similar  list of inherited classes.
+The possible matches are now all the combinations of classes from each
+argument (think of the function <code>outer</code> generating an array of
+all possible combinations).
+The search now finds all the methods matching any of this combination
+of classes.
+For each argument, the distance to the superclass defines which
+method(s) are preferred for that argument.
+A method is considered best for selection if it is among the best
+(i.e., has the least distance) for
+each argument.
+</p>
+<p>The end result is that zero, one or more methods may be &ldquo;best&rdquo;.
+If one, this method is selected and cached in the table of methods.
+If there is more than one best match, the selection is ambiguous and a message is
+printed noting which method was selected (the first method
+lexicographically in the ordering) and what other methods could have
+been selected.
+Since the ambiguity is usually nothing the end user could control,
+this is not a warning.
+Package authors should examine their package for possible ambiguous
+inheritance by calling <code><a href="testInheritedMethods.html">testInheritedMethods</a></code>.
+</p>
+<p>Cached inherited selections are
+not themselves used in future inheritance searches, since that could result
+in invalid selections.
+If you want inheritance computations to be done again (for example,
+because a newly loaded package has a more direct method than one
+that has already been used in this session), call
+<code><a href="MethodSupport.html">resetGeneric</a></code>.  Because classes and methods involving
+them tend to come from the same package, the current implementation
+does not reset all generics every time a new package is loaded.
+</p>
+<p>Besides being initiated through calls to the generic function, method
+selection can be done explicitly by calling the function
+<code><a href="getMethod.html">selectMethod</a></code>.
+Note that some computations may use this function directly, with
+optional arguments.
+The prime example is the use of <code><a href="setAs.html">coerce</a>()</code> methods by
+function <code><a href="as.html">as</a>()</code>.
+There has been some confusion from comparing coerce methods to a call
+to <code><a href="getMethod.html">selectMethod</a></code> with other options.
+</p>
+
+
+<h3>Method Evaluation: Details</h3>
+
+<p>Once a method has been selected, the evaluator creates a new context
+in which a call to the method is evaluated.
+The context is initialized with the arguments from the call to the
+generic function.
+These arguments are not rematched.  All the arguments in the signature
+of the generic will have been evaluated (including any that are
+currently inactive); arguments that are not in the signature will obey
+the usual lazy evaluation rules of the language.
+If an argument was missing in the call, its default expression if any
+will <em>not</em> have been evaluated, since method dispatch always uses
+class <code>missing</code> for such arguments.
+</p>
+<p>A call to a generic function therefore has two contexts:  one for the
+function and a second for the method.
+The argument objects will be copied to the second context, but not any
+local objects created in a nonstandard generic function.
+The other important distinction is that the parent
+(&ldquo;enclosing&rdquo;) environment of the second context is the environment
+of the method as a function, so that all <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> programming techniques
+using such environments apply to method definitions as ordinary functions.
+</p>
+<p>For further discussion of method selection and dispatch,  see the
+references in the sections indicated.
+</p>
+
+
+<h3>Generic Functions</h3>
+
+<p>In principle, a generic function could be any function that evaluates
+a call to <code>standardGeneric()</code>, the internal function that selects
+a method and evaluates a call to  the selected method.  In practice,
+generic functions are special objects that in addition to being from a
+subclass of class <code>"function"</code> also extend the class
+<code><a href="genericFunction-class.html">genericFunction</a></code>.  Such objects have slots to define
+information needed to deal with their methods.  They also have
+specialized environments, containing the tables used in method
+selection.
+</p>
+<p>The slots <code>"generic"</code> and  <code>"package"</code> in the object are the
+character string names of the generic function itself and of the
+package from which the  function is defined.
+As with classes, generic functions are uniquely defined in <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> by the
+combination of the two names.
+There can be generic functions of the same name associated with
+different packages (although inevitably keeping such functions cleanly
+distinguished is not always easy).
+On the other hand, <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> will enforce that only one definition of a
+generic function can be associated with a particular combination of
+function and package name, in the current session or other active
+version of <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>.
+</p>
+<p>Tables of methods for a particular generic function, in this sense,
+will often be spread over several other packages.
+The total set of methods for a given generic function may change
+during a session, as additional packages are loaded.
+Each table must be consistent in the signature assumed for the generic
+function.
+</p>
+<p><span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> distinguishes <em>standard</em> and <em>nonstandard</em> generic
+functions, with the former having a function body that does nothing
+but dispatch a method.
+For the most part, the distinction is just one of simplicity:  knowing
+that a generic function only dispatches a method call allows some
+efficiencies and also removes some uncertainties.
+</p>
+<p>In most cases, the generic function is the visible function
+corresponding to that name, in the corresponding package.
+There are two exceptions, <em>implicit</em> generic
+functions and the special computations required to deal with <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>'s
+<em>primitive</em> functions.
+Packages can contain a table of implicit generic versions of functions
+in the package, if the package wishes to leave a function non-generic
+but to constrain what the function would be like if it were generic.
+Such implicit generic functions are created during the installation of
+the package, essentially by defining the generic function and
+possibly methods for it, and then reverting the function to its
+non-generic form. (See <a href="implicitGeneric.html">implicitGeneric</a> for how this is done.)
+The mechanism is mainly used for functions in the older packages in
+<span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>, which may prefer to ignore S4 methods.
+Even in this case, the actual mechanism is only needed if something
+special has to be specified.
+All functions have a corresponding implicit generic version defined
+automatically (an implicit, implicit generic function one might say).
+This function is a standard generic with the same arguments as the
+non-generic function, with the non-generic version as the default (and only)
+method, and with the generic signature being all the formal arguments
+except ....
+</p>
+<p>The implicit generic mechanism is needed only to override some aspect
+of the default definition.
+One reason to do so would be to remove some arguments from the
+signature.
+Arguments that may need to be interpreted literally, or for which the
+lazy evaluation mechanism of the language is needed, must <em>not</em>
+be included in the signature of the generic function, since all
+arguments in the signature will be evaluated in order to select a
+method.
+For example, the argument <code>expr</code> to the function
+<code><a href="../../base/html/with.html">with</a></code> is treated literally and must therefore be excluded
+from the signature.
+</p>
+<p>One would also need to define an implicit generic if the existing
+non-generic function were not suitable as the default method.
+Perhaps the function only applies to some classes of objects, and the
+package designer prefers to have no general default method.
+In the other direction, the package designer might have some ideas
+about suitable methods for some classes, if the function were generic.
+With reasonably modern packages, the simple approach in all these
+cases is just to define the function as a generic.
+The implicit generic mechanism is mainly attractive for older packages
+that do not want to require the methods package to be available.
+</p>
+<p>Generic functions will also be defined but not obviously visible for
+functions implemented as <em>primitive</em> functions in the base
+package.
+Primitive functions look like ordinary functions when printed but are
+in fact not function objects but objects of two types interpreted by
+the <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> evaluator to call underlying C code directly.
+Since their entire justification is efficiency, <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> refuses to hide
+primitives behind a generic function object.
+Methods may be defined for most primitives, and corresponding metadata
+objects will be created to store them.
+Calls to the primitive still go directly to the C code, which will
+sometimes check for applicable methods.
+The definition of &ldquo;sometimes&rdquo; is that methods must have been
+detected for the function in some package loaded in the session and
+<code>isS4(x)</code> is <code>TRUE</code> for  the first argument (or for the
+second argument, in the case of binary operators).
+You can test whether methods have been detected by calling
+<code><a href="GenericFunctions.html">isGeneric</a></code> for the relevant function and you can examine
+the generic function by calling <code><a href="RMethodUtils.html">getGeneric</a></code>, whether or
+not methods have been detected.
+For more on generic functions, see the references and also section 2
+of the <em>R Internals</em> document supplied with <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>.
+</p>
+
+
+<h3>Method Definitions</h3>
+
+<p>All method definitions are stored as objects from the
+<code><a href="MethodDefinition-class.html">MethodDefinition</a></code> class.
+Like the class of generic functions, this class extends ordinary <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>
+functions with some additional slots: <code>"generic"</code>, containing the
+name and package of the generic function, and two signature slots,
+<code>"defined"</code> and <code>"target"</code>, the first being the signature supplied when
+the method was defined by a call to <code><a href="setMethod.html">setMethod</a></code>.
+The  <code>"target"</code> slot starts off equal to the <code>"defined"</code>
+slot.  When an inherited method is cached after being selected, as
+described above, a copy is made with the  appropriate <code>"target"</code>  signature.
+Output from <code><a href="showMethods.html">showMethods</a></code>, for example, includes both
+signatures.
+</p>
+<p>Method definitions are required to have the same formal arguments as
+the generic function, since the method dispatch mechanism does not
+rematch arguments, for reasons of both efficiency and consistency.
+</p>
+
+
+<h3>References</h3>
+
+<p>Chambers, John M. (2016)
+<em>Extending R</em>,
+Chapman &amp; Hall.
+(Chapters 9 and 10.)
+</p>
+<p>Chambers, John M. (2008)
+<em>Software for Data Analysis: Programming with R</em>
+Springer. (Section 10.5 for some details.)
+</p>
+
+
+<h3>See Also</h3>
+
+<p>For more specific information, see
+<code><a href="setGeneric.html">setGeneric</a></code>, <code><a href="setMethod.html">setMethod</a></code>, and
+<code><a href="setClass.html">setClass</a></code>.
+</p>
+<p>For the use of ... in methods, see  <a href="dotsMethods.html">dotsMethods</a>.
+</p>
+
+<hr /><div style="text-align: center;">[Package <em>methods</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

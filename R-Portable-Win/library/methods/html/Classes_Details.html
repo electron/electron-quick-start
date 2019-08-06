@@ -1,0 +1,330 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Class Definitions</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for Classes_Details {methods}"><tr><td>Classes_Details {methods}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Class Definitions</h2>
+
+<h3>Description</h3>
+
+<p>Class definitions are objects that contain the formal definition of a
+class of <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> objects, usually referred to as an S4 class, to
+distinguish them from the informal S3 classes.
+This document gives an overview of S4 classes; for
+details of the class representation objects, see help for the class
+<code><a href="classRepresentation-class.html">classRepresentation</a></code>.
+</p>
+
+
+<h3>Metadata Information</h3>
+
+<p>When a class is defined, an object is stored that contains the
+information about that class.  The object, known as the
+<em>metadata</em> defining the class, is not stored under the name of
+the class (to allow programmers to write generating functions of
+that name), but under a specially constructed name.
+To examine the class definition, call <code><a href="getClass.html">getClass</a></code>.  The
+information in the metadata object includes:
+</p>
+
+<dl>
+<dt>Slots:</dt><dd>
+<p>The data contained in an object from an S4 class is defined by
+the <em>slots</em> in the class definition.
+</p>
+<p>Each slot in an object is a component of the object;
+like components (that is, elements) of a
+list, these may be extracted and set, using the
+function <code><a href="slot.html">slot</a>()</code> or more often the operator
+<code>"<a href="../../base/html/slotOp.html">@</a>"</code>.  However, they
+differ from list components in important ways.
+First, slots can only be referred to by name, not by position,
+and there is no partial matching of names as with list elements.
+</p>
+<p>All the objects from a particular class have the same set of slot
+names; specifically, the slot names that are contained in the
+class definition.  Each slot in each object always is an object
+of  the
+class specified for this slot in the definition of the current class.
+The word &ldquo;is&rdquo; corresponds to the <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> function of the same
+name (<code><a href="is.html">is</a></code>), meaning that the class of the object in
+the slot must be the same as the class specified in the
+definition, or some class that extends the one in the
+definition (a <em>subclass</em>).
+</p>
+<p>A special slot name, <code>.Data</code>, stands for the
+&lsquo;data part&rsquo; of the object.  An object from a class with a
+data part is defined by specifying that the class contains one
+of the <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> object types or one of the special pseudo-classes,
+<code>matrix</code> or <code>array</code>, usually because the definition of
+the class, or of one of its superclasses, has included the type
+or pseudo-class in its <code>contains</code> argument.  A second
+special slot name, <code>.xData</code>, is used to enable inheritance
+from abnormal types such as <code>"environment"</code>
+See the section on inheriting from non-S4 classes
+for details on the representation and
+for the behavior of S3 methods with objects from these classes.
+</p>
+<p>Some slot names correspond to attributes used in old-style S3
+objects and in <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> objects without an explicit class, for
+example, the <code>names</code> attribute.  If you define a class for
+which that attribute will be set, such as a subclass of named
+vectors, you should include <code>"names"</code> as a slot.  See the
+definition of class <code>"namedList"</code> for an example.  Using the
+<code>names()</code> assignment to set such names will generate a
+warning if there is no names slot and an error if the object in
+question is not a vector type.  A slot called <code>"names"</code> can
+be used anywhere, but only if it is assigned as a slot, not via
+the default <code>names()</code> assignment.
+</p>
+</dd>
+<dt>Superclasses:</dt><dd>
+<p>The definition of a class includes the <em>superclasses</em> &mdash;the
+classes that this class extends.  A
+class <code>Fancy</code>, say, extends a class <code>Simple</code> if an
+object from the <code>Fancy</code> class has all the capabilities of
+the <code>Simple</code> class (and probably some more as well).  In
+particular, and very usefully, any method defined to work for a
+<code>Simple</code> object can be applied to a <code>Fancy</code> object as
+well.
+</p>
+<p>This relationship is expressed equivalently by saying that
+<code>Simple</code> is a superclass of <code>Fancy</code>, or that
+<code>Fancy</code> is a subclass of <code>Simple</code>.
+</p>
+<p>The direct superclasses of a class are those superclasses
+explicitly defined.   Direct superclasses can be defined in
+three ways.  Most commonly, the superclasses are listed in the
+<code>contains=</code> argument in the call to <code><a href="setClass.html">setClass</a></code>
+that creates the subclass.   In this case the subclass will
+contain all the slots of the superclass, and the relation
+between the class is called <em>simple</em>, as it in fact is.
+Superclasses can also be defined
+explicitly by a call to <code><a href="setIs.html">setIs</a></code>; in this case, the
+relation requires methods to be specified to go from subclass to
+superclass.   Thirdly, a class union is a superclass of all the
+members of the union.  In this case too the relation is simple,
+but notice that the relation is defined when the superclass is
+created, not when the subclass is created as with the
+<code>contains=</code> mechanism.
+</p>
+<p>The definition of a superclass will also potentially contain
+its own direct superclasses.  These are considered (and shown) as
+superclasses at distance 2 from the original class; their direct
+superclasses are at distance 3, and so on.  All these are
+legitimate superclasses for purposes such as method selection.
+</p>
+<p>When superclasses are defined  by including the names of
+superclasses in the <code>contains=</code> argument to
+<code><a href="setClass.html">setClass</a></code>, an object from the class will have all the
+slots defined for its own class <em>and</em> all the slots defined
+for all its superclasses as well.
+</p>
+<p>The information about the relation between a class and a
+particular superclass is encoded as an object of class
+<code><a href="SClassExtension-class.html">SClassExtension</a></code>.  A list of such objects for
+the superclasses (and sometimes for the subclasses) is included in
+the metadata object defining the class.  If you need to compute
+with these objects (for example, to compare the distances), call
+the function <code><a href="is.html">extends</a></code> with argument <code>fullInfo=TRUE</code>.
+</p>
+</dd>
+<dt>Prototype:</dt><dd>
+<p>The objects from a class created by a call to
+<code><a href="new.html">new</a></code>
+are defined by the <em>prototype</em> object for the class and by
+additional arguments in the call to <code><a href="new.html">new</a></code>, which are
+passed to a method for that class for the function
+<code><a href="new.html">initialize</a></code>.
+</p>
+<p>Each class representation object contains a prototype object
+for the class (although for a virtual class the prototype may be
+<code>NULL</code>). The prototype object must have values for all the
+slots of the class.
+By default, these are the prototypes of the corresponding slot
+classes.  However, the definition of the class can specify any
+valid object for any of the slots.
+</p>
+</dd>
+</dl>
+
+
+
+<h3>Basic classes</h3>
+
+<p>There are a number of &lsquo;basic&rsquo; classes, corresponding to the
+ordinary kinds of data occurring in <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>.  For example,
+<code>"numeric"</code> is a class corresponding to numeric vectors.
+The other vector basic classes are <code>"logical"</code>, <code>"integer"</code>,
+<code>"complex"</code>, <code>"character"</code>,  <code>"raw"</code>, <code>"list"</code>
+and <code>"expression"</code>.
+The prototypes for
+the vector classes are vectors of length 0 of the corresponding
+type.  Notice that basic classes are unusual in that the
+prototype object is from the class itself.
+</p>
+<p>In addition to the vector classes there are also basic classes
+corresponding to objects in the
+language, such as <code>"function"</code> and <code>"call"</code>.
+These classes are subclasses of the virtual class <code>"language"</code>.
+Finally, there are object types and corresponding basic classes for
+&ldquo;abnormal&rdquo; objects, such as <code>"environment"</code> and
+<code>"externalptr"</code>.
+These objects do not follow the
+functional behavior of the language; in particular, they are not
+copied and so cannot have attributes or slots defined locally.
+</p>
+<p>All these classes can be used as slots or as
+superclasses for any other class definitions, although they do
+not themselves come with an explicit class.  For the abnormal
+object types, a special mechanism is used to enable inheritance
+as described below.
+</p>
+
+
+<h3>Inheriting from non-S4 Classes</h3>
+
+<p>A class definition can extend classes other than
+regular S4 classes, usually by specifying them in the
+<code>contains=</code> argument to <code><a href="setClass.html">setClass</a></code>.  Three groups
+of such classes behave distinctly:
+</p>
+
+<ol>
+<li>
+<p>S3 classes, which must have been registered by a previous call to
+<code><a href="setOldClass.html">setOldClass</a></code> (you can check that this has been done
+by calling <code><a href="getClass.html">getClass</a></code>, which should return a class that
+extends <a href="setOldClass.html">oldClass</a>);
+</p>
+</li>
+<li>
+<p>One of the <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> object types, typically a vector type, which then
+defines the type of the S4 objects, but also a type such as
+<code><a href="../../base/html/environment.html">environment</a></code> that can not be used directly as a type
+for an S4 object.  See
+below.
+</p>
+</li>
+<li>
+<p>One of the pseudo-classes <code><a href="StructureClasses.html">matrix</a></code>
+and <code><a href="StructureClasses.html">array</a></code>, implying objects with
+arbitrary vector types plus the <code>dim</code> and <code>dimnames</code>
+attributes.
+</p>
+</li></ol>
+
+<p>This section describes the approach to combining S4 computations
+with older S3 computations by using such classes as superclasses. The
+design goal is to allow the S4 class to inherit S3 methods and
+default computations in as consistent a form as possible.
+</p>
+<p>As part of a general effort to make the S4 and S3 code in R more
+consistent, when objects from an S4 class are used as the first
+argument to a non-default S3 method, either for an S3 generic function
+(one that calls <code><a href="../../base/html/UseMethod.html">UseMethod</a></code>) or for one of the primitive
+functions that dispatches S3 methods, an effort is made to provide a
+valid object for that method.  In particular, if the S4 class extends
+an S3 class or <code>matrix</code> or <code>array</code>, and there is an S3
+method matching one of these classes, the S4 object will be coerced to
+a valid S3 object, to the extent that is possible given that there is
+no formal definition of an S3 class.
+</p>
+<p>For example, suppose <code>"myFrame"</code> is an S4 class that includes the
+S3 class <code>"data.frame"</code> in the <code>contains=</code> argument to
+<code><a href="setClass.html">setClass</a></code>.  If an object from this S4 class is passed to
+a function, say <code><a href="../../base/html/matrix.html">as.matrix</a></code>, that has an S3 method for
+<code>"data.frame"</code>, the internal code for <code><a href="../../base/html/UseMethod.html">UseMethod</a></code>
+will convert the object to a data frame; in particular, to an S3
+object whose class attribute will be the vector corresponding to the
+S3 class (possibly containing multiple class names). Similarly for an
+S4 object inheriting from <code>"matrix"</code> or <code>"array"</code>, the S4
+object will be converted to a valid S3 matrix or array.
+</p>
+<p>Note that the conversion is <em>not</em> applied when an S4 object is
+passed to the default S3 method.  Some S3 generics attempt to deal
+with general objects, including S4 objects.  Also, no transformation
+is applied to S4 objects that do not correspond to a selected S3
+method; in particular, to objects from a class that does not contain
+either an S3 class or one of the basic types.  See <code><a href="../../base/html/isS4.html">asS4</a></code>
+for the transformation details.
+</p>
+<p>In addition to explicit S3 generic functions, S3 methods are
+defined for a variety of operators and functions implemented as
+primitives.  These methods are dispatched by some internal C
+code that operates partly through the same code as real S3
+generic functions and partly via special considerations (for
+example, both arguments to a binary operator are examined when
+looking for methods).  The same mechanism for adapting S4
+objects to S3 methods has been applied to these computations as
+well, with a few exceptions such as generating an error if an S4
+object that does not extend an appropriate S3 class or type is
+passed to a binary operator.
+</p>
+<p>The remainder of this section discusses the mechanisms for
+inheriting from  basic object types. See <code><a href="StructureClasses.html">matrix</a></code>
+or <code><a href="StructureClasses.html">array</a></code>
+for inhering from the matrix and array
+pseudo-classes, or from time-series.  For the
+corresponding details for inheritance
+from S3 classes, see <code><a href="setOldClass.html">setOldClass</a></code>.
+</p>
+<p>An object from a class that directly and simply contains one
+of the basic object types in <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>, has implicitly a corresponding
+<code>.Data</code> slot of that type, allowing computations to extract
+or replace the data part while leaving other slots
+unchanged. If the type is one that can accept attributes and is
+duplicated normally, the inheritance also determines the type of the
+object; if the class definition has a <code>.Data</code> slot
+corresponding to a normal type, the class of the
+slot determines the type of the object (that is, the value of
+<code><a href="../../base/html/typeof.html">typeof</a>(x)</code>).
+For such classes,  <code>.Data</code> is a pseudo-slot; that
+is, extracting or setting it modifies the non-slot data in the
+object.  The functions <code><a href="RClassUtils.html">getDataPart</a></code> and
+<code><a href="RClassUtils.html">setDataPart</a></code> are a cleaner, but essentially
+equivalent way to deal with the data part.
+</p>
+<p>Extending a basic type this way allows objects to
+use old-style code for the corresponding type as well as S4
+methods.  Any basic type can be used for <code>.Data</code>, but
+a few types are treated differently because they do not behave like ordinary objects;
+for example, <code>"NULL"</code>, environments, and external pointers.
+Classes extend these types by having a slot, <code>.xData</code>,
+itself inherited from an internally defined S4 class.  This
+slot actually contains an object of the inherited type, to
+protect computations from the reference semantics of the type.
+Coercing to the nonstandard object type then requires an
+actual computation, rather than the <code>"simple"</code> inclusion
+for other types and classes.  The intent is that programmers
+will not need to take account of the mechanism, but one
+implication is that you should <em>not</em> explicitly use the
+type of an S4 object to detect inheritance from an arbitrary
+object type.  Use
+<code><a href="is.html">is</a></code> and similar functions instead.
+</p>
+
+
+<h3>References</h3>
+
+<p>Chambers, John M. (2016)
+<em>Extending R</em>,
+Chapman &amp; Hall.
+(Chapters 9 and 10.)
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="Methods_Details.html">Methods_Details</a></code> for analogous discussion of methods,
+<code><a href="setClass.html">setClass</a></code> for details of specifying class definitions,
+<code><a href="is.html">is</a></code>,
+<code><a href="as.html">as</a></code>,
+<code><a href="new.html">new</a></code>,
+<code><a href="slot.html">slot</a></code>
+</p>
+
+<hr /><div style="text-align: center;">[Package <em>methods</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

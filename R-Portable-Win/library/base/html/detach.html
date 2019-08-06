@@ -1,0 +1,166 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Detach Objects from the Search Path</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for detach {base}"><tr><td>detach {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Detach Objects from the Search Path</h2>
+
+<h3>Description</h3>
+
+<p>Detach a database, i.e., remove it from the <code><a href="search.html">search</a>()</code>
+path of available <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> objects.  Usually this is either a
+<code><a href="data.frame.html">data.frame</a></code> which has been <code><a href="attach.html">attach</a></code>ed or a
+package which was attached by <code><a href="library.html">library</a></code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+detach(name, pos = 2L, unload = FALSE, character.only = FALSE,
+       force = FALSE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>name</code></td>
+<td>
+
+<p>The object to detach.  Defaults to <code>search()[pos]</code>.
+This can be an unquoted name or a character string but <em>not</em> a
+character vector.  If a number is supplied this is taken as <code>pos</code>.
+</p>
+</td></tr>
+<tr valign="top"><td><code>pos</code></td>
+<td>
+
+<p>Index position in <code><a href="search.html">search</a>()</code> of the database to
+detach.  When <code>name</code> is a number, <code>pos = name</code>
+is used.
+</p>
+</td></tr>
+<tr valign="top"><td><code>unload</code></td>
+<td>
+<p>A logical value indicating whether or not to attempt to
+unload the namespace when a package is being detached.  If the
+package has a namespace and <code>unload</code> is <code>TRUE</code>, then
+<code>detach</code> will attempt to unload the namespace <em>via</em>
+<code><a href="ns-load.html">unloadNamespace</a></code>: if the namespace is imported by
+another namespace or <code>unload</code> is <code>FALSE</code>, no unloading
+will occur.
+</p>
+</td></tr>
+<tr valign="top"><td><code>character.only</code></td>
+<td>
+<p>a logical indicating whether <code>name</code>
+can be assumed to be a character string.</p>
+</td></tr>
+<tr valign="top"><td><code>force</code></td>
+<td>
+<p>logical: should a package be detached even though other
+attached packages depend on it?</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>This is most commonly used with a single number argument referring to a
+position on the search list, and can also be used with a unquoted or
+quoted name of an item on the search list such as <code>package:tools</code>.
+</p>
+<p>If a package has a namespace, detaching it does not by default unload
+the namespace (and may not even with <code>unload = TRUE</code>), and
+detaching will not in general unload any dynamically loaded compiled
+code (DLLs).  Further, registered S3 methods from the namespace will
+not be removed.  If you use <code><a href="library.html">library</a></code> on a package whose
+namespace is loaded, it attaches the exports of the already loaded
+namespace.  So detaching and re-attaching a package may not refresh
+some or all components of the package, and is inadvisable.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The return value is <a href="invisible.html">invisible</a>.  It is <code>NULL</code> when a
+package is detached, otherwise the environment which was returned by
+<code><a href="attach.html">attach</a></code> when the object was attached (incorporating any
+changes since it was attached).
+</p>
+
+
+<h3>Good practice</h3>
+
+<p><code>detach()</code> without an argument removes the first item on the
+search path after the workspace.  It is all too easy to call it too
+many or too few times, or to not notice that the search path has
+changed since an <code><a href="attach.html">attach</a></code> call.
+</p>
+<p>Use of <code>attach</code>/<code>detach</code> is best avoided in functions (see
+the help for <code><a href="attach.html">attach</a></code>) and in interactive use and scripts
+it is prudent to detach by name.
+</p>
+
+
+<h3>Note</h3>
+
+<p>You cannot detach either the workspace (position 1) nor the <span class="pkg">base</span>
+package (the last item in the search list), and attempting to do so
+will throw an error.
+</p>
+<p>Unloading some namespaces has undesirable side effects:
+e.g. unloading <span class="pkg">grid</span> closes all graphics devices, and on some
+systems <span class="pkg">tcltk</span> cannot be reloaded once it has been unloaded and
+may crash <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> if this is attempted.
+</p>
+
+
+<h3>References</h3>
+
+<p>Becker, R. A., Chambers, J. M. and Wilks, A. R. (1988)
+<em>The New S Language</em>.
+Wadsworth &amp; Brooks/Cole.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="attach.html">attach</a></code>, <code><a href="library.html">library</a></code>, <code><a href="search.html">search</a></code>,
+<code><a href="ls.html">objects</a></code>, <code><a href="ns-load.html">unloadNamespace</a></code>,
+<code><a href="library.dynam.html">library.dynam.unload</a></code> .
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+require(splines) # package
+detach(package:splines)
+## or also
+library(splines)
+pkg &lt;- "package:splines"
+
+detach(pkg, character.only = TRUE)
+
+## careful: do not do this unless 'splines' is not already attached.
+library(splines)
+detach(2) # 'pos' used for 'name'
+
+## an example of the name argument to attach
+## and of detaching a database named by a character vector
+attach_and_detach &lt;- function(db, pos = 2)
+{
+   name &lt;- deparse(substitute(db))
+   attach(db, pos = pos, name = name)
+   print(search()[pos])
+   detach(name, character.only = TRUE)
+}
+attach_and_detach(women, pos = 3)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

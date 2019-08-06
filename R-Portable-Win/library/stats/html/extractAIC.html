@@ -1,0 +1,154 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Extract AIC from a Fitted Model</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for extractAIC {stats}"><tr><td>extractAIC {stats}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Extract AIC from a Fitted Model</h2>
+
+<h3>Description</h3>
+
+<p>Computes the (generalized) Akaike <b>A</b>n <b>I</b>nformation
+<b>C</b>riterion for a fitted parametric model.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+extractAIC(fit, scale, k = 2, ...)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>fit</code></td>
+<td>
+<p>fitted model, usually the result of a fitter like
+<code><a href="lm.html">lm</a></code>.</p>
+</td></tr>
+<tr valign="top"><td><code>scale</code></td>
+<td>
+<p>optional numeric specifying the scale parameter of the
+model, see <code>scale</code> in <code><a href="step.html">step</a></code>.  Currently only used
+in the <code>"lm"</code> method, where <code>scale</code> specifies the estimate
+of the error variance, and <code>scale = 0</code> indicates that it is to
+be estimated by maximum likelihood.
+</p>
+</td></tr>
+<tr valign="top"><td><code>k</code></td>
+<td>
+<p>numeric specifying the &lsquo;weight&rsquo; of the
+<em>equivalent degrees of freedom</em> (<i>=:</i> <code>edf</code>)
+part in the AIC formula.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>further arguments (currently unused in base <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>).</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>This is a generic function, with methods in base <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> for classes
+<code>"aov"</code>, <code>"glm"</code> and <code>"lm"</code> as well as for
+<code>"negbin"</code> (package <a href="https://CRAN.R-project.org/package=MASS"><span class="pkg">MASS</span></a>) and <code>"coxph"</code> and
+<code>"survreg"</code> (package <a href="https://CRAN.R-project.org/package=survival"><span class="pkg">survival</span></a>).
+</p>
+<p>The criterion used is
+</p>
+<p style="text-align: center;"><i>AIC = - 2*log L +  k * edf,</i></p>
+
+<p>where <i>L</i> is the likelihood and <code>edf</code> the equivalent degrees
+of freedom (i.e., the number of free parameters for usual parametric
+models) of <code>fit</code>.
+</p>
+<p>For linear models with unknown scale (i.e., for <code><a href="lm.html">lm</a></code> and
+<code><a href="aov.html">aov</a></code>), <i>-2 log L</i> is computed from the
+<em>deviance</em> and uses a different additive constant to
+<code><a href="logLik.html">logLik</a></code> and hence <code><a href="AIC.html">AIC</a></code>.  If <i>RSS</i>
+denotes the (weighted) residual sum of squares then <code>extractAIC</code>
+uses for <i>-2 log L</i> the formulae <i>RSS/s - n</i> (corresponding
+to Mallows' <i>Cp</i>) in the case of known scale <i>s</i> and
+<i>n log (RSS/n)</i> for unknown scale.
+<code><a href="AIC.html">AIC</a></code> only handles unknown scale and uses the formula
+<i>n*log(RSS/n) + n + n*log 2pi - sum(log w)</i>
+where <i>w</i> are the weights.  Further <code>AIC</code> counts the scale
+estimation as a parameter in the <code>edf</code> and <code>extractAIC</code> does not.
+</p>
+<p>For <code>glm</code> fits the family's <code>aic()</code> function is used to
+compute the AIC: see the note under <code>logLik</code> about the
+assumptions this makes.
+</p>
+<p><code>k = 2</code> corresponds to the traditional AIC, using <code>k =
+    log(n)</code> provides the BIC (Bayesian IC) instead.
+</p>
+<p>Note that the methods for this function may differ in their
+assumptions from those of methods for <code><a href="AIC.html">AIC</a></code> (usually
+<em>via</em> a method for <code><a href="logLik.html">logLik</a></code>).  We have already
+mentioned the case of <code>"lm"</code> models with estimated scale, and
+there are similar issues in the <code>"glm"</code> and <code>"negbin"</code>
+methods where the dispersion parameter may or may not be taken as
+&lsquo;free&rsquo;.  This is immaterial as <code>extractAIC</code> is only used
+to compare models of the same class (where only differences in AIC
+values are considered).
+</p>
+
+
+<h3>Value</h3>
+
+<p>A numeric vector of length 2, with first and second elements giving
+</p>
+<table summary="R valueblock">
+<tr valign="top"><td><code>edf</code></td>
+<td>
+<p>the &lsquo;<b>e</b>quivalent <b>d</b>egrees of <b>f</b>reedom&rsquo;
+for the fitted model <code>fit</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>AIC</code></td>
+<td>
+<p>the (generalized) Akaike Information Criterion for <code>fit</code>.</p>
+</td></tr>
+</table>
+
+
+<h3>Note</h3>
+
+<p>This function is used in <code><a href="add1.html">add1</a></code>, <code><a href="add1.html">drop1</a></code>
+and <code><a href="step.html">step</a></code> and the similar functions in package
+<a href="https://CRAN.R-project.org/package=MASS"><span class="pkg">MASS</span></a> from which it was adopted.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>B. D. Ripley</p>
+
+
+<h3>References</h3>
+
+<p>Venables, W. N. and Ripley, B. D. (2002)
+<em>Modern Applied Statistics with S.</em>
+New York: Springer (4th ed).
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="AIC.html">AIC</a></code>, <code><a href="deviance.html">deviance</a></code>, <code><a href="add1.html">add1</a></code>,
+<code><a href="step.html">step</a></code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+utils::example(glm)
+extractAIC(glm.D93)  #&gt;&gt;  5  15.129
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>stats</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

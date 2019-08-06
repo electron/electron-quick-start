@@ -1,0 +1,160 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: The Poisson Distribution</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for Poisson {stats}"><tr><td>Poisson {stats}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>The Poisson Distribution</h2>
+
+<h3>Description</h3>
+
+<p>Density, distribution function, quantile function and random
+generation for the Poisson distribution with parameter <code>lambda</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+dpois(x, lambda, log = FALSE)
+ppois(q, lambda, lower.tail = TRUE, log.p = FALSE)
+qpois(p, lambda, lower.tail = TRUE, log.p = FALSE)
+rpois(n, lambda)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>vector of (non-negative integer) quantiles.</p>
+</td></tr>
+<tr valign="top"><td><code>q</code></td>
+<td>
+<p>vector of quantiles.</p>
+</td></tr>
+<tr valign="top"><td><code>p</code></td>
+<td>
+<p>vector of probabilities.</p>
+</td></tr>
+<tr valign="top"><td><code>n</code></td>
+<td>
+<p>number of random values to return.</p>
+</td></tr>
+<tr valign="top"><td><code>lambda</code></td>
+<td>
+<p>vector of (non-negative) means.</p>
+</td></tr>
+<tr valign="top"><td><code>log, log.p</code></td>
+<td>
+<p>logical; if TRUE, probabilities p are given as log(p).</p>
+</td></tr>
+<tr valign="top"><td><code>lower.tail</code></td>
+<td>
+<p>logical; if TRUE (default), probabilities are
+<i>P[X &le; x]</i>, otherwise, <i>P[X &gt; x]</i>.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>The Poisson distribution has density
+
+</p>
+<p style="text-align: center;"><i>p(x) = &lambda;^x exp(-&lambda;)/x!</i></p>
+
+<p>for <i>x = 0, 1, 2, &hellip;</i> .
+The mean and variance are <i>E(X) = Var(X) = &lambda;</i>.
+</p>
+<p>Note that <i>&lambda; = 0</i> is really a limit case (setting
+<i>0^0 = 1</i>) resulting in a point mass at <i>0</i>, see also the example.
+</p>
+<p>If an element of <code>x</code> is not integer, the result of <code>dpois</code>
+is zero, with a warning.
+<i>p(x)</i> is computed using Loader's algorithm, see the reference in
+<code><a href="Binomial.html">dbinom</a></code>.
+</p>
+<p>The quantile is right continuous: <code>qpois(p, lambda)</code> is the smallest
+integer <i>x</i> such that <i>P(X &le; x) &ge; p</i>.
+</p>
+<p>Setting <code>lower.tail = FALSE</code> allows to get much more precise
+results when the default, <code>lower.tail = TRUE</code> would return 1, see
+the example below.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>dpois</code> gives the (log) density,
+<code>ppois</code> gives the (log) distribution function,
+<code>qpois</code> gives the quantile function, and
+<code>rpois</code> generates random deviates.
+</p>
+<p>Invalid <code>lambda</code> will result in return value <code>NaN</code>, with a warning.
+</p>
+<p>The length of the result is determined by <code>n</code> for
+<code>rpois</code>, and is the maximum of the lengths of the
+numerical arguments for the other functions.
+</p>
+<p>The numerical arguments other than <code>n</code> are recycled to the
+length of the result.  Only the first elements of the logical
+arguments are used.
+</p>
+
+
+<h3>Source</h3>
+
+<p><code>dpois</code> uses C code contributed by Catherine Loader
+(see <code><a href="Binomial.html">dbinom</a></code>).
+</p>
+<p><code>ppois</code> uses <code>pgamma</code>.
+</p>
+<p><code>qpois</code> uses the Cornish&ndash;Fisher Expansion to include a skewness
+correction to a normal approximation, followed by a search.
+</p>
+<p><code>rpois</code> uses
+</p>
+<p>Ahrens, J. H. and Dieter, U. (1982).
+Computer generation of Poisson deviates from modified normal distributions.
+<em>ACM Transactions on Mathematical Software</em>, <b>8</b>, 163&ndash;179.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><a href="Distributions.html">Distributions</a> for other standard distributions, including
+<code><a href="Binomial.html">dbinom</a></code> for the binomial and <code><a href="NegBinomial.html">dnbinom</a></code> for
+the negative binomial distribution.
+</p>
+<p><code><a href="poisson.test.html">poisson.test</a></code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+require(graphics)
+
+-log(dpois(0:7, lambda = 1) * gamma(1+ 0:7)) # == 1
+Ni &lt;- rpois(50, lambda = 4); table(factor(Ni, 0:max(Ni)))
+
+1 - ppois(10*(15:25), lambda = 100)  # becomes 0 (cancellation)
+    ppois(10*(15:25), lambda = 100, lower.tail = FALSE)  # no cancellation
+
+par(mfrow = c(2, 1))
+x &lt;- seq(-0.01, 5, 0.01)
+plot(x, ppois(x, 1), type = "s", ylab = "F(x)", main = "Poisson(1) CDF")
+plot(x, pbinom(x, 100, 0.01), type = "s", ylab = "F(x)",
+     main = "Binomial(100, 0.01) CDF")
+
+## The (limit) case  lambda = 0 :
+stopifnot(identical(dpois(0,0), 1),
+	  identical(ppois(0,0), 1),
+	  identical(qpois(1,0), 0))
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>stats</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

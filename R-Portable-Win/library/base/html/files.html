@@ -1,0 +1,274 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: File Manipulation</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for files {base}"><tr><td>files {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>File Manipulation</h2>
+
+<h3>Description</h3>
+
+<p>These functions provide a low-level interface to the computer's
+file system.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+file.create(..., showWarnings = TRUE)
+file.exists(...)
+file.remove(...)
+file.rename(from, to)
+file.append(file1, file2)
+file.copy(from, to, overwrite = recursive, recursive = FALSE,
+          copy.mode = TRUE, copy.date = FALSE)
+file.symlink(from, to)
+file.link(from, to)
+Sys.junction(from, to)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>..., file1, file2</code></td>
+<td>
+<p>character vectors, containing file names or paths.</p>
+</td></tr>
+<tr valign="top"><td><code>from, to</code></td>
+<td>
+<p>character vectors, containing file names or paths.
+For <code>file.copy</code> and <code>file.symlink</code>
+and <code>Sys.junction</code>
+<code>to</code> can alternatively be the path to a single existing directory.</p>
+</td></tr>
+<tr valign="top"><td><code>overwrite</code></td>
+<td>
+<p>logical; should existing destination files be overwritten?</p>
+</td></tr>
+<tr valign="top"><td><code>showWarnings</code></td>
+<td>
+<p>logical; should the warnings on failure be shown?</p>
+</td></tr>
+<tr valign="top"><td><code>recursive</code></td>
+<td>
+<p>logical.  If <code>to</code> is a directory, should
+directories in <code>from</code> be copied (and their contents)?  (Like
+<code>cp -R</code> on POSIX OSes.)</p>
+</td></tr>
+<tr valign="top"><td><code>copy.mode</code></td>
+<td>
+<p>logical:  should file permission bits be copied where
+possible?</p>
+</td></tr>
+<tr valign="top"><td><code>copy.date</code></td>
+<td>
+<p>logical:  should file dates be preserved where
+possible? See <code><a href="Sys.setFileTime.html">Sys.setFileTime</a></code>.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>The <code>...</code> arguments are concatenated to form one character
+string: you can specify the files separately or as one vector.
+All of these functions expand path names: see <code><a href="path.expand.html">path.expand</a></code>.
+</p>
+<p><code>file.create</code> creates files with the given names if they do not
+already exist and truncates them if they do.  They are created with
+the maximal read/write permissions allowed by the
+&lsquo;<a href="files2.html">umask</a>&rsquo; setting (where relevant).  By default a warning
+is given (with the reason) if the operation fails.
+</p>
+<p><code>file.exists</code> returns a logical vector indicating whether the
+files named by its argument exist.  (Here &lsquo;exists&rsquo; is in the
+sense of the system's <code>stat</code> call: a file will be reported as
+existing only if you have the permissions needed by <code>stat</code>.
+Existence can also be checked by <code><a href="file.access.html">file.access</a></code>, which
+might use different permissions and so obtain a different result.
+Note that the existence of a file does not imply that it is readable:
+for that use <code><a href="file.access.html">file.access</a></code>.)  What constitutes a
+&lsquo;file&rsquo; is system-dependent, but should include directories.
+(However, directory names must not include a trailing backslash or
+slash on Windows.)  Note that if the file is a symbolic link on a
+Unix-alike, the result indicates if the link points to an actual file,
+not just if the link exists.
+Lastly, note the <em>different</em> function <code><a href="exists.html">exists</a></code> which
+checks for existence of <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> objects.
+</p>
+<p><code>file.remove</code> attempts to remove the files named in its argument.
+On most Unix platforms &lsquo;file&rsquo; includes <em>empty</em>
+directories, symbolic links, fifos and sockets.  On Windows,
+&lsquo;file&rsquo; means a regular file and not, say, an empty directory.
+</p>
+<p><code>file.rename</code> attempts to rename files (and <code>from</code> and
+<code>to</code> must be of the same length).  Where file permissions allow
+this will overwrite an existing element of <code>to</code>.  This is subject
+to the limitations of the OS's corresponding system call (see
+something like <code>man 2 rename</code> on a Unix-alike): in particular
+in the interpretation of &lsquo;file&rsquo;: most platforms will not rename
+files from one file system to another.  (On Windows,
+<code>file.rename</code> can rename files but not directories across
+volumes.)  On platforms which allow directories to be renamed,
+typically neither or both of <code>from</code> and <code>to</code> must a
+directory, and if <code>to</code> exists it must be an empty directory.
+</p>
+<p><code>file.append</code> attempts to append the files named by its
+second argument to those named by its first.  The <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> subscript
+recycling rule is used to align names given in vectors
+of different lengths.
+</p>
+<p><code>file.copy</code> works in a similar way to <code>file.append</code> but with
+the arguments in the natural order for copying.  Copying to existing
+destination files is skipped unless <code>overwrite = TRUE</code>.  The
+<code>to</code> argument can specify a single existing directory.  If
+<code>copy.mode = TRUE</code> file read/write/execute permissions are copied
+where possible, restricted by &lsquo;<a href="files2.html">umask</a>&rsquo;.  (On Windows this
+applies only to files.) Other security attributes such as ACLs are not
+copied.  On a POSIX filesystem the targets of symbolic links will be
+copied rather than the links themselves, and hard links are copied
+separately.  Using <code>copy.date = TRUE</code> may or may not copy the
+timestamp exactly (for example, fractional seconds may be omitted),
+but is more likely to do so as from <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> 3.4.0.
+</p>
+<p><code>file.symlink</code> and <code>file.link</code> make symbolic and hard links
+on those file systems which support them.  For <code>file.symlink</code> the
+<code>to</code> argument can specify a single existing directory.  (Unix and
+macOS native filesystems support both.  Windows has hard links to
+files on NTFS file systems and concepts related to symbolic links on
+recent versions: see the section below on the Windows version of this
+help page.  What happens on a FAT or SMB-mounted file system is OS-specific.)
+</p>
+
+
+<h3>Value</h3>
+
+<p>These functions return a logical vector indicating which
+operation succeeded for each of the files attempted.  Using a missing
+value for a file or path name will always be regarded as a failure.
+</p>
+<p>If <code>showWarnings = TRUE</code>, <code>file.create</code> will give a warning
+for an unexpected failure.
+</p>
+
+
+<h3>Case-insensitive file systems</h3>
+
+<p>Case-insensitive file systems are the norm on Windows and macOS,
+but can be found on all OSes (for example a FAT-formatted USB drive is
+probably case-insensitive).
+</p>
+<p>These functions will most likely match existing files regardless of case
+on such file systems: however this is an OS function and it is
+possible that file names might be mapped to upper or lower case.
+</p>
+
+
+<h3>Symbolic links on Windows</h3>
+
+<p> Symbolic links in the sense of
+POSIX file systems do not exist on Windows: however, NTFS file systems
+support two similar concepts.
+</p>
+<p>There are &lsquo;junctions&rsquo; (or &lsquo;junction points&rsquo;),
+unfortunately without a public API: a Windows version of the Unix
+concept of mounting one directory on another. A junction can link
+directories located on the same or different local volumes of the same
+computer, but cannot link to a network drive. Function
+<code>Sys.junction</code> creates one or more junctions: <code>to</code> should
+either specify a single existing directory or a set of non-existent
+file paths of the same length as <code>from</code>.  (Command
+<code>mklink /J</code> can also be used to create junctions.)
+</p>
+<p>A version of symbolic linking to files/directories was implemented
+more recently, and <code>file.symlink</code> makes use of that interface.
+However, it has restrictions which are crippling.  First, the user
+needs permission to make symbolic links, and that permission is not
+normally granted except to Administrator accounts (note: not users
+with Administrator rights): further many users report that whereas the
+Policy Editor appears to be able to grant such rights, the API still
+reports insufficient permissions.  Second, the interface needs to know
+if <code>from</code> is a file or a directory (and it need not yet exist):
+we have implemented this to allow linking from a directory only if it
+currently exists.
+</p>
+<p>Care is needed with removing a junction (and most likely also a
+symbolic link): many tools will remove the target and its contents.
+</p>
+
+
+<h3>Warning</h3>
+
+<p>Always check the return value of these functions when used in package
+code.  This is especially important for <code>file.rename</code>, which has
+OS-specific restrictions (and note that the session temporary
+directory is commonly on a different file system from the working
+directory): it is only portable to use <code>file.rename</code> to change
+file name(s) within a single directory.
+</p>
+
+
+<h3>Note</h3>
+
+<p>There is no guarantee that these functions will handle Windows
+relative paths of the form &lsquo;<span class="file">d:path</span>&rsquo;: try &lsquo;<span class="file">d:./path</span>&rsquo;
+instead.  In particular, &lsquo;<span class="file">d:</span>&rsquo; is not recognized as a directory.
+Nor are <span class="samp">\\?\</span> prefixes (and similar) supported.
+</p>
+<p>Most of these functions accept UTF-8 filepaths not valid in the
+current locale.
+</p>
+<p>User error in supplying invalid file names (and note that &lsquo;<span class="file">foo/</span>&rsquo;
+and &lsquo;<span class="file">foo\</span>&rsquo; <em>are</em> invalid on Windows) has undefined consequences.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Ross Ihaka, Brian Ripley
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="file.info.html">file.info</a></code>, <code><a href="file.access.html">file.access</a></code>, <code><a href="file.path.html">file.path</a></code>,
+<code><a href="file.show.html">file.show</a></code>, <code><a href="list.files.html">list.files</a></code>,
+<code><a href="unlink.html">unlink</a></code>, <code><a href="basename.html">basename</a></code>,
+<code><a href="path.expand.html">path.expand</a></code>.
+</p>
+<p><code><a href="files2.html">dir.create</a></code>.
+</p>
+<p><code><a href="Sys.glob.html">Sys.glob</a></code> to expand wildcards in file specifications.
+</p>
+<p><code><a href="../../utils/html/filetest.html">file_test</a></code>, <code><a href="Sys.readlink.html">Sys.readlink</a></code> (for &lsquo;symlink&rsquo;s).
+</p>
+<p><a href="https://en.wikipedia.org/wiki/Hard_link">https://en.wikipedia.org/wiki/Hard_link</a> and
+<a href="https://en.wikipedia.org/wiki/Symbolic_link">https://en.wikipedia.org/wiki/Symbolic_link</a> for the concepts of
+links and their limitations.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+
+cat("file A\n", file = "A")
+cat("file B\n", file = "B")
+file.append("A", "B")
+file.create("A") # (trashing previous)
+file.append("A", rep("B", 10))
+if(interactive()) file.show("A") # -&gt; the 10 lines from 'B'
+file.copy("A", "C")
+dir.create("tmp")
+file.copy(c("A", "B"), "tmp")
+list.files("tmp") # -&gt; "A" and "B"
+unlink("tmp", recursive = TRUE)
+file.remove("A", "B", "C")
+
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

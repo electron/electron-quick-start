@@ -33,47 +33,38 @@ namespace Rcpp {
         Rstreambuf(){}
 
     protected:
-        virtual std::streamsize xsputn(const char *s, std::streamsize n );
+        virtual std::streamsize xsputn(const char *s, std::streamsize n);
 
-        virtual int overflow(int c = traits_type::eof() );
+        virtual int overflow(int c = traits_type::eof());
 
-        virtual int sync()  ;
+        virtual int sync();
     };
 
     template <bool OUTPUT>
     class Rostream : public std::ostream {
-        typedef Rstreambuf<OUTPUT> Buffer ;
-        Buffer* buf ;
+        typedef Rstreambuf<OUTPUT> Buffer;
+        Buffer buf;
     public:
-        Rostream() :
-            std::ostream( new Buffer ),
-            buf( static_cast<Buffer*>( rdbuf() ) )
-        {}
-        ~Rostream() {
-            if (buf != NULL) {
-                delete buf;
-                buf = NULL;
-            }
-        }
+        Rostream() : std::ostream( &buf ) {}
     };
 							// #nocov start
-    template <> inline std::streamsize Rstreambuf<true>::xsputn(const char *s, std::streamsize num ) {
-        Rprintf( "%.*s", num, s ) ;
-        return num ;
+    template <> inline std::streamsize Rstreambuf<true>::xsputn(const char *s, std::streamsize num) {
+        Rprintf("%.*s", num, s);
+        return num;
     }
-    template <> inline std::streamsize Rstreambuf<false>::xsputn(const char *s, std::streamsize num ) {
-        REprintf( "%.*s", num, s ) ;
-        return num ;
+    template <> inline std::streamsize Rstreambuf<false>::xsputn(const char *s, std::streamsize num) {
+        REprintf("%.*s", num, s);
+        return num;
     }
 
-    template <> inline int Rstreambuf<true>::overflow(int c ) {
+    template <> inline int Rstreambuf<true>::overflow(int c) {
         if (c != traits_type::eof()) {
             char_type ch = traits_type::to_char_type(c);
             return xsputn(&ch, 1) == 1 ? c : traits_type::eof();
         }
         return c;
     }
-    template <> inline int Rstreambuf<false>::overflow(int c ) {
+    template <> inline int Rstreambuf<false>::overflow(int c) {
         if (c != traits_type::eof()) {
             char_type ch = traits_type::to_char_type(c);
             return xsputn(&ch, 1) == 1 ? c : traits_type::eof();
@@ -81,13 +72,13 @@ namespace Rcpp {
         return c;
     }
 
-    template <> inline int Rstreambuf<true>::sync(){
-        ::R_FlushConsole() ;
-        return 0 ;
+    template <> inline int Rstreambuf<true>::sync() {
+        ::R_FlushConsole();
+        return 0;
     }
-    template <> inline int Rstreambuf<false>::sync(){
-        ::R_FlushConsole() ;
-        return 0 ;
+    template <> inline int Rstreambuf<false>::sync() {
+        ::R_FlushConsole();
+        return 0;
     }								// #nocov end
     static Rostream<true>  Rcout;
     static Rostream<false> Rcerr;

@@ -1,0 +1,157 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Methods For S3 and S4 Dispatch</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for Methods_for_S3 {methods}"><tr><td>Methods_for_S3 {methods}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Methods For S3 and S4 Dispatch</h2>
+
+<h3>Description</h3>
+
+<p>The S3 and S4 software in <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> are two generations implementing
+functional object-oriented programming.
+S3 is the original, simpler for initial programming but less general,
+less formal and less open to validation.
+The S4 formal methods and classes provide these features but require
+more programming.
+</p>
+<p>In modern <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>, the two versions attempt to work together.  This
+documentation outlines how to write methods for both systems by
+defining an S4 method for a function that dispatches S3 methods.
+</p>
+<p>The systems can also be combined by using an S3 class with S4 method
+dispatch or in S4 class definitions.  See <code><a href="setOldClass.html">setOldClass</a></code>.
+</p>
+
+
+<h3>S3 Method Dispatch</h3>
+
+<p>The <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> evaluator will &lsquo;dispatch&rsquo; a method from a function call
+either when the body of the function calls the special primitive
+<code><a href="../../base/html/UseMethod.html">UseMethod</a></code> or when the call is to one of the builtin
+primitives such as the <code>math</code> functions or the binary operators.
+</p>
+<p>S3 method dispatch looks at the class of the first
+argument or the class of either
+argument in a call to one of the primitive binary operators.
+In pure S3 situations, &lsquo;class&rsquo; in this context means the class
+attribute or the implied class for a basic data type such as
+<code>"numeric"</code>.
+The first S3 method that matches a name in the class is called and the
+value of that call is the value of the original function call.
+For details, see <a href="../../base/html/UseMethod.html">S3Methods</a>.
+</p>
+<p>In modern <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>, a function <code>meth</code> in a package is registered as an S3 method
+for function <code>fun</code> and class <code>Class</code> by
+including in the package's <code>NAMESPACE</code> file the directive
+</p>
+<p><code>S3method(fun, Class, meth)</code>
+</p>
+<p>By default (and traditionally), the third argument is taken to be the
+function <code>fun.Class</code>; that is,
+the name of the
+generic function, followed by <code>"."</code>, followed by the name of the
+class.
+</p>
+<p>As with S4 methods, a method that has been registered will be added to
+a table of methods for this function when the corresponding package is
+loaded into the session.
+Older versions of <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>, copying the mechanism in S, looked for the
+method in the current search list, but packages should now always
+register S3 methods rather than requiring the package to be attached.
+</p>
+
+
+<h3>Methods for S4 Classes</h3>
+
+<p>Two possible mechanisms for implementing a method  corresponding to an
+S4 class, there are two possibilities are to register it as an S3 method with the
+S4 class name or to define and set an S4 method, which will have the
+side effect of creating an S4 generic version of this function.
+</p>
+<p>For most situations either works, but
+the recommended approach is to do both: register the S3 method and supply the
+identical function as the definition of the S4 method.
+This ensures that the proposed method will be dispatched for any
+applicable call to the function.
+</p>
+<p>As an example, suppose an S4 class <code>"uncased"</code> is defined,
+extending <code>"character"</code> and intending to ignore upper- and
+lower-case.
+The base function <code><a href="../../base/html/unique.html">unique</a></code> dispatches S3 methods.
+To define the class and a method for this function:
+</p>
+<p><code>setClass("uncased", contains = "character")</code>
+</p>
+<p><code>unique.uncased &lt;- function(x, incomparables = FALSE, ...)
+  nextMethod(tolower(x))</code>
+</p>
+<p><code>setMethod("unique", "uncased", unique.uncased)</code>
+</p>
+<p>In addition, the <code>NAMESPACE</code> for the package should contain:
+</p>
+<p><code>S3method(unique, uncased)</code>
+</p>
+<p><code>exportMethods(unique)</code>
+</p>
+<p>The result is to define identical S3 and S4 methods and ensure that all
+calls to <code>unique</code> will dispatch that method when appropriate.
+</p>
+
+
+<h3>Details</h3>
+
+<p>The reasons for defining both S3 and S4 methods are as follows:
+</p>
+
+<ol>
+<li><p> An S4 method alone will not be seen if the S3 generic function
+is called directly. This will be the case, for example, if some
+function calls <code>unique()</code> from a package that does not make
+that function  an S4 generic.
+</p>
+<p>However, primitive functions and operators
+are exceptions:  The internal C code will look for S4 methods
+if and only if the object is an S4 object.  S4 method dispatch
+would be used to dispatch any binary operator calls where either
+of the operands was an S4 object, for example.
+</p>
+</li>
+<li><p> An S3 method alone will not be called if there is <em>any</em>
+eligible non-default S4 method.
+</p>
+<p>So if a package defined an S3
+method for <code>unique</code> for an S4 class but another package
+defined an S4 method for a superclass of that class, the
+superclass method would be chosen, probably not what was
+intended.
+</p>
+</li></ol>
+
+<p>S4 and S3 method selection are designed to follow compatible rules of
+inheritance, as far as possible.
+S3 classes can be used for any S4 method selection, provided that the
+S3 classes have been registered by a call to
+<code><a href="setOldClass.html">setOldClass</a></code>, with that call specifying the correct S3
+inheritance pattern.
+S4 classes can be used for any S3 method selection; when an S4 object
+is detected, S3 method selection uses the contents of
+<code><a href="is.html">extends</a>(class(x))</code> as the equivalent of the S3
+inheritance (the inheritance is cached after the first call).
+</p>
+<p>For the details of S4 and S3
+dispatch see <a href="Methods_Details.html">Methods_Details</a> and <a href="../../base/html/UseMethod.html">S3Methods</a>.
+</p>
+
+
+<h3>References</h3>
+
+<p>Chambers, John M. (2016)
+<em>Extending R</em>,
+Chapman &amp; Hall.
+(Chapters 9 and 10.)
+</p>
+
+<hr /><div style="text-align: center;">[Package <em>methods</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

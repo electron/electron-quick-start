@@ -1,8 +1,7 @@
-// -*- mode: C++; c-indent-level: 4; c-basic-offset: 4; tab-width: 8 -*-
-//
+
 // max.h: Rcpp R/C++ interface class library -- max
 //
-// Copyright (C) 2012 - 2013 Dirk Eddelbuettel and Romain Francois
+// Copyright (C) 2012 - 2018  Dirk Eddelbuettel and Romain Francois
 //
 // This file is part of Rcpp.
 //
@@ -33,11 +32,12 @@ namespace sugar{
         Max( const T& obj_) : obj(obj_) {}
 
         operator STORAGE() const {
+            R_xlen_t n = obj.size();
+            if (n == 0) return(static_cast<STORAGE>(R_NegInf));
+
             STORAGE max, current ;
             max = obj[0] ;
             if( Rcpp::traits::is_na<RTYPE>( max ) ) return max ;
-
-            R_xlen_t n = obj.size() ;
             for( R_xlen_t i=1; i<n; i++){
                 current = obj[i] ;
                 if( Rcpp::traits::is_na<RTYPE>( current ) ) return current;
@@ -59,10 +59,11 @@ namespace sugar{
         Max( const T& obj_) : obj(obj_) {}
 
         operator STORAGE() const {
+            R_xlen_t n = obj.size();
+            if (n == 0) return(static_cast<STORAGE>(R_NegInf));
+
             STORAGE max, current ;
             max = obj[0] ;
-
-            R_xlen_t n = obj.size() ;
             for( R_xlen_t i=1; i<n; i++){
                 current = obj[i] ;
                 if( current > max ) max = current ;

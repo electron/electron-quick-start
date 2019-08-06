@@ -32,7 +32,7 @@ namespace Rcpp{
 
             template <typename U>
             ProtectedProxy& operator=( const U& u) {
-              set( wrap( u ) );
+              set(Shield<SEXP>(wrap(u)));
               return *this;
             }
 

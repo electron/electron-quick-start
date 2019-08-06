@@ -1,0 +1,158 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Fit an Analysis of Variance Model</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for aov {stats}"><tr><td>aov {stats}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Fit an Analysis of Variance Model</h2>
+
+<h3>Description</h3>
+
+<p>Fit an analysis of variance model by a call to <code>lm</code> for each stratum.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+aov(formula, data = NULL, projections = FALSE, qr = TRUE,
+    contrasts = NULL, ...)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>formula</code></td>
+<td>
+<p>A formula specifying the model.</p>
+</td></tr>
+<tr valign="top"><td><code>data</code></td>
+<td>
+<p>A data frame in which the variables specified in the
+formula will be found. If missing, the variables are searched for in
+the standard way.</p>
+</td></tr>
+<tr valign="top"><td><code>projections</code></td>
+<td>
+<p>Logical flag: should the projections be returned?</p>
+</td></tr>
+<tr valign="top"><td><code>qr</code></td>
+<td>
+<p>Logical flag: should the QR decomposition be returned?</p>
+</td></tr>
+<tr valign="top"><td><code>contrasts</code></td>
+<td>
+<p>A list of contrasts to be used for some of the factors
+in the formula. These are not used for any <code>Error</code> term, and
+supplying contrasts for factors only in the <code>Error</code> term will give
+a warning.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>Arguments to be passed to <code>lm</code>, such as <code>subset</code>
+or <code>na.action</code>.  See &lsquo;Details&rsquo; about <code>weights</code>.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>This provides a wrapper to <code>lm</code> for fitting linear models to
+balanced or unbalanced experimental designs.
+</p>
+<p>The main difference from <code>lm</code> is in the way <code>print</code>,
+<code>summary</code> and so on handle the fit: this is expressed in the
+traditional language of the analysis of variance rather than that of
+linear models.
+</p>
+<p>If the formula contains a single <code>Error</code> term, this is used to
+specify error strata, and appropriate models are fitted within each
+error stratum.
+</p>
+<p>The formula can specify multiple responses.
+</p>
+<p>Weights can be specified by a <code>weights</code> argument, but should not
+be used with an <code>Error</code> term, and are incompletely supported
+(e.g., not by <code><a href="model.tables.html">model.tables</a></code>).
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class <code>c("aov", "lm")</code> or for multiple responses
+of class <code>c("maov", "aov", "mlm", "lm")</code> or for multiple error
+strata of class <code>c("aovlist", "<a href="listof.html">listof</a>")</code>.  There are
+<code><a href="../../base/html/print.html">print</a></code> and <code><a href="../../base/html/summary.html">summary</a></code> methods available for these.
+</p>
+
+
+<h3>Note</h3>
+
+<p><code>aov</code> is designed for balanced designs, and the results can be
+hard to interpret without balance: beware that missing values in the
+response(s) will likely lose the balance.  If there are two or more
+error strata, the methods used are statistically inefficient without
+balance, and it may be better to use <code><a href="../../nlme/html/lme.html">lme</a></code> in
+package <a href="https://CRAN.R-project.org/package=nlme"><span class="pkg">nlme</span></a>.
+</p>
+<p>Balance can be checked with the <code><a href="replications.html">replications</a></code> function.
+</p>
+<p>The default &lsquo;contrasts&rsquo; in <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> are not orthogonal contrasts, and
+<code>aov</code> and its helper functions will work better with such
+contrasts: see the examples for how to select these.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>The design was inspired by the S function of the same name described
+in Chambers <em>et al</em> (1992).
+</p>
+
+
+<h3>References</h3>
+
+<p>Chambers, J. M., Freeny, A and Heiberger, R. M. (1992)
+<em>Analysis of variance; designed experiments.</em>
+Chapter 5 of <em>Statistical Models in S</em>
+eds J. M. Chambers and T. J. Hastie, Wadsworth &amp; Brooks/Cole.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="lm.html">lm</a></code>, <code><a href="summary.aov.html">summary.aov</a></code>,
+<code><a href="replications.html">replications</a></code>, <code><a href="alias.html">alias</a></code>,
+<code><a href="proj.html">proj</a></code>, <code><a href="model.tables.html">model.tables</a></code>, <code><a href="TukeyHSD.html">TukeyHSD</a></code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## From Venables and Ripley (2002) p.165.
+
+## Set orthogonal contrasts.
+op &lt;- options(contrasts = c("contr.helmert", "contr.poly"))
+( npk.aov &lt;- aov(yield ~ block + N*P*K, npk) )
+summary(npk.aov)
+coefficients(npk.aov)
+
+## to show the effects of re-ordering terms contrast the two fits
+aov(yield ~ block + N * P + K, npk)
+aov(terms(yield ~ block + N * P + K, keep.order = TRUE), npk)
+
+
+## as a test, not particularly sensible statistically
+npk.aovE &lt;- aov(yield ~  N*P*K + Error(block), npk)
+npk.aovE
+## IGNORE_RDIFF_BEGIN
+summary(npk.aovE)
+## IGNORE_RDIFF_END
+options(op)  # reset to previous
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>stats</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

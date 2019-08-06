@@ -1,0 +1,222 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: The (non-central) Chi-Squared Distribution</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for Chisquare {stats}"><tr><td>Chisquare {stats}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>The (non-central) Chi-Squared Distribution</h2>
+
+<h3>Description</h3>
+
+<p>Density, distribution function, quantile function and random
+generation for the chi-squared (<i>chi^2</i>) distribution with
+<code>df</code> degrees of freedom and optional non-centrality parameter
+<code>ncp</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+dchisq(x, df, ncp = 0, log = FALSE)
+pchisq(q, df, ncp = 0, lower.tail = TRUE, log.p = FALSE)
+qchisq(p, df, ncp = 0, lower.tail = TRUE, log.p = FALSE)
+rchisq(n, df, ncp = 0)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x, q</code></td>
+<td>
+<p>vector of quantiles.</p>
+</td></tr>
+<tr valign="top"><td><code>p</code></td>
+<td>
+<p>vector of probabilities.</p>
+</td></tr>
+<tr valign="top"><td><code>n</code></td>
+<td>
+<p>number of observations. If <code>length(n) &gt; 1</code>, the length
+is taken to be the number required.</p>
+</td></tr>
+<tr valign="top"><td><code>df</code></td>
+<td>
+<p>degrees of freedom (non-negative, but can be non-integer).</p>
+</td></tr>
+<tr valign="top"><td><code>ncp</code></td>
+<td>
+<p>non-centrality parameter (non-negative).</p>
+</td></tr>
+<tr valign="top"><td><code>log, log.p</code></td>
+<td>
+<p>logical; if TRUE, probabilities p are given as log(p).</p>
+</td></tr>
+<tr valign="top"><td><code>lower.tail</code></td>
+<td>
+<p>logical; if TRUE (default), probabilities are
+<i>P[X &le; x]</i>, otherwise, <i>P[X &gt; x]</i>.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>The chi-squared distribution with <code>df</code><i>= n &ge; 0</i>
+degrees of freedom has density
+</p>
+<p style="text-align: center;"><i>f_n(x) = 1 / (2^(n/2) &Gamma;(n/2))  x^(n/2-1) e^(-x/2)</i></p>
+
+<p>for <i>x &gt; 0</i>.  The mean and variance are <i>n</i> and <i>2n</i>.
+</p>
+<p>The non-central chi-squared distribution with <code>df</code><i>= n</i>
+degrees of freedom and non-centrality parameter <code>ncp</code>
+<i>= &lambda;</i> has density
+</p>
+<p style="text-align: center;"><i>f(x) = exp(-&lambda;/2) SUM_{r=0}^&infin; ((&lambda;/2)^r / r!) dchisq(x, df + 2r)
+  </i></p>
+
+<p>for <i>x &ge; 0</i>.  For integer <i>n</i>, this is the distribution of
+the sum of squares of <i>n</i> normals each with variance one,
+<i>&lambda;</i> being the sum of squares of the normal means; further,
+<br />
+<i>E(X) = n + &lambda;</i>, <i>Var(X) = 2(n + 2*&lambda;)</i>, and
+<i>E((X - E(X))^3) = 8(n + 3*&lambda;)</i>.
+</p>
+<p>Note that the degrees of freedom <code>df</code><i>= n</i>, can be
+non-integer, and also <i>n = 0</i> which is relevant for
+non-centrality <i>&lambda; &gt; 0</i>,
+see Johnson <em>et al</em> (1995, chapter 29).
+In that (noncentral, zero df) case, the distribution is a mixture of a
+point mass at <i>x = 0</i> (of size <code>pchisq(0, df=0, ncp=ncp)</code>) and
+a continuous part, and <code>dchisq()</code> is <em>not</em> a density with
+respect to that mixture measure but rather the limit of the density
+for <i>df -&gt; 0</i>.
+</p>
+<p>Note that <code>ncp</code> values larger than about 1e5 may give inaccurate
+results with many warnings for <code>pchisq</code> and <code>qchisq</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>dchisq</code> gives the density, <code>pchisq</code> gives the distribution
+function, <code>qchisq</code> gives the quantile function, and <code>rchisq</code>
+generates random deviates.
+</p>
+<p>Invalid arguments will result in return value <code>NaN</code>, with a warning.
+</p>
+<p>The length of the result is determined by <code>n</code> for
+<code>rchisq</code>, and is the maximum of the lengths of the
+numerical arguments for the other functions.
+</p>
+<p>The numerical arguments other than <code>n</code> are recycled to the
+length of the result.  Only the first elements of the logical
+arguments are used.
+</p>
+
+
+<h3>Note</h3>
+
+<p>Supplying <code>ncp = 0</code> uses the algorithm for the non-central
+distribution, which is not the same algorithm used if <code>ncp</code> is
+omitted.  This is to give consistent behaviour in extreme cases with
+values of <code>ncp</code> very near zero.
+</p>
+<p>The code for non-zero <code>ncp</code> is principally intended to be used
+for moderate values of <code>ncp</code>: it will not be highly accurate,
+especially in the tails, for large values.
+</p>
+
+
+<h3>Source</h3>
+
+<p>The central cases are computed via the gamma distribution.
+</p>
+<p>The non-central <code>dchisq</code> and <code>rchisq</code> are computed as a
+Poisson mixture central of chi-squares (Johnson <em>et al</em>, 1995, p.436).
+</p>
+<p>The non-central <code>pchisq</code> is for <code>ncp &lt; 80</code> computed from
+the Poisson mixture of central chi-squares and for larger <code>ncp</code>
+<em>via</em> a C translation of
+</p>
+<p>Ding, C. G. (1992)
+Algorithm AS275: Computing the non-central chi-squared
+distribution function. <em>Appl.Statist.</em>, <b>41</b> 478&ndash;482.
+</p>
+<p>which computes the lower tail only (so the upper tail suffers from
+cancellation and a warning will be given when this is likely to be
+significant).
+</p>
+<p>The non-central <code>qchisq</code> is based on inversion of <code>pchisq</code>.
+</p>
+
+
+<h3>References</h3>
+
+<p>Becker, R. A., Chambers, J. M. and Wilks, A. R. (1988)
+<em>The New S Language</em>.
+Wadsworth &amp; Brooks/Cole.
+</p>
+<p>Johnson, N. L., Kotz, S. and Balakrishnan, N. (1995)
+<em>Continuous Univariate Distributions</em>, chapters 18 (volume 1)
+and 29 (volume 2). Wiley, New York.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><a href="Distributions.html">Distributions</a> for other standard distributions.
+</p>
+<p>A central chi-squared distribution with <i>n</i> degrees of freedom
+is the same as a Gamma distribution with <code>shape</code> <i>a = n/2</i> and <code>scale</code> <i>s = 2</i>.  Hence, see
+<code><a href="GammaDist.html">dgamma</a></code> for the Gamma distribution.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+require(graphics)
+
+dchisq(1, df = 1:3)
+pchisq(1, df =  3)
+pchisq(1, df =  3, ncp = 0:4)  # includes the above
+
+x &lt;- 1:10
+## Chi-squared(df = 2) is a special exponential distribution
+all.equal(dchisq(x, df = 2), dexp(x, 1/2))
+all.equal(pchisq(x, df = 2), pexp(x, 1/2))
+
+## non-central RNG -- df = 0 with ncp &gt; 0:  Z0 has point mass at 0!
+Z0 &lt;- rchisq(100, df = 0, ncp = 2.)
+graphics::stem(Z0)
+
+## visual testing
+## do P-P plots for 1000 points at various degrees of freedom
+L &lt;- 1.2; n &lt;- 1000; pp &lt;- ppoints(n)
+op &lt;- par(mfrow = c(3,3), mar = c(3,3,1,1)+.1, mgp = c(1.5,.6,0),
+          oma = c(0,0,3,0))
+for(df in 2^(4*rnorm(9))) {
+  plot(pp, sort(pchisq(rr &lt;- rchisq(n, df = df, ncp = L), df = df, ncp = L)),
+       ylab = "pchisq(rchisq(.),.)", pch = ".")
+  mtext(paste("df = ", formatC(df, digits = 4)), line =  -2, adj = 0.05)
+  abline(0, 1, col = 2)
+}
+mtext(expression("P-P plots : Noncentral  "*
+                 chi^2 *"(n=1000, df=X, ncp= 1.2)"),
+      cex = 1.5, font = 2, outer = TRUE)
+par(op)
+
+## "analytical" test
+lam &lt;- seq(0, 100, by = .25)
+p00 &lt;- pchisq(0,      df = 0, ncp = lam)
+p.0 &lt;- pchisq(1e-300, df = 0, ncp = lam)
+stopifnot(all.equal(p00, exp(-lam/2)),
+          all.equal(p.0, exp(-lam/2)))
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>stats</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

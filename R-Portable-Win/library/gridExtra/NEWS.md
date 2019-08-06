@@ -1,3 +1,10 @@
+# gridExtra 2.3.0 (2017-09-01)
+ 
+## Misc. cleanup for CRAN release
+
+* renamed `cbind/rbind` functions copied from gtable to `cbind_gtable` and `rbind_gtable` to avoid issues with generic method (different signature)
+* more consistency in gtable-related functions
+
 # gridExtra 2.2.0 (2016-02-27)
  
 ## NEW FEATURES

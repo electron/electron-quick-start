@@ -40,52 +40,29 @@ require("survival")
 \begin{figure}
 
 <<sfig1, fig=TRUE, echo=FALSE>>=
-# A note to readers of this code: drawing multi-state figures in this
-#  way via polygon and arrows statements is a major PITA.  Don't mimic
-#  the code below, instead do yourself a favor and use a package
-#  designed for the task such as diagram, DiagrammeR, shape or Gmisc.
-# Survival is a recommended package that is included by lots of others so
-#  I try to limit dependencies in the survival vignettes.
-#
-par(mar=c(.1, .1, .1, .1))
-frame()
-oldpar <- par(usr=c(0,100,0,100))
-# first figure
-xx <- c(0, 10, 10, 0)
-yy <- c(0, 0, 10, 10)
-polygon(xx +10, yy+70)
-polygon(xx +30, yy+70)
-arrows( 22, 75, 28, 75, length=.1)
-text(c(15, 35), c(75,75), c("Alive", "Dead"))
+oldpar <- par(mar=c(.1, .1, .1, .1), mfrow=c(2,2))
+cmat1 <- matrix(c(0,0,1,0), nrow=2, 
+                dimnames=list(c("Alive", "Dead"), c("Alive", "Dead")))
+statefig(c(1,1), cmat1, cex=1.5)
 
-# second figure
-polygon(xx +60, yy+70)  
-for (j in c(55, 70, 85)) {
-    polygon(xx +80, yy+j)
-    arrows(72, (5*75 +j+5)/6, 78, (100+j*5)/6, length=.1)
-}
-text(c(65, 85,85,85), c(70,55,70,85)+5, c("A", "D3", "D2", "D1")) 
+states <- c("A", "D1", "D2", "D3")
+cmat2 <- matrix(0, 4,4, dimnames=list(states, states))
+cmat2[1, -1] <- 1
+statefig(c(1,3), cmat2, cex=1.5)
 
-# third figure
-polygon(xx+10, yy+25)
-for (j in c(15,35)) {
-    polygon(xx +30, yy+j)
-    arrows(22, (5*30 +j+4)/6, 28, (54+j*5)/6, length=.1)
-}
-arrows(28, 2+(65 + 35*5)/6, 22, 2+ (160 + 40)/6, length=.1)
-arrows(35, 33, 35, 27, length=.1)
-text(c(15, 35,35), c(30, 20, 40), c("Health", "Death", "Illness"))
+state3 <- c("Health", "Illness", "Death")
+cmat3 <- matrix(0, 3, 3, dimnames = list(state3, state3))
+cmat3[1,2] <- cmat3[2,1] <- cmat3[-3, 3] <- 1
+statefig(c(1,2), cmat3, offset=.03, cex=1.5)
 
-# fourth
-for (i in c(50, 68)) polygon(xx+i, yy+25)
-arrows(62, 30, 67, 30, length=.1)
-arrows(80, 30, 84, 30, length=.1)
-text(90, 30, "...", cex=2)
-text(c(55, 73), c(30, 30), c("0", "1"))
+state4 <- c("0", "1", "2", "...")
+cmat4 <- matrix(0, 4,4, dimnames= list(state4, state4))
+cmat4[1,2] <- cmat4[2,3] <- cmat4[3,4] <- 1
+statefig(c(1,1,1,1), cmat4, bcol=c(1,1,1,0), cex=c(1.5, 1.5, 1.5, 3))
 par(oldpar)
 @
-  \caption{Four multi-state models.  The upper left panel depicts simple survival,
- the upper right is an example of competing risks, 
+ \caption{Four multi-state models.  The upper left panel depicts simple 
+   survival, the upper right is an example of competing risks, 
  the lower left panel is a multi-state
  illness-death model, and the lower right panel depicts sequential events.}
  \label{mfig1}
@@ -627,10 +604,10 @@ hazards for the two rates, no shared coefficients, and three covariates.
 options(show.signif.stars = FALSE)  # display intelligence
 cfit2 <- coxph(Surv(etime, event=="death") ~ age + sex + mspike, mgus2)
 summary(cfit2, scale=c(10, 1, 1))   # scale age in decades 
-
 @ 
 The effect of age and sex on non-PCM mortality is profound, which is not
-a surprise given the median starting age of \Sexpr{median(mgus2$age)}. Risk rises \Sexpr{round(exp(10*coef(cfit2)[1]),1)} fold per decade of age and
+a surprise given the median starting age of \Sexpr{median(mgus2$age)}. 
+Risk rises \Sexpr{round(exp(10*coef(cfit2)[1]),1)} fold per decade of age and
 the death rate for males is \Sexpr{round(exp(coef(cfit2)[2]),1)} times as great
 as that for females.  
 The size of the serum monoclonal spike has almost no impact on non-PCM 
@@ -892,7 +869,7 @@ $T^*= I(\mbox{event type}=k)T + I(\mbox{event type}\ne k)\infty$.
 Fine and Gray refer to $F_k$ as a subdistribution function.
 In analogy to the survival probability in the two state model define
 \begin{equation}
-  \gamma_k(t) = - d \log[1-F_k(t)]/dt \label{FG}I 
+  \gamma_k(t) = - d \log[1-F_k(t)]/dt \label{FG} 
 \end{equation}
 and assume that $\gamma_k(t;x) = \gamma_{k0}(t) \exp(X\beta)$.
 In a 2 state alive $\longrightarrow$ death model, $\gamma$ becomes the
@@ -907,7 +884,8 @@ is a constant,
 independent of other variables.  
 Both model's assumptions are wonderfully simplifying with respect to 
 understanding
-a covariate, since we can think about each one separately from the others.
+a covariate, since we can think about each covariate separately from 
+all the others.
 This is, of course, under the assumption that the model is correct:
 additivity across covariates, linearity, and proportional hazards 
 all hold.
@@ -1087,13 +1065,20 @@ of proper confidence intervals for the state probabilities $p(t)$.
 (Since all of the steps used the same transition matrix template, the
 necessary computations are scripted and reliable.)
 
+A current restriction in R is that packages on the \emph{recommended} list
+(of which survival is one) should not depend on any packages outside that
+list.  
+This precludes adding an mstate example to this vignette, even though it is
+a natural fit.
+
 \subsection{The \code{msm} package}
 There are two broad classes of multi-state data:
 \begin{itemize}
   \item Panel data arises when subjects have regular visits, with the
     current state assessed at each visit.  We don't know when the transitions
     between states occur, or if other states may have been visited in the
-    interim --- only the subject's state at specific times.  
+    interim --- only the subject's state at specific times. This is also
+    known as interval censored data.  
   \item Survival data arises when we observe the transition times;
     death, for example.
 \end{itemize}

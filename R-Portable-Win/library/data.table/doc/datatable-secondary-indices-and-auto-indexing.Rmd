@@ -19,7 +19,7 @@ knitr::opts_chunk$set(
  collapse = TRUE)
 ```
 
-This vignette assumes that the reader is familiar with data.table's `[i, j, by]` syntax, and how to perform fast key based subsets. If you're not familar with these concepts, please read the *"Introduction to data.table"*,  *"Reference semantics"* and *"Keys and fast binary search based subset"* vignettes first.
+This vignette assumes that the reader is familiar with data.table's `[i, j, by]` syntax, and how to perform fast key based subsets. If you're not familiar with these concepts, please read the *"Introduction to data.table"*,  *"Reference semantics"* and *"Keys and fast binary search based subset"* vignettes first.
 
 ***
 
@@ -73,8 +73,8 @@ names(attributes(flights))
 ```
 
 * `setindex` and `setindexv()` allows adding a secondary index to the data.table.
-
-* Note that `flights` is **not** phyiscally reordered in increasing order of `origin`, as would have been the case with `setkey()`.
+* Originally it was `set2key` until data.table 1.9.6, then [changed to current names](https://github.com/Rdatatable/data.table/issues/1442).
+* Note that `flights` is **not** physically reordered in increasing order of `origin`, as would have been the case with `setkey()`.
 
 * Also note that the attribute `index` has been added to `flights`. 
 
@@ -206,7 +206,7 @@ flights[.("LGA", "TPA"), .(arr_delay), on = c("origin", "dest")][order(-arr_dela
 
 ### d) Compute or *do* in `j`
 
-#### -- Find the maximum arrival delay correspondong to `origin = "LGA"` and `dest = "TPA"`.
+#### -- Find the maximum arrival delay corresponding to `origin = "LGA"` and `dest = "TPA"`.
 
 ```{r}
 flights[.("LGA", "TPA"), max(arr_delay), on = c("origin", "dest")]
@@ -233,7 +233,7 @@ Now, let's check if `24` is replaced with `0` in the `hour` column.
 flights[, sort(unique(hour))]
 ```
 
-* This is particularly a huge advantage of secondary indices. Previously, just to update a few rows of `hour`, we had to `setkey()` on it, which inevitablly reorders the entire data.table. With `on`, the order is preserved, and the operation is much faster! Looking at the code, the task we wanted to perform is also quite clear.
+* This is particularly a huge advantage of secondary indices. Previously, just to update a few rows of `hour`, we had to `setkey()` on it, which inevitably reorders the entire data.table. With `on`, the order is preserved, and the operation is much faster! Looking at the code, the task we wanted to perform is also quite clear.
 
 ### f) Aggregation using `by`
 
@@ -269,16 +269,16 @@ We can choose if queries that do not match should return `NA` or be skipped alto
 #### -- From the previous example, subset all rows only if there's a match
 
 ```{r}
-flights[.(c("LGA", "JFK", "EWR"), "XNA"), mult = "last", on = c("origin", "dest"), nomatch = 0L]
+flights[.(c("LGA", "JFK", "EWR"), "XNA"), mult = "last", on = c("origin", "dest"), nomatch = NULL]
 ```
 
 * There are no flights connecting "JFK" and "XNA". Therefore, that row is skipped in the result.
 
 ## 3. Auto indexing
 
-First we looked at how to fast subset using binary search using *keys*. Then we figured out that we could improve performance even further and have more cleaner syntax by using secondary indices. What could be better than that? The answer is to optimise *native R syntax* to use secondary indices internally so that we can have the same performance without having to use newer syntax.
+First we looked at how to fast subset using binary search using *keys*. Then we figured out that we could improve performance even further and have more cleaner syntax by using secondary indices. 
 
-That is what *auto indexing* does. At the moment, it is only implemented for binary operators `==` and `%in%`. And it only works with a single column at the moment as well. An index is automatically created *and* saved as an attribute. That is, unlike the `on` argument which computes the index on the fly each time, a secondary index is created here. 
+That is what *auto indexing* does. At the moment, it is only implemented for binary operators `==` and `%in%`. An index is automatically created *and* saved as an attribute. That is, unlike the `on` argument which computes the index on the fly each time (unless one already exists), a secondary index is created here. 
 
 Let's start by creating a data.table big enough to highlight the advantage.
 
@@ -288,7 +288,7 @@ dt = data.table(x = sample(1e5L, 1e7L, TRUE), y = runif(100L))
 print(object.size(dt), units = "Mb")
 ```
 
-When we use `==` or `%in%` on a single column for the first time, a secondary index is created automtically, and it is used to perform the subset.
+When we use `==` or `%in%` on a single column for the first time, a secondary index is created automatically, and it is used to perform the subset.
 
 ```{r}
 ## have a look at all the attribute names
@@ -320,8 +320,8 @@ system.time(dt[x %in% 1989:2012])
 
 # 
 
-In the future, we plan to extend auto indexing to expressions involving more than one column. Also we are working on extending binary search to work with more binary operators like `<`, `<=`, `>` and `>=`. Once done, it would be straightforward to extend it to these operators as well. 
+In recent version we extended auto indexing to expressions involving more than one column (combined with `&` operator). In the future, we plan to extend binary search to work with more binary operators like `<`, `<=`, `>` and `>=`.  
 
-We will extend fast *subsets* using keys and secondary indices to *joins* in the next vignette, *"Joins and rolling joins"*.
+We will discuss fast *subsets* using keys and secondary indices to *joins* in the next vignette, *"Joins and rolling joins"*.
 
 ***

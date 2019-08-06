@@ -121,24 +121,3 @@ print.xtableList(xList3, colnames.format = "multiple")
 ## ----multiplenomessage, results='asis'--------------------
 print.xtableList(xList4, colnames.format = "multiple")
 
-## ----lsmeans----------------------------------------------
-library(lsmeans)
-warp.lm <- lm(breaks ~ wool*tension, data = warpbreaks)
-warp.lsm <- lsmeans(warp.lm, ~ tension | wool)
-warp.sum <- summary(warp.lsm, adjust = "mvt")
-warp.xtblList <- xtableLSMeans(warp.sum, digits = c(0,0,2,2,0,2,2))
-str(warp.xtblList)
-
-## ----lsmeansstr-------------------------------------------
-print.xtableList(warp.xtblList, colnames.format = "multiple",
-                 include.rownames = FALSE)
-
-## ----lsmeanstable, results='asis'-------------------------
-print.xtableList(warp.xtblList, colnames.format = "multiple",
-                 include.rownames = FALSE)
-
-## ----lsmeansbooktabs, results='asis'----------------------
-print.xtableList(warp.xtblList, colnames.format = "multiple",
-                 booktabs = TRUE,
-                 include.rownames = FALSE)
-

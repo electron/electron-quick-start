@@ -1,0 +1,184 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Classes Corresponding to Basic Structures</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for StructureClasses {methods}"><tr><td>StructureClasses {methods}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Classes Corresponding to Basic Structures</h2>
+
+<h3>Description</h3>
+
+<p>The virtual class <code>structure</code> and classes that
+extend it are formal classes analogous to S language structures such
+as arrays and time-series.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+## The following class names can appear in method signatures,
+## as the class in as() and is() expressions, and, except for
+## the classes commented as VIRTUAL, in calls to new()
+
+"matrix"
+"array"
+"ts"
+
+"structure" ## VIRTUAL
+</pre>
+
+
+<h3>Objects from the Classes</h3>
+
+<p>Objects can be created by calls of the form <code>new(Class, ...)</code>,
+where <code>Class</code> is the quoted name of the specific class (e.g.,
+<code>"matrix"</code>), and the other arguments, if any, are interpreted as
+arguments to the corresponding function, e.g., to function
+<code>matrix()</code>.  There is no particular advantage over calling those
+functions directly, unless you are writing software designed to work
+for multiple classes, perhaps with the class name and the arguments
+passed in.
+</p>
+<p>Objects created from the classes <code>"matrix"</code> and <code>"array"</code>
+are unusual, to put it mildly, and have been for some time.  Although
+they may appear to be objects from these classes, they do not have the
+internal structure of either an S3 or S4 class object.  In particular,
+they have no <code>"class"</code> attribute and are not recognized as
+objects with classes (that is, both <code><a href="../../base/html/is.object.html">is.object</a></code> and
+<code><a href="../../base/html/isS4.html">isS4</a></code> will return <code>FALSE</code> for such objects).
+However, methods (both S4 and S3) can be defined for these
+pseudo-classes and new classes (both S4 and S3) can inherit from them.
+</p>
+<p>That the objects still behave as if they came from the corresponding
+class (most of the time, anyway) results from special code
+recognizing such objects being built into the base code of <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>.
+For most purposes, treating the classes in the usual way will work,
+fortunately.  One consequence of the special treatment is that these
+two classes<em>may</em> be used as the data part of an S4 class; for
+example, you can get away with <code>contains = "matrix"</code> in a call
+to <code><a href="setGeneric.html">setGeneric</a></code> to create an S4 class that is a subclass
+of <code>"matrix"</code>.  There is no guarantee that everything will work
+perfectly, but a number of classes have been written in this form
+successfully.
+</p>
+<p>Note that a class containing <code>"matrix"</code> or <code>"array"</code> will
+have a  <code>.Data</code> slot with that class.  This is the only use of
+<code>.Data</code> other than as a pseudo-class indicating the type of the
+object.  In this case the type of the object will be the type of the
+contained matrix or array. See <code><a href="Classes_Details.html">Classes_Details</a></code> for a general
+discussion.
+</p>
+<p>The class <code>"ts"</code>  is basically an S3 class
+that has been registered with S4, using the
+<code><a href="setOldClass.html">setOldClass</a></code> mechanism.  Versions of <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> through 2.7.0
+treated this class as a pure S4 class, which was in principal a good
+idea, but in practice did not allow subclasses to be defined and had
+other intrinsic problems.  (For example, setting the
+<code>"tsp"</code> parameters as a slot often fails because the built-in
+implementation does not allow the slot to be temporarily
+inconsistent with the length of the data. Also, the S4 class
+prevented the correct specification of the S3 inheritance for class
+<code>"mts"</code>.)
+</p>
+<p>Time-series objects, in contrast to matrices and arrays, have a valid
+S3 class, <code>"ts"</code>, registered  using an S4-style definition (see the
+documentation for <code><a href="setOldClass.html">setOldClass</a></code> in the examples section
+for an abbreviated listing of how this is done).  The S3
+inheritance of <code>"mts"</code> in package <span class="pkg">stats</span> is also
+registered.
+These classes, as well as <code>"matrix"</code> and <code>"array"</code> should
+be valid in most examples as superclasses for new S4 class
+definitions.
+</p>
+<p>All of these classes have special S4 methods for
+<code><a href="new.html">initialize</a></code> that accept the same arguments as the basic
+generator functions, <code><a href="../../base/html/matrix.html">matrix</a></code>,
+<code><a href="../../base/html/array.html">array</a></code>, and <code><a href="../../stats/html/ts.html">ts</a></code>, in so far as possible.
+The limitation is that a class that has more than one non-virtual
+superclass must accept objects from that superclass in the call to
+<code><a href="new.html">new</a></code>; therefore, a such a class (what is called a
+&ldquo;mixin&rdquo; in some languages) uses the default method for
+<code><a href="new.html">initialize</a></code>, with no special arguments.
+</p>
+
+
+<h3>Extends</h3>
+
+<p>The specific classes all extend class <code>"structure"</code>, directly, and
+class <code>"vector"</code>, by class <code>"structure"</code>.
+</p>
+
+
+<h3>Methods</h3>
+
+
+<dl>
+<dt>coerce</dt><dd><p>Methods are defined to coerce arbitrary objects to
+these classes, by calling the corresponding basic function, for
+example, <code>as(x, "matrix")</code> calls <code>as.matrix(x)</code>.
+If <code>strict = TRUE</code> in the call to <code>as()</code>, the method
+goes on to delete all other slots and attributes other than the
+<code>dim</code> and <code>dimnames</code>.
+</p>
+</dd>
+<dt>Ops</dt><dd><p>Group methods (see, e.g., <code><a href="S4groupGeneric.html">S4groupGeneric</a></code>)
+are defined for combinations of structures and vectors (including
+special cases for array and matrix), implementing the concept of
+vector structures as in the reference.  Essentially, structures
+combined with vectors retain the structure as long as the
+resulting object has the same length.  Structures combined with
+other structures remove the structure, since there is no
+automatic way to determine what should happen to the slots
+defining the structure.
+</p>
+<p>Note that these methods will be activated when a package is loaded
+containing a class that inherits from any of the structure
+classes or class <code>"vector"</code>.
+</p>
+</dd>
+</dl>
+
+
+
+<h3>References</h3>
+
+<p>Chambers, John M. (2008)
+<em>Software for Data Analysis: Programming with R</em>
+Springer.  (For the R version.)
+</p>
+<p>Chambers, John M. (1998)
+<em>Programming with Data</em>
+Springer (For the original S4 version.)
+</p>
+<p>Becker, R. A., Chambers, J. M. and Wilks, A. R. (1988)
+<em>The New S Language</em>.
+Wadsworth &amp; Brooks/Cole (for the original vector structures).
+</p>
+
+
+<h3>See Also</h3>
+
+<p>Class <a href="nonStructure-class.html">nonStructure</a>, which enforces the
+alternative model, in which all slots are dropped if any math
+transformation or operation is applied to an object from a class
+extending one of the basic classes.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+showClass("structure")
+
+## explore a bit :
+showClass("ts")
+(ts0 &lt;- new("ts"))
+str(ts0)
+
+showMethods("Ops") # six methods from these classes, but maybe many more
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>methods</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

@@ -1,0 +1,130 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Recursively Apply a Function to a List</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for rapply {base}"><tr><td>rapply {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Recursively Apply a Function to a List</h2>
+
+<h3>Description</h3>
+
+<p><code>rapply</code> is a recursive version of <code><a href="lapply.html">lapply</a></code> with
+flexibility in <em>how</em> the result is structured (<code>how = ".."</code>).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+rapply(object, f, classes = "ANY", deflt = NULL,
+       how = c("unlist", "replace", "list"), ...)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>object</code></td>
+<td>
+<p>a <code><a href="list.html">list</a></code> or <code><a href="expression.html">expression</a></code>, i.e., &ldquo;list-like&rdquo;.</p>
+</td></tr>
+<tr valign="top"><td><code>f</code></td>
+<td>
+<p>a <code><a href="function.html">function</a></code> of one &ldquo;principal&rdquo; argument,
+passing further arguments via <code>...</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>classes</code></td>
+<td>
+<p>character vector of <code><a href="class.html">class</a></code> names, or
+<code>"ANY"</code> to match any class.</p>
+</td></tr>
+<tr valign="top"><td><code>deflt</code></td>
+<td>
+<p>The default result (not used if <code>how = "replace"</code>).</p>
+</td></tr>
+<tr valign="top"><td><code>how</code></td>
+<td>
+<p>character string partially matching the three possibilities given:
+see &lsquo;Details&rsquo;.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>additional arguments passed to the call to <code>f</code>.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>This function has two basic modes.  If <code>how = "replace"</code>, each
+element of <code>object</code> which is not itself list-like and has a class
+included in <code>classes</code> is replaced by the result of applying
+<code>f</code> to the element.
+</p>
+<p>Otherwise, with mode <code>how = "list"</code> or <code>how = "unlist"</code>,
+conceptually <code>object</code>
+is copied, all non-list elements which have a class included in
+<code>classes</code> are replaced by the result of applying <code>f</code> to the
+element and all others are replaced by <code>deflt</code>.  Finally, if
+<code>how = "unlist"</code>, <code>unlist(recursive = TRUE)</code> is called on
+the result.
+</p>
+<p>The semantics differ in detail from <code><a href="lapply.html">lapply</a></code>: in
+particular the arguments are evaluated before calling the C code.
+</p>
+<p>In <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> 3.5.x and earlier, <code>object</code> was required to be a list,
+which was <em>not</em> the case for its list-like components.
+</p>
+
+
+<h3>Value</h3>
+
+<p>If <code>how = "unlist"</code>, a vector, otherwise &ldquo;list-like&rdquo;
+of similar structure as <code>object</code>.
+</p>
+
+
+<h3>References</h3>
+
+<p>Chambers, J. A. (1998)
+<em>Programming with Data</em>.
+Springer.<br />
+(<code>rapply</code> is only described briefly there.)
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="lapply.html">lapply</a></code>, <code><a href="../../stats/html/dendrapply.html">dendrapply</a></code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+X &lt;- list(list(a = pi, b = list(c = 1L)), d = "a test")
+# the "identity operation":
+rapply(X, function(x) x, how = "replace") -&gt; X.; stopifnot(identical(X, X.))
+rapply(X, sqrt, classes = "numeric", how = "replace")
+rapply(X, deparse, control = "all") # passing extras. argument of deparse()
+rapply(X, nchar, classes = "character", deflt = NA_integer_, how = "list")
+rapply(X, nchar, classes = "character", deflt = NA_integer_, how = "unlist")
+rapply(X, nchar, classes = "character",                      how = "unlist")
+rapply(X, log, classes = "numeric", how = "replace", base = 2)
+
+## with expression() / list():
+E  &lt;- expression(list(a = pi, b = expression(c = C1 * C2)), d = "a test")
+LE &lt;- list(expression(a = pi, b = expression(c = C1 * C2)), d = "a test")
+rapply(E, nchar, how="replace") # "expression(c = C1 * C2)" are 23 chars
+rapply(E, nchar, classes = "character", deflt = NA_integer_, how = "unlist")
+rapply(LE, as.character) # a "pi" | b1 "expression" | b2 "C1 * C2" ..
+rapply(LE, nchar)        # (see above)
+stopifnot(exprs = {
+  identical(E , rapply(E , identity, how = "replace"))
+  identical(LE, rapply(LE, identity, how = "replace"))
+})
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

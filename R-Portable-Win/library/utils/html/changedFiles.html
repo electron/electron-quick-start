@@ -1,0 +1,224 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Detect which Files Have Changed</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for changedFiles {utils}"><tr><td>changedFiles {utils}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Detect which Files Have Changed</h2>
+
+<h3>Description</h3>
+
+<p><code>fileSnapshot</code> takes a snapshot of a selection of files,
+recording summary information about each.  <code>changedFiles</code>
+compares two snapshots, or compares one snapshot to the current state
+of the file system.  The snapshots need not be the same directory;
+this could be used to compare two directories.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+fileSnapshot(path = ".", file.info = TRUE, timestamp = NULL, 
+	    md5sum = FALSE, digest = NULL, full.names = length(path) &gt; 1,
+	    ...) 
+
+changedFiles(before, after, path = before$path, timestamp = before$timestamp, 
+	    check.file.info = c("size", "isdir", "mode", "mtime"), 
+	    md5sum = before$md5sum, digest = before$digest, 
+	    full.names = before$full.names, ...)
+	    
+## S3 method for class 'fileSnapshot'
+print(x, verbose = FALSE, ...)
+
+## S3 method for class 'changedFiles'
+print(x, verbose = FALSE, ...) 
+</pre>
+
+
+<h3>Arguments</h3>
+
+ 
+<table summary="R argblock">
+<tr valign="top"><td><code>path</code></td>
+<td>
+<p>character vector; the path(s) to record. </p>
+</td></tr>
+<tr valign="top"><td><code>file.info</code></td>
+<td>
+<p>logical; whether to record <code><a href="../../base/html/file.info.html">file.info</a></code>
+values for each file.
+</p>
+</td></tr>  
+<tr valign="top"><td><code>timestamp</code></td>
+<td>
+<p>character string or <code>NULL</code>; the name of a file
+to write at the time the snapshot is taken.  This gives a quick test
+for modification, but may be unreliable; see the Details. </p>
+</td></tr>
+<tr valign="top"><td><code>md5sum</code></td>
+<td>
+<p>logical; whether MD5 summaries of each file should be
+taken as part of the snapshot. </p>
+</td></tr>
+<tr valign="top"><td><code>digest</code></td>
+<td>
+<p>a function or <code>NULL</code>; a function with header
+<code>function(filename)</code> which will take a vector of filenames and
+produce a vector of values of the same length, or a matrix with that
+number of rows. </p>
+</td></tr>
+<tr valign="top"><td><code>full.names</code></td>
+<td>
+<p>logical; whether full names (as in
+<code><a href="../../base/html/list.files.html">list.files</a></code>) should be recorded. Must be <code>TRUE</code> if
+<code>length(path) &gt; 1</code>. </p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p> additional parameters to pass to
+<code><a href="../../base/html/list.files.html">list.files</a></code> to control the set of files in the snapshots.
+</p>
+</td></tr>
+<tr valign="top"><td><code>before, after</code></td>
+<td>
+<p>objects produced by <code>fileSnapshot</code>; two
+snapshots to compare.  If <code>after</code> is missing, a new snapshot of
+the current file system will be produced for comparison, using
+arguments recorded in <code>before</code> as defaults. </p>
+</td></tr>
+<tr valign="top"><td><code>check.file.info</code></td>
+<td>
+<p>character vector; which columns from
+<code><a href="../../base/html/file.info.html">file.info</a></code> should be compared. </p>
+</td></tr>
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>the object to print. </p>
+</td></tr>
+<tr valign="top"><td><code>verbose</code></td>
+<td>
+<p>logical; whether to list all data when printing. </p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>The <code>fileSnapshot</code> function uses <code><a href="../../base/html/list.files.html">list.files</a></code> to
+obtain a list of files, and depending on the <code>file.info</code>,
+<code>md5sum</code>, and <code>digest</code> arguments, records information about
+each file.
+</p>
+<p>The <code>changedFiles</code> function compares two snapshots. 
+</p>
+<p>If the <code>timestamp</code> argument to <code>fileSnapshot</code> is length 1, a
+file with that name is created. If it is length 1 in
+<code>changedFiles</code>, the <code><a href="filetest.html">file_test</a></code> function is used to
+compare the age of all files common to both <code>before</code> and
+<code>after</code> to it.  This test may be unreliable:  it compares the
+current modification time of the <code>after</code> files to the timestamp;
+that may not be the same as the modification time when the
+<code>after</code> snapshot was taken.  It may also give incorrect results
+if the clock on the file system holding the timestamp differs from the
+one holding the snapshot files.
+</p>
+<p>If the <code>check.file.info</code> argument contains a non-empty character
+vector, the indicated columns from the result of a call to
+<code><a href="../../base/html/file.info.html">file.info</a></code> will be compared.
+</p>
+<p>If <code>md5sum</code> is <code>TRUE</code>, <code>fileSnapshot</code> will call the
+<code>tools::<a href="../../tools/html/md5sum.html">md5sum</a></code> function to record the 32 byte MD5
+checksum for each file, and <code>changedFiles</code> will compare the
+values.  The <code>digest</code> argument allows users to provide their own
+digest function.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>fileSnapshot</code> returns an object of class <code>"fileSnapshot"</code>.
+This is a list containing the fields 
+</p>
+<table summary="R valueblock">
+<tr valign="top"><td><code>info</code></td>
+<td>
+<p>a data frame whose rownames are the filenames, and whose
+columns contain the requested snapshot data</p>
+</td></tr> 
+<tr valign="top"><td><code>path</code></td>
+<td>
+<p>the normalized <code>path</code> from the call</p>
+</td></tr> 
+<tr valign="top"><td><code>timestamp, file.info, md5sum, digest, full.names</code></td>
+<td>
+<p>a record of
+the other arguments from the call</p>
+</td></tr> 
+<tr valign="top"><td><code>args</code></td>
+<td>
+<p>other arguments passed via <code>...</code> to
+<code><a href="../../base/html/list.files.html">list.files</a></code>.</p>
+</td></tr>
+</table>
+<p><code>changedFiles</code> produces an object of class <code>"changedFiles"</code>.
+This is a list containing
+</p>
+<table summary="R valueblock">
+<tr valign="top"><td><code>added, deleted, changed, unchanged</code></td>
+<td>
+<p>character vectors of
+filenames from the before and after snapshots, with obvious meanings</p>
+</td></tr>
+<tr valign="top"><td><code>changes</code></td>
+<td>
+<p>a logical matrix with a row for each common file, and a
+column for each comparison test. <code>TRUE</code> indicates a change in
+that test.</p>
+</td></tr>
+</table>
+<p><code><a href="../../base/html/print.html">print</a></code> methods are defined for each of these types.  The
+<code><a href="../../base/html/print.html">print</a></code> method for <code>"fileSnapshot"</code> objects
+displays the arguments used to produce them, while the one for
+<code>"changedFiles"</code> displays the <code>added</code>, <code>deleted</code> and
+<code>changed</code> fields if non-empty, and a submatrix of the
+<code>changes</code> matrix containing all of the <code>TRUE</code> values.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Duncan Murdoch, using suggestions from Karl Millar and others.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="../../base/html/file.info.html">file.info</a></code>, <code><a href="filetest.html">file_test</a></code>, <code><a href="../../tools/html/md5sum.html">md5sum</a></code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+# Create some files in a temporary directory
+dir &lt;- tempfile()
+dir.create(dir)
+writeBin(1L, file.path(dir, "file1"))
+writeBin(2L, file.path(dir, "file2"))
+dir.create(file.path(dir, "dir"))
+
+# Take a snapshot
+snapshot &lt;- fileSnapshot(dir, timestamp = tempfile("timestamp"), md5sum=TRUE)
+
+# Change one of the files.
+writeBin(3L:4L, file.path(dir, "file2"))
+
+# Display the detected changes.  We may or may not see mtime change...
+changedFiles(snapshot)
+changedFiles(snapshot)$changes
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>utils</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

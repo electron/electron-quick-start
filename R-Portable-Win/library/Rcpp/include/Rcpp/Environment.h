@@ -23,10 +23,6 @@
 #ifndef Rcpp_Environment_h
 #define Rcpp_Environment_h
 
-// From 'R/Defn.h'
-// NOTE: can't include header directly as it checks for some C99 features
-extern "C" SEXP R_NewHashedEnv(SEXP, SEXP);
-
 namespace Rcpp{
 
     RCPP_API_CLASS(Environment_Impl),
@@ -37,7 +33,7 @@ namespace Rcpp{
             if( Rf_isEnvironment(x) ) return x ;
             SEXP asEnvironmentSym = Rf_install("as.environment");
             try {
-                Shield<SEXP> res( Rcpp_eval( Rf_lang2( asEnvironmentSym, x ) ) );
+                Shield<SEXP> res(Rcpp_fast_eval(Rf_lang2(asEnvironmentSym, x), R_GlobalEnv));
                 return res ;
             } catch( const eval_error& ex) {
                 const char* fmt = "Cannot convert object to an environment: "
@@ -113,7 +109,7 @@ namespace Rcpp{
 
             /* We need to evaluate if it is a promise */
             if( TYPEOF(res) == PROMSXP){
-                res = Rf_eval( res, env ) ;
+                res = internal::Rcpp_eval_impl( res, env ) ;
             }
             return res ;
         }
@@ -133,7 +129,7 @@ namespace Rcpp{
 
             /* We need to evaluate if it is a promise */
             if( TYPEOF(res) == PROMSXP){
-                res = Rf_eval( res, env ) ;
+                res = internal::Rcpp_eval_impl( res, env ) ;
             }
             return res ;
         }
@@ -155,7 +151,7 @@ namespace Rcpp{
 
             /* We need to evaluate if it is a promise */
             if( TYPEOF(res) == PROMSXP){
-                res = Rf_eval( res, env ) ;
+                res = internal::Rcpp_eval_impl( res, env ) ;
             }
             return res ;
         }
@@ -178,7 +174,7 @@ namespace Rcpp{
 
             /* We need to evaluate if it is a promise */
             if( TYPEOF(res) == PROMSXP){
-                res = Rf_eval( res, env ) ;
+                res = internal::Rcpp_eval_impl( res, env ) ;
             }
             return res ;
         }
@@ -215,6 +211,10 @@ namespace Rcpp{
             return true ;
         }
 
+        bool assign(const std::string& name, const Shield<SEXP>& x) const {
+            return assign(name, (SEXP) x);
+        }
+
         /**
          * wrap and assign. If there is a wrap method taking an object
          * of WRAPPABLE type, then it is wrapped and the corresponding SEXP
@@ -249,7 +249,7 @@ namespace Rcpp{
                     Shield<SEXP> call( Rf_lang2(internalSym,
                             Rf_lang4(removeSym, Rf_mkString(name.c_str()), Storage::get__(), Rf_ScalarLogical( FALSE ))
                         ) );
-                    Rcpp_eval( call, R_GlobalEnv ) ;
+                    Rcpp_fast_eval( call, R_GlobalEnv ) ;
                 }
             } else{
                 throw no_such_binding(name) ;
@@ -374,7 +374,7 @@ namespace Rcpp{
             try{
                 SEXP getNamespaceSym = Rf_install("getNamespace");
                 Shield<SEXP> package_str( Rf_mkString(package.c_str()) );
-                env = Rcpp_eval( Rf_lang2(getNamespaceSym, package_str) ) ;
+                env = Rcpp_fast_eval(Rf_lang2(getNamespaceSym, package_str), R_GlobalEnv);
             } catch( ... ){
                 throw no_such_namespace( package  ) ;
             }
@@ -391,9 +391,9 @@ namespace Rcpp{
         /**
          * creates a new environment whose this is the parent
          */
-        Environment_Impl new_child(bool hashed) {
+        Environment_Impl new_child(bool hashed) const {
             SEXP newEnvSym = Rf_install("new.env");
-            return Environment_Impl( Rcpp_eval(Rf_lang3( newEnvSym, Rf_ScalarLogical(hashed), Storage::get__() )) );
+            return Environment_Impl(Rcpp_fast_eval(Rf_lang3(newEnvSym, Rf_ScalarLogical(hashed), Storage::get__()), R_GlobalEnv));
         }
 
 
@@ -401,21 +401,6 @@ namespace Rcpp{
     };
 
 typedef Environment_Impl<PreserveStorage> Environment ;
-
-inline Environment new_env(int size = 29) {
-    Shield<SEXP> sizeSEXP(Rf_ScalarInteger(size));
-    return R_NewHashedEnv(R_EmptyEnv, sizeSEXP);
-}
-
-inline Environment new_env(SEXP parent, int size = 29) {
-    Shield<SEXP> sizeSEXP(Rf_ScalarInteger(size));
-    Shield<SEXP> parentSEXP(parent);
-    if (!Rf_isEnvironment(parentSEXP)) {
-        stop("parent is not an environment");
-    }
-    return R_NewHashedEnv(parentSEXP, sizeSEXP);
-}
-
 
 } // namespace Rcpp
 

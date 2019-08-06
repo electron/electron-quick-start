@@ -84,20 +84,28 @@ public:
         return const_start[i] ;
     }
 
-    inline iterator begin(){
-        return start ;
-    }
-
     inline const_iterator begin() const {
         return const_start ;
     }
 
-    inline iterator end(){
-        return start + n ;
-    }
-
     inline const_iterator end() const {
         return const_start + n ;
+    }
+    
+    inline const_iterator cbegin() const {
+        return const_start ;
+    }
+
+    inline const_iterator cend() const {
+        return const_start + n ;
+    }
+
+    inline iterator begin(){
+        return start ;
+    }
+
+    inline iterator end(){
+        return start + n ;
     }
 
     inline int size() const {
@@ -143,6 +151,14 @@ public:
     }
 
     inline const_iterator end() const {
+        return const_start + n ;
+    }
+    
+    inline const_iterator cbegin() const {
+        return const_start ;
+    }
+
+    inline const_iterator cend() const {
         return const_start + n ;
     }
 

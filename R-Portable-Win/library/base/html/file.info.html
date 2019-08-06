@@ -1,0 +1,152 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Extract File Information</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for file.info {base}"><tr><td>file.info {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Extract File Information</h2>
+
+<h3>Description</h3>
+
+<p>Utility function to extract information about files on the user's
+file systems.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+file.info(..., extra_cols = TRUE)
+
+file.mode(...)
+file.mtime(...)
+file.size(...)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>character vectors containing file paths.  Tilde-expansion
+is done: see <code><a href="path.expand.html">path.expand</a></code>.</p>
+</td></tr>
+<tr valign="top"><td><code>extra_cols</code></td>
+<td>
+<p>Logical: return all cols rather than just the
+first six.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>What constitutes a &lsquo;file&rsquo; is OS-dependent but includes
+directories.  (However, directory names must not include a trailing
+backslash or slash on Windows.)  See also the section in the help for
+<code><a href="files.html">file.exists</a></code> on case-insensitive file systems.
+</p>
+<p>The file &lsquo;mode&rsquo; follows POSIX conventions, giving three octal
+digits summarizing the permissions for the file owner, the owner's
+group and for anyone respectively.  Each digit is the logical
+<em>or</em> of read (4), write (2) and execute/search (1) permissions.
+</p>
+<p>File modes are probably only useful on NTFS file systems, and it seems
+all three digits refer to the file's owner.
+The execute/search bits are set for directories, and for files based
+on their extensions (e.g., &lsquo;<span class="file">.exe</span>&rsquo;, &lsquo;<span class="file">.com</span>&rsquo;, &lsquo;<span class="file">.cmd</span>&rsquo;
+and &lsquo;<span class="file">.bat</span>&rsquo; files).  <code><a href="file.access.html">file.access</a></code> will give a more
+reliable view of read/write access availability to the <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> process.
+</p>
+<p>UTF-8-encoded file names not valid in the current locale can be used.
+</p>
+<p>Junction points and symbolic links are followed, so information is
+given about the file/directory to which the link points rather than
+about the link.
+</p>
+
+
+<h3>Value</h3>
+
+<p>For <code>file.info</code>, data frame with row names the file names and columns
+</p>
+<table summary="R valueblock">
+<tr valign="top"><td><code>size</code></td>
+<td>
+<p>double: File size in bytes.</p>
+</td></tr>
+<tr valign="top"><td><code>isdir</code></td>
+<td>
+<p>logical: Is the file a directory?</p>
+</td></tr>
+<tr valign="top"><td><code>mode</code></td>
+<td>
+<p>integer of class <code>"octmode"</code>.  The file permissions,
+printed in octal, for example <code>644</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>mtime, ctime, atime</code></td>
+<td>
+<p>integer of class <code>"POSIXct"</code>:
+file modification, &lsquo;last status change&rsquo; and last access times.</p>
+</td></tr>
+</table>
+<table summary="R valueblock">
+<tr valign="top"><td><code>exe</code></td>
+<td>
+<p>character: what sort of executable is this?  Possible
+values are <code>"no"</code>, <code>"msdos"</code>, <code>"win16"</code>,
+<code>"win32"</code>, <code>"win64"</code> and <code>"unknown"</code>.  Note that a
+file (e.g., a script file) can be executable according to the mode
+bits but not executable in this sense.</p>
+</td></tr>
+</table>
+<p>If <code>extra_cols</code> is false, only the first six columns are
+returned: as these can all be found from a single C system call this
+can be faster.  (However, properly configured systems will use a
+&lsquo;name service cache daemon&rsquo; to speed up the name lookups.)
+</p>
+<p>Entries for non-existent or non-readable files will be <code>NA</code>.
+</p>
+<p>What is meant by the three file times depends on the OS and file
+system.  On Windows native file systems <code>ctime</code> is the file
+creation time (something which is not recorded on most Unix-alike file
+systems).  What is meant by &lsquo;file access&rsquo; and hence the
+&lsquo;last access time&rsquo; is system-dependent.
+</p>
+<p>The times are reported to an accuracy of seconds, and perhaps more on
+some systems.  However, many file systems only record times in
+seconds, and some (e.g., modification time on FAT systems) are recorded
+in increments of 2 or more seconds.
+</p>
+<p><code>file.mode</code>, <code>file.mtime</code> and <code>file.size</code> are
+convenience wrappers returning just one of the columns.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="Sys.readlink.html">Sys.readlink</a></code> to find out about symbolic links,
+<code><a href="files.html">files</a></code>, <code><a href="file.access.html">file.access</a></code>,
+<code><a href="list.files.html">list.files</a></code>,
+and <code><a href="DateTimeClasses.html">DateTimeClasses</a></code> for the date formats.
+</p>
+<p><code><a href="files2.html">Sys.chmod</a></code> to change permissions.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+ncol(finf &lt;- file.info(dir()))  # at least six
+finf # the whole list
+## Those that are more than 100 days old :
+finf &lt;- file.info(dir(), extra_cols = FALSE)
+finf[difftime(Sys.time(), finf[,"mtime"], units = "days") &gt; 100 , 1:4]
+
+file.info("no-such-file-exists")
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

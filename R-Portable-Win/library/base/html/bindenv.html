@@ -1,0 +1,138 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Binding and Environment Locking, Active Bindings</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for bindenv {base}"><tr><td>bindenv {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Binding and Environment Locking, Active Bindings</h2>
+
+<h3>Description</h3>
+
+<p>These functions represent an interface for adjustments
+to environments and bindings within environments.  They allow for
+locking environments as well as individual bindings, and for linking
+a variable to a function.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+lockEnvironment(env, bindings = FALSE)
+environmentIsLocked(env)
+lockBinding(sym, env)
+unlockBinding(sym, env)
+bindingIsLocked(sym, env)
+
+makeActiveBinding(sym, fun, env)
+bindingIsActive(sym, env)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>env</code></td>
+<td>
+<p>an environment.</p>
+</td></tr>
+<tr valign="top"><td><code>bindings</code></td>
+<td>
+<p>logical specifying whether bindings should be locked.</p>
+</td></tr>
+<tr valign="top"><td><code>sym</code></td>
+<td>
+<p>a name object or character string.</p>
+</td></tr>
+<tr valign="top"><td><code>fun</code></td>
+<td>
+<p>a function taking zero or one arguments.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>The function <code>lockEnvironment</code> locks its environment argument,
+which must be a normal environment (not base).  (Locking the base
+environment and namespace may be supported later.)  Locking the
+environment prevents adding or removing variable bindings from the
+environment.  Changing the value of a variable is still possible unless
+the binding has been locked.  The namespace environments of packages
+with namespaces are locked when loaded.
+</p>
+<p><code>lockBinding</code> locks individual bindings in the specified
+environment.  The value of a locked binding cannot be changed.  Locked
+bindings may be removed from an environment unless the environment is
+locked.
+</p>
+<p><code>makeActiveBinding</code> installs <code>fun</code> in environment <code>env</code>
+so that getting the value of <code>sym</code> calls <code>fun</code> with no
+arguments, and assigning to <code>sym</code> calls <code>fun</code> with one
+argument, the value to be assigned.  This allows the implementation of
+things like C variables linked to <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> variables and variables linked to
+databases, and is used to implement <code><a href="../../methods/html/refClass.html">setRefClass</a></code>.  It may
+also be useful for making thread-safe versions of some system globals.
+Currently active bindings are not preserved during package installation,
+but they can be created in <code><a href="ns-hooks.html">.onLoad</a></code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The <code>bindingIsLocked</code> and <code>environmentIsLocked</code> return a
+length-one logical vector.  The remaining functions return
+<code>NULL</code>, invisibly.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Luke Tierney</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+# locking environments
+e &lt;- new.env()
+assign("x", 1, envir = e)
+get("x", envir = e)
+lockEnvironment(e)
+get("x", envir = e)
+assign("x", 2, envir = e)
+try(assign("y", 2, envir = e)) # error
+
+# locking bindings
+e &lt;- new.env()
+assign("x", 1, envir = e)
+get("x", envir = e)
+lockBinding("x", e)
+try(assign("x", 2, envir = e)) # error
+unlockBinding("x", e)
+assign("x", 2, envir = e)
+get("x", envir = e)
+
+# active bindings
+f &lt;- local( {
+    x &lt;- 1
+    function(v) {
+       if (missing(v))
+           cat("get\n")
+       else {
+           cat("set\n")
+           x &lt;&lt;- v
+       }
+       x
+    }
+})
+makeActiveBinding("fred", f, .GlobalEnv)
+bindingIsActive("fred", .GlobalEnv)
+fred
+fred &lt;- 2
+fred
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

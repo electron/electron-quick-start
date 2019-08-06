@@ -1,0 +1,169 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Basic use of S4 Methods and Classes</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for Introduction {methods}"><tr><td>Introduction {methods}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Basic use of S4 Methods and Classes</h2>
+
+<h3>Description</h3>
+
+<p>The majority of applications using methods and classes will be in <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>
+packages implementing new computations for an application, using new <em>classes</em>
+of objects that represent the data and results.
+Computations will be implemented using <em>methods</em> that implement
+functional computations when one or more of the arguments is an object
+from these classes.
+</p>
+<p>Calls to the functions <code><a href="setClass.html">setClass</a>()</code> define the new classes;
+calls to <code><a href="setMethod.html">setMethod</a></code> define the methods.
+These, along with ordinary <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> computations, are sufficient to get
+started for most applications.
+</p>
+<p>Classes are defined in terms of the data in them and what other
+classes of data they inherit from.
+Section &lsquo;Defining Classes&rsquo; outlines the basic design of new classes.
+</p>
+<p>Methods are <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> functions, often implementing basic computations as
+they apply to the new classes of objects.
+Section &lsquo;Defining Methods&rsquo; discusses basic requirements and
+special tools for defining methods.
+</p>
+<p>The classes discussed here are the original functional classes.
+<span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> also supports formal classes and methods similar to those in other
+languages such as Python, in which methods are part of class
+definitions and invoked on an object.
+These are more appropriate when computations expect references to
+objects that are persistent, making changes to the object over time.
+See <a href="refClass.html">ReferenceClasses</a> and Chapter 9 of the reference for the
+choice between these and S4 classes.
+</p>
+
+
+<h3>Defining Classes</h3>
+
+<p>All objects in <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> belong to a class; ordinary vectors and other basic
+objects are built-in (<a href="BasicClasses.html">builtin-class</a>).
+A new class is defined in terms of the named <em>slots</em> that is has
+and/or in terms of existing classes that it inherits from, or
+<em>contains</em> (discussed in &lsquo;Class Inheritance&rsquo; below).
+A call to <code><a href="setClass.html">setClass</a>()</code> names a new class and uses the corresponding arguments to
+define it.
+</p>
+<p>For example, suppose we want a class of objects to represent a
+collection of positions, perhaps from GPS readings.
+A natural way to think of these in <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> would have vectors of numeric values for
+latitude, longitude and altitude.
+A class with three corresponding slots could be defined by:
+</p>
+<p><code>
+Pos &lt;- setClass("Pos", slots = c(latitude = "numeric",
+            longitude = "numeric", altitude = "numeric"))
+</code>
+</p>
+<p>The value returned is a function, typically assigned as here with the
+name of the class.  Calling this function returns an object from the
+class; its arguments are named with the slot names.
+If a function in the class had read the corresponding data, perhaps
+from a CSV file or from a data base, it could return an object from
+the class by:
+</p>
+<p><code>Pos(latitude = x, longitude = y, altitude = z)</code>
+</p>
+<p>The slots are accessed by the
+<code><a href="../../base/html/slotOp.html">@</a></code> operator; for example, if <code>g</code> is an object from
+the class, <code>g@latitude</code>.
+</p>
+<p>In addition to returning a generator function the call to
+<code><a href="setClass.html">setClass</a>()</code> assigns a definition of the class in a
+special metadata object in the package's namespace.
+When the package is loaded into an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> session, the class definition is
+added to a table of known classes.
+</p>
+<p>To make the class and the generating function publicly available, the
+package should include <code>POS</code> in <code>exportClasses()</code> and
+<code>export()</code> directives in its <code>NAMESPACE</code> file:
+</p>
+<p><code>exportClasses(Pos); export(Pos)</code>
+</p>
+
+
+<h3>Defining Methods</h3>
+
+<p>Defining methods for an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> function makes that function
+<em>generic</em>.
+Instead of a call to the function always being carried out by the same
+method, there will be several alternatives.
+These are selected by matching the classes of the arguments in the call to a
+table  in the generic function, indexed by classes for one or more formal arguments to the
+function, known as the <em>signatures</em> for the methods.
+</p>
+<p>A method definition then specifies three things:  the name of the
+function, the signature and the method definition itself.
+The definition must be a function with the same formal arguments as
+the generic.
+</p>
+<p>For example, a method to make a plot of an object from class
+<code>"Pos"</code> could be defined by:
+</p>
+<p><code>setMethod("plot", c("Pos", "missing"), function(x, y, ...) {
+  plotPos(x, y) })</code>
+</p>
+<p>This method will match a call to <code><a href="../../graphics/html/plot.html">plot</a>()</code> if the first
+argument is from class <code>"Pos"</code> or a subclass of that.
+The second argument must be missing; only a missing argument matches
+that class in the signature.
+Any object will match class <code>"ANY"</code> in the corresponding position
+of the signature.
+</p>
+
+
+<h3>Class Inheritance</h3>
+
+<p>A class may inherit all the slots and methods of one or more existing
+classes by specifying the names of the inherited classes in the <code>contains =</code> argument to
+<code><a href="setClass.html">setClass</a>()</code>.
+</p>
+<p>To define a class that extends class <code>"Pos"</code> to a class
+<code>"GPS"</code> with a slot for the observation times:
+</p>
+<p><code>GPS &lt;- setClass("GPS", slots = c(time = "POSIXt"), contains = "Pos")</code>
+</p>
+<p>The inherited classes may be S4 classes, S3
+classes or basic data types.
+S3 classes need to be identified as such by a call to
+<code><a href="setOldClass.html">setOldClass</a>()</code>; most S3 classes in the base package and
+many in the other built-in packages are already declared, as is
+<code>"POSIXt"</code>.
+If it had not been, the application package should contain:
+</p>
+<p><code>setOldClass("POSIXt")</code>
+</p>
+<p>Inheriting from one of the <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> types is special.  Objects from the new
+class will have the same type.  A class
+<code>Currency</code> that contains numeric data plus a slot <code>"unit"</code>
+would be created by
+</p>
+<p><code>Currency &lt;- setClass("Currency", slots = c(unit = "character"),
+  contains = "numeric")</code>
+</p>
+<p>Objects created from this class will have type <code>"numeric"</code> and
+inherit all the builtin arithmetic and other computations for that
+type.
+Classes can only inherit from at most one such type; if the class does
+not inherit from a type, objects from the class will have type
+<code>"S4"</code>.
+</p>
+
+
+<h3>References</h3>
+
+<p>Chambers, John M. (2016)
+<em>Extending R</em>,
+Chapman &amp; Hall.
+(Chapters 9 and 10.)
+</p>
+
+<hr /><div style="text-align: center;">[Package <em>methods</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

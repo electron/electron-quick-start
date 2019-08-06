@@ -86,7 +86,7 @@ i.e., row names are more or less *an index* to rows of a *data.frame*. However,
     ```{r eval = FALSE}
     rownames(DF) = sample(LETTERS[1:5], 10, TRUE)
     # Warning: non-unique values when setting 'row.names': 'C', 'D'
-    # Error in `row.names<-.data.frame`(`*tmp*`, value = value): duplicate 'row.names' are not allowed
+    # Error in `.rowNamesDF<-`(x, value = value): duplicate 'row.names' are not allowed
     ```
 
 Now let's convert it to a *data.table*.
@@ -228,7 +228,7 @@ flights[.("JFK", "MIA")]
 
 #### How does the subset work here? {.bs-callout .bs-callout-info #multiple-key-point}
 
-* It is important to undertand how this works internally. *"JFK"* is first matched against the first key column `origin`. And *within those matching rows*, *"MIA"* is matched against the second key column `dest` to obtain *row indices* where both `origin` and `dest` match the given values.
+* It is important to understand how this works internally. *"JFK"* is first matched against the first key column `origin`. And *within those matching rows*, *"MIA"* is matched against the second key column `dest` to obtain *row indices* where both `origin` and `dest` match the given values.
 
 * Since no `j` is provided, we simply return *all columns* corresponding to those row indices.
 
@@ -293,7 +293,7 @@ flights[.("LGA", "TPA"), .(arr_delay)][order(-arr_delay)]
 
 ### c) Compute or *do* in `j`
 
-#### -- Find the maximum arrival delay correspondong to `origin = "LGA"` and `dest = "TPA"`.
+#### -- Find the maximum arrival delay corresponding to `origin = "LGA"` and `dest = "TPA"`.
 
 ```{r}
 flights[.("LGA", "TPA"), max(arr_delay)]
@@ -329,7 +329,7 @@ key(flights)
 
 * And on those row indices, we replace the `key` column with the value `0`.
 
-* Since we have replaced values on the *key* column, the *data.table* `flights` isn't sorted by `hour` anymore. Therefore, the key has been automatically removed by setting to NULL.
+* Since we have replaced values on the *key* column, the *data.table* `flights` isn't sorted by `hour` any more. Therefore, the key has been automatically removed by setting to NULL.
 
 #
 Now, there shouldn't be any *24* in the `hour` column.
@@ -396,12 +396,12 @@ We can choose if queries that do not match should return `NA` or be skipped alto
 #### -- From the previous example, Subset all rows only if there's a match
 
 ```{r}
-flights[.(c("LGA", "JFK", "EWR"), "XNA"), mult = "last", nomatch = 0L]
+flights[.(c("LGA", "JFK", "EWR"), "XNA"), mult = "last", nomatch = NULL]
 ```
 
 #### {.bs-callout .bs-callout-info}
 
-* Default value for `nomatch` is `NA`. Setting `nomatch = 0L` skips queries with no matches.
+* Default value for `nomatch` is `NA`. Setting `nomatch = NULL` skips queries with no matches.
 
 * The query “JFK”, “XNA” doesn’t match any rows in flights and therefore is skipped.
 
@@ -420,7 +420,15 @@ we could have done:
 flights[origin == "JFK" & dest == "MIA"]
 ```
 
-One advantage very likely is shorter syntax. But even more than that, *binary search based subsets* are **incredibly fast**.
+One advantage very likely is shorter syntax. But even more than that, *binary search based subsets* are **incredibly fast**.  
+
+As the time goes `data.table` gets new optimization and currently the latter call is automatically optimized to use *binary search*.  
+To use slow *vector scan* key needs to be removed.  
+
+```{r eval = FALSE}
+setkey(flights, NULL)
+flights[origin == "JFK" & dest == "MIA"]
+```
 
 ### a) Performance of binary search approach
 
@@ -431,10 +439,8 @@ set.seed(2L)
 N = 2e7L
 DT = data.table(x = sample(letters, N, TRUE),
                 y = sample(1000L, N, TRUE),
-              val = runif(N), key = c("x", "y"))
+                val = runif(N))
 print(object.size(DT), units = "Mb")
-
-key(DT)
 ```
 
 `DT` is ~380MB. It is not really huge, but this will do to illustrate the point.
@@ -442,6 +448,7 @@ key(DT)
 From what we have seen in the Introduction to data.table section, we can subset those rows where columns `x = "g"` and `y = 877` as follows:
 
 ```{r}
+key(DT)
 ## (1) Usual way of subsetting - vector scan approach
 t1 <- system.time(ans1 <- DT[x == "g" & y == 877L])
 t1
@@ -452,6 +459,8 @@ dim(ans1)
 Now let's try to subset by using keys.
 
 ```{r}
+setkeyv(DT, c("x", "y"))
+key(DT)
 ## (2) Subsetting using keys
 t2 <- system.time(ans2 <- DT[.("g", 877L)])
 t2
@@ -461,7 +470,7 @@ dim(ans2)
 identical(ans1$val, ans2$val)
 ```
 
-* The speedup is **~`r round(t1[3]/max(t2[3], .001))`x**!
+* The speed-up is **~`r round(t1[3]/max(t2[3], .001))`x**!
 
 ### b) Why does keying a *data.table* result in blazing fast susbets?
 

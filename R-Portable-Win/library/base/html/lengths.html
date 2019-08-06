@@ -1,0 +1,105 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Lengths of List or Vector Elements</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for lengths {base}"><tr><td>lengths {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Lengths of List or Vector Elements</h2>
+
+<h3>Description</h3>
+
+<p>Get the length of each element of a <code><a href="list.html">list</a></code> or atomic
+vector (<code><a href="is.recursive.html">is.atomic</a></code>) as an integer or numeric vector.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+lengths(x, use.names = TRUE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>a <code><a href="list.html">list</a></code>, list-like such as an
+<code><a href="expression.html">expression</a></code> or an atomic vector (for which the result
+is trivial).</p>
+</td></tr>
+<tr valign="top"><td><code>use.names</code></td>
+<td>
+<p>logical indicating if the result should inherit the
+<code><a href="names.html">names</a></code> from <code>x</code>.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>This function loops over <code>x</code> and returns a compatible vector
+containing the length of each element in <code>x</code>.  Effectively,
+<code>length(x[[i]])</code> is called for all <code>i</code>, so any methods on
+<code>length</code> are considered.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A non-negative <code><a href="integer.html">integer</a></code> of length <code>length(x)</code>,
+except when any element has a length of more than
+<i>2^31 - 1</i> elements, when it returns a double vector.
+When <code>use.names</code> is true, the names are taken from the names on
+<code>x</code>, if any.
+</p>
+
+
+<h3>Note</h3>
+
+<p>One raison d'être of <code>lengths(x)</code> is its use as a
+more efficient version of <code>sapply(x, length)</code> and similar
+<code>*apply</code> calls to <code><a href="length.html">length</a></code>.  This is the reason why
+<code>x</code> may be an atomic vector, even though <code>lengths(x)</code> is
+trivial in that case.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="length.html">length</a></code> for getting the length of any <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> object.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+require(stats)
+## summarize by month
+l &lt;- split(airquality$Ozone, airquality$Month)
+avgOz &lt;- lapply(l, mean, na.rm=TRUE)
+## merge result
+airquality$avgOz &lt;- rep(unlist(avgOz, use.names=FALSE), lengths(l))
+## but this is safer and cleaner, but can be slower
+airquality$avgOz &lt;- unsplit(avgOz, airquality$Month)
+
+## should always be true, except when a length does not fit in 32 bits
+stopifnot(identical(lengths(l), vapply(l, length, integer(1L))))
+
+## empty lists are not a problem
+x &lt;- list()
+stopifnot(identical(lengths(x), integer()))
+
+## nor are "list-like" expressions:
+lengths(expression(u, v, 1+ 0:9))
+
+## and we should dispatch to length methods
+f &lt;- c(rep(1, 3), rep(2, 6), 3)
+dates &lt;- split(as.POSIXlt(Sys.time() + 1:10), f)
+stopifnot(identical(lengths(dates), vapply(dates, length, integer(1L))))
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

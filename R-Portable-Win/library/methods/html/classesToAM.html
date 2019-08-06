@@ -1,0 +1,141 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Compute an Adjacency Matrix for Superclasses of Class...</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for classesToAM {methods}"><tr><td>classesToAM {methods}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>
+Compute an Adjacency Matrix for Superclasses of Class Definitions
+</h2>
+
+<h3>Description</h3>
+
+<p>Given a vector of class names or a list of class definitions, the
+function returns an adjacency matrix of the superclasses of these
+classes; that is, a matrix with class names as the row and column
+names and with element [i, j] being 1 if the class in column j is a
+direct superclass of the class in row i, and 0 otherwise.
+</p>
+<p>The matrix has the information implied by the <code>contains</code> slot of
+the class definitions, but in a form that is often more convenient for
+further analysis; for example, an adjacency matrix is used in packages
+and other software to construct graph representations of relationships.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+classesToAM(classes, includeSubclasses = FALSE,
+       abbreviate = 2)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>classes</code></td>
+<td>
+
+<p>Either a character vector of class names or a list, whose
+elements can be either class names or class definitions.  The
+list is convenient, for example, to include the package slot for
+the class name. See the examples.
+</p>
+</td></tr>
+<tr valign="top"><td><code>includeSubclasses</code></td>
+<td>
+
+<p>A logical flag; if <code>TRUE</code>, then the matrix will include all
+the known subclasses of the specified classes as well as the
+superclasses.  The argument can also be a logical vector of the
+same length as <code>classes</code>, to include subclasses for some
+but not all the classes.
+</p>
+</td></tr>
+<tr valign="top"><td><code>abbreviate</code></td>
+<td>
+
+<p>Control of the abbreviation of the row and/or  column labels of
+the matrix returned: values 0, 1, 2, or 3 abbreviate neither,
+rows, columns or both.  The default, 2, is useful for printing
+the matrix, since class names tend to be more than one
+character long, making for spread-out printing.  Values of 0
+or 3 would be appropriate for making a graph (3 avoids the
+tendency of some graph plotting software to produce labels in
+minuscule font size).
+</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>For each of the classes, the calculation gets all the superclass
+names from the class definition, and finds the edges in those classes'
+definitions; that is, all the superclasses at distance 1.  The
+corresponding elements of the adjacency matrix are set to 1.
+</p>
+<p>The adjacency matrices for the individual class definitions are
+merged.  Note two possible kinds of inconsistency, neither of which
+should cause problems except possibly with identically named classes from
+different packages.  Edges are computed from each superclass
+definition, so that information overrides a possible inference from
+extension elements with distance &gt; 1 (and it should).  When
+matrices from successive classes in the argument are merged, the
+computations do not currently check for inconsistencies&mdash;this is
+the area where possible multiple classes with the same name could
+cause confusion.  A later revision may include consistency checks.
+</p>
+
+
+<h3>Value</h3>
+
+<p>As described, a matrix with entries 0 or 1, non-zero values
+indicating that the class corresponding to the column is a direct
+superclass of the class corresponding to the row.  The row and
+column names are the class names (without package slot).
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="is.html">extends</a></code> and <a href="classRepresentation-class.html">classRepresentation</a> for the underlying information from the class
+definition.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+
+## the super- and subclasses of "standardGeneric"
+## and "derivedDefaultMethod"
+am &lt;- classesToAM(list(class(show), class(getMethod(show))), TRUE)
+am
+
+## Not run: 
+## the following function depends on the Bioconductor package Rgraphviz
+plotInheritance &lt;- function(classes, subclasses = FALSE, ...) {
+    if(!require("Rgraphviz", quietly=TRUE))
+      stop("Only implemented if Rgraphviz is available")
+    mm &lt;- classesToAM(classes, subclasses)
+    classes &lt;- rownames(mm); rownames(mm) &lt;- colnames(mm)
+    graph &lt;-  new("graphAM", mm, "directed", ...)
+    plot(graph)
+    cat("Key:\n", paste(abbreviate(classes), " = ", classes, ", ",
+        sep = ""),  sep = "", fill = TRUE)
+    invisible(graph)
+}
+
+## The plot of the class inheritance of the package "graph"
+require(graph)
+plotInheritance(getClasses("package:graph"))
+
+
+## End(Not run)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>methods</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

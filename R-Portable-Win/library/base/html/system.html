@@ -1,0 +1,268 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Invoke a System Command</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for system {base}"><tr><td>system {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Invoke a System Command</h2>
+
+<h3>Description</h3>
+
+<p><code>system</code> invokes the OS command specified by <code>command</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+system(command, intern = FALSE,
+       ignore.stdout = FALSE, ignore.stderr = FALSE,
+       wait = TRUE, input = NULL, show.output.on.console = TRUE,
+       minimized = FALSE, invisible = TRUE, timeout = 0)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>command</code></td>
+<td>
+<p>the system command to be invoked, as a character string.</p>
+</td></tr>
+<tr valign="top"><td><code>intern</code></td>
+<td>
+<p>a logical (not <code>NA</code>) which indicates whether to
+capture the output of the command as an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> character vector.</p>
+</td></tr>
+<tr valign="top"><td><code>ignore.stdout, ignore.stderr</code></td>
+<td>
+<p>a logical (not <code>NA</code>)
+indicating whether messages written to &lsquo;<span class="file">stdout</span>&rsquo; or
+&lsquo;<span class="file">stderr</span>&rsquo; should be ignored.</p>
+</td></tr>
+<tr valign="top"><td><code>wait</code></td>
+<td>
+<p>a logical (not <code>NA</code>) indicating whether the <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>
+interpreter should wait for the command to finish, or run it
+asynchronously.  This will be ignored (and the interpreter will
+always wait) if <code>intern = TRUE</code>. When running the command
+asynchronously, no output will be displayed on the <code>Rgui</code>
+console in Windows (it will be dropped, instead).</p>
+</td></tr>
+<tr valign="top"><td><code>input</code></td>
+<td>
+<p>if a character vector is supplied, this is copied one
+string per line to a temporary file, and the standard input of
+<code>command</code> is redirected to the file.</p>
+</td></tr>
+<tr valign="top"><td><code>timeout</code></td>
+<td>
+<p>timeout in seconds, ignored if 0.  This is a limit for the
+elapsed time running <code>command</code> in a separate process.  Fractions
+of seconds are ignored.</p>
+</td></tr>
+</table>
+<table summary="R argblock">
+<tr valign="top"><td><code>show.output.on.console</code></td>
+<td>
+<p>logical (not <code>NA</code>), indicates
+whether to capture the output of the command and show it on the <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>
+console (not used by <code>Rterm</code>, which shows the output in the
+terminal unless <code>wait</code> is false, and on some systems even when
+<code>wait</code> is false).</p>
+</td></tr>
+<tr valign="top"><td><code>minimized</code></td>
+<td>
+<p>logical (not <code>NA</code>), indicates whether a
+command window should be displayed initially as a minimized window.</p>
+</td></tr>
+<tr valign="top"><td><code>invisible</code></td>
+<td>
+<p>logical (not <code>NA</code>), indicates whether a
+command window should be visible on the screen.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>This interface has become rather complicated over the years: see
+<code><a href="system2.html">system2</a></code> for a more portable and flexible interface
+which is recommended for new code.
+</p>
+<p><code>command</code> is parsed as a command plus arguments separated by
+spaces.  So if the path to the command (or a single argument such as a
+file path) contains spaces, it must be quoted e.g. by
+<code><a href="shQuote.html">shQuote</a></code>.
+Only double quotes are allowed on Windows: see the examples.  (Note: a
+Windows path name cannot contain a double quote, so we do not need to
+worry about escaping embedded quotes.)
+</p>
+<p><code>command</code> must be an executable (extensions &lsquo;<span class="file">.exe</span>&rsquo;,
+&lsquo;<span class="file">.com</span>&rsquo;) or a batch file (extensions &lsquo;<span class="file">.cmd</span>&rsquo; and &lsquo;<span class="file">.bat</span>&rsquo;):
+these extensions are tried in turn if none is supplied. This means
+that redirection, pipes, DOS internal commands, ... cannot be used:
+see <code><a href="shell.html">shell</a></code> if you want to pass a shell command-line.
+</p>
+<p>The search path for <code>command</code> may be system-dependent: it will
+include the <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> &lsquo;<span class="file">bin</span>&rsquo; directory, the working directory and the
+Windows system directories before <span class="env">PATH</span>.
+</p>
+<p>When <code>timeout</code> is non-zero, the command is terminated after the given
+number of seconds.  The termination works for typical commands, but is not
+guaranteed: it is possible to write a program that would keep running
+after the time is out.  Timeouts can only be set with <code>wait = TRUE</code>.
+</p>
+<p>The ordering of arguments after the first two has changed from time to
+time: it is recommended to name all arguments after the first.
+</p>
+<p>There are many pitfalls in using <code>system</code> to ascertain if a
+command can be run &mdash; <code><a href="Sys.which.html">Sys.which</a></code> is more suitable.
+</p>
+
+
+<h3>Value</h3>
+
+<p>If <code>intern = TRUE</code>, a character vector giving the output of the
+command, one line per character string.  (Output lines of more than
+8095 bytes will be split.)  If the command could not be run an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>
+error is generated.
+Under the <code>Rgui</code> console <code>intern = TRUE</code> also captures
+<code>stderr</code> unless <code>ignore.stderr = TRUE</code>.
+If <code>command</code> runs but gives a non-zero exit status this will be
+reported with a warning and in the attribute <code>"status"</code> of the
+result: an attribute <code>"errmsg"</code> may also be available.
+</p>
+<p>If <code>intern = FALSE</code>, the return value is an error code (<code>0</code>
+for success), given the invisible attribute (so needs to be printed
+explicitly).  If the command could not be run for any reason, the
+value is <code>127</code> and a warning is issued (as from <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> 3.5.0).
+Otherwise if <code>wait = TRUE</code> the value is the exit status returned
+by the command, and if <code>wait = FALSE</code> it is <code>0</code> (the
+conventional success value).
+</p>
+<p>If the command times out, a warning is reported and the exit status is
+<code>124</code>.
+Some Windows commands return out-of-range status values
+(e.g., <code>-1</code>) and so only the bottom 16 bits of the value are used.
+</p>
+<p>If <code>intern = FALSE, wait = TRUE, show.output.on.console = TRUE</code> the
+&lsquo;<span class="file">stdout</span>&rsquo; and &lsquo;<span class="file">stderr</span>&rsquo; (unless <code>ignore.stdout = TRUE</code> or
+<code>ignore.stderr = TRUE</code>) output from a command that is a
+&lsquo;console application&rsquo; should appear in the <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> console
+(<code>Rgui</code>) or the window running <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> (<code>Rterm</code>).
+</p>
+<p>Not all Windows executables properly respect redirection of output, or
+may only do so from a console application such as <code>Rterm</code> and not
+from <code>Rgui</code>: for example, &lsquo;<span class="file">fc.exe</span>&rsquo; was among these in the past,
+but we have had more success recently.
+</p>
+
+
+<h3>Interaction with the command</h3>
+
+<p>Precisely what is seen by the user depends on the optional parameters,
+whether <code>Rgui</code> or <code>Rterm</code> is being used, and whether a
+console command or GUI application is run by the command.
+</p>
+<p>By default nothing will be seen in either front-end until the command
+finishes and the output is displayed.
+</p>
+<p>For console commands <code>Rgui</code> will open a new &lsquo;console&rsquo;, so
+if <code>invisible = FALSE</code>, a commands window will appear for the
+duration of the command.  For <code>Rterm</code> a separate commands window
+will appear for console applications only if <code>wait = FALSE</code> and
+<code>invisible = FALSE</code>.
+</p>
+<p>GUI applications will not display in either front-end unless
+<code>invisible</code> is false.
+</p>
+<p>It is possible to interrupt a running command being waited for from
+the keyboard (using the <span class="samp">Esc</span> key in <code>Rgui</code> or <span class="samp">Ctrl-C</span>
+in <code>Rterm</code>) or from the <code>Rgui</code> menu: this should at least
+return control to the <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> console.  <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> will attempt to shut down the
+process cleanly, but may need to force it to terminate, with the
+possibility of losing unsaved work, etc.
+</p>
+<p>Do not try to run console applications that require user
+input from <code>Rgui</code> setting <code>intern = TRUE</code> or
+<code>show.output.on.console = TRUE</code>.  They will not work.
+</p>
+
+
+<h3>Differences between Unix and Windows</h3>
+
+<p>How processes are launched differs fundamentally between Windows and
+Unix-alike operating systems, as do the higher-level OS functions on
+which this <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> function is built.  So it should not be surprising that
+there are many differences between OSes in how <code>system</code> behaves.
+For the benefit of programmers, the more important ones are summarized
+in this section.
+</p>
+
+<ul>
+<li><p> The most important difference is that on a Unix-alike
+<code>system</code> launches a shell which then runs <code>command</code>.  On
+Windows the command is run directly &ndash; use <code>shell</code> for an
+interface which runs <code>command</code> <em>via</em> a shell (by default
+the Windows shell <code>cmd.exe</code>, which has many differences from
+a POSIX shell).
+</p>
+<p>This means that it cannot be assumed that redirection or piping will
+work in <code>system</code> (redirection sometimes does, but we have seen
+cases where it stopped working after a Windows security patch), and
+<code><a href="system2.html">system2</a></code> (or <code>shell</code>) must be used on Windows.
+</p>
+</li>
+<li><p> What happens to <code>stdout</code> and <code>stderr</code> when not
+captured depends on how <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> is running: Windows batch commands behave
+like a Unix-alike, but from the Windows GUI they are
+generally lost.  <code>system(intern = TRUE)</code> captures &lsquo;<span class="file">stderr</span>&rsquo;
+when run from the Windows GUI console unless <code>ignore.stderr =
+      TRUE</code>.
+</p>
+</li>
+<li><p> The behaviour on error is different in subtle ways (and has
+differed between <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> versions).
+</p>
+</li>
+<li><p> The quoting conventions for <code>command</code> differ, but
+<code><a href="shQuote.html">shQuote</a></code> is a portable interface.
+</p>
+</li>
+<li><p> Arguments <code>show.output.on.console</code>, <code>minimized</code>,
+<code>invisible</code> only do something on Windows (and are most relevant
+to <code>Rgui</code> there).
+</p>
+</li></ul>
+
+
+
+<h3>See Also</h3>
+
+<p><code><a href="shell.html">shell</a></code> or <code><a href="shell.exec.html">shell.exec</a></code> for a less raw
+interface.
+</p>
+<p><code><a href="Platform.html">.Platform</a></code> for platform-specific variables.
+</p>
+<p><code><a href="connections.html">pipe</a></code> to set up a pipe connection.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+# launch an editor, wait for it to quit
+## Not run: system("notepad myfile.txt")
+# launch your favourite shell:
+## Not run: system(Sys.getenv("COMSPEC"))
+## Not run: 
+## note the two sets of quotes here:
+system(paste('"c:/Program Files/Mozilla Firefox/firefox.exe"',
+             '-url cran.r-project.org'), wait = FALSE)
+## End(Not run)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

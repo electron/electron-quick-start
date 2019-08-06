@@ -22,7 +22,7 @@ L.LatLngBounds.prototype.modify = function(map, amount) {
     return new L.LatLngBounds(sw, ne);
 };
 
-L.LocationFilter2 = L.Class.extend({
+L.LocationFilter2 = L.Layer.extend({
     includes: L.Mixin.Events,
 
     options: {

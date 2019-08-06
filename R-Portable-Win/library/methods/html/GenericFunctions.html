@@ -1,0 +1,350 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Tools for Managing Generic Functions</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for GenericFunctions {methods}"><tr><td>GenericFunctions {methods}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Tools for Managing Generic Functions</h2>
+
+<h3>Description</h3>
+
+<p>The functions documented here manage collections of methods associated
+with a generic function, as well as providing information about the
+generic functions themselves.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+isGeneric(f, where, fdef, getName = FALSE)
+isGroup(f, where, fdef)
+removeGeneric(f, where)
+
+dumpMethod(f, signature, file, where, def)
+findFunction(f, generic = TRUE, where = topenv(parent.frame()))
+dumpMethods(f, file, signature, methods, where)
+signature(...)
+
+removeMethods(f, where = topenv(parent.frame()), all = missing(where))
+
+setReplaceMethod(f, ..., where = topenv(parent.frame()))
+
+getGenerics(where, searchForm = FALSE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>f</code></td>
+<td>
+<p> The character string naming the function. </p>
+</td></tr>
+<tr valign="top"><td><code>where</code></td>
+<td>
+<p> The environment, namespace, or search-list position
+from which to search for objects.  By default, start at the
+top-level environment of the calling function, typically the global
+environment (i.e., use the search list), or the namespace of a
+package from which the call came.  It is important to supply this
+argument when calling any of these functions indirectly.  With
+package namespaces, the default is likely to be wrong in such calls.</p>
+</td></tr>
+<tr valign="top"><td><code>signature</code></td>
+<td>
+<p> The class signature of the relevant method.  A
+signature is a named or unnamed vector of character strings.  If
+named, the names must be formal argument names for the generic
+function.  Signatures are matched to the arguments specified in
+the signature slot of the generic function (see the Details
+section of the <code><a href="setMethod.html">setMethod</a></code> documentation).
+</p>
+<p>The <code>signature</code> argument to <code>dumpMethods</code> is ignored (it
+was used internally in previous implementations).</p>
+</td></tr>
+<tr valign="top"><td><code>file</code></td>
+<td>
+<p> The file or connection on which to dump method definitions. </p>
+</td></tr>
+<tr valign="top"><td><code>def</code></td>
+<td>
+<p> The function object defining the method; if omitted, the
+current method definition corresponding to the signature. </p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>Named or unnamed arguments to form a signature.</p>
+</td></tr>
+<tr valign="top"><td><code>generic</code></td>
+<td>
+<p>In testing or finding functions, should generic
+functions be included.  Supply as <code>FALSE</code> to get only
+non-generic functions.</p>
+</td></tr>
+<tr valign="top"><td><code>fdef</code></td>
+<td>
+<p>Optional, the generic function definition.
+</p>
+<p>Usually omitted in calls to <code>isGeneric</code></p>
+</td></tr>
+<tr valign="top"><td><code>getName</code></td>
+<td>
+<p>If <code>TRUE</code>, <code>isGeneric</code> returns the name of
+the generic.  By default, it returns <code>TRUE</code>. </p>
+</td></tr>
+<tr valign="top"><td><code>methods</code></td>
+<td>
+
+<p>The methods object containing the methods to be dumped.  By default,
+the methods defined for this generic (optionally on the specified
+<code>where</code> location).
+</p>
+</td></tr>
+<tr valign="top"><td><code>all</code></td>
+<td>
+<p>in <code>removeMethods</code>, logical indicating if all
+(default) or only the first method found should be removed.</p>
+</td></tr>
+<tr valign="top"><td><code>searchForm</code></td>
+<td>
+<p>In <code>getGenerics</code>, if <code>TRUE</code>, the
+<code>package</code> slot of the returned result is in the form used
+by <code>search()</code>, otherwise as the simple package name (e.g,
+<code>"package:base"</code> vs <code>"base"</code>).
+</p>
+</td></tr>
+</table>
+
+
+<h3>Summary of Functions</h3>
+
+
+<dl>
+<dt><code>isGeneric</code>:</dt><dd>
+<p>Is there a function named <code>f</code>, and if so, is it a generic?
+</p>
+<p>The <code>getName</code> argument allows a function to find the name
+from a function definition.  If it is <code>TRUE</code> then the name of
+the generic is returned, or <code>FALSE</code> if this is not a generic
+function definition.
+</p>
+<p>The behavior of <code>isGeneric</code> and <code><a href="RMethodUtils.html">getGeneric</a></code> for
+primitive functions is slightly different.  These functions don't
+exist as formal function objects (for efficiency and historical
+reasons), regardless of whether methods have been defined for
+them.  A call to <code>isGeneric</code> tells you whether methods have
+been defined for this primitive function, anywhere in the current
+search list, or in the specified position <code>where</code>.  In
+contrast, a call to <code><a href="RMethodUtils.html">getGeneric</a></code> will return what the
+generic for that function would be, even if no methods have been
+currently defined for it.
+</p>
+</dd>
+<dt><code>removeGeneric</code>, <code>removeMethods</code>:</dt><dd>
+<p>Remove all the methods for the generic function of this
+name.  In addition, <code>removeGeneric</code> removes the function
+itself; <code>removeMethods</code> restores the non-generic function
+which was the default method.   If there was no default method,
+<code>removeMethods</code> leaves a generic function with no methods.
+</p>
+</dd>
+<dt><code>standardGeneric</code>:</dt><dd>
+<p>Dispatches a method from the current function call for the generic
+function <code>f</code>.  It is an error to call
+<code>standardGeneric</code> anywhere except in the body of the
+corresponding generic function.
+</p>
+<p>Note that <code><a href="../../base/html/standardGeneric.html">standardGeneric</a></code> is a primitive function in
+the <span class="pkg">base</span> package
+for efficiency 
+reasons, but rather documented here where it belongs naturally.
+</p>
+</dd>
+<dt><code>dumpMethod</code>:</dt><dd>
+<p>Dump the method for this generic function and signature.
+</p>
+</dd>
+<dt><code>findFunction</code>:</dt><dd>
+<p>return a list of either the positions on the search list, or the
+current top-level environment, on which a function object
+for <code>name</code> exists.  The returned value is <em>always</em> a
+list, use the first element to access the first visible version
+of the function.  See the example.
+</p>
+<p><em>NOTE:</em> Use this rather than <code><a href="../../utils/html/apropos.html">find</a></code> with
+<code>mode="function"</code>, which is not as meaningful, and has a few
+subtle bugs from its use of regular expressions.  Also,
+<code>findFunction</code> works correctly in the code for a package
+when attaching the package via a call to <code><a href="../../base/html/library.html">library</a></code>.
+</p>
+</dd>
+<dt><code>dumpMethods</code>:</dt><dd>
+<p>Dump all the methods for this generic.
+</p>
+</dd>
+<dt><code>signature</code>:</dt><dd>
+<p>Returns a named list of classes to be matched to arguments of a
+generic function.
+</p>
+</dd>
+<dt><code>getGenerics</code>:</dt><dd><p>returns the names of the generic
+functions that have methods defined on <code>where</code>; this
+argument can be an environment or an index into the search
+list.  By default, the whole search list is used.
+</p>
+<p>The methods definitions are stored with
+package qualifiers; for example, methods for function
+<code>"initialize"</code> might refer to two different functions
+of that name, on different packages.  The package names
+corresponding to the method list object are contained in the
+slot <code>package</code> of the returned object.  The form of
+the returned name can be plain (e.g., <code>"base"</code>), or in
+the form used in the search list (<code>"package:base"</code>)
+according to the value of <code>searchForm</code></p>
+</dd>
+</dl>
+
+
+
+<h3>Details</h3>
+
+
+<dl>
+<dt><code>isGeneric</code>:</dt><dd>
+<p>If the <code>fdef</code> argument is supplied, take this as the
+definition of the generic, and test whether it is really a
+generic, with <code>f</code> as the name of the generic.  (This argument
+is not available in S-Plus.)
+</p>
+</dd>
+<dt><code>removeGeneric</code>:</dt><dd>
+<p>If <code>where</code> supplied, just remove the version on this element
+of the search list; otherwise, removes the first version
+encountered.
+</p>
+</dd>
+<dt><code>standardGeneric</code>:</dt><dd>
+<p>Generic functions should usually have a call to
+<code>standardGeneric</code> as their entire body.  They can, however,
+do any other computations as well.
+</p>
+<p>The usual <code>setGeneric</code> (directly or through calling
+<code>setMethod</code>) creates a function with a call to
+<code>standardGeneric</code>.
+</p>
+</dd>
+<dt><code>dumpMethod</code>:</dt><dd>
+<p>The resulting source file will recreate the method.
+</p>
+</dd>
+<dt><code>findFunction</code>:</dt><dd>
+<p>If <code>generic</code> is <code>FALSE</code>, ignore generic functions.
+</p>
+</dd>
+<dt><code>dumpMethods</code>:</dt><dd>
+<p>If <code>signature</code> is supplied only the methods matching this
+initial signature are dumped.  (This feature is not found in
+S-Plus:  don't use it if you want compatibility.)
+</p>
+</dd>
+<dt><code>signature</code>:</dt><dd>
+<p>The advantage of using <code>signature</code> is to provide a check on
+which arguments you meant, as well as clearer documentation in
+your method specification.  In addition, <code>signature</code> checks
+that each of the elements is a single character string.
+</p>
+</dd>
+<dt><code>removeMethods</code>:</dt><dd>
+<p>Returns <code>TRUE</code> if <code>f</code> was a generic function,
+<code>FALSE</code> (silently) otherwise.
+</p>
+<p>If there is a default method, the function will be re-assigned as
+a simple function with this definition.
+Otherwise, the generic function remains but with no methods (so
+any call to it will generate an error).  In either case, a
+following call to <code>setMethod</code> will consistently
+re-establish the same generic function as before.
+</p>
+</dd>
+</dl>
+
+
+
+<h3>References</h3>
+
+<p>Chambers, John M. (2016)
+<em>Extending R</em>,
+Chapman &amp; Hall.
+(Chapters 9 and 10.)
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="getMethod.html">getMethod</a></code> (also for <code>selectMethod</code>),
+<code><a href="setGeneric.html">setGeneric</a></code>,
+<code><a href="setClass.html">setClass</a></code>,
+<code><a href="showMethods.html">showMethods</a></code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+require(stats) # for lm
+
+## get the function "myFun" -- throw an error if 0 or &gt; 1 versions visible:
+findFuncStrict &lt;- function(fName) {
+  allF &lt;- findFunction(fName)
+  if(length(allF) == 0)
+    stop("No versions of ",fName," visible")
+  else if(length(allF) &gt; 1)
+    stop(fName," is ambiguous: ", length(allF), " versions")
+  else
+    get(fName, allF[[1]])
+}
+
+try(findFuncStrict("myFun"))# Error: no version
+lm &lt;- function(x) x+1
+try(findFuncStrict("lm"))#    Error: 2 versions
+findFuncStrict("findFuncStrict")# just 1 version
+rm(lm)
+
+
+
+## method dumping ------------------------------------
+
+setClass("A", slots = c(a="numeric"))
+setMethod("plot", "A", function(x,y,...){ cat("A meth\n") })
+dumpMethod("plot","A", file="")
+## Not run: 
+setMethod("plot", "A",
+function (x, y, ...)
+{
+    cat("AAAAA\n")
+}
+)
+
+## End(Not run)
+tmp &lt;- tempfile()
+dumpMethod("plot","A", file=tmp)
+## now remove, and see if we can parse the dump
+stopifnot(removeMethod("plot", "A"))
+source(tmp)
+stopifnot(is(getMethod("plot", "A"), "MethodDefinition"))
+
+## same with dumpMethods() :
+setClass("B", contains="A")
+setMethod("plot", "B", function(x,y,...){ cat("B ...\n") })
+dumpMethods("plot", file=tmp)
+stopifnot(removeMethod("plot", "A"),
+          removeMethod("plot", "B"))
+source(tmp)
+stopifnot(is(getMethod("plot", "A"), "MethodDefinition"),
+          is(getMethod("plot", "B"), "MethodDefinition"))
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>methods</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

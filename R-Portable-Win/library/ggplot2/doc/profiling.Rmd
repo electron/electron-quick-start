@@ -1,0 +1,76 @@
+---
+title: "Profiling Performance"
+author: "Thomas Lin Pedersen"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Profiling Performance}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+In order to continuously monitor the performance of ggplot2
+the following piece of code is used to generate a profile and inspect it:
+
+```{r}
+library(ggplot2)
+library(profvis)
+
+p <- ggplot(mtcars, aes(x = mpg, y = disp)) + 
+  geom_point() + 
+  facet_grid(gear ~ cyl)
+
+profile <- profvis(for (i in seq_len(100)) ggplotGrob(p))
+
+profile
+```
+
+```{r, eval=FALSE, include=FALSE}
+saveRDS(profile, file.path('profilings', paste0(packageVersion('ggplot2'), '.rds')))
+```
+
+In general, a minimal plot is used so that profiles are focused on low-level,
+general code, rather than implementations of specific geoms. This might be
+expanded at the point where improving performance of specific geoms becomes a
+focus. Further, the profile focuses on the steps up until a final gtable have
+been constructed. Any performance problems in rendering is likely due to grid 
+and the device, more than ggplot2.
+
+Profiles for old version are kept for reference and can be accessed at 
+the [github repository](https://github.com/tidyverse/ggplot2/tree/master/vignettes/profilings).
+Care should be taken in not comparing profiles across versions, as 
+changes to code outside of ggplot2 can have profound effect on the results.
+Thus, the intend of profiling is to identify bottlenecks in the implementation
+that are ripe for improvement, more then to quantify improvements to performance
+over time.
+
+## Performance focused changes across versions
+To keep track of changes focused on improving the performance of gtable they
+are summarised below:
+
+### v`r packageVersion('ggplot2')`
+
+- **Caching of calls to `grid::descentDetails()`** The absolute biggest offender
+  was the construction of titles. In recent versions this has included calls to
+  `grid::descentDetails()` to ensure that they are aligned across plots, but 
+  this is quite heavy. These calls are now cached so they only have to be 
+  calculated once per font setting.
+- **Use a performant `data.frame` constructor throughout the codebase** The
+  `data.frame()` function carries a lot of overhead in order to sanitize and 
+  check the input. This is generally not needed if you are sure about the input
+  and will just lead to slower code. The `data.frame()` call is now only used
+  when dealing with output from other packages where the extra safety is a 
+  benefit.
+- **Use a performant alternative to `utils::modifyList`** `modifyList()` is a 
+  nice convenience function but carries a lot of overhead. It was mainly used
+  in the plot element constructions where it slowed down the application of 
+  theme settings. A more performant version has been added and used throughout.
+- **Speed up position transformation** The `transform_position` helper was 
+  unreasonably slow due to the slowness of getting and assigning columns in 
+  data.frame. The input is now treated as a list during transformation.

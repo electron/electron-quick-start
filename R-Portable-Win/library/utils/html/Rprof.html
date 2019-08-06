@@ -1,0 +1,180 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Enable Profiling of R's Execution</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for Rprof {utils}"><tr><td>Rprof {utils}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Enable Profiling of R's Execution</h2>
+
+<h3>Description</h3>
+
+<p>Enable or disable profiling of the execution of <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> expressions.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+Rprof(filename = "Rprof.out", append = FALSE, interval = 0.02,
+       memory.profiling = FALSE, gc.profiling = FALSE,
+       line.profiling = FALSE, numfiles = 100L, bufsize = 10000L)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>filename</code></td>
+<td>
+
+<p>The file to be used for recording the profiling results.
+Set to <code>NULL</code> or <code>""</code> to disable profiling.
+</p>
+</td></tr>
+<tr valign="top"><td><code>append</code></td>
+<td>
+
+<p>logical: should the file be over-written or appended to?
+</p>
+</td></tr>
+<tr valign="top"><td><code>interval</code></td>
+<td>
+
+<p>real: time interval between samples.
+</p>
+</td></tr>
+<tr valign="top"><td><code>memory.profiling</code></td>
+<td>
+<p>logical: write memory use information to the file?</p>
+</td></tr>
+<tr valign="top"><td><code>gc.profiling</code></td>
+<td>
+<p>logical:  record whether GC is running?</p>
+</td></tr>
+<tr valign="top"><td><code>line.profiling</code></td>
+<td>
+<p>logical:  write line locations to the file?</p>
+</td></tr>
+<tr valign="top"><td><code>numfiles, bufsize</code></td>
+<td>
+<p>integers: line profiling memory allocation</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>Enabling profiling automatically disables any existing profiling to
+another or the same file.
+</p>
+<p>Profiling works by writing out the call stack every <code>interval</code>
+seconds, to the file specified.  Either the <code><a href="summaryRprof.html">summaryRprof</a></code>
+function or the wrapper script <code>R CMD Rprof</code> can be used to
+process the output file to produce a summary of the usage; use
+<code>R CMD Rprof --help</code> for usage information.
+</p>
+<p>How time is measured varies by platform:
+</p>
+
+<dl>
+<dt>On Windows:</dt><dd>
+<p>Exactly what the time interval measures is subtle: it is time that the
+<span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> process is running and executing an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> command.  It is not however just
+CPU time, for if <code>readline()</code> is waiting for input, that counts
+(on Windows, but not on a Unix-alike).
+</p>
+<p>Note that the timing interval cannot be too small, for the time spent
+in each profiling step is added to the interval.  What is feasible is
+machine-dependent, but 10ms seemed as small as advisable on a 1GHz machine.
+</p>
+</dd>
+<dt>On Unix-alikes</dt><dd><p>it is the CPU
+time of the <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> process, so for example excludes time when <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> is waiting
+for input or for processes run by <code><a href="../../base/html/system.html">system</a></code> to return.
+</p>
+<p>Note that the timing interval cannot usefully be too small: once the
+timer goes off, the information is not recorded until the next timing
+click (probably in the range 1&ndash;10 ms).
+</p>
+</dd>
+</dl>
+
+<p>Functions will only be recorded in the profile log if they put a
+context on the call stack (see <code><a href="../../base/html/sys.parent.html">sys.calls</a></code>).  Some
+<a href="../../base/html/Primitive.html">primitive</a> functions do not do so: specifically those which are
+of <a href="../../base/html/typeof.html">type</a> <code>"special"</code> (see the &lsquo;R Internals&rsquo; manual
+for more details).
+</p>
+<p>Individual statements will be recorded in the profile log if
+<code>line.profiling</code> is <code>TRUE</code>, and if the code being executed
+was parsed with source references.  See <code><a href="../../base/html/parse.html">parse</a></code> for a
+discussion of source references.  By default the statement locations
+are not shown in <code><a href="summaryRprof.html">summaryRprof</a></code>, but see that help page
+for options to enable the display.
+</p>
+
+
+<h3>Note</h3>
+
+
+<dl>
+<dt>On Unix-alikes:</dt><dd>
+<p>Profiling is not available on all platforms.  By default,
+support for profiling is compiled in if possible &ndash; configure <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> with
+<span class="option">--disable-R-profiling</span> to change this.
+</p>
+<p>As <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> profiling uses the same mechanisms as C profiling, the two
+cannot be used together, so do not use <code>Rprof</code> in an executable
+built for C-level profiling.
+</p>
+</dd>
+<dt>On Windows:</dt><dd>
+<p><code>filename</code> can be a UTF-8-encoded filepath that cannot be translated to
+the current locale.
+</p>
+</dd>
+</dl>
+
+<p>The profiler interrupts R asynchronously, and it cannot allocate
+memory to store results as it runs.  This affects line profiling,
+which needs to store an unknown number of file pathnames.  The
+<code>numfiles</code> and <code>bufsize</code> arguments control the size of
+pre-allocated buffers to hold these results:  the former counts the
+maximum number of paths, the latter counts the numbers of bytes in
+them.  If the profiler runs out of space it will skip recording the
+line information for new files, and issue a warning when
+<code>Rprof(NULL)</code> is called to finish profiling.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>The chapter on &ldquo;Tidying and profiling R code&rdquo; in
+&ldquo;Writing <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> Extensions&rdquo; (see the &lsquo;<span class="file">doc/manual</span>&rsquo; subdirectory
+of the <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> source tree).
+</p>
+<p><code><a href="summaryRprof.html">summaryRprof</a></code> to analyse the output file.
+</p>
+<p><code><a href="../../base/html/tracemem.html">tracemem</a></code>, <code><a href="Rprofmem.html">Rprofmem</a></code> for other ways to track
+memory use.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Not run: Rprof()
+## some code to be profiled
+Rprof(NULL)
+## some code NOT to be profiled
+Rprof(append = TRUE)
+## some code to be profiled
+Rprof(NULL)
+\dots
+## Now post-process the output as described in Details
+
+## End(Not run)</pre>
+
+<hr /><div style="text-align: center;">[Package <em>utils</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

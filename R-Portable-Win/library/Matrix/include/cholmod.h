@@ -977,6 +977,7 @@ typedef const cholmod_triplet* const_CHM_TR;
 
 // --------- Matrix ("M_") R ("R_") pkg  routines "re-exported": ---------------
 
+// "Implementation" of these in ./Matrix_stubs.c
 int M_R_cholmod_start(CHM_CM);
 void M_R_cholmod_error(int status, const char *file, int line, const char *message);
 int M_cholmod_finish(CHM_CM);

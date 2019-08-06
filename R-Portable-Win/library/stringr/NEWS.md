@@ -1,3 +1,68 @@
+# stringr 1.4.0
+
+* `str_interp()` now renders lists consistently independent on the presence of
+  additional placeholders (@amhrasmussen).
+
+* New `str_starts()` and `str_ends()` functions to detect patterns at the 
+  beginning or end of strings (@jonthegeek, #258).
+
+* `str_subset()`, `str_detect()`, and `str_which()` get `negate` argument,
+  which is useful when you want the elements that do NOT match (#259,
+  @yutannihilation).
+  
+* New `str_to_sentence()` function to capitalize with sentence case 
+  (@jonthegeek, #202).
+
+# stringr 1.3.1
+
+* `str_replace_all()` with a named vector now respects modifier functions (#207)
+
+* `str_trunc()` is once again vectorised correctly (#203, @austin3dickey).
+
+* `str_view()` handles `NA` values more gracefully (#217). I've also
+  tweaked the sizing policy so hopefully it should work better in notebooks,
+  while preserving the existing behaviour in knit documents (#232).
+
+# stringr 1.3.0
+
+## API changes
+
+* During package build, you may see 
+  `Error : object ‘ignore.case’ is not exported by 'namespace:stringr'`.
+  This is because the long deprecated `str_join()`, `ignore.case()` and 
+  `perl()` have now been removed. 
+
+## New features
+
+* `str_glue()` and `str_glue_data()` provide convenient wrappers around
+  `glue` and `glue_data()` from the [glue](http://glue.tidyverse.org/) package
+  (#157).
+
+* `str_flatten()` is a wrapper around `stri_flatten()` and clearly
+  conveys flattening a character vector into a single string (#186).
+
+* `str_remove()` and `str_remove_all()` functions. These wrap 
+  `str_replace()` and `str_replace_all()` to remove patterns from strings.
+  (@Shians, #178)
+  
+* `str_squish()` removes spaces from both the left and right side of strings, 
+  and also converts multiple space (or space-like characters) to a single 
+  space within strings (@stephlocke, #197).
+
+* `str_sub()` gains `omit_na` argument for ignoring `NA`. Accordingly,
+  `str_replace()` now ignores `NA`s and keeps the original strings.
+  (@yutannihilation, #164)
+
+## Bug fixes and minor improvements
+
+* `str_trunc()` now preserves NAs (@ClaytonJY, #162)
+
+* `str_trunc()` now throws an error when `width` is shorter than `ellipsis`
+  (@ClaytonJY, #163).
+
+* Long deprecated `str_join()`, `ignore.case()` and `perl()` have now been 
+  removed.
+
 # stringr 1.2.0
 
 ## API changes
@@ -9,7 +74,7 @@
 ## New features
 
 * In `str_replace()`, `replacement` can now be a function that is called once
-  for each match and who's return value is used to replace the match.
+  for each match and whose return value is used to replace the match.
 
 * New `str_which()` mimics `grep()` (#129).
 

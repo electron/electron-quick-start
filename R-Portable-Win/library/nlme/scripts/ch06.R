@@ -10,11 +10,11 @@ pdf(file = "ch06.pdf")
 # Chapter 6    Nonlinear Mixed-Effects Models:
 #              Basic Concepts and Motivating Examples
 
-# 6.1 Indomethicin Kinetics
+# 6.2 Indomethicin Kinetics
 
 plot(Indometh)
 fm1Indom.nls <- nls(conc ~ SSbiexp(time, A1, lrc1, A2, lrc2),
-  data = Indometh)
+                    data = Indometh)
 summary(fm1Indom.nls)
 plot(fm1Indom.nls, Subject ~ resid(.), abline = 0)
 (fm1Indom.lis <- nlsList(conc ~ SSbiexp(time, A1, lrc1, A2, lrc2),
@@ -76,17 +76,18 @@ plot(augPred(fm4Soy.nlme))# Fig 6.14, p. 295
       random = pdDiag(lCl + lV ~ 1), start = c(-5, 0),
       na.action = NULL, naPattern = ~ !is.na(conc)))
 fm1Pheno.ranef <- ranef(fm1Pheno.nlme, augFrame = TRUE)
-# FIXME: these plots encounter difficulties
+# (These plots used to encounter difficulties, now fine):
 plot(fm1Pheno.ranef, form = lCl ~ Wt + ApgarInd)
-plot(fm1Pheno.ranef, form = lV ~ Wt + ApgarInd)
+plot(fm1Pheno.ranef, form = lV  ~ Wt + ApgarInd)
+
 options(contrasts = c("contr.treatment", "contr.poly"))
-## This fit just ping-pongs
-##fm2Pheno.nlme <-
-##    update(fm1Pheno.nlme,
-##           fixed = list(lCl ~ Wt, lV ~ Wt + ApgarInd),
-##           start = c(-5.0935, 0, 0.34259, 0, 0),
-##           control = list(pnlsTol = 1e-4, maxIter = 500,
-##           msVerbose = TRUE))
+if(FALSE)## This fit just "ping-pongs" until max.iterations error
+fm2Pheno.nlme <-
+   update(fm1Pheno.nlme,
+          fixed = list(lCl ~ Wt, lV ~ Wt + ApgarInd),
+          start = c(-5.0935, 0, 0.34259, 0, 0),
+          control = list(pnlsTol = 1e-4, maxIter = 500,
+          msVerbose = TRUE, opt = "nlm"))
 ##summary(fm2Pheno.nlme)
 ##fm3Pheno.nlme <-
 ##    update(fm2Pheno.nlme,

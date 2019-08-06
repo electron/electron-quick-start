@@ -1,0 +1,229 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Sample Quantiles</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for quantile {stats}"><tr><td>quantile {stats}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Sample Quantiles</h2>
+
+<h3>Description</h3>
+
+<p>The generic function <code>quantile</code> produces sample quantiles
+corresponding to the given probabilities.
+The smallest observation corresponds to a probability of 0 and the
+largest to a probability of 1.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+quantile(x, ...)
+
+## Default S3 method:
+quantile(x, probs = seq(0, 1, 0.25), na.rm = FALSE,
+         names = TRUE, type = 7, ...)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>numeric vector whose sample quantiles are wanted, or an
+object of a class for which a method has been defined (see also
+&lsquo;details&rsquo;). <code><a href="../../base/html/NA.html">NA</a></code> and <code>NaN</code> values are not
+allowed in numeric vectors unless <code>na.rm</code> is <code>TRUE</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>probs</code></td>
+<td>
+<p>numeric vector of probabilities with values in
+<i>[0,1]</i>.  (Values up to <span class="samp">2e-14</span> outside that
+range are accepted and moved to the nearby endpoint.)</p>
+</td></tr>
+<tr valign="top"><td><code>na.rm</code></td>
+<td>
+<p>logical; if true, any <code><a href="../../base/html/NA.html">NA</a></code> and <code>NaN</code>'s
+are removed from <code>x</code> before the quantiles are computed.</p>
+</td></tr>
+<tr valign="top"><td><code>names</code></td>
+<td>
+<p>logical; if true, the result has a <code><a href="../../base/html/names.html">names</a></code>
+attribute.  Set to <code>FALSE</code> for speedup with many <code>probs</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>type</code></td>
+<td>
+<p>an integer between 1 and 9 selecting one of the
+nine quantile algorithms detailed below to be used.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>further arguments passed to or from other methods.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>A vector of length <code>length(probs)</code> is returned;
+if <code>names = TRUE</code>, it has a <code><a href="../../base/html/names.html">names</a></code> attribute.
+</p>
+<p><code><a href="../../base/html/NA.html">NA</a></code> and <code><a href="../../base/html/is.finite.html">NaN</a></code> values in <code>probs</code> are
+propagated to the result.
+</p>
+<p>The default method works with classed objects sufficiently like
+numeric vectors that <code>sort</code> and (not needed by types 1 and 3)
+addition of elements and multiplication by a number work correctly.
+Note that as this is in a namespace, the copy of <code>sort</code> in
+<span class="pkg">base</span> will be used, not some S4 generic of that name.  Also note
+that that is no check on the &lsquo;correctly&rsquo;, and so
+e.g. <code>quantile</code> can be applied to complex vectors which (apart
+from ties) will be ordered on their real parts.
+</p>
+<p>There is a method for the date-time classes (see
+<code>"<a href="../../base/html/DateTimeClasses.html">POSIXt</a>"</code>).  Types 1 and 3 can be used for class
+<code>"<a href="../../base/html/Dates.html">Date</a>"</code> and for ordered factors.
+</p>
+
+
+<h3>Types</h3>
+
+<p><code>quantile</code> returns estimates of underlying distribution quantiles
+based on one or two order statistics from the supplied elements in
+<code>x</code> at probabilities in <code>probs</code>.  One of the nine quantile
+algorithms discussed in Hyndman and Fan (1996), selected by
+<code>type</code>, is employed.
+</p>
+<p>All sample quantiles are defined as weighted averages of
+consecutive order statistics. Sample quantiles of type <i>i</i>
+are defined by:
+</p>
+<p style="text-align: center;"><i>Q[i](p) = (1 - &gamma;) x[j] + &gamma; x[j+1],</i></p>
+
+<p>where <i>1 &le; i &le; 9</i>,
+<i>(j-m)/n &le; p &lt; (j-m+1)/n</i>,
+<i>x[j]</i> is the <i>j</i>th order statistic, <i>n</i> is the
+sample size, the value of <i>&gamma;</i> is a function of
+<i>j = floor(np + m)</i> and <i>g = np + m - j</i>,
+and <i>m</i> is a constant determined by the sample quantile type.
+</p>
+<p><strong>Discontinuous sample quantile types 1, 2, and 3</strong>
+</p>
+<p>For types 1, 2 and 3, <i>Q[i](p)</i> is a discontinuous
+function of <i>p</i>, with <i>m = 0</i> when <i>i = 1</i> and <i>i =
+  2</i>, and <i>m = -1/2</i> when <i>i = 3</i>.
+</p>
+
+<dl>
+<dt>Type 1</dt><dd><p>Inverse of empirical distribution function.
+<i>&gamma; = 0</i> if <i>g = 0</i>, and 1 otherwise.</p>
+</dd>
+<dt>Type 2</dt><dd><p>Similar to type 1 but with averaging at discontinuities.
+<i>&gamma; = 0.5</i> if <i>g = 0</i>, and 1 otherwise.</p>
+</dd>
+<dt>Type 3</dt><dd><p>SAS definition: nearest even order statistic.
+<i>&gamma; = 0</i> if <i>g = 0</i> and <i>j</i> is even,
+and 1 otherwise.</p>
+</dd>
+</dl>
+
+<p><strong>Continuous sample quantile types 4 through 9</strong>
+</p>
+<p>For types 4 through 9, <i>Q[i](p)</i> is a continuous function
+of <i>p</i>, with <i>gamma = g</i> and <i>m</i> given below. The
+sample quantiles can be obtained equivalently by linear interpolation
+between the points <i>(p[k],x[k])</i> where <i>x[k]</i>
+is the <i>k</i>th order statistic.  Specific expressions for
+<i>p[k]</i> are given below.
+</p>
+
+<dl>
+<dt>Type 4</dt><dd><p><i>m = 0</i>. <i>p[k] = k / n</i>.
+That is, linear interpolation of the empirical cdf.
+</p>
+</dd>
+<dt>Type 5</dt><dd><p><i>m = 1/2</i>.
+<i>p[k] = (k - 0.5) / n</i>.
+That is a piecewise linear function where the knots are the values
+midway through the steps of the empirical cdf.  This is popular
+amongst hydrologists.
+</p>
+</dd>
+<dt>Type 6</dt><dd><p><i>m = p</i>. <i>p[k] = k / (n + 1)</i>.
+Thus <i>p[k] = E[F(x[k])]</i>.
+This is used by Minitab and by SPSS.
+</p>
+</dd>
+<dt>Type 7</dt><dd><p><i>m = 1-p</i>.
+<i>p[k] = (k - 1) / (n - 1)</i>.
+In this case, <i>p[k] = mode[F(x[k])]</i>.
+This is used by S.
+</p>
+</dd>
+<dt>Type 8</dt><dd><p><i>m = (p+1)/3</i>.
+<i>p[k] = (k - 1/3) / (n + 1/3)</i>.
+Then <i>p[k] =~ median[F(x[k])]</i>.
+The resulting quantile estimates are approximately median-unbiased
+regardless of the distribution of <code>x</code>.
+</p>
+</dd>
+<dt>Type 9</dt><dd><p><i>m = p/4 + 3/8</i>.
+<i>p[k] = (k - 3/8) / (n + 1/4)</i>.
+The resulting quantile estimates are approximately unbiased for
+the expected order statistics if <code>x</code> is normally distributed.
+</p>
+</dd>
+</dl>
+
+<p>Further details are provided in Hyndman and Fan (1996) who recommended type 8.
+The default method is type 7, as used by S and by <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> &lt; 2.0.0.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>of the version used in <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> &gt;= 2.0.0, Ivan Frohne and Rob J Hyndman.
+</p>
+
+
+<h3>References</h3>
+
+<p>Becker, R. A., Chambers, J. M. and Wilks, A. R. (1988)
+<em>The New S Language</em>.
+Wadsworth &amp; Brooks/Cole.
+</p>
+<p>Hyndman, R. J. and Fan, Y. (1996) Sample quantiles in statistical
+packages, <em>American Statistician</em> <b>50</b>, 361&ndash;365.
+doi: <a href="https://doi.org/10.2307/2684934">10.2307/2684934</a>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="ecdf.html">ecdf</a></code> for empirical distributions of which
+<code>quantile</code> is an inverse;
+<code><a href="../../grDevices/html/boxplot.stats.html">boxplot.stats</a></code> and <code><a href="fivenum.html">fivenum</a></code> for computing
+other versions of quartiles, etc.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+quantile(x &lt;- rnorm(1001)) # Extremes &amp; Quartiles by default
+quantile(x,  probs = c(0.1, 0.5, 1, 2, 5, 10, 50, NA)/100)
+
+### Compare different types
+quantAll &lt;- function(x, prob, ...)
+  t(vapply(1:9, function(typ) quantile(x, prob=prob, type = typ, ...), quantile(x, prob, type=1)))
+p &lt;- c(0.1, 0.5, 1, 2, 5, 10, 50)/100
+signif(quantAll(x, p), 4)
+## for complex numbers:
+z &lt;- complex(re=x, im = -10*x)
+signif(quantAll(z, p), 4)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>stats</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

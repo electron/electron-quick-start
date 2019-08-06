@@ -1,0 +1,157 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Send R Output to a File</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for sink {base}"><tr><td>sink {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Send R Output to a File</h2>
+
+<h3>Description</h3>
+
+<p><code>sink</code> diverts <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> output to a connection (and stops such diversions).
+</p>
+<p><code>sink.number()</code> reports how many diversions are in use.
+</p>
+<p><code>sink.number(type = "message")</code> reports the number of the
+connection currently being used for error messages.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+sink(file = NULL, append = FALSE, type = c("output", "message"),
+     split = FALSE)
+
+sink.number(type = c("output", "message"))
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>file</code></td>
+<td>
+<p>a writable <a href="connections.html">connection</a> or a character string naming the
+file to write to, or <code>NULL</code> to stop sink-ing.</p>
+</td></tr>
+<tr valign="top"><td><code>append</code></td>
+<td>
+<p>logical.  If <code>TRUE</code>, output will be appended to
+<code>file</code>; otherwise, it will overwrite the contents of
+<code>file</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>type</code></td>
+<td>
+<p>character string.  Either the output stream or the messages
+stream.  The name will be partially matched so can be abbreviated.</p>
+</td></tr>
+<tr valign="top"><td><code>split</code></td>
+<td>
+<p>logical: if <code>TRUE</code>, output will be sent to the new
+sink and to the current output stream, like the Unix program <code>tee</code>.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p><code>sink</code> diverts <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> output to a connection (and must be used again
+to finish such a diversion, see below!).  If <code>file</code> is a
+character string, a file connection with that name will be established
+for the duration of the diversion.
+</p>
+<p>Normal <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> output (to connection <code><a href="showConnections.html">stdout</a></code>) is diverted by
+the default <code>type = "output"</code>.  Only prompts and (most)
+messages continue to appear on the console.  Messages sent to
+<code><a href="showConnections.html">stderr</a>()</code> (including those from <code><a href="message.html">message</a></code>,
+<code><a href="warning.html">warning</a></code> and <code><a href="stop.html">stop</a></code>) can be diverted by
+<code>sink(type = "message")</code> (see below).
+</p>
+<p><code>sink()</code> or <code>sink(file = NULL)</code> ends the last diversion (of
+the specified type).  There is a stack of diversions for normal
+output, so output reverts to the previous diversion (if there was
+one).  The stack is of up to 21 connections (20 diversions).
+</p>
+<p>If <code>file</code> is a connection it will be opened if necessary (in
+<code>"wt"</code> mode) and closed once it is removed from the stack of
+diversions.
+</p>
+<p><code>split = TRUE</code> only splits <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> output (via <code>Rvprintf</code>) and
+the default output from <code><a href="writeLines.html">writeLines</a></code>: it does not split
+all output that might be sent to <code><a href="showConnections.html">stdout</a>()</code>.
+</p>
+<p>Sink-ing the messages stream should be done only with great care.
+For that stream <code>file</code> must be an already open connection, and
+there is no stack of connections.
+</p>
+<p>If <code>file</code> is a character string, the file will be opened using
+the current encoding.  If you want a different encoding (e.g., to
+represent strings which have been stored in UTF-8), use a
+<code><a href="connections.html">file</a></code> connection &mdash; but some ways to produce <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> output
+will already have converted such strings to the current encoding.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>sink</code> returns <code>NULL</code>.
+</p>
+<p>For <code>sink.number()</code> the number (0, 1, 2, ...) of diversions of
+output in place.
+</p>
+<p>For <code>sink.number("message")</code> the connection number used for
+messages, 2 if no diversion has been used.
+</p>
+
+
+<h3>Warning</h3>
+
+<p>Do not use a connection that is open for <code>sink</code> for any other
+purpose.  The software will stop you closing one such inadvertently.
+</p>
+<p>Do not sink the messages stream unless you understand the source code
+implementing it and hence the pitfalls.
+</p>
+
+
+<h3>References</h3>
+
+<p>Becker, R. A., Chambers, J. M. and Wilks, A. R. (1988)
+<em>The New S Language</em>.
+Wadsworth &amp; Brooks/Cole.
+</p>
+<p>Chambers, J. M. (1998)
+<em>Programming with Data.  A Guide to the S Language</em>.
+Springer.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="../../utils/html/capture.output.html">capture.output</a></code></p>
+
+
+<h3>Examples</h3>
+
+<pre>
+sink("sink-examp.txt")
+i &lt;- 1:10
+outer(i, i, "*")
+sink()
+
+
+## capture all the output to a file.
+zz &lt;- file("all.Rout", open = "wt")
+sink(zz)
+sink(zz, type = "message")
+try(log("a"))
+## revert output back to the console -- only then access the file!
+sink(type = "message")
+sink()
+file.show("all.Rout")
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

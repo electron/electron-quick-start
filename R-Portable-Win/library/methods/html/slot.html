@@ -1,0 +1,177 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: The Slots in an Object from a Formal Class</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for slot {methods}"><tr><td>slot {methods}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>The Slots in an Object from a Formal Class</h2>
+
+<h3>Description</h3>
+
+<p>These functions return or set information about the individual slots
+in an object.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+object@name
+object@name &lt;- value
+
+slot(object, name)
+slot(object, name, check = TRUE) &lt;- value
+.hasSlot(object, name)
+
+slotNames(x)
+getSlots(x)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>object</code></td>
+<td>
+<p>An object from a formally defined class.</p>
+</td></tr>
+<tr valign="top"><td><code>name</code></td>
+<td>
+<p>The name of the slot. The operator
+takes a fixed name, which can be unquoted if it is syntactically a
+name in the language.  A slot name can be any non-empty string, but
+if the name is not made up of letters, numbers, and <code>.</code>, it
+needs to be quoted (by backticks or single or double quotes).
+</p>
+<p>In the case of the <code>slot</code> function, <code>name</code> can be any
+expression that evaluates to a valid slot in the class definition.
+Generally, the only reason to use the functional form rather than
+the simpler operator is <em>because</em> the slot name has to be computed.
+</p>
+</td></tr>
+<tr valign="top"><td><code>value</code></td>
+<td>
+<p>A new value for the named slot.  The value must be
+valid for this slot in this object's class.</p>
+</td></tr>
+<tr valign="top"><td><code>check</code></td>
+<td>
+<p>In the replacement version of <code>slot</code>, a flag.  If
+<code>TRUE</code>, check the assigned value for validity
+as the value of this slot.  User's coded should not set this to
+<code>FALSE</code> in normal use, since the resulting object can be invalid.
+</p>
+</td></tr>
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>either the name of a class (as character string), or a class
+definition.  If given an argument that is neither a character string
+nor a class definition, <code>slotNames</code> (only) uses <code>class(x)</code>
+instead.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>The definition of the class specifies all slots directly and
+indirectly defined for that class.  Each slot has a name and an
+associated class.  Extracting a slot returns an object from that
+class.  Setting a slot first coerces the value to the specified slot
+and then stores it.
+</p>
+<p>Unlike general attributes, slots are not partially matched, and asking
+for (or trying to set) a slot with an invalid name for that class
+generates an error.
+</p>
+<p>The <code><a href="../../base/html/slotOp.html">@</a></code> extraction operator and <code>slot</code>
+function themselves do no checking against the class definition,
+simply matching the name in the object itself.
+The replacement forms do check (except for <code>slot</code> in the case
+<code>check=FALSE</code>).  So long as slots are set without cheating, the
+extracted slots will be valid.
+</p>
+<p>Be aware that there are two ways to cheat, both to be avoided but
+with no guarantees.  The obvious way is to assign a slot with
+<code>check=FALSE</code>.  Also, slots in <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> are implemented as
+attributes, for the sake of some back compatibility.  The current
+implementation does not prevent attributes being assigned, via
+<code><a href="../../base/html/attr.html">attr&lt;-</a></code>, and such assignments are not checked for
+legitimate slot names.
+</p>
+<p>Note that the <code>"@"</code> operators for extraction and replacement are
+primitive and actually reside in the <span class="pkg">base</span> package.
+</p>
+<p>The replacement versions of  <code>"@"</code> and <code>slot()</code> differ in
+the computations done to coerce the right side of the assignment to
+the declared class of the slot.  Both verify that the value provided
+is from a subclass of the declared slot class.  The  <code>slot()</code>
+version will go on to call the coerce method if there is one, in
+effect doing the computation <code>as(value, slotClass, strict =
+    FALSE)</code>. The  <code>"@"</code> version just verifies the relation,
+leaving any coerce to be done later (e.g., when a relevant method is
+dispatched).
+</p>
+<p>In most uses the result is equivalent, and the  <code>"@"</code> version
+saves an extra function call, but if empirical evidence shows that a
+conversion is needed, either call <code>as()</code> before the replacement
+or use the replacement version of <code>slot()</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The <code>"@"</code> operator and the <code>slot</code> function extract or
+replace the formally defined slots for the object.
+</p>
+<p>Functions <code>slotNames</code> and <code>getSlots</code> return respectively the
+names of the slots and the classes associated with the slots in the
+specified class definition.  Except for its extended interpretation of
+<code>x</code> (above), <code>slotNames(x)</code> is just <code>names(getSlots(x))</code>.
+</p>
+
+
+<h3>References</h3>
+
+<p>Chambers, John M. (2008)
+<em>Software for Data Analysis: Programming with R</em>
+Springer.  (For the R version.)
+</p>
+<p>Chambers, John M. (1998)
+<em>Programming with Data</em>
+Springer (For the original S4 version.)
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="../../base/html/slotOp.html">@</a></code>,
+<code><a href="Classes_Details.html">Classes_Details</a></code>,
+<code><a href="Methods_Details.html">Methods_Details</a></code>,
+<code><a href="getClass.html">getClass</a></code>,
+<code><a href="../../base/html/names.html">names</a></code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+
+
+setClass("track", slots = c(x="numeric", y="numeric"))
+myTrack &lt;- new("track", x = -4:4, y = exp(-4:4))
+slot(myTrack, "x")
+slot(myTrack, "y") &lt;- log(slot(myTrack, "y"))
+utils::str(myTrack)
+
+getSlots("track") # or
+getSlots(getClass("track"))
+slotNames(class(myTrack)) # is the same as
+slotNames(myTrack)
+
+
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>methods</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

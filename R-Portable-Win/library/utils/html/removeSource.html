@@ -1,0 +1,90 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Remove Stored Source from a Function or Language Object</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for removeSource {utils}"><tr><td>removeSource {utils}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Remove Stored Source from a Function or Language Object</h2>
+
+<h3>Description</h3>
+
+<p>When <code>options("keep.source")</code> is <code>TRUE</code>, a copy of the
+original source code to a function is stored with it.  Similarly,
+<code><a href="../../base/html/parse.html">parse</a>()</code> may keep formatted source for an expression.
+Such source reference attributes are removed from the object by
+<code>removeSource()</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+removeSource(fn)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>fn</code></td>
+<td>
+<p>a <code><a href="../../base/html/function.html">function</a></code> or another language object
+(fulfilling <code><a href="../../base/html/is.language.html">is.language</a></code>) from which to remove the
+source.
+</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>This removes the <code>"srcref"</code> and related attributes, via
+<em>recursive</em> cleaning of <code>body(fn)</code> in the case of a function
+or the recursive language parts, otherwise.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A copy of the <code>fn</code> object with the source removed.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="../../base/html/is.language.html">is.language</a></code> about language objects.
+</p>
+<p><code><a href="../../base/html/srcfile.html">srcref</a></code> for a description of source reference records,
+<code><a href="../../base/html/deparse.html">deparse</a></code> for a description of how functions are deparsed.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## to make this act independently of the global 'options()' setting:
+op &lt;- options(keep.source = TRUE)
+fn &lt;- function(x) {
+  x + 1 # A comment, kept as part of the source
+}
+fn
+names(attributes(fn))       # "srcref" (only)
+names(attributes(body(fn))) # "srcref" "srcfile" "wholeSrcref"
+f2 &lt;- removeSource(fn)
+f2
+stopifnot(length(attributes(fn)) &gt; 0,
+          is.null(attributes(f2)),
+          is.null(attributes(body(f2))))
+
+## Source attribute of parse()d expressions,
+##	  have {"srcref", "srcfile", "wholeSrcref"} :
+E  &lt;- parse(text ="a &lt;- x^y  # power")  ; names(attributes(E ))
+E. &lt;- removeSource(E)                   ; names(attributes(E.))
+stopifnot(length(attributes(E ))  &gt; 0,
+          is.null(attributes(E.)))
+options(op) # reset to previous state
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>utils</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

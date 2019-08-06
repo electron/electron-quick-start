@@ -1,0 +1,118 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Classes Defined as the Union of Other Classes</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for setClassUnion {methods}"><tr><td>setClassUnion {methods}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Classes Defined as the Union of Other Classes</h2>
+
+<h3>Description</h3>
+
+<p>A class may be defined as the <em>union</em> of other classes; that
+is, as a virtual class defined as a superclass of several other
+classes. Class unions are useful in method signatures or as slots in
+other classes, when we want to allow one of several classes to be supplied.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+setClassUnion(name, members, where)
+isClassUnion(Class)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>name</code></td>
+<td>
+<p> the name for the new union class. </p>
+</td></tr>
+<tr valign="top"><td><code>members</code></td>
+<td>
+<p> the names of the classes that should be members of this union.</p>
+</td></tr>
+<tr valign="top"><td><code>where</code></td>
+<td>
+<p> where to save the new class definition.  In calls from
+a package's source code, should be omitted to save the definition
+in the package's namespace.</p>
+</td></tr>
+<tr valign="top"><td><code>Class</code></td>
+<td>
+<p> the name or definition of a class.
+</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>The classes in <code>members</code> must be defined before creating the
+union.  However, members can be added later on to an existing
+union, as shown in the example below. Class unions can be
+members of other class unions.
+</p>
+<p>Class unions are the only way to create a new superclass of
+a class whose definition is sealed.  The namespace of all
+packages is sealed when the package is loaded, protecting the
+class and other definitions from being overwritten from another
+class or from the global environment.  A call to
+<code><a href="setIs.html">setIs</a></code> that tried to define a new superclass for
+class <code>"numeric"</code>, for example, would cause an error.
+</p>
+<p>Class unions are the exception; the class union
+<code>"maybeNumber"</code> in the examples defines itself as a new
+superclass of <code>"numeric"</code>.  Technically, it does not alter the
+metadata object in the other package's namespace and, of course,
+the effect of the class union depends on loading the package it
+belongs to.  But, basically, class unions are sufficiently useful
+to justify the exemption.
+</p>
+<p>The different behavior for class unions is made possible because the
+class definition object for class unions has itself a special class,
+<code>"ClassUnionRepresentation"</code>, an extension of class
+<code><a href="classRepresentation-class.html">classRepresentation</a></code>.
+</p>
+
+
+<h3>References</h3>
+
+<p>Chambers, John M. (2016)
+<em>Extending R</em>,
+Chapman &amp; Hall.
+(Chapters 9 and 10.)
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## a class for either numeric or logical data
+setClassUnion("maybeNumber", c("numeric", "logical"))
+
+## use the union as the data part of another class
+setClass("withId", contains = "maybeNumber", slots = c(id = "character"))
+
+w1 &lt;- new("withId", 1:10, id = "test 1")
+w2 &lt;- new("withId", sqrt(w1)%%1 &lt; .01, id = "Perfect squares")
+
+## add class "complex" to the union "maybeNumber"
+setIs("complex", "maybeNumber")
+
+w3 &lt;- new("withId", complex(real = 1:10, imaginary = sqrt(1:10)))
+
+## a class union containing the existing class  union "OptionalFunction"
+setClassUnion("maybeCode",
+    c("expression", "language", "OptionalFunction"))
+
+is(quote(sqrt(1:10)), "maybeCode")  ## TRUE
+
+
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>methods</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

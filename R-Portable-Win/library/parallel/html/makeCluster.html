@@ -1,0 +1,190 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Create a Parallel Socket Cluster</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for makeCluster {parallel}"><tr><td>makeCluster {parallel}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>
+Create a Parallel Socket Cluster
+</h2>
+
+<h3>Description</h3>
+
+<p>Creates a set of copies of <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> running in parallel and communicating
+over sockets.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+makeCluster(spec, type, ...)
+makePSOCKcluster(names, ...)
+makeForkCluster(nnodes = getOption("mc.cores", 2L), ...)
+
+stopCluster(cl = NULL)
+
+setDefaultCluster(cl = NULL)
+getDefaultCluster()
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>spec</code></td>
+<td>
+<p>A specification appropriate to the type of cluster.</p>
+</td></tr>
+<tr valign="top"><td><code>names</code></td>
+<td>
+<p>Either a character vector of host names on which to run
+the worker copies of <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>, or a positive integer (in which case
+that number of copies is run on <span class="samp">localhost</span>).</p>
+</td></tr>
+<tr valign="top"><td><code>nnodes</code></td>
+<td>
+<p>The number of nodes to be forked.</p>
+</td></tr>
+<tr valign="top"><td><code>type</code></td>
+<td>
+<p>One of the supported types: see &lsquo;Details&rsquo;.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>Options to be passed to the function spawning the workers.
+See &lsquo;Details&rsquo;.</p>
+</td></tr>
+<tr valign="top"><td><code>cl</code></td>
+<td>
+<p>an object of class <code>"cluster"</code>.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p><code>makeCluster</code> creates a cluster of one of the supported types.
+The default type, <code>"PSOCK"</code>, calls <code>makePSOCKcluster</code>.  Type
+<code>"FORK"</code> calls <code>makeForkCluster</code>.  Other types are passed to
+package <a href="https://CRAN.R-project.org/package=snow"><span class="pkg">snow</span></a>.
+</p>
+<p><code>makePSOCKcluster</code> is an enhanced version of
+<code>makeSOCKcluster</code> in package <a href="https://CRAN.R-project.org/package=snow"><span class="pkg">snow</span></a>.  It runs
+<code>Rscript</code> on the specified host(s) to set up a worker process
+which listens on a socket for expressions to evaluate, and returns the
+results (as serialized objects).
+</p>
+<p><code>makeForkCluster</code> is merely a stub on Windows.  On Unix-alike
+platforms it creates the worker process by forking.
+</p>
+<p>The workers are most often running on the same host as the master,
+when no options need be set.
+</p>
+<p>Several options are supported (mainly for <code>makePSOCKcluster</code>):
+</p>
+
+<dl>
+<dt><code>master</code></dt><dd><p>The host name of the master, as known to the
+workers.  This may not be the same as it is known to the master,
+and on private subnets it may be necessary to specify this as a
+numeric IP address.  For example, macOS is likely to detect a
+machine as <span class="samp">somename.local</span>, a name known only to itself.</p>
+</dd>
+<dt><code>port</code></dt><dd><p>The port number for the socket connection,
+default taken from the environment variable <span class="env">R_PARALLEL_PORT</span>,
+then a randomly chosen port in the range <code>11000:11999</code>.</p>
+</dd>
+<dt><code>setup_timeout</code></dt><dd><p>The maximum number of seconds a worker
+attempts to connect to master before failing.  Default is 2
+minutes.  The waiting time before the next attempt starts at
+0.1 seconds and is incremented 50% after each retry.</p>
+</dd>
+<dt><code>timeout</code></dt><dd><p>The timeout in seconds for that port.  This is
+the maximum time of zero communication between master and worker
+before failing. Default is 30 days (and the POSIX standard only
+requires values up to 31 days to be supported).</p>
+</dd>
+<dt><code>outfile</code></dt><dd><p>Where to direct the <code><a href="../../base/html/showConnections.html">stdout</a></code> and
+<code><a href="../../base/html/showConnections.html">stderr</a></code> connection output from the workers.
+<code>""</code> indicates no redirection (which may only be useful for
+workers on the local machine).
+Defaults to &lsquo;<span class="file">/dev/null</span>&rsquo; (&lsquo;<span class="file">nul:</span>&rsquo; on Windows).  The other
+possibility is a file path on the worker's host.
+Files will be opened in append mode, as all workers log to the
+same file.</p>
+</dd>
+<dt><code>homogeneous</code></dt><dd><p>Logical.  Are all the hosts running
+identical setups, so <code>Rscript</code> can be launched using
+the same path on each?  Otherwise <code>Rscript</code> has to be in
+the default path on the workers.</p>
+</dd>
+<dt><code>rscript</code></dt><dd><p>The path to <code>Rscript</code> on the workers,
+used if <code>homogeneous</code> is true. Defaults to the full path on
+the master.</p>
+</dd>
+<dt><code>rscript_args</code></dt><dd><p>Character vector of additional
+arguments for <code>Rscript</code> such as <span class="option">--no-environ</span>.</p>
+</dd>
+<dt><code>renice</code></dt><dd><p>A numerical &lsquo;niceness&rsquo; to set for the
+worker processes, e.g. <code>15</code> for a low priority.
+OS-dependent: see <code><a href="../../tools/html/psnice.html">psnice</a></code> for details.</p>
+</dd>
+<dt><code>rshcmd</code></dt><dd><p>The command to be run on the master to launch a
+process on another host.  Defaults to <code>ssh</code>.</p>
+</dd>
+<dt><code>user</code></dt><dd><p>The user name to be used when communicating with
+another host.</p>
+</dd>
+<dt><code>manual</code></dt><dd><p>Logical.  If true the workers will need to be
+run manually.</p>
+</dd>
+<dt><code>methods</code></dt><dd><p>Logical.  If true (default) the workers will
+load the <span class="pkg">methods</span> package: not loading it saves ca 30% of the
+startup CPU time of the cluster.</p>
+</dd>
+<dt><code>useXDR</code></dt><dd><p>Logical. If true (default) serialization will
+use XDR: where large amounts of data are to be transferred and
+all the nodes are little-endian, communication may be
+substantially faster if this is set to false.</p>
+</dd>
+</dl>
+
+<p>Function <code>makeForkCluster</code> creates a socket cluster by forking
+(and hence is not available on Windows).  It supports options
+<code>port</code>, <code>timeout</code> and <code>outfile</code>, and always uses
+<code>useXDR = FALSE</code>. It is <em>strongly discouraged</em> to use the
+<code>"FORK"</code> cluster with GUI front-ends  or multi-threaded libraries.
+</p>
+<p>It is good practice to shut down the workers by calling
+<code><a href="makeCluster.html">stopCluster</a></code>: however the workers will terminate
+themselves once the socket on which they are listening for commands
+becomes unavailable, which it should if the master <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> session is
+completed (or its process dies).
+</p>
+<p>Function <code>setDefaultCluster</code> registers a cluster as the default one
+for the current session.  Using <code>setDefaultCluster(NULL)</code> removes
+the registered cluster, as does stopping that cluster.
+</p>
+
+
+<h3>Value</h3>
+
+<p>For the cluster creators, an object of class
+<code>c("SOCKcluster", "cluster")</code>.
+</p>
+<p>For the default cluster setter and getter, the registered default
+cluster or <code>NULL</code> if there is no such cluster.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>Luke Tierney and R Core.
+</p>
+<p>Derived from the <a href="https://CRAN.R-project.org/package=snow"><span class="pkg">snow</span></a> package.
+</p>
+
+<hr /><div style="text-align: center;">[Package <em>parallel</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

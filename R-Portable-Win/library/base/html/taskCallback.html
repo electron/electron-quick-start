@@ -1,0 +1,159 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Add or Remove a Top-Level Task Callback</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for taskCallback {base}"><tr><td>taskCallback {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Add or Remove a Top-Level Task Callback</h2>
+
+<h3>Description</h3>
+
+<p><code>addTaskCallback</code> registers an R function
+that is to be called each time a top-level task
+is completed.
+</p>
+<p><code>removeTaskCallback</code> un-registers a function
+that was registered earlier via <code>addTaskCallback</code>.
+</p>
+<p>These provide low-level access to the internal/native
+mechanism for managing task-completion actions.
+One can use <code><a href="taskCallbackManager.html">taskCallbackManager</a></code>
+at the S-language level to manage S functions
+that are called at the completion of each task.
+This is easier and more direct.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+addTaskCallback(f, data = NULL, name = character())
+removeTaskCallback(id)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>f</code></td>
+<td>
+<p>the function that is to be invoked each time a top-level task
+is successfully completed.  This is called with 5 or 4 arguments
+depending on whether <code>data</code> is specified or not, respectively.
+The return value should be a logical value indicating whether to
+keep the callback in the list of active callbacks or discard it.</p>
+</td></tr>
+<tr valign="top"><td><code>data</code></td>
+<td>
+<p>if specified, this is the 5-th argument in the call to the
+callback function <code>f</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>id</code></td>
+<td>
+<p>a string or an integer identifying the element in the
+internal callback list to be removed.
+Integer indices are 1-based, i.e the first element is 1.
+The names of currently registered handlers is available
+using <code><a href="taskCallbackNames.html">getTaskCallbackNames</a></code>
+and is also returned in a call to <code><a href="taskCallback.html">addTaskCallback</a></code>.
+</p>
+</td></tr>
+<tr valign="top"><td><code>name</code></td>
+<td>
+<p>character: names to be used.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>Top-level tasks are individual expressions
+rather than entire lines of input.  Thus an input
+line of the form <code>expression1 ; expression2</code>
+will give rise to 2 top-level tasks.
+</p>
+<p>A top-level task callback is called with the expression for the
+top-level task, the result of the top-level task, a logical value
+indicating whether it was successfully completed or not (always TRUE
+at present), and a logical value indicating whether the result was
+printed or not.  If the <code>data</code> argument was specified in the call
+to <code>addTaskCallback</code>, that value is given as the fifth argument.
+</p>
+<p>The callback function should return a logical value.
+If the value is FALSE, the callback is removed from the task
+list and will not be called again by this mechanism.
+If the function returns TRUE, it is kept in the list and
+will be called on the completion of the next top-level task.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>addTaskCallback</code> returns
+an integer value giving  the position in the list
+of task callbacks that this new callback occupies.
+This is only the current position of the callback.
+It can be used to remove the entry as long as
+no other values are removed from earlier positions
+in the list first.
+</p>
+<p><code>removeTaskCallback</code> returns a logical value
+indicating whether the specified element was removed.
+This can fail (i.e., return <code>FALSE</code>)
+if an incorrect name or index is given that does not
+correspond to the name or position of an element in the list.
+</p>
+
+
+<h3>Note</h3>
+
+<p>There is also C-level access to top-level task callbacks
+to allow C routines rather than R functions be used.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="taskCallbackNames.html">getTaskCallbackNames</a></code>
+<code><a href="taskCallbackManager.html">taskCallbackManager</a></code>
+<a href="https://developer.r-project.org/TaskHandlers.pdf">https://developer.r-project.org/TaskHandlers.pdf</a>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+times &lt;- function(total = 3, str = "Task a") {
+  ctr &lt;- 0
+  function(expr, value, ok, visible) {
+    ctr &lt;&lt;- ctr + 1
+    cat(str, ctr, "\n")
+    keep.me &lt;- (ctr &lt; total)
+    if (!keep.me)
+      cat("handler removing itself\n")
+
+    # return
+    keep.me
+  }
+}
+
+# add the callback that will work for
+# 4 top-level tasks and then remove itself.
+n &lt;- addTaskCallback(times(4))
+
+# now remove it, assuming it is still first in the list.
+removeTaskCallback(n)
+
+## See how the handler is called every time till "self destruction":
+
+addTaskCallback(times(4)) # counts as once already
+
+sum(1:10) ; mean(1:3) # two more
+sinpi(1)              # 4th - and "done"
+cospi(1)
+tanpi(1)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

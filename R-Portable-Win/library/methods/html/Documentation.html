@@ -1,0 +1,158 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Using and Creating On-line Documentation for Classes and...</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for Documentation {methods}"><tr><td>Documentation {methods}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Using and Creating On-line Documentation for Classes and
+Methods</h2>
+
+<h3>Description</h3>
+
+<p>Special documentation can be supplied to describe the
+classes and methods that are created by the software in the methods
+package.  Techniques to access this documentation and to create it
+in R help files are described here.</p>
+
+
+<h3>Getting documentation on classes and methods</h3>
+
+<p>You can ask for on-line help for class definitions, for specific
+methods for a generic function, and for general discussion of
+methods for a generic function.  These requests use the <code>?</code>
+operator (see <code><a href="../../utils/html/help.html">help</a></code> for a general description of
+the operator).  Of course, you are at the mercy of the implementer
+as to whether there <em>is</em> any documentation on the corresponding
+topics.
+</p>
+<p>Documentation on a class uses the argument <code>class</code> on the left
+of the <code>?</code>, and the name of the class on the right; for
+example,
+</p>
+<p><code>class ? genericFunction</code>
+</p>
+<p>to ask for documentation on the class <code>"genericFunction"</code>.
+</p>
+<p>When you want documentation for the methods defined for a particular
+function, you can ask either for a general discussion of the methods
+or for documentation of a particular method (that is, the method that
+would be selected for a particular set of actual arguments).
+</p>
+<p>Overall methods documentation is requested by
+calling the <code>?</code> operator with <code>methods</code> as the left-side
+argument and the name of the function as the right-side argument. For
+example,
+</p>
+<p><code>methods ? initialize</code>
+</p>
+<p>asks for documentation on the methods for the <code><a href="new.html">initialize</a></code>
+function.
+</p>
+<p>Asking for documentation on a particular method is done by giving a
+function call expression as the right-hand argument to the <code>"?"</code>
+operator.  There are two forms, depending on whether you prefer to
+give the class names for the arguments or expressions that you intend
+to use in the actual call.
+</p>
+<p>If you planned to evaluate a function call, say <code>myFun(x, sqrt(wt))</code>
+and wanted to find out something about the method that would be used
+for this call, put the call on the right of the <code>"?"</code> operator:
+</p>
+<p><code>?myFun(x, sqrt(wt))</code>
+</p>
+<p>A method will be selected, as it would be for the call itself, and
+documentation for that method will be requested.  If <code>myFun</code> is
+not a generic function, ordinary documentation for the function will
+be requested.
+</p>
+<p>If you know the actual classes for which you would like method
+documentation, you can supply these explicitly in place of the
+argument expressions.  In the example above, if you want method
+documentation for the first argument having class <code>"maybeNumber"</code>
+and the second <code>"logical"</code>, call the <code>"?"</code> operator, this
+time with a left-side argument <code>method</code>, and with a function call
+on the right using the class names as arguments:
+</p>
+<p><code>method ? myFun("maybeNumber", "logical")</code>
+</p>
+<p>Once again, a method will be selected, this time corresponding to the
+specified classes, and method documentation will be requested.  This
+version only works with generic functions.
+</p>
+<p>The two forms each have advantages.  The version with actual arguments
+doesn't require you to figure out (or guess at) the classes of the
+arguments.
+On the other hand, evaluating the arguments may take some time,
+depending on the example.
+The version with class names does require you to pick classes, but
+it's otherwise unambiguous.  It has a subtler advantage, in that the
+classes supplied may be virtual classes, in which case no actual
+argument will have specifically this class.  The class
+<code>"maybeNumber"</code>, for example, might be a class union (see the
+example for <code><a href="setClassUnion.html">setClassUnion</a></code>).
+</p>
+<p>In either form, methods will be selected as they would be in actual
+computation, including use of inheritance and group generic
+functions.  See <code><a href="getMethod.html">selectMethod</a></code> for the details, since it is
+the function used to find the appropriate method.
+</p>
+
+
+<h3>Writing Documentation for Methods</h3>
+
+<p>The on-line documentation for methods and classes uses some extensions
+to the R documentation format to implement the requests for class and
+method documentation described above.  See the document <em>Writing
+R Extensions</em> for the available markup commands (you should
+have consulted this document already if you are at the stage of
+documenting your software).
+</p>
+<p>In addition to the specific markup commands to be described, you can
+create an initial, overall file with a skeleton of documentation for
+the methods defined for a particular generic function:
+</p>
+<p><code>promptMethods("myFun")</code>
+</p>
+<p>will create a file, &lsquo;<span class="file">myFun-methods.Rd</span>&rsquo; with a skeleton of
+documentation for the methods defined for function <code>myFun</code>.
+The output from <code>promptMethods</code> is suitable if you want to
+describe all or most of the methods for the function in one file,
+separate from the documentation of the generic function itself.
+Once the file has been filled in and moved to the &lsquo;<span class="file">man</span>&rsquo;
+subdirectory of your source package, requests for methods
+documentation will use that file, both for specific methods
+documentation as described above, and for overall documentation
+requested by
+</p>
+<p><code>methods ? myFun</code>
+</p>
+<p>You are not required to use <code>promptMethods</code>, and if you do, you
+may not want to use the entire file created:
+</p>
+
+<ul>
+<li><p> If you want to document the methods in the file containing the
+documentation for the generic function itself, you can
+cut-and-paste to move the <code style="white-space: pre;">\alias</code> lines and the
+<code>Methods</code> section from the file created by
+<code>promptMethods</code> to the existing file.
+</p>
+</li>
+<li><p> On the other hand, if these are auxiliary methods, and you only
+want to document the added or modified software, you should strip
+out all but the relevant <code style="white-space: pre;">\alias</code> lines for the methods of
+interest, and remove all but the corresponding <code style="white-space: pre;">\item</code>
+entries in the <code>Methods</code> section. Note that in this case you
+will usually remove the first  <code style="white-space: pre;">\alias</code> line as well, since
+that is the marker for general methods documentation on this
+function (in the example, <span class="samp">\alias{myfun-methods}</span>).
+</p>
+</li></ul>
+
+<p>If you simply want to direct documentation for one or more methods to
+a particular R documentation file, insert the appropriate alias.
+</p>
+
+<hr /><div style="text-align: center;">[Package <em>methods</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

@@ -1,0 +1,131 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Reorder the children of a gTree</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for grid.reorder {grid}"><tr><td>grid.reorder {grid}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2> Reorder the children of a gTree </h2>
+
+<h3>Description</h3>
+
+<p>Change the order in which the children of a gTree get drawn.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+grid.reorder(gPath, order, back=TRUE, grep=FALSE, redraw=TRUE)
+reorderGrob(x, order, back=TRUE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>gPath</code></td>
+<td>
+<p>A gPath object specifying a gTree within the current
+scene.</p>
+</td></tr>
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>A gTree object to be modified.</p>
+</td></tr>
+<tr valign="top"><td><code>order</code></td>
+<td>
+<p>A character vector or a numeric vector that specifies
+the new drawing order for the children of the gTree.  May not refer
+to all children of the gTree (see Details).</p>
+</td></tr>
+<tr valign="top"><td><code>back</code></td>
+<td>
+<p>Controls what happens when the <code>order</code> does not
+specify all children of the gTree (see Details).</p>
+</td></tr>
+<tr valign="top"><td><code>grep</code></td>
+<td>
+<p>Should the <code>gPath</code> be treated as a regular expression?</p>
+</td></tr>
+<tr valign="top"><td><code>redraw</code></td>
+<td>
+<p>Should the modified scene be redrawn?</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>In the simplest case, <code>order</code> specifies a new ordering for all of
+the children of the gTree.  The children may be specified either by
+name or by existing numerical order.
+</p>
+<p>If the <code>order</code> does not
+specify all children of the gTree then, by default, the children
+specified by <code>order</code> are drawn first and then all remaining
+children are drawn.  If <code>back=FALSE</code> then the children not
+specified in <code>order</code> are drawn first, followed by the specified
+children.  This makes it easy to specify a send-to-back or
+bring-to-front reordering.  The <code>order</code> argument is <em>always</em>
+in back-to-front order.
+</p>
+<p>It is not possible to reorder the grid display list (the top-level
+grobs in the current scene) because the display list is a mixture of
+grobs and viewports (so it is not clear what reordering even means and
+it would be too easy to end up with a scene that would not draw).
+If you want to reorder the grid display list, try <code>grid.grab()</code>
+to create a gTree and then reorder (and redraw) that gTree.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>grid.reorder()</code> is called for its side-effect of modifying the
+current scene.
+<code>reorderGrob()</code> returns the modified gTree.
+</p>
+
+
+<h3>Warning</h3>
+
+<p>This function may return a gTree that will not draw.  For example, a
+gTree has two children, A and B (in that order),
+and the width of child B depends on the width of child A (e.g., a box
+around a piece of text).  Switching the order so that B is drawn
+before A will not allow B to be drawn.  If this happens with
+<code>grid.reorder()</code>, the modification will not be performed.  If
+this happens with <code>reorderGrob()</code> it should be possible simply to
+restore the original order.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p> Paul Murrell </p>
+
+
+<h3>Examples</h3>
+
+<pre>
+# gTree with two children, "red-rect" and "blue-rect" (in that order)
+gt &lt;- gTree(children=gList(
+                rectGrob(gp=gpar(col=NA, fill="red"),
+                         width=.8, height=.2, name="red-rect"),
+                rectGrob(gp=gpar(col=NA, fill="blue"),
+                         width=.2, height=.8, name="blue-rect")),
+            name="gt")
+grid.newpage()
+grid.draw(gt)
+# Spec entire order as numeric (blue-rect, red-rect)
+grid.reorder("gt", 2:1)
+# Spec entire order as character
+grid.reorder("gt", c("red-rect", "blue-rect"))
+# Only spec the one I want behind as character
+grid.reorder("gt", "blue-rect")
+# Only spec the one I want in front as character
+grid.reorder("gt", "blue-rect", back=FALSE)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>grid</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

@@ -1,0 +1,155 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Serialization Interface for Single Objects</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for readRDS {base}"><tr><td>readRDS {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Serialization Interface for Single Objects</h2>
+
+<h3>Description</h3>
+
+<p>Functions to write a single <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> object to a file, and to restore it.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+saveRDS(object, file = "", ascii = FALSE, version = NULL,
+        compress = TRUE, refhook = NULL)
+
+readRDS(file, refhook = NULL)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>object</code></td>
+<td>
+<p><span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> object to serialize.</p>
+</td></tr>
+<tr valign="top"><td><code>file</code></td>
+<td>
+<p>a <a href="connections.html">connection</a> or the name of the file where the <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> object
+is saved to or read from.</p>
+</td></tr>
+<tr valign="top"><td><code>ascii</code></td>
+<td>
+<p>a logical.  If <code>TRUE</code> or <code>NA</code>, an ASCII
+representation is written; otherwise (default), a binary one is used.
+See the comments in the help for <code><a href="save.html">save</a></code>.</p>
+</td></tr>
+<tr valign="top"><td><code>version</code></td>
+<td>
+<p>the workspace format version to use.  <code>NULL</code>
+specifies the current default version (3). The only other supported
+value is 2, the default from <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> 1.4.0 to <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> 3.5.0.</p>
+</td></tr>
+<tr valign="top"><td><code>compress</code></td>
+<td>
+<p>a logical specifying whether saving to a named file is
+to use <code>"gzip"</code> compression, or one of <code>"gzip"</code>,
+<code>"bzip2"</code> or <code>"xz"</code> to indicate the type of compression to
+be used.  Ignored if <code>file</code> is a connection.</p>
+</td></tr>
+<tr valign="top"><td><code>refhook</code></td>
+<td>
+<p>a hook function for handling reference objects.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>These functions provide the means to save a single <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> object to a
+connection (typically a file) and to restore the object, quite
+possibly under a different name.  This differs from <code><a href="save.html">save</a></code>
+and <code><a href="load.html">load</a></code>, which save and restore one or more named
+objects into an environment.  They are widely used by <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> itself, for
+example to store metadata for a package and to store the
+<code><a href="../../utils/html/help.search.html">help.search</a></code> databases: the <code>".rds"</code> file extension
+is most often used.
+</p>
+<p>Functions <code><a href="serialize.html">serialize</a></code> and <code><a href="serialize.html">unserialize</a></code>
+provide a slightly lower-level interface to serialization: objects
+serialized to a connection by <code>serialize</code> can be read back by
+<code>readRDS</code> and conversely.
+</p>
+<p>All of these interfaces use the same serialization format, which has
+been used since <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> 1.4.0 (but extended from time to time as new
+object types have been added to <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>).  However, <code>save</code> writes a
+single line header (typically <code>"RDXs\n"</code>) before the
+serialization of a single object (a pairlist of all the objects to be
+saved).
+</p>
+<p>Compression is handled by the connection opened when <code>file</code> is a
+file name, so is only possible when <code>file</code> is a connection if
+handled by the connection.  So e.g. <code><a href="connections.html">url</a></code>
+connections will need to be wrapped in a call to <code><a href="gzcon.html">gzcon</a></code>.
+</p>
+<p>If a connection is supplied it will be opened (in binary mode) for the
+duration of the function if not already open: if it is already open it
+must be in binary mode for <code>saveRDS(ascii = FALSE)</code> or to read
+non-ASCII saves.
+</p>
+
+
+<h3>Value</h3>
+
+<p>For <code>readRDS</code>, an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> object.
+</p>
+<p>For <code>saveRDS</code>, <code>NULL</code> invisibly.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="serialize.html">serialize</a></code>, <code><a href="save.html">save</a></code> and <code><a href="load.html">load</a></code>.
+</p>
+<p>The &lsquo;R Internals&rsquo; manual for details of the format used.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+fil &lt;- tempfile("women", fileext = ".rds")
+## save a single object to file
+saveRDS(women, fil)
+## restore it under a different name
+women2 &lt;- readRDS(fil)
+identical(women, women2)
+## or examine the object via a connection, which will be opened as needed.
+con &lt;- gzfile(fil)
+readRDS(con)
+close(con)
+
+## Less convenient ways to restore the object
+## which demonstrate compatibility with unserialize()
+con &lt;- gzfile(fil, "rb")
+identical(unserialize(con), women)
+close(con)
+con &lt;- gzfile(fil, "rb")
+wm &lt;- readBin(con, "raw", n = 1e4) # size is a guess
+close(con)
+identical(unserialize(wm), women)
+
+## Format compatibility with serialize():
+fil2 &lt;- tempfile("women")
+con &lt;- file(fil2, "w")
+serialize(women, con) # ASCII, uncompressed
+close(con)
+identical(women, readRDS(fil2))
+fil3 &lt;- tempfile("women")
+con &lt;- bzfile(fil3, "w")
+serialize(women, con) # binary, bzip2-compressed
+close(con)
+identical(women, readRDS(fil3))
+
+unlink(c(fil, fil2, fil3))
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

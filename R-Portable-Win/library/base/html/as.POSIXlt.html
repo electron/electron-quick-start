@@ -1,0 +1,244 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Date-time Conversion Functions</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for as.POSIX* {base}"><tr><td>as.POSIX* {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Date-time Conversion Functions</h2>
+
+<h3>Description</h3>
+
+<p>Functions to manipulate objects of classes <code>"POSIXlt"</code> and
+<code>"POSIXct"</code> representing calendar dates and times.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+as.POSIXct(x, tz = "", ...)
+as.POSIXlt(x, tz = "", ...)
+
+## S3 method for class 'character'
+as.POSIXlt(x, tz = "", format,
+           tryFormats = c("%Y-%m-%d %H:%M:%OS",
+                          "%Y/%m/%d %H:%M:%OS",
+                          "%Y-%m-%d %H:%M",
+                          "%Y/%m/%d %H:%M",
+                          "%Y-%m-%d",
+                          "%Y/%m/%d"),
+           optional = FALSE, ...)
+## Default S3 method:
+as.POSIXlt(x, tz = "",
+           optional = FALSE, ...)
+## S3 method for class 'numeric'
+as.POSIXlt(x, tz = "", origin, ...)
+
+## S3 method for class 'POSIXlt'
+as.double(x, ...)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p><span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>  object to be converted.</p>
+</td></tr>
+<tr valign="top"><td><code>tz</code></td>
+<td>
+<p>time zone specification to be used for the conversion,
+<em>if one is required</em>.  System-specific (see <a href="timezones.html">time zones</a>),
+but <code>""</code> is the current time zone, and <code>"GMT"</code> is UTC
+(Universal Time, Coordinated).  Invalid values are most commonly
+treated as UTC, on some platforms with a warning.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>further arguments to be passed to or from other methods.</p>
+</td></tr>
+<tr valign="top"><td><code>format</code></td>
+<td>
+<p>character string giving a date-time format as used
+by <code><a href="strptime.html">strptime</a></code>.</p>
+</td></tr>
+<tr valign="top"><td><code>tryFormats</code></td>
+<td>
+<p><code><a href="character.html">character</a></code> vector of <code>format</code>
+strings to try if <code>format</code> is not specified.</p>
+</td></tr>
+<tr valign="top"><td><code>optional</code></td>
+<td>
+<p><code><a href="logical.html">logical</a></code> indicating to return <code>NA</code>
+(instead of signalling an error) if the format guessing does not succeed.</p>
+</td></tr>
+<tr valign="top"><td><code>origin</code></td>
+<td>
+<p>a date-time object, or something which can be coerced by
+<code>as.POSIXct(tz = "GMT")</code> to such an object.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>The <code>as.POSIX*</code> functions convert an object to one of the two
+classes used to represent date/times (calendar dates plus time to the
+nearest second).  They can convert objects of the other class and of
+class <code>"Date"</code> to these classes.  Dates without times are
+treated as being at midnight UTC.
+</p>
+<p>They can also convert character strings of the formats
+<code>"2001-02-03"</code> and <code>"2001/02/03"</code> optionally followed by
+white space and a time in the format <code>"14:52"</code> or
+<code>"14:52:03"</code>.  (Formats such as <code>"01/02/03"</code> are ambiguous
+but can be converted via a format specification by
+<code><a href="strptime.html">strptime</a></code>.)  Fractional seconds are allowed.
+Alternatively, <code>format</code> can be specified for character vectors or
+factors: if it is not specified and no standard format works for
+all non-<code>NA</code> inputs an error is thrown.
+</p>
+<p>If <code>format</code> is specified, remember that some of the format
+specifications are locale-specific, and you may need to set the
+<code>LC_TIME</code> category appropriately <em>via</em>
+<code><a href="locales.html">Sys.setlocale</a></code>.  This most often affects the use of
+<code>%b</code>, <code>%B</code> (month names) and <code>%p</code> (AM/PM).
+</p>
+<p>Logical <code>NA</code>s can be converted to either of the classes, but no
+other logical vectors can be.
+</p>
+<p>If you are given a numeric time as the number of seconds since an
+epoch, see the examples.
+</p>
+<p>Character input is first converted to class <code>"POSIXlt"</code> by
+<code><a href="strptime.html">strptime</a></code>: numeric input is first converted to
+<code>"POSIXct"</code>.  Any conversion that needs to go between the two
+date-time classes requires a time zone: conversion from
+<code>"POSIXlt"</code> to <code>"POSIXct"</code> will validate times in the
+selected time zone.  One issue is what happens at transitions
+to and from DST, for example in the UK
+</p>
+<pre>as.POSIXct(strptime("2011-03-27 01:30:00", "%Y-%m-%d %H:%M:%S"))
+as.POSIXct(strptime("2010-10-31 01:30:00", "%Y-%m-%d %H:%M:%S"))
+</pre>
+<p>are respectively invalid (the clocks went forward at 1:00 GMT to 2:00
+BST) and ambiguous (the clocks went back at 2:00 BST to 1:00 GMT).  What
+happens in such cases is OS-specific: one should expect the first to
+be <code>NA</code>, but the second could be interpreted as either BST or
+GMT (and common OSes give both possible values).  Note too (see
+<code><a href="strptime.html">strftime</a></code>) that OS facilities may not format invalid
+times correctly.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>as.POSIXct</code> and <code>as.POSIXlt</code> return an object of the
+appropriate class.  If <code>tz</code> was specified, <code>as.POSIXlt</code>
+will give an appropriate <code>"tzone"</code> attribute.  Date-times known
+to be invalid will be returned as <code>NA</code>.
+</p>
+
+
+<h3>Note</h3>
+
+<p>Some of the concepts used have to be extended backwards in time (the
+usage is said to be &lsquo;proleptic&rsquo;).  For example, the origin of
+time for the <code>"POSIXct"</code> class, &lsquo;1970-01-01 00:00.00 UTC&rsquo;,
+is before UTC was defined.  More importantly, conversion is done
+assuming the Gregorian calendar which was introduced in 1582 and not
+used universally until the 20th century.  One of the
+re-interpretations assumed by ISO 8601:2004 is that there was a year
+zero, even though current year numbering (and zero) is a much later
+concept (525 AD for year numbers from 1 AD).
+</p>
+<p>Conversions between <code>"POSIXlt"</code> and <code>"POSIXct"</code> of future
+times are speculative except in UTC.  The main uncertainty is in the
+use of and transitions to/from DST (most systems will assume the
+continuation of current rules but these can be changed at short
+notice).
+</p>
+<p>If you want to extract specific aspects of a time (such as the day of
+the week) just convert it to class <code>"POSIXlt"</code> and extract the
+relevant component(s) of the list, or if you want a character
+representation (such as a named day of the week) use the
+<code><a href="format.POSIXlt.html">format</a></code> method.
+</p>
+<p>If a time zone is needed and that specified is invalid on your system,
+what happens is system-specific but attempts to set it will probably
+be ignored.
+</p>
+<p>Conversion from character needs to find a suitable format unless one
+is supplied (by trying common formats in turn): this can be slow for
+long inputs.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><a href="DateTimeClasses.html">DateTimeClasses</a> for details of the classes;
+<code><a href="strptime.html">strptime</a></code> for conversion to and from character
+representations.
+</p>
+<p><code><a href="timezones.html">Sys.timezone</a></code> for details of the (system-specific) naming
+of time zones.
+</p>
+<p><a href="locales.html">locales</a> for locale-specific aspects.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+(z &lt;- Sys.time())             # the current datetime, as class "POSIXct"
+unclass(z)                    # a large integer
+floor(unclass(z)/86400)       # the number of days since 1970-01-01 (UTC)
+(now &lt;- as.POSIXlt(Sys.time())) # the current datetime, as class "POSIXlt"
+unlist(unclass(now))          # a list shown as a named vector
+now$year + 1900               # see ?DateTimeClasses
+months(now); weekdays(now)    # see ?months
+
+## suppose we have a time in seconds since 1960-01-01 00:00:00 GMT
+## (the origin used by SAS)
+z &lt;- 1472562988
+# ways to convert this
+as.POSIXct(z, origin = "1960-01-01")                # local
+as.POSIXct(z, origin = "1960-01-01", tz = "GMT")    # in UTC
+
+## SPSS dates (R-help 2006-02-16)
+z &lt;- c(10485849600, 10477641600, 10561104000, 10562745600)
+as.Date(as.POSIXct(z, origin = "1582-10-14", tz = "GMT"))
+
+## Stata date-times: milliseconds since 1960-01-01 00:00:00 GMT
+## format %tc excludes leap-seconds, assumed here
+## For format %tC including leap seconds, see foreign::read.dta()
+z &lt;- 1579598122120
+op &lt;- options(digits.secs = 3)
+# avoid rounding down: milliseconds are not exactly representable
+as.POSIXct((z+0.1)/1000, origin = "1960-01-01")
+options(op)
+
+## Matlab 'serial day number' (days and fractional days)
+z &lt;- 7.343736909722223e5 # 2010-08-23 16:35:00
+as.POSIXct((z - 719529)*86400, origin = "1970-01-01", tz = "UTC")
+
+as.POSIXlt(Sys.time(), "GMT") # the current time in UTC
+
+## These may not be correct names on your system
+as.POSIXlt(Sys.time(), "America/New_York")  # in New York
+as.POSIXlt(Sys.time(), "EST5EDT")           # alternative.
+as.POSIXlt(Sys.time(), "EST" )   # somewhere in Eastern Canada
+as.POSIXlt(Sys.time(), "HST")    # in Hawaii
+as.POSIXlt(Sys.time(), "Australia/Darwin")
+
+
+cols &lt;- c("code", "coordinates", "TZ", "comments")
+tmp &lt;- read.delim(file.path(R.home("share"), "zoneinfo", "zone.tab"),
+                  header = FALSE, comment.char = "#", col.names = cols)
+if(interactive()) View(tmp)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

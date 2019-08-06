@@ -1,0 +1,249 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Holt-Winters Filtering</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for HoltWinters {stats}"><tr><td>HoltWinters {stats}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Holt-Winters Filtering</h2>
+
+<h3>Description</h3>
+
+<p>Computes Holt-Winters Filtering of a given time series.
+Unknown parameters are determined by minimizing the squared
+prediction error.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+HoltWinters(x, alpha = NULL, beta = NULL, gamma = NULL,
+            seasonal = c("additive", "multiplicative"),
+            start.periods = 2, l.start = NULL, b.start = NULL,
+            s.start = NULL,
+            optim.start = c(alpha = 0.3, beta = 0.1, gamma = 0.1),
+            optim.control = list())
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>An object of class <code>ts</code></p>
+</td></tr>
+<tr valign="top"><td><code>alpha</code></td>
+<td>
+<p><i>alpha</i> parameter of Holt-Winters Filter.</p>
+</td></tr>
+<tr valign="top"><td><code>beta</code></td>
+<td>
+<p><i>beta</i> parameter of Holt-Winters Filter. If set to
+<code>FALSE</code>, the function will do exponential smoothing.</p>
+</td></tr>
+<tr valign="top"><td><code>gamma</code></td>
+<td>
+<p><i>gamma</i> parameter used for the seasonal component.
+If set to <code>FALSE</code>, an non-seasonal model is fitted.</p>
+</td></tr>
+<tr valign="top"><td><code>seasonal</code></td>
+<td>
+<p>Character string to select an <code>"additive"</code>
+(the default) or <code>"multiplicative"</code> seasonal model. The first
+few characters are sufficient. (Only takes effect if
+<code>gamma</code> is non-zero).</p>
+</td></tr>
+<tr valign="top"><td><code>start.periods</code></td>
+<td>
+<p>Start periods used in the autodetection of start
+values. Must be at least 2.</p>
+</td></tr>
+<tr valign="top"><td><code>l.start</code></td>
+<td>
+<p>Start value for level (a[0]).</p>
+</td></tr>
+<tr valign="top"><td><code>b.start</code></td>
+<td>
+<p>Start value for trend (b[0]).</p>
+</td></tr>
+<tr valign="top"><td><code>s.start</code></td>
+<td>
+<p>Vector of start values for the seasonal component
+(<i>s_1[0] &hellip; s_p[0]</i>)</p>
+</td></tr>
+<tr valign="top"><td><code>optim.start</code></td>
+<td>
+<p>Vector with named components <code>alpha</code>,
+<code>beta</code>, and <code>gamma</code> containing the starting values for the
+optimizer. Only the values needed must be specified.  Ignored in the
+one-parameter case.</p>
+</td></tr>
+<tr valign="top"><td><code>optim.control</code></td>
+<td>
+<p>Optional list with additional control parameters
+passed to <code>optim</code> if this is used.  Ignored in the
+one-parameter case.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>The additive Holt-Winters prediction function (for time series with
+period length p) is
+</p>
+<p style="text-align: center;"><i>
+    Yhat[t+h] = a[t] + h * b[t] + s[t - p + 1 + (h - 1) mod p],</i></p>
+
+<p>where <i>a[t]</i>, <i>b[t]</i> and <i>s[t]</i> are given by
+</p>
+<p style="text-align: center;"><i>
+  a[t] = &alpha; (Y[t] - s[t-p])  + (1-&alpha;) (a[t-1] + b[t-1])</i></p>
+
+<p style="text-align: center;"><i>
+  b[t] = &beta; (a[t] - a[t-1]) + (1-&beta;) b[t-1]</i></p>
+
+<p style="text-align: center;"><i>
+  s[t] = &gamma; (Y[t] - a[t]) + (1-&gamma;) s[t-p]</i></p>
+
+<p>The multiplicative Holt-Winters prediction function (for time series
+with period length p) is
+</p>
+<p style="text-align: center;"><i>
+    Yhat[t+h] = (a[t] + h * b[t]) * s[t - p + 1 + (h - 1) mod p],</i></p>
+
+<p>where <i>a[t]</i>, <i>b[t]</i> and <i>s[t]</i> are given by
+</p>
+<p style="text-align: center;"><i>
+  a[t] = &alpha; (Y[t] / s[t-p])  + (1-&alpha;) (a[t-1] + b[t-1])</i></p>
+
+<p style="text-align: center;"><i>
+  b[t] = &beta; (a[t] - a[t-1]) + (1-&beta;) b[t-1]</i></p>
+
+<p style="text-align: center;"><i>
+  s[t] = &gamma;  (Y[t] / a[t])  + (1-&gamma;) s[t-p]</i></p>
+
+<p>The data in <code>x</code> are required to be non-zero for a multiplicative
+model, but it makes most sense if they are all positive.
+</p>
+<p>The function tries to find the optimal values of <i>&alpha;</i> and/or
+<i>&beta;</i> and/or <i>&gamma;</i> by minimizing the squared one-step
+prediction error if they are <code>NULL</code> (the default). <code>optimize</code>
+will be used for the single-parameter case, and <code>optim</code> otherwise.
+</p>
+<p>For seasonal models, start values for <code>a</code>, <code>b</code> and <code>s</code>
+are inferred by performing a simple decomposition in trend and
+seasonal component using moving averages (see function
+<code><a href="decompose.html">decompose</a></code>) on the <code>start.periods</code> first periods (a simple
+linear regression on the trend component is used for starting level
+and trend). For level/trend-models (no seasonal component), start
+values for <code>a</code> and <code>b</code> are <code>x[2]</code> and <code>x[2] -
+  x[1]</code>, respectively. For level-only models (ordinary exponential
+smoothing), the start value for <code>a</code> is <code>x[1]</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class <code>"HoltWinters"</code>, a list with components:
+</p>
+<table summary="R valueblock">
+<tr valign="top"><td><code>fitted</code></td>
+<td>
+<p>A multiple time series with one column for the
+filtered series as well as for the level, trend and seasonal
+components, estimated contemporaneously (that is at time t and not
+at the end of the series).</p>
+</td></tr>
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>The original series</p>
+</td></tr>
+<tr valign="top"><td><code>alpha</code></td>
+<td>
+<p>alpha used for filtering</p>
+</td></tr>
+<tr valign="top"><td><code>beta</code></td>
+<td>
+<p>beta used for filtering</p>
+</td></tr>
+<tr valign="top"><td><code>gamma</code></td>
+<td>
+<p>gamma used for filtering</p>
+</td></tr>
+<tr valign="top"><td><code>coefficients</code></td>
+<td>
+<p>A vector with named components <code>a, b, s1, ..., sp</code>
+containing the estimated values for the level, trend and seasonal
+components</p>
+</td></tr>
+<tr valign="top"><td><code>seasonal</code></td>
+<td>
+<p>The specified <code>seasonal</code> parameter</p>
+</td></tr>
+<tr valign="top"><td><code>SSE</code></td>
+<td>
+<p>The final sum of squared errors achieved in optimizing</p>
+</td></tr>
+<tr valign="top"><td><code>call</code></td>
+<td>
+<p>The call used</p>
+</td></tr>
+</table>
+
+
+<h3>Author(s)</h3>
+
+<p>David Meyer <a href="mailto:David.Meyer@wu.ac.at">David.Meyer@wu.ac.at</a>
+</p>
+
+
+<h3>References</h3>
+
+<p>C. C. Holt (1957)
+Forecasting seasonals and trends by exponentially weighted moving averages,
+<em>ONR Research Memorandum, Carnegie Institute of Technology</em> <b>52</b>.
+(reprint at <a href="https://doi.org/10.1016/j.ijforecast.2003.09.015">https://doi.org/10.1016/j.ijforecast.2003.09.015</a>).
+</p>
+<p>P. R. Winters (1960).
+Forecasting sales by exponentially weighted moving averages.
+<em>Management Science</em>, <b>6</b>, 324&ndash;342.
+doi: <a href="https://doi.org/10.1287/mnsc.6.3.324">10.1287/mnsc.6.3.324</a>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="predict.HoltWinters.html">predict.HoltWinters</a></code>, <code><a href="optim.html">optim</a></code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+
+require(graphics)
+
+## Seasonal Holt-Winters
+(m &lt;- HoltWinters(co2))
+plot(m)
+plot(fitted(m))
+
+(m &lt;- HoltWinters(AirPassengers, seasonal = "mult"))
+plot(m)
+
+## Non-Seasonal Holt-Winters
+x &lt;- uspop + rnorm(uspop, sd = 5)
+m &lt;- HoltWinters(x, gamma = FALSE)
+plot(m)
+
+## Exponential Smoothing
+m2 &lt;- HoltWinters(x, gamma = FALSE, beta = FALSE)
+lines(fitted(m2)[,1], col = 3)
+
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>stats</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

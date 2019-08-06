@@ -68,8 +68,8 @@ d2 <- PlantGrowth[1:2,1:2]
 g1 <- tableGrob(d1)
 g2 <- tableGrob(d2)
 
-haligned <- combine(g1,g2, along=1)
-valigned <- combine(g1,g2, along=2)
+haligned <- gtable_combine(g1,g2, along=1)
+valigned <- gtable_combine(g1,g2, along=2)
 grid.newpage()
 grid.arrange(haligned, valigned, ncol=2)
 
@@ -201,7 +201,4 @@ grid.ftable <- function(d, padding = unit(4, "mm"), ...) {
 
 grid.newpage()
 grid.ftable(head(iris, 4), gp = gpar(fill = rep(c("grey90", "grey95"), each = 6)))
-
-## ----info, echo=FALSE----------------------------------------------------
-print(sessionInfo())
 

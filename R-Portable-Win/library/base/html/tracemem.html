@@ -1,0 +1,116 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Trace Copying of Objects</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for tracemem {base}"><tr><td>tracemem {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Trace Copying of Objects</h2>
+
+<h3>Description</h3>
+
+<p>This function marks an object so that a message is printed whenever the
+internal code copies the object.  It is a
+major cause of hard-to-predict memory use in R.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+tracemem(x)
+untracemem(x)
+retracemem(x, previous = NULL)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>An R object, not a function or environment or <code>NULL</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>previous</code></td>
+<td>
+<p>A value as returned by <code>tracemem</code> or <code>retracemem</code>.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>This functionality is optional, determined at compilation, because it
+makes R run a little more slowly even when no objects are being
+traced.  <code>tracemem</code> and <code>untracemem</code> give errors when R is not
+compiled with memory profiling; <code>retracemem</code> does not (so it can be
+left in code during development).
+</p>
+<p>It is enabled in the CRAN macOS and Windows builds of <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>.
+</p>
+<p>When an object is traced any copying of the object by the C function
+<code>duplicate</code> produces a message to standard output, as does type
+coercion and copying when passing arguments to <code>.C</code> or
+<code>.Fortran</code>.
+</p>
+<p>The message consists of the string <code>tracemem</code>, the identifying
+strings for the object being copied and the new object being created,
+and a stack trace showing where the duplication occurred.
+<code>retracemem()</code> is used to indicate that a variable should be
+considered a copy of a previous variable (e.g., after subscripting).
+</p>
+<p>The messages can be turned off with <code><a href="trace.html">tracingState</a></code>.
+</p>
+<p>It is not possible to trace functions, as this would conflict with
+<code><a href="trace.html">trace</a></code> and it is not useful to trace <code>NULL</code>,
+environments, promises, weak references, or external pointer objects, as
+these are not duplicated.
+</p>
+<p>These functions are <a href="Primitive.html">primitive</a>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A character string for identifying the object in the trace output (an
+address in hex enclosed in angle brackets), or <code>NULL</code> (invisibly).
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="capabilities.html">capabilities</a>("profmem")</code> to see if this was enabled for
+this build of <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>.
+</p>
+<p><code><a href="trace.html">trace</a></code>, <code><a href="../../utils/html/Rprofmem.html">Rprofmem</a></code>
+</p>
+<p><a href="https://developer.r-project.org/memory-profiling.html">https://developer.r-project.org/memory-profiling.html</a>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>## Not run: 
+a &lt;- 1:10
+tracemem(a)
+## b and a share memory
+b &lt;- a
+b[1] &lt;- 1
+untracemem(a)
+
+## copying in lm: less than R &lt;= 2.15.0
+d &lt;- stats::rnorm(10)
+tracemem(d)
+lm(d ~ a+log(b))
+
+## f is not a copy and is not traced
+f &lt;- d[-1]
+f+1
+## indicate that f should be traced as a copy of d
+retracemem(f, retracemem(d))
+f+1
+
+## End(Not run)</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

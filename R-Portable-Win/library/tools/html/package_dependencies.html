@@ -1,0 +1,109 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Computations on the Dependency Hierarchy of Packages</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for package_dependencies {tools}"><tr><td>package_dependencies {tools}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Computations on the Dependency Hierarchy of Packages</h2>
+
+<h3>Description</h3>
+
+<p>Find (recursively) dependencies or reverse dependencies of packages.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+package_dependencies(packages = NULL, db = NULL,
+        which = c("Depends", "Imports", "LinkingTo"),
+	recursive = FALSE, reverse = FALSE, verbose = getOption("verbose"))
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>packages</code></td>
+<td>
+<p>a character vector of package names.</p>
+</td></tr>
+<tr valign="top"><td><code>db</code></td>
+<td>
+<p>character matrix as from <code><a href="../../utils/html/available.packages.html">available.packages</a>()</code>
+(with the default <code>NULL</code> the results of this call)
+or data frame variants thereof.  Alternatively, a package database
+like the one available from
+<a href="https://cran.r-project.org/web/packages/packages.rds">https://cran.r-project.org/web/packages/packages.rds</a>.
+</p>
+</td></tr>
+<tr valign="top"><td><code>which</code></td>
+<td>
+<p>a character vector listing the types of
+dependencies, a subset of
+<code>c("Depends", "Imports", "LinkingTo", "Suggests", "Enhances")</code>.
+Character string <code>"all"</code> is shorthand for that vector,
+character string <code>"most"</code> for the same vector without
+<code>"Enhances"</code>.
+</p>
+</td></tr>
+<tr valign="top"><td><code>recursive</code></td>
+<td>
+<p>logical: should (reverse) dependencies of (reverse)
+dependencies (and so on) be included?</p>
+</td></tr>
+<tr valign="top"><td><code>reverse</code></td>
+<td>
+<p>logical: if <code>FALSE</code> (default), regular
+dependencies are calculated, otherwise reverse dependencies.</p>
+</td></tr>
+<tr valign="top"><td><code>verbose</code></td>
+<td>
+<p>logical indicating if output should monitor the package
+search cycles.</p>
+</td></tr>
+</table>
+
+
+<h3>Value</h3>
+
+<p>Named list with one element for each package in argument <code>packages</code>,
+each consists of a character vector naming the (recursive) (reverse) dependencies
+of that package.
+</p>
+<p>For given packages which are not found in the db, <code>NULL</code> entries are returned,
+as opposed to <code>character(0)</code> entries which indicate no dependencies.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="dependsOnPkgs.html">dependsOnPkgs</a></code>, and <code><a href="tools-deprecated.html">package.dependencies</a></code> for checking
+dependencies.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+
+myPkgs &lt;- c("MASS", "Matrix", "KernSmooth", "class", "cluster", "codetools")
+pdb &lt;- available.packages()
+system.time(
+dep1 &lt;- package_dependencies(myPkgs, db = pdb) # all arguments at default
+) # very fast
+utils::str(dep1, vec.len=10)
+
+system.time( ## reverse dependencies, recursively --- takes much longer:
+deps &lt;- package_dependencies(myPkgs, db = pdb,
+                    which = c("Depends", "Imports", "LinkingTo", "Suggests"),
+                    recursive = TRUE, reverse = TRUE)
+) # seen ~ 10 seconds
+
+lengths(deps) # 2015-01-14: all are 7040, but codetools with 7046
+
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>tools</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

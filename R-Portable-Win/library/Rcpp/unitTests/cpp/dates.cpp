@@ -234,3 +234,15 @@ Date test_gmtime(double d) {
     Date nd(tm.tm_year, tm.tm_mon + 1, tm.tm_mday);
     return nd;
 }
+
+// [[Rcpp::export]]
+bool has_na_dv(const Rcpp::DateVector d) {
+    return Rcpp::is_true(Rcpp::any(Rcpp::is_na(d)));
+}
+
+// [[Rcpp::export]]
+bool has_na_dtv(const Rcpp::DatetimeVector d) {
+    return Rcpp::is_true(Rcpp::any(Rcpp::is_na(d)));
+}
+
+

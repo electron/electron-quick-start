@@ -1,0 +1,369 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Projection Pursuit Regression</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for ppr {stats}"><tr><td>ppr {stats}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Projection Pursuit Regression</h2>
+
+<h3>Description</h3>
+
+<p>Fit a projection pursuit regression model.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+ppr(x, ...)
+
+## S3 method for class 'formula'
+ppr(formula, data, weights, subset, na.action,
+    contrasts = NULL, ..., model = FALSE)
+
+## Default S3 method:
+ppr(x, y, weights = rep(1, n),
+    ww = rep(1, q), nterms, max.terms = nterms, optlevel = 2,
+    sm.method = c("supsmu", "spline", "gcvspline"),
+    bass = 0, span = 0, df = 5, gcvpen = 1, trace = FALSE, ...)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>formula</code></td>
+<td>
+
+<p>a formula specifying one or more numeric response variables and the
+explanatory variables.
+</p>
+</td></tr>
+<tr valign="top"><td><code>x</code></td>
+<td>
+
+<p>numeric matrix of explanatory variables.  Rows represent observations, and
+columns represent variables.  Missing values are not accepted.
+</p>
+</td></tr>
+<tr valign="top"><td><code>y</code></td>
+<td>
+
+<p>numeric matrix of response variables.  Rows represent observations, and
+columns represent variables.  Missing values are not accepted.
+</p>
+</td></tr>
+<tr valign="top"><td><code>nterms</code></td>
+<td>
+<p>number of terms to include in the final model.</p>
+</td></tr>
+<tr valign="top"><td><code>data</code></td>
+<td>
+
+<p>a data frame (or similar: see <code><a href="model.frame.html">model.frame</a></code>) from which
+variables specified in <code>formula</code> are preferentially to be taken.
+</p>
+</td></tr>
+<tr valign="top"><td><code>weights</code></td>
+<td>
+<p>a vector of weights <code>w_i</code> for each <em>case</em>.</p>
+</td></tr>
+<tr valign="top"><td><code>ww</code></td>
+<td>
+
+<p>a vector of weights for each <em>response</em>, so the fit criterion is
+the sum over case <code>i</code> and responses <code>j</code> of
+<code>w_i ww_j (y_ij - fit_ij)^2</code> divided by the sum of <code>w_i</code>.
+</p>
+</td></tr>
+<tr valign="top"><td><code>subset</code></td>
+<td>
+
+<p>an index vector specifying the cases to be used in the training
+sample.  (NOTE: If given, this argument must be named.)
+</p>
+</td></tr>
+<tr valign="top"><td><code>na.action</code></td>
+<td>
+
+<p>a function to specify the action to be taken if <code><a href="../../base/html/NA.html">NA</a></code>s are
+found. The default action is given by <code>getOption("na.action")</code>.
+(NOTE: If given, this argument must be named.)
+</p>
+</td></tr>
+<tr valign="top"><td><code>contrasts</code></td>
+<td>
+
+<p>the contrasts to be used when any factor explanatory variables are coded.
+</p>
+</td></tr>
+<tr valign="top"><td><code>max.terms</code></td>
+<td>
+
+<p>maximum number of terms to choose from when building the model.
+</p>
+</td></tr>
+<tr valign="top"><td><code>optlevel</code></td>
+<td>
+
+<p>integer from 0 to 3 which determines the thoroughness of an
+optimization routine in the SMART program. See the &lsquo;Details&rsquo;
+section.
+</p>
+</td></tr>
+<tr valign="top"><td><code>sm.method</code></td>
+<td>
+
+<p>the method used for smoothing the ridge functions.  The default is
+to use Friedman's super smoother <code><a href="supsmu.html">supsmu</a></code>.  The
+alternatives are to use the smoothing spline code underlying
+<code><a href="smooth.spline.html">smooth.spline</a></code>, either with a specified (equivalent)
+degrees of freedom for each ridge functions, or to allow the
+smoothness to be chosen by GCV.
+</p>
+<p>Can be abbreviated.
+</p>
+</td></tr>
+<tr valign="top"><td><code>bass</code></td>
+<td>
+
+<p>super smoother bass tone control used with automatic span selection
+(see <code>supsmu</code>); the range of values is 0 to 10, with larger values
+resulting in increased smoothing.
+</p>
+</td></tr>
+<tr valign="top"><td><code>span</code></td>
+<td>
+
+<p>super smoother span control (see <code><a href="supsmu.html">supsmu</a></code>).  The default, <code>0</code>,
+results in automatic span selection by local cross validation. <code>span</code>
+can also take a value in <code>(0, 1]</code>.
+</p>
+</td></tr>
+<tr valign="top"><td><code>df</code></td>
+<td>
+
+<p>if <code>sm.method</code> is <code>"spline"</code> specifies the smoothness of
+each ridge term via the requested equivalent degrees of freedom.
+</p>
+</td></tr>
+<tr valign="top"><td><code>gcvpen</code></td>
+<td>
+
+<p>if <code>sm.method</code> is <code>"gcvspline"</code> this is the penalty used
+in the GCV selection for each degree of freedom used.
+</p>
+</td></tr>
+<tr valign="top"><td><code>trace</code></td>
+<td>
+<p>logical indicating if each spline fit should produce
+diagnostic output (about <code>lambda</code> and <code>df</code>), and the
+supsmu fit about its steps.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>arguments to be passed to or from other methods.</p>
+</td></tr>
+<tr valign="top"><td><code>model</code></td>
+<td>
+<p>logical.  If true, the model frame is returned.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>The basic method is given by Friedman (1984), and is essentially the
+same code used by S-PLUS's <code>ppreg</code>.  This code is extremely
+sensitive to the compiler used.
+</p>
+<p>The algorithm first adds up to <code>max.terms</code> ridge terms one at a
+time; it will use less if it is unable to find a term to add that makes
+sufficient difference.  It then removes the least
+important term at each step until <code>nterms</code> terms
+are left.
+</p>
+<p>The levels of optimization (argument <code>optlevel</code>)
+differ in how thoroughly the models are refitted during this process.
+At level 0 the existing ridge terms are not refitted.  At level 1
+the projection directions are not refitted, but the ridge
+functions and the regression coefficients are.
+
+Levels 2 and 3 refit all the terms and are equivalent for one
+response; level 3 is more careful to re-balance the contributions
+from each regressor at each step and so is a little less likely to
+converge to a saddle point of the sum of squares criterion.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list with the following components, many of which are for use by the
+method functions.
+</p>
+<table summary="R valueblock">
+<tr valign="top"><td><code>call</code></td>
+<td>
+<p>the matched call</p>
+</td></tr>
+<tr valign="top"><td><code>p</code></td>
+<td>
+<p>the number of explanatory variables (after any coding)</p>
+</td></tr>
+<tr valign="top"><td><code>q</code></td>
+<td>
+<p>the number of response variables</p>
+</td></tr>
+<tr valign="top"><td><code>mu</code></td>
+<td>
+<p>the argument <code>nterms</code></p>
+</td></tr>
+<tr valign="top"><td><code>ml</code></td>
+<td>
+<p>the argument <code>max.terms</code></p>
+</td></tr>
+<tr valign="top"><td><code>gof</code></td>
+<td>
+<p>the overall residual (weighted) sum of squares for the
+selected model</p>
+</td></tr>
+<tr valign="top"><td><code>gofn</code></td>
+<td>
+<p>the overall residual (weighted) sum of squares against the
+number of terms, up to <code>max.terms</code>.  Will be invalid (and zero)
+for less than <code>nterms</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>df</code></td>
+<td>
+<p>the argument <code>df</code></p>
+</td></tr>
+<tr valign="top"><td><code>edf</code></td>
+<td>
+<p>if <code>sm.method</code> is <code>"spline"</code> or <code>"gcvspline"</code>
+the equivalent number of degrees of freedom for each ridge term used.</p>
+</td></tr>
+<tr valign="top"><td><code>xnames</code></td>
+<td>
+<p>the names of the explanatory variables</p>
+</td></tr>
+<tr valign="top"><td><code>ynames</code></td>
+<td>
+<p>the names of the response variables</p>
+</td></tr>
+<tr valign="top"><td><code>alpha</code></td>
+<td>
+<p>a matrix of the projection directions, with a column for
+each ridge term</p>
+</td></tr>
+<tr valign="top"><td><code>beta</code></td>
+<td>
+<p>a matrix of the coefficients applied for each response to
+the ridge terms: the rows are the responses and the columns the ridge terms</p>
+</td></tr>
+<tr valign="top"><td><code>yb</code></td>
+<td>
+<p>the weighted means of each response</p>
+</td></tr>
+<tr valign="top"><td><code>ys</code></td>
+<td>
+<p>the overall scale factor used: internally the responses are
+divided by <code>ys</code> to have unit total weighted sum of squares.</p>
+</td></tr>
+<tr valign="top"><td><code>fitted.values</code></td>
+<td>
+<p>the fitted values, as a matrix if <code>q &gt; 1</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>residuals</code></td>
+<td>
+<p>the residuals, as a matrix if <code>q &gt; 1</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>smod</code></td>
+<td>
+<p>internal work array, which includes the ridge functions
+evaluated at the training set points.</p>
+</td></tr>
+<tr valign="top"><td><code>model</code></td>
+<td>
+<p>(only if <code>model = TRUE</code>) the model frame.</p>
+</td></tr>
+</table>
+
+
+<h3>Source</h3>
+
+<p>Friedman (1984): converted to double precision and added interface to
+smoothing splines by B. D. Ripley, originally for the <a href="https://CRAN.R-project.org/package=MASS"><span class="pkg">MASS</span></a>
+package.
+</p>
+
+
+<h3>References</h3>
+
+<p>Friedman, J. H. and Stuetzle, W. (1981).
+Projection pursuit regression.
+<em>Journal of the American Statistical Association</em>,
+<b>76</b>, 817&ndash;823.
+doi: <a href="https://doi.org/10.2307/2287576">10.2307/2287576</a>.
+</p>
+<p>Friedman, J. H. (1984).
+SMART User's Guide.
+Laboratory for Computational Statistics, Stanford University Technical
+Report No. 1.
+</p>
+<p>Venables, W. N. and Ripley, B. D. (2002).
+<em>Modern Applied Statistics with S</em>.
+Springer.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="plot.ppr.html">plot.ppr</a></code>, <code><a href="supsmu.html">supsmu</a></code>, <code><a href="smooth.spline.html">smooth.spline</a></code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+require(graphics)
+
+# Note: your numerical values may differ
+attach(rock)
+area1 &lt;- area/10000; peri1 &lt;- peri/10000
+rock.ppr &lt;- ppr(log(perm) ~ area1 + peri1 + shape,
+                data = rock, nterms = 2, max.terms = 5)
+rock.ppr
+# Call:
+# ppr.formula(formula = log(perm) ~ area1 + peri1 + shape, data = rock,
+#     nterms = 2, max.terms = 5)
+#
+# Goodness of fit:
+#  2 terms  3 terms  4 terms  5 terms
+# 8.737806 5.289517 4.745799 4.490378
+
+summary(rock.ppr)
+# .....  (same as above)
+# .....
+#
+# Projection direction vectors ('alpha'):
+#       term 1      term 2
+# area1  0.34357179  0.37071027
+# peri1 -0.93781471 -0.61923542
+# shape  0.04961846  0.69218595
+#
+# Coefficients of ridge terms:
+#    term 1    term 2
+# 1.6079271 0.5460971
+
+par(mfrow = c(3,2))   # maybe: , pty = "s")
+plot(rock.ppr, main = "ppr(log(perm)~ ., nterms=2, max.terms=5)")
+plot(update(rock.ppr, bass = 5), main = "update(..., bass = 5)")
+plot(update(rock.ppr, sm.method = "gcv", gcvpen = 2),
+     main = "update(..., sm.method=\"gcv\", gcvpen=2)")
+cbind(perm = rock$perm, prediction = round(exp(predict(rock.ppr)), 1))
+detach()
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>stats</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

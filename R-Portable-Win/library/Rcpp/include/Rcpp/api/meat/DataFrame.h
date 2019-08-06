@@ -23,7 +23,7 @@ namespace Rcpp{
      template <template <class> class StoragePolicy>
      template <class T>
      DataFrame_Impl<StoragePolicy>::DataFrame_Impl( const T& obj){
-        set__( wrap(obj) ) ;
+        set__(Shield<SEXP>(wrap(obj)));
      }
 
 }

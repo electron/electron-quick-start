@@ -1,0 +1,157 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Environment Browser</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for browser {base}"><tr><td>browser {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Environment Browser</h2>
+
+<h3>Description</h3>
+
+<p>Interrupt the execution of an expression and allow the inspection of
+the environment where <code>browser</code> was called from.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+browser(text = "", condition = NULL, expr = TRUE, skipCalls = 0L)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>text</code></td>
+<td>
+<p>a text string that can be retrieved once the browser is invoked.</p>
+</td></tr>
+<tr valign="top"><td><code>condition</code></td>
+<td>
+<p>a condition that can be retrieved once the browser is
+invoked.</p>
+</td></tr>
+<tr valign="top"><td><code>expr</code></td>
+<td>
+<p>An expression, which if it evaluates to <code>TRUE</code> the
+debugger will invoked, otherwise control is returned directly.</p>
+</td></tr>
+<tr valign="top"><td><code>skipCalls</code></td>
+<td>
+<p>how many previous calls to skip when reporting the
+calling context.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>A call to <code>browser</code> can be included in the body of a function.
+When reached, this causes a pause in the execution of the
+current expression and allows access to the <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> interpreter.
+</p>
+<p>The purpose of the <code>text</code> and <code>condition</code> arguments are to
+allow helper programs (e.g., external debuggers) to insert specific
+values here, so that the specific call to browser (perhaps its location
+in a source file) can be identified and special processing can be
+achieved.  The values can be retrieved by calling <code><a href="browserText.html">browserText</a></code>
+and <code><a href="browserText.html">browserCondition</a></code>.
+</p>
+<p>The purpose of the <code>expr</code> argument is to allow for the illusion
+of conditional debugging. It is an illusion, because execution is
+always paused at the call to browser, but control is only passed
+to the evaluator described below if <code>expr</code> evaluates to <code>TRUE</code>.
+In most cases it is going to be more efficient to use an <code>if</code>
+statement in the calling program, but in some cases using this argument
+will be simpler.
+</p>
+<p>The <code>skipCalls</code> argument should be used when the <code>browser()</code>
+call is nested within another debugging function:  it will look further
+up the call stack to report its location.
+</p>
+<p>At the browser prompt the user can enter commands or <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> expressions,
+followed by a newline.  The commands are
+</p>
+
+<dl>
+<dt><code>c</code></dt><dd><p>exit the browser
+and continue execution at the next statement.</p>
+</dd>
+<dt><code>cont</code></dt><dd><p>synonym for <code>c</code>.</p>
+</dd>
+<dt><code>f</code></dt><dd><p>finish execution of the current loop or function</p>
+</dd> 
+<dt><code>help</code></dt><dd><p>print this list of commands</p>
+</dd>
+<dt><code>n</code></dt><dd><p>evaluate the next statement, stepping over 
+function calls.  For byte compiled functions interrupted by
+<code>browser</code> calls, <code>n</code> is equivalent to <code>c</code>.</p>
+</dd>
+<dt><code>s</code></dt><dd><p>evaluate the next statement, stepping into
+function calls.  Again, byte compiled functions make
+<code>s</code> equivalent to <code>c</code>.</p>
+</dd>
+<dt><code>where</code></dt><dd><p>print a stack trace of all active function calls.</p>
+</dd>
+<dt><code>r</code></dt><dd><p>invoke a <code>"resume"</code> restart if one is
+available; interpreted as an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> expression otherwise. Typically
+<code>"resume"</code> restarts are established for continuing from user
+interrupts.</p>
+</dd>
+<dt><code>Q</code></dt><dd><p>exit the browser and the current evaluation and
+return to the top-level prompt.</p>
+</dd>
+</dl>
+
+<p>Leading and trailing whitespace is ignored, except for an empty line.
+Handling of empty lines depends on the <code>"browserNLdisabled"</code> 
+<a href="options.html">option</a>; if it is <code>TRUE</code>, empty lines are ignored.  
+If not, an empty line is the same as <code>n</code> (or <code>s</code>, if it was used 
+most recently).
+</p>
+<p>Anything else entered at the browser prompt is interpreted as an
+<span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> expression to be evaluated in the calling environment: in
+particular typing an object name will cause the object to be printed,
+and <code>ls()</code> lists the objects in the calling frame.  (If you want
+to look at an object with a name such as <code>n</code>, print it
+explicitly, or use autoprint via <code>(n)</code>.
+</p>
+<p>The number of lines printed for the deparsed call can be limited by
+setting <code><a href="options.html">options</a>(deparse.max.lines)</code>.
+</p>
+<p>The browser prompt is of the form <code>Browse[<var>n</var>]&gt;</code>: here
+<code>var{n}</code> indicates the &lsquo;browser level&rsquo;.  The browser can
+be called when browsing (and often is when <code><a href="debug.html">debug</a></code> is in
+use), and each recursive call increases the number.  (The actual
+number is the number of &lsquo;contexts&rsquo; on the context stack: this
+is usually <code>2</code> for the outer level of browsing and <code>1</code> when
+examining dumps in <code><a href="../../utils/html/debugger.html">debugger</a></code>.)
+</p>
+<p>This is a primitive function but does argument matching in the
+standard way.
+</p>
+
+
+<h3>References</h3>
+
+<p>Becker, R. A., Chambers, J. M. and Wilks, A. R. (1988)
+<em>The New S Language</em>.
+Wadsworth &amp; Brooks/Cole.
+</p>
+<p>Chambers, J. M. (1998)
+<em>Programming with Data. A Guide to the S Language</em>.
+Springer.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="debug.html">debug</a></code>, and
+<code><a href="traceback.html">traceback</a></code> for the stack on error.
+<code><a href="browserText.html">browserText</a></code> for how to retrieve the text and condition.
+</p>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

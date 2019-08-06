@@ -1,0 +1,153 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Construct Design Matrices</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for model.matrix {stats}"><tr><td>model.matrix {stats}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Construct Design Matrices</h2>
+
+<h3>Description</h3>
+
+<p><code>model.matrix</code> creates a design (or model) matrix, e.g., by
+expanding factors to a set of dummy variables (depending on the
+contrasts) and expanding interactions similarly.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+model.matrix(object, ...)
+
+## Default S3 method:
+model.matrix(object, data = environment(object),
+             contrasts.arg = NULL, xlev = NULL, ...)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>object</code></td>
+<td>
+<p>an object of an appropriate class.  For the default
+method, a model <a href="formula.html">formula</a> or a <code><a href="terms.html">terms</a></code> object.</p>
+</td></tr>
+<tr valign="top"><td><code>data</code></td>
+<td>
+<p>a data frame created with <code><a href="model.frame.html">model.frame</a></code>.  If
+another sort of object, <code>model.frame</code> is called first.</p>
+</td></tr>
+<tr valign="top"><td><code>contrasts.arg</code></td>
+<td>
+<p>a list, whose entries are values (numeric
+matrices, <code><a href="../../base/html/function.html">function</a></code>s or character strings naming
+functions) to be used
+as replacement values for the <code><a href="contrasts.html">contrasts</a></code>
+replacement function and whose names are the names of
+columns of <code>data</code> containing <code><a href="../../base/html/factor.html">factor</a></code>s.</p>
+</td></tr>
+<tr valign="top"><td><code>xlev</code></td>
+<td>
+<p>to be used as argument of <code><a href="model.frame.html">model.frame</a></code> if
+<code>data</code> is such that <code>model.frame</code> is called.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>further arguments passed to or from other methods.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p><code>model.matrix</code> creates a design matrix from the description
+given in <code>terms(object)</code>, using the data in <code>data</code> which
+must supply variables with the same names as would be created by a
+call to <code>model.frame(object)</code> or, more precisely, by evaluating
+<code>attr(terms(object), "variables")</code>.  If <code>data</code> is a data
+frame, there may be other columns and the order of columns is not
+important.  Any character variables are coerced to factors.  After
+coercion, all the variables used on the right-hand side of the
+formula must be logical, integer, numeric or factor.
+</p>
+<p>If <code>contrasts.arg</code> is specified for a factor it overrides the
+default factor coding for that variable and any <code>"contrasts"</code>
+attribute set by <code><a href="zC.html">C</a></code> or <code><a href="contrasts.html">contrasts</a></code>.
+Whereas invalid <code>contrasts.arg</code>s have been ignored always, they are
+warned about since <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> version 3.6.0.
+</p>
+<p>In an interaction term, the variable whose levels vary fastest is the
+first one to appear in the formula (and not in the term), so in
+<code>~ a + b + b:a</code> the interaction will have <code>a</code> varying
+fastest.
+</p>
+<p>By convention, if the response variable also appears on the
+right-hand side of the formula it is dropped (with a warning),
+although interactions involving the term are retained.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The design matrix for a regression-like model with the specified formula
+and data.
+</p>
+<p>There is an attribute <code>"assign"</code>, an integer vector with an entry
+for each column in the matrix giving the term in the formula which
+gave rise to the column.  Value <code>0</code> corresponds to the intercept
+(if any), and positive values to terms in the order given by the
+<code>term.labels</code> attribute of the <code>terms</code> structure
+corresponding to <code>object</code>.
+</p>
+<p>If there are any factors in terms in the model, there is an attribute
+<code>"contrasts"</code>, a named list with an entry for each factor.  This
+specifies the contrasts that would be used in terms in which the
+factor is coded by contrasts (in some terms dummy coding may be used),
+either as a character vector naming a function or as a numeric matrix.
+</p>
+
+
+<h3>References</h3>
+
+<p>Chambers, J. M. (1992)
+<em>Data for models.</em>
+Chapter 3 of <em>Statistical Models in S</em>
+eds J. M. Chambers and T. J. Hastie, Wadsworth &amp; Brooks/Cole.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="model.frame.html">model.frame</a></code>, <code><a href="model.extract.html">model.extract</a></code>,
+<code><a href="terms.html">terms</a></code>
+</p>
+<p><code><a href="../../Matrix/html/sparse.model.matrix.html">sparse.model.matrix</a></code> from package
+<a href="https://CRAN.R-project.org/package=Matrix"><span class="pkg">Matrix</span></a> for creating <em>sparse</em> model matrices, which may
+be more efficient in large dimensions.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+ff &lt;- log(Volume) ~ log(Height) + log(Girth)
+utils::str(m &lt;- model.frame(ff, trees))
+mat &lt;- model.matrix(ff, m)
+
+dd &lt;- data.frame(a = gl(3,4), b = gl(4,1,12)) # balanced 2-way
+options("contrasts") # typically 'treatment' (for unordered factors)
+model.matrix(~ a + b, dd)
+model.matrix(~ a + b, dd, contrasts = list(a = "contr.sum"))
+model.matrix(~ a + b, dd, contrasts = list(a = "contr.sum", b = contr.poly))
+m.orth &lt;- model.matrix(~a+b, dd, contrasts = list(a = "contr.helmert"))
+crossprod(m.orth) # m.orth is  ALMOST  orthogonal
+# invalid contrasts.. ignored with a warning:
+stopifnot(identical(
+   model.matrix(~ a + b, dd),
+   model.matrix(~ a + b, dd, contrasts.arg = "contr.FOO")))
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>stats</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

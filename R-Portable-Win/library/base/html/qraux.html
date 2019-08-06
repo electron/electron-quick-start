@@ -1,0 +1,128 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Reconstruct the Q, R, or X Matrices from a QR Object</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for QR.Auxiliaries {base}"><tr><td>QR.Auxiliaries {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Reconstruct the Q, R, or X Matrices from a QR Object</h2>
+
+<h3>Description</h3>
+
+<p>Returns the original matrix from which the object was constructed or
+the components of the decomposition.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+qr.X(qr, complete = FALSE, ncol =)
+qr.Q(qr, complete = FALSE, Dvec =)
+qr.R(qr, complete = FALSE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>qr</code></td>
+<td>
+<p>object representing a QR decomposition.  This will
+typically have come from a previous call to <code><a href="qr.html">qr</a></code> or
+<code><a href="../../stats/html/lsfit.html">lsfit</a></code>.</p>
+</td></tr>
+<tr valign="top"><td><code>complete</code></td>
+<td>
+<p>logical expression of length 1.  Indicates whether an
+arbitrary  orthogonal completion of the <i>\bold{Q}</i> or
+<i>\bold{X}</i> matrices is to be made, or whether the <i>\bold{R}</i>
+matrix is to be completed  by binding zero-value rows beneath the
+square upper triangle.</p>
+</td></tr>
+<tr valign="top"><td><code>ncol</code></td>
+<td>
+<p>integer in the range <code>1:nrow(qr$qr)</code>.  The number
+of columns to be in the reconstructed <i>\bold{X}</i>.  The default
+when <code>complete</code> is <code>FALSE</code> is the first
+<code>min(ncol(X), nrow(X))</code> columns of the original <i>\bold{X}</i>
+from which the qr object was constructed.  The default when
+<code>complete</code> is <code>TRUE</code> is a square matrix with the original
+<i>\bold{X}</i> in the first <code>ncol(X)</code> columns and an arbitrary
+orthogonal completion (unitary completion in the complex case) in
+the remaining columns.</p>
+</td></tr>
+<tr valign="top"><td><code>Dvec</code></td>
+<td>
+<p>vector (not matrix) of diagonal values.  Each column of
+the returned <i>\bold{Q}</i> will be multiplied by the corresponding
+diagonal value.  Defaults to all <code>1</code>s.</p>
+</td></tr>
+</table>
+
+
+<h3>Value</h3>
+
+<p><code>qr.X</code> returns <i>\bold{X}</i>, the original matrix from
+which the qr object was constructed, provided <code>ncol(X) &lt;= nrow(X)</code>.
+If <code>complete</code> is <code>TRUE</code> or the argument <code>ncol</code> is greater than
+<code>ncol(X)</code>, additional columns from an arbitrary orthogonal
+(unitary) completion of <code>X</code> are returned.
+</p>
+<p><code>qr.Q</code> returns part or all of <b>Q</b>, the order-nrow(X)
+orthogonal (unitary) transformation represented by <code>qr</code>.  If
+<code>complete</code> is <code>TRUE</code>, <b>Q</b> has <code>nrow(X)</code> columns.
+If <code>complete</code> is <code>FALSE</code>, <b>Q</b> has <code>ncol(X)</code>
+columns.  When <code>Dvec</code> is specified, each column of <b>Q</b> is
+multiplied by the corresponding value in <code>Dvec</code>.
+</p>
+<p>Note that <code>qr.Q(qr, *)</code> is a special case of
+<code><a href="qr.html">qr.qy</a>(qr, y)</code> (with a &ldquo;diagonal&rdquo; <code>y</code>), and
+<code>qr.X(qr, *)</code> is basically <code><a href="qr.html">qr.qy</a>(qr, R)</code> (apart from
+pivoting and <code>dimnames</code> setting).
+</p>
+<p><code>qr.R</code> returns <b>R</b>.  This may be pivoted, e.g., if
+<code>a &lt;- qr(x)</code> then <code>x[, a$pivot]</code> = <b>QR</b>.  The number of
+rows of <b>R</b> is either <code>nrow(X)</code> or <code>ncol(X)</code> (and may
+depend on whether <code>complete</code> is <code>TRUE</code> or <code>FALSE</code>).
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="qr.html">qr</a></code>,
+<code><a href="qr.html">qr.qy</a></code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+p &lt;- ncol(x &lt;- LifeCycleSavings[, -1]) # not the 'sr'
+qrstr &lt;- qr(x)   # dim(x) == c(n,p)
+qrstr $ rank # = 4 = p
+Q &lt;- qr.Q(qrstr) # dim(Q) == dim(x)
+R &lt;- qr.R(qrstr) # dim(R) == ncol(x)
+X &lt;- qr.X(qrstr) # X == x
+range(X - as.matrix(x))  # ~ &lt; 6e-12
+## X == Q %*% R if there has been no pivoting, as here:
+all.equal(unname(X),
+          unname(Q %*% R))
+
+# example of pivoting
+x &lt;- cbind(int = 1,
+           b1 = rep(1:0, each = 3), b2 = rep(0:1, each = 3),
+           c1 = rep(c(1,0,0), 2), c2 = rep(c(0,1,0), 2), c3 = rep(c(0,0,1),2))
+x # is singular, columns "b2" and "c3" are "extra"
+a &lt;- qr(x)
+zapsmall(qr.R(a)) # columns are int b1 c1 c2 b2 c3
+a$pivot
+pivI &lt;- sort.list(a$pivot) # the inverse permutation
+all.equal (x,            qr.Q(a) %*% qr.R(a)) # no, no
+stopifnot(
+ all.equal(x[, a$pivot], qr.Q(a) %*% qr.R(a)),          # TRUE
+ all.equal(x           , qr.Q(a) %*% qr.R(a)[, pivI]))  # TRUE too!
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

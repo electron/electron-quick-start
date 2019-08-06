@@ -1,0 +1,148 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Substituting and Quoting Expressions</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for substitute {base}"><tr><td>substitute {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Substituting and Quoting Expressions</h2>
+
+<h3>Description</h3>
+
+<p><code>substitute</code> returns the parse tree for the (unevaluated)
+expression <code>expr</code>, substituting any variables bound in
+<code>env</code>.
+</p>
+<p><code>quote</code> simply returns its argument. The argument is not evaluated
+and can be any R expression.
+</p>
+<p><code>enquote</code> is a simple one-line utility which transforms a call of
+the form <code>Foo(....)</code> into the call <code>quote(Foo(....))</code>.  This
+is typically used to protect a <code><a href="call.html">call</a></code> from early evaluation.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+substitute(expr, env)
+quote(expr)
+enquote(cl)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>expr</code></td>
+<td>
+<p>any syntactically valid <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> expression</p>
+</td></tr>
+<tr valign="top"><td><code>cl</code></td>
+<td>
+<p>a <code><a href="call.html">call</a></code>, i.e., an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> object of
+<code><a href="class.html">class</a></code> (and <code><a href="mode.html">mode</a></code>) <code>"call"</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>env</code></td>
+<td>
+<p>an environment or a list object.  Defaults to the
+current evaluation environment.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>The typical use of <code>substitute</code> is to create informative labels
+for data sets and plots.
+The <code>myplot</code> example below shows a simple use of this facility.
+It uses the functions <code><a href="deparse.html">deparse</a></code> and <code>substitute</code>
+to create labels for a plot which are character string versions
+of the actual arguments to the function <code>myplot</code>.
+</p>
+<p>Substitution takes place by examining each component of the parse tree
+as follows: If it is not a bound symbol in <code>env</code>, it is
+unchanged.  If it is a promise object, i.e., a formal argument to a
+function or explicitly created using <code><a href="delayedAssign.html">delayedAssign</a>()</code>,
+the expression slot of the promise replaces the symbol.  If it is an
+ordinary variable, its value is substituted, unless <code>env</code> is
+<code><a href="environment.html">.GlobalEnv</a></code> in which case the symbol is left unchanged.
+</p>
+<p>Both <code>quote</code> and <code>substitute</code> are &lsquo;special&rsquo;
+<a href="Primitive.html">primitive</a> functions which do not evaluate their arguments.
+</p>
+
+
+<h3>Value</h3>
+
+<p>The <code><a href="mode.html">mode</a></code> of the result is generally <code>"call"</code> but
+may in principle be any type. In particular, single-variable
+expressions have mode <code>"name"</code> and constants have the
+appropriate base mode.
+</p>
+
+
+<h3>Note</h3>
+
+<p><code>substitute</code> works on a purely lexical basis.  There is no
+guarantee that the resulting expression makes any sense.
+</p>
+<p>Substituting and quoting often cause confusion when the argument is
+<code>expression(...)</code>.  The result is a call to the
+<code><a href="expression.html">expression</a></code> constructor function and needs to be evaluated
+with <code><a href="eval.html">eval</a></code> to give the actual expression object.
+</p>
+
+
+<h3>References</h3>
+
+<p>Becker, R. A., Chambers, J. M. and Wilks, A. R. (1988)
+<em>The New S Language</em>.
+Wadsworth &amp; Brooks/Cole.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="missing.html">missing</a></code> for argument &lsquo;missingness&rsquo;,
+<code><a href="bquote.html">bquote</a></code> for partial substitution,
+<code><a href="sQuote.html">sQuote</a></code> and <code><a href="sQuote.html">dQuote</a></code> for adding quotation
+marks to strings,
+</p>
+<p><code><a href="allnames.html">all.names</a></code> to retrieve the symbol names from an expression
+or call.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+require(graphics)
+(s.e &lt;- substitute(expression(a + b), list(a = 1)))  #&gt; expression(1 + b)
+(s.s &lt;- substitute( a + b,            list(a = 1)))  #&gt; 1 + b
+c(mode(s.e), typeof(s.e)) #  "call", "language"
+c(mode(s.s), typeof(s.s)) #   (the same)
+# but:
+(e.s.e &lt;- eval(s.e))          #&gt;  expression(1 + b)
+c(mode(e.s.e), typeof(e.s.e)) #  "expression", "expression"
+
+substitute(x &lt;- x + 1, list(x = 1)) # nonsense
+
+myplot &lt;- function(x, y)
+    plot(x, y, xlab = deparse(substitute(x)),
+         ylab = deparse(substitute(y)))
+
+## Simple examples about lazy evaluation, etc:
+
+f1 &lt;- function(x, y = x)             { x &lt;- x + 1; y }
+s1 &lt;- function(x, y = substitute(x)) { x &lt;- x + 1; y }
+s2 &lt;- function(x, y) { if(missing(y)) y &lt;- substitute(x); x &lt;- x + 1; y }
+a &lt;- 10
+f1(a)  # 11
+s1(a)  # 11
+s2(a)  # a
+typeof(s2(a))  # "symbol"
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

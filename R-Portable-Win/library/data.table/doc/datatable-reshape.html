@@ -4,21 +4,21 @@
 
 <head>
 
-<meta charset="utf-8">
+<meta charset="utf-8" />
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name="generator" content="pandoc" />
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 
-<meta name="date" content="2017-01-31" />
+<meta name="date" content="2019-03-28" />
 
 <title>Efficient reshaping using data.tables</title>
 
 
 
 <style type="text/css">code{white-space: pre;}</style>
-<style type="text/css">
+<style type="text/css" data-origin="pandoc">
 div.sourceCode { overflow-x: auto; }
 table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
   margin: 0; padding: 0; vertical-align: baseline; border: none; }
@@ -54,7 +54,29 @@ code > span.do { color: #ba2121; font-style: italic; } /* Documentation */
 code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
 code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
 code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+
 </style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    for (var j = 0; j < rules.length; j++) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") continue;
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' || rule.style.backgroundColor === '') continue;
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
 
 
 
@@ -68,7 +90,7 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 
 
 <h1 class="title toc-ignore">Efficient reshaping using data.tables</h1>
-<h4 class="date"><em>2017-01-31</em></h4>
+<h4 class="date"><em>2019-03-28</em></h4>
 
 
 
@@ -98,14 +120,20 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <div id="a-melting-data.tables-wide-to-long" class="section level3">
 <h3>a) <code>melt</code>ing <em>data.tables</em> (wide to long)</h3>
 <p>Suppose we have a <code>data.table</code> (artificial data) as shown below:</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">DT =<span class="st"> </span><span class="kw">fread</span>(<span class="st">&quot;melt_default.csv&quot;</span>)
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">s1 &lt;-<span class="st"> &quot;family_id age_mother dob_child1 dob_child2 dob_child3</span>
+<span class="st">1         30 1998-11-26 2000-01-29         NA</span>
+<span class="st">2         27 1996-06-22         NA         NA</span>
+<span class="st">3         26 2002-07-11 2004-04-05 2007-09-02</span>
+<span class="st">4         32 2004-10-10 2009-08-27 2012-07-21</span>
+<span class="st">5         29 2000-12-05 2005-02-28         NA&quot;</span>
+DT &lt;-<span class="st"> </span><span class="kw">fread</span>(s1)
 DT
 <span class="co">#    family_id age_mother dob_child1 dob_child2 dob_child3</span>
-<span class="co"># 1:         1         30 1998-11-26 2000-01-29         NA</span>
-<span class="co"># 2:         2         27 1996-06-22         NA         NA</span>
+<span class="co"># 1:         1         30 1998-11-26 2000-01-29       &lt;NA&gt;</span>
+<span class="co"># 2:         2         27 1996-06-22       &lt;NA&gt;       &lt;NA&gt;</span>
 <span class="co"># 3:         3         26 2002-07-11 2004-04-05 2007-09-02</span>
 <span class="co"># 4:         4         32 2004-10-10 2009-08-27 2012-07-21</span>
-<span class="co"># 5:         5         29 2000-12-05 2005-02-28         NA</span>
+<span class="co"># 5:         5         29 2000-12-05 2005-02-28       &lt;NA&gt;</span>
 ## dob stands for date of birth.
 
 <span class="kw">str</span>(DT)
@@ -133,15 +161,15 @@ DT.m1
 <span class="co">#  4:         4         32 dob_child1 2004-10-10</span>
 <span class="co">#  5:         5         29 dob_child1 2000-12-05</span>
 <span class="co">#  6:         1         30 dob_child2 2000-01-29</span>
-<span class="co">#  7:         2         27 dob_child2         NA</span>
+<span class="co">#  7:         2         27 dob_child2       &lt;NA&gt;</span>
 <span class="co">#  8:         3         26 dob_child2 2004-04-05</span>
 <span class="co">#  9:         4         32 dob_child2 2009-08-27</span>
 <span class="co"># 10:         5         29 dob_child2 2005-02-28</span>
-<span class="co"># 11:         1         30 dob_child3         NA</span>
-<span class="co"># 12:         2         27 dob_child3         NA</span>
+<span class="co"># 11:         1         30 dob_child3       &lt;NA&gt;</span>
+<span class="co"># 12:         2         27 dob_child3       &lt;NA&gt;</span>
 <span class="co"># 13:         3         26 dob_child3 2007-09-02</span>
 <span class="co"># 14:         4         32 dob_child3 2012-07-21</span>
-<span class="co"># 15:         5         29 dob_child3         NA</span>
+<span class="co"># 15:         5         29 dob_child3       &lt;NA&gt;</span>
 <span class="kw">str</span>(DT.m1)
 <span class="co"># Classes 'data.table' and 'data.frame':    15 obs. of  4 variables:</span>
 <span class="co">#  $ family_id : int  1 2 3 4 5 1 2 3 4 5 ...</span>
@@ -175,15 +203,15 @@ DT.m1
 <span class="co">#  4:         4         32 dob_child1 2004-10-10</span>
 <span class="co">#  5:         5         29 dob_child1 2000-12-05</span>
 <span class="co">#  6:         1         30 dob_child2 2000-01-29</span>
-<span class="co">#  7:         2         27 dob_child2         NA</span>
+<span class="co">#  7:         2         27 dob_child2       &lt;NA&gt;</span>
 <span class="co">#  8:         3         26 dob_child2 2004-04-05</span>
 <span class="co">#  9:         4         32 dob_child2 2009-08-27</span>
 <span class="co"># 10:         5         29 dob_child2 2005-02-28</span>
-<span class="co"># 11:         1         30 dob_child3         NA</span>
-<span class="co"># 12:         2         27 dob_child3         NA</span>
+<span class="co"># 11:         1         30 dob_child3       &lt;NA&gt;</span>
+<span class="co"># 12:         2         27 dob_child3       &lt;NA&gt;</span>
 <span class="co"># 13:         3         26 dob_child3 2007-09-02</span>
 <span class="co"># 14:         4         32 dob_child3 2012-07-21</span>
-<span class="co"># 15:         5         29 dob_child3         NA</span></code></pre></div>
+<span class="co"># 15:         5         29 dob_child3       &lt;NA&gt;</span></code></pre></div>
 </div>
 <div id="section-3" class="section level4 bs-callout bs-callout-info">
 <h4></h4>
@@ -199,13 +227,13 @@ DT.m1
 <div id="how-can-we-get-back-to-the-original-data-table-dt-from-dt.m" class="section level4">
 <h4>- How can we get back to the original data table <code>DT</code> from <code>DT.m</code>?</h4>
 <p>That is, we’d like to collect all <em>child</em> observations corresponding to each <code>family_id, age_mother</code> together under the same row. We can accomplish it using <code>dcast</code> as follows:</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">dcast</span>(DT.m1, family_id +<span class="st"> </span>age_mother ~<span class="st"> </span>child, <span class="dt">value.var =</span> <span class="st">&quot;dob&quot;</span>)
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">dcast</span>(DT.m1, family_id <span class="op">+</span><span class="st"> </span>age_mother <span class="op">~</span><span class="st"> </span>child, <span class="dt">value.var =</span> <span class="st">&quot;dob&quot;</span>)
 <span class="co">#    family_id age_mother dob_child1 dob_child2 dob_child3</span>
-<span class="co"># 1:         1         30 1998-11-26 2000-01-29         NA</span>
-<span class="co"># 2:         2         27 1996-06-22         NA         NA</span>
+<span class="co"># 1:         1         30 1998-11-26 2000-01-29       &lt;NA&gt;</span>
+<span class="co"># 2:         2         27 1996-06-22       &lt;NA&gt;       &lt;NA&gt;</span>
 <span class="co"># 3:         3         26 2002-07-11 2004-04-05 2007-09-02</span>
 <span class="co"># 4:         4         32 2004-10-10 2009-08-27 2012-07-21</span>
-<span class="co"># 5:         5         29 2000-12-05 2005-02-28         NA</span></code></pre></div>
+<span class="co"># 5:         5         29 2000-12-05 2005-02-28       &lt;NA&gt;</span></code></pre></div>
 </div>
 <div id="section-4" class="section level4 bs-callout bs-callout-info">
 <h4></h4>
@@ -222,7 +250,7 @@ DT.m1
 <div id="starting-from-dt.m-how-can-we-get-the-number-of-children-in-each-family" class="section level4">
 <h4>- Starting from <code>DT.m</code>, how can we get the number of children in each family?</h4>
 <p>You can also pass a function to aggregate by in <code>dcast</code> with the argument <code>fun.aggregate</code>. This is particularly essential when the formula provided does not identify single observation for each cell.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">dcast</span>(DT.m1, family_id ~<span class="st"> </span>., <span class="dt">fun.agg =</span> function(x) <span class="kw">sum</span>(!<span class="kw">is.na</span>(x)), <span class="dt">value.var =</span> <span class="st">&quot;dob&quot;</span>)
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">dcast</span>(DT.m1, family_id <span class="op">~</span><span class="st"> </span>., <span class="dt">fun.agg =</span> <span class="cf">function</span>(x) <span class="kw">sum</span>(<span class="op">!</span><span class="kw">is.na</span>(x)), <span class="dt">value.var =</span> <span class="st">&quot;dob&quot;</span>)
 <span class="co">#    family_id .</span>
 <span class="co"># 1:         1 2</span>
 <span class="co"># 2:         2 1</span>
@@ -235,63 +263,37 @@ DT.m1
 <h2>2. Limitations in current <code>melt/dcast</code> approaches</h2>
 <p>So far we’ve seen features of <code>melt</code> and <code>dcast</code> that are based on <code>reshape2</code> package, but implemented efficiently for <em>data.table</em>s, using internal <code>data.table</code> machinery (<em>fast radix ordering</em>, <em>binary search</em> etc..).</p>
 <p>However, there are situations we might run into where the desired operation is not expressed in a straightforward manner. For example, consider the <em>data.table</em> shown below:</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">DT =<span class="st"> </span><span class="kw">fread</span>(<span class="st">&quot;melt_enhanced.csv&quot;</span>)
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">s2 &lt;-<span class="st"> &quot;family_id age_mother dob_child1 dob_child2 dob_child3 gender_child1 gender_child2 gender_child3</span>
+<span class="st">1         30 1998-11-26 2000-01-29         NA             1             2            NA</span>
+<span class="st">2         27 1996-06-22         NA         NA             2            NA            NA</span>
+<span class="st">3         26 2002-07-11 2004-04-05 2007-09-02             2             2             1</span>
+<span class="st">4         32 2004-10-10 2009-08-27 2012-07-21             1             1             1</span>
+<span class="st">5         29 2000-12-05 2005-02-28         NA             2             1            NA&quot;</span>
+DT &lt;-<span class="st"> </span><span class="kw">fread</span>(s2)
 DT
 <span class="co">#    family_id age_mother dob_child1 dob_child2 dob_child3 gender_child1 gender_child2 gender_child3</span>
-<span class="co"># 1:         1         30 1998-11-26 2000-01-29         NA             1             2            NA</span>
-<span class="co"># 2:         2         27 1996-06-22         NA         NA             2            NA            NA</span>
+<span class="co"># 1:         1         30 1998-11-26 2000-01-29       &lt;NA&gt;             1             2            NA</span>
+<span class="co"># 2:         2         27 1996-06-22       &lt;NA&gt;       &lt;NA&gt;             2            NA            NA</span>
 <span class="co"># 3:         3         26 2002-07-11 2004-04-05 2007-09-02             2             2             1</span>
 <span class="co"># 4:         4         32 2004-10-10 2009-08-27 2012-07-21             1             1             1</span>
-<span class="co"># 5:         5         29 2000-12-05 2005-02-28         NA             2             1            NA</span>
+<span class="co"># 5:         5         29 2000-12-05 2005-02-28       &lt;NA&gt;             2             1            NA</span>
 ## 1 = female, 2 = male</code></pre></div>
 <p>And you’d like to combine (melt) all the <code>dob</code> columns together, and <code>gender</code> columns together. Using the current functionality, we can do something like this:</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">DT.m1 =<span class="st"> </span><span class="kw">melt</span>(DT, <span class="dt">id =</span> <span class="kw">c</span>(<span class="st">&quot;family_id&quot;</span>, <span class="st">&quot;age_mother&quot;</span>))
 <span class="co"># Warning in melt.data.table(DT, id = c(&quot;family_id&quot;, &quot;age_mother&quot;)): 'measure.vars' [dob_child1,</span>
 <span class="co"># dob_child2, dob_child3, gender_child1, ...] are not all of the same type. By order of hierarchy, the</span>
 <span class="co"># molten data value column will be of type 'character'. All measure variables not of type 'character'</span>
-<span class="co"># will be coerced to. Check DETAILS in ?melt.data.table for more on coercion.</span>
-DT.m1[, <span class="kw">c</span>(<span class="st">&quot;variable&quot;</span>, <span class="st">&quot;child&quot;</span>) :<span class="er">=</span><span class="st"> </span><span class="kw">tstrsplit</span>(variable, <span class="st">&quot;_&quot;</span>, <span class="dt">fixed =</span> <span class="ot">TRUE</span>)]
-<span class="co">#     family_id age_mother variable      value  child</span>
-<span class="co">#  1:         1         30      dob 1998-11-26 child1</span>
-<span class="co">#  2:         2         27      dob 1996-06-22 child1</span>
-<span class="co">#  3:         3         26      dob 2002-07-11 child1</span>
-<span class="co">#  4:         4         32      dob 2004-10-10 child1</span>
-<span class="co">#  5:         5         29      dob 2000-12-05 child1</span>
-<span class="co">#  6:         1         30      dob 2000-01-29 child2</span>
-<span class="co">#  7:         2         27      dob         NA child2</span>
-<span class="co">#  8:         3         26      dob 2004-04-05 child2</span>
-<span class="co">#  9:         4         32      dob 2009-08-27 child2</span>
-<span class="co"># 10:         5         29      dob 2005-02-28 child2</span>
-<span class="co"># 11:         1         30      dob         NA child3</span>
-<span class="co"># 12:         2         27      dob         NA child3</span>
-<span class="co"># 13:         3         26      dob 2007-09-02 child3</span>
-<span class="co"># 14:         4         32      dob 2012-07-21 child3</span>
-<span class="co"># 15:         5         29      dob         NA child3</span>
-<span class="co"># 16:         1         30   gender          1 child1</span>
-<span class="co"># 17:         2         27   gender          2 child1</span>
-<span class="co"># 18:         3         26   gender          2 child1</span>
-<span class="co"># 19:         4         32   gender          1 child1</span>
-<span class="co"># 20:         5         29   gender          2 child1</span>
-<span class="co"># 21:         1         30   gender          2 child2</span>
-<span class="co"># 22:         2         27   gender         NA child2</span>
-<span class="co"># 23:         3         26   gender          2 child2</span>
-<span class="co"># 24:         4         32   gender          1 child2</span>
-<span class="co"># 25:         5         29   gender          1 child2</span>
-<span class="co"># 26:         1         30   gender         NA child3</span>
-<span class="co"># 27:         2         27   gender         NA child3</span>
-<span class="co"># 28:         3         26   gender          1 child3</span>
-<span class="co"># 29:         4         32   gender          1 child3</span>
-<span class="co"># 30:         5         29   gender         NA child3</span>
-<span class="co">#     family_id age_mother variable      value  child</span>
-DT.c1 =<span class="st"> </span><span class="kw">dcast</span>(DT.m1, family_id +<span class="st"> </span>age_mother +<span class="st"> </span>child ~<span class="st"> </span>variable, <span class="dt">value.var =</span> <span class="st">&quot;value&quot;</span>)
+<span class="co"># will be coerced too. Check DETAILS in ?melt.data.table for more on coercion.</span>
+DT.m1[, <span class="kw">c</span>(<span class="st">&quot;variable&quot;</span>, <span class="st">&quot;child&quot;</span>) <span class="op">:</span><span class="er">=</span><span class="st"> </span><span class="kw">tstrsplit</span>(variable, <span class="st">&quot;_&quot;</span>, <span class="dt">fixed =</span> <span class="ot">TRUE</span>)]
+DT.c1 =<span class="st"> </span><span class="kw">dcast</span>(DT.m1, family_id <span class="op">+</span><span class="st"> </span>age_mother <span class="op">+</span><span class="st"> </span>child <span class="op">~</span><span class="st"> </span>variable, <span class="dt">value.var =</span> <span class="st">&quot;value&quot;</span>)
 DT.c1
 <span class="co">#     family_id age_mother  child        dob gender</span>
 <span class="co">#  1:         1         30 child1 1998-11-26      1</span>
 <span class="co">#  2:         1         30 child2 2000-01-29      2</span>
-<span class="co">#  3:         1         30 child3         NA     NA</span>
+<span class="co">#  3:         1         30 child3       &lt;NA&gt;   &lt;NA&gt;</span>
 <span class="co">#  4:         2         27 child1 1996-06-22      2</span>
-<span class="co">#  5:         2         27 child2         NA     NA</span>
-<span class="co">#  6:         2         27 child3         NA     NA</span>
+<span class="co">#  5:         2         27 child2       &lt;NA&gt;   &lt;NA&gt;</span>
+<span class="co">#  6:         2         27 child3       &lt;NA&gt;   &lt;NA&gt;</span>
 <span class="co">#  7:         3         26 child1 2002-07-11      2</span>
 <span class="co">#  8:         3         26 child2 2004-04-05      2</span>
 <span class="co">#  9:         3         26 child3 2007-09-02      1</span>
@@ -300,7 +302,7 @@ DT.c1
 <span class="co"># 12:         4         32 child3 2012-07-21      1</span>
 <span class="co"># 13:         5         29 child1 2000-12-05      2</span>
 <span class="co"># 14:         5         29 child2 2005-02-28      1</span>
-<span class="co"># 15:         5         29 child3         NA     NA</span>
+<span class="co"># 15:         5         29 child3       &lt;NA&gt;   &lt;NA&gt;</span>
 
 <span class="kw">str</span>(DT.c1) ## gender column is character type now!
 <span class="co"># Classes 'data.table' and 'data.frame':    15 obs. of  5 variables:</span>
@@ -325,7 +327,7 @@ DT.c1
 </div>
 <div id="section-6" class="section level1">
 <h1></h1>
-<p>In fact, <code>base::reshape</code> is capable of performing this operation in a very straightforward manner. It is an extremely useful and often underrated function. You should definitely give it a try!</p>
+<p>In fact, <code>stats::reshape</code> is capable of performing this operation in a very straightforward manner. It is an extremely useful and often underrated function. You should definitely give it a try!</p>
 <div id="enhanced-new-functionality" class="section level2">
 <h2>3. Enhanced (new) functionality</h2>
 <div id="a-enhanced-melt" class="section level3">
@@ -334,8 +336,8 @@ DT.c1
 <div id="melt-multiple-columns-simultaneously" class="section level4">
 <h4>- <code>melt</code> multiple columns simultaneously</h4>
 <p>The idea is quite simple. We pass a list of columns to <code>measure.vars</code>, where each element of the list contains the columns that should be combined together.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">colA =<span class="st"> </span><span class="kw">paste</span>(<span class="st">&quot;dob_child&quot;</span>, <span class="dv">1</span>:<span class="dv">3</span>, <span class="dt">sep =</span> <span class="st">&quot;&quot;</span>)
-colB =<span class="st"> </span><span class="kw">paste</span>(<span class="st">&quot;gender_child&quot;</span>, <span class="dv">1</span>:<span class="dv">3</span>, <span class="dt">sep =</span> <span class="st">&quot;&quot;</span>)
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">colA =<span class="st"> </span><span class="kw">paste</span>(<span class="st">&quot;dob_child&quot;</span>, <span class="dv">1</span><span class="op">:</span><span class="dv">3</span>, <span class="dt">sep =</span> <span class="st">&quot;&quot;</span>)
+colB =<span class="st"> </span><span class="kw">paste</span>(<span class="st">&quot;gender_child&quot;</span>, <span class="dv">1</span><span class="op">:</span><span class="dv">3</span>, <span class="dt">sep =</span> <span class="st">&quot;&quot;</span>)
 DT.m2 =<span class="st"> </span><span class="kw">melt</span>(DT, <span class="dt">measure =</span> <span class="kw">list</span>(colA, colB), <span class="dt">value.name =</span> <span class="kw">c</span>(<span class="st">&quot;dob&quot;</span>, <span class="st">&quot;gender&quot;</span>))
 DT.m2
 <span class="co">#     family_id age_mother variable        dob gender</span>
@@ -345,15 +347,15 @@ DT.m2
 <span class="co">#  4:         4         32        1 2004-10-10      1</span>
 <span class="co">#  5:         5         29        1 2000-12-05      2</span>
 <span class="co">#  6:         1         30        2 2000-01-29      2</span>
-<span class="co">#  7:         2         27        2         NA     NA</span>
+<span class="co">#  7:         2         27        2       &lt;NA&gt;     NA</span>
 <span class="co">#  8:         3         26        2 2004-04-05      2</span>
 <span class="co">#  9:         4         32        2 2009-08-27      1</span>
 <span class="co"># 10:         5         29        2 2005-02-28      1</span>
-<span class="co"># 11:         1         30        3         NA     NA</span>
-<span class="co"># 12:         2         27        3         NA     NA</span>
+<span class="co"># 11:         1         30        3       &lt;NA&gt;     NA</span>
+<span class="co"># 12:         2         27        3       &lt;NA&gt;     NA</span>
 <span class="co"># 13:         3         26        3 2007-09-02      1</span>
 <span class="co"># 14:         4         32        3 2012-07-21      1</span>
-<span class="co"># 15:         5         29        3         NA     NA</span>
+<span class="co"># 15:         5         29        3       &lt;NA&gt;     NA</span>
 
 <span class="kw">str</span>(DT.m2) ## col type is preserved
 <span class="co"># Classes 'data.table' and 'data.frame':    15 obs. of  5 variables:</span>
@@ -376,15 +378,15 @@ DT.m2
 <span class="co">#  4:         4         32        1 2004-10-10      1</span>
 <span class="co">#  5:         5         29        1 2000-12-05      2</span>
 <span class="co">#  6:         1         30        2 2000-01-29      2</span>
-<span class="co">#  7:         2         27        2         NA     NA</span>
+<span class="co">#  7:         2         27        2       &lt;NA&gt;     NA</span>
 <span class="co">#  8:         3         26        2 2004-04-05      2</span>
 <span class="co">#  9:         4         32        2 2009-08-27      1</span>
 <span class="co"># 10:         5         29        2 2005-02-28      1</span>
-<span class="co"># 11:         1         30        3         NA     NA</span>
-<span class="co"># 12:         2         27        3         NA     NA</span>
+<span class="co"># 11:         1         30        3       &lt;NA&gt;     NA</span>
+<span class="co"># 12:         2         27        3       &lt;NA&gt;     NA</span>
 <span class="co"># 13:         3         26        3 2007-09-02      1</span>
 <span class="co"># 14:         4         32        3 2012-07-21      1</span>
-<span class="co"># 15:         5         29        3         NA     NA</span></code></pre></div>
+<span class="co"># 15:         5         29        3       &lt;NA&gt;     NA</span></code></pre></div>
 <p>That’s it!</p>
 </div>
 <div id="section-7" class="section level4 bs-callout bs-callout-info">
@@ -403,14 +405,14 @@ DT.m2
 <h4>- Casting multiple <code>value.var</code>s simultaneously</h4>
 <p>We can now provide <strong>multiple <code>value.var</code> columns</strong> to <code>dcast</code> for <em>data.tables</em> directly so that the operations are taken care of internally and efficiently.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">## new 'cast' functionality - multiple value.vars
-DT.c2 =<span class="st"> </span><span class="kw">dcast</span>(DT.m2, family_id +<span class="st"> </span>age_mother ~<span class="st"> </span>variable, <span class="dt">value.var =</span> <span class="kw">c</span>(<span class="st">&quot;dob&quot;</span>, <span class="st">&quot;gender&quot;</span>))
+DT.c2 =<span class="st"> </span><span class="kw">dcast</span>(DT.m2, family_id <span class="op">+</span><span class="st"> </span>age_mother <span class="op">~</span><span class="st"> </span>variable, <span class="dt">value.var =</span> <span class="kw">c</span>(<span class="st">&quot;dob&quot;</span>, <span class="st">&quot;gender&quot;</span>))
 DT.c2
 <span class="co">#    family_id age_mother      dob_1      dob_2      dob_3 gender_1 gender_2 gender_3</span>
-<span class="co"># 1:         1         30 1998-11-26 2000-01-29         NA        1        2       NA</span>
-<span class="co"># 2:         2         27 1996-06-22         NA         NA        2       NA       NA</span>
+<span class="co"># 1:         1         30 1998-11-26 2000-01-29       &lt;NA&gt;        1        2       NA</span>
+<span class="co"># 2:         2         27 1996-06-22       &lt;NA&gt;       &lt;NA&gt;        2       NA       NA</span>
 <span class="co"># 3:         3         26 2002-07-11 2004-04-05 2007-09-02        2        2        1</span>
 <span class="co"># 4:         4         32 2004-10-10 2009-08-27 2012-07-21        1        1        1</span>
-<span class="co"># 5:         5         29 2000-12-05 2005-02-28         NA        2        1       NA</span></code></pre></div>
+<span class="co"># 5:         5         29 2000-12-05 2005-02-28       &lt;NA&gt;        2        1       NA</span></code></pre></div>
 </div>
 <div id="section-8" class="section level4 bs-callout bs-callout-info">
 <h4></h4>
@@ -441,7 +443,7 @@ DT.c2
   (function () {
     var script = document.createElement("script");
     script.type = "text/javascript";
-    script.src  = "https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
     document.getElementsByTagName("head")[0].appendChild(script);
   })();
 </script>

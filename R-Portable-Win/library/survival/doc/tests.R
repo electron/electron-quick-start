@@ -10,7 +10,7 @@ options(contrasts=c("contr.treatment", "contr.poly")) #reset default
 
 
 ###################################################
-### code chunk number 2: tests.Rnw:44-52
+### code chunk number 2: tests.Rnw:48-56
 ###################################################
 library(survival)
 age2 <- cut(flchain$age, c(49, 59, 69, 79, 89, 120),                   
@@ -47,7 +47,7 @@ round(cellmean, 2)
 
 
 ###################################################
-### code chunk number 4: tests.Rnw:384-393
+### code chunk number 4: tests.Rnw:388-397
 ###################################################
 us2000 <- rowSums(uspop2[51:101,,'2000'])
 
@@ -87,7 +87,7 @@ round(theta,2)
 
 
 ###################################################
-### code chunk number 7: tests.Rnw:548-570
+### code chunk number 7: tests.Rnw:552-574
 ###################################################
 qform <- function(beta, var) # quadratic form b' (V-inverse) b
     sum(beta * solve(var, beta))
@@ -114,7 +114,7 @@ contrast(yates.sex[2,]-yates.sex[,1], yatesfit) # male - female contrast
 
 
 ###################################################
-### code chunk number 8: tests.Rnw:573-599
+### code chunk number 8: tests.Rnw:577-603
 ###################################################
 # Create the estimates table -- lots of fits
 emat <- matrix(0., 6, 3)
@@ -145,7 +145,7 @@ emat[6,] <- tfun(rep(1/5,5))
 
 
 ###################################################
-### code chunk number 9: tests.Rnw:604-608
+### code chunk number 9: tests.Rnw:608-612
 ###################################################
 temp <- dimnames(emat)[[1]]
 for (i in 1:nrow(emat))
@@ -171,7 +171,7 @@ for (i in 1:4) {
 
 
 ###################################################
-### code chunk number 11: tests.Rnw:652-662
+### code chunk number 11: tests.Rnw:656-666
 ###################################################
 tname <- c("Unadjusted", "Min var", "Empirical", "Yates")
 for (i in 1:2) {
@@ -186,7 +186,7 @@ for (i in 1:2) {
 
 
 ###################################################
-### code chunk number 12: tests.Rnw:705-709
+### code chunk number 12: tests.Rnw:709-713
 ###################################################
 temp <- 1/colSums(1/counts)
 temp <- temp/sum(temp)
@@ -297,7 +297,7 @@ signif(coxp,3)
 
 
 ###################################################
-### code chunk number 20: tests.Rnw:1219-1235
+### code chunk number 20: tests.Rnw:1223-1239
 ###################################################
 cfit4 <- coxph(Surv(futime, death) ~ sex * age2, flchain)
 # Uniform population contrast
@@ -346,7 +346,7 @@ data3 <- data1[as.numeric(data1$x1) != as.numeric(data1$x2),]
 
 
 ###################################################
-### code chunk number 23: tests.Rnw:1411-1414
+### code chunk number 23: tests.Rnw:1415-1418
 ###################################################
 options(contrasts=c("contr.sum", "contr.poly"))
 fit1 <- lm(y ~ x1*x2, data1)
@@ -354,7 +354,7 @@ drop1(fit1, .~.)
 
 
 ###################################################
-### code chunk number 24: tests.Rnw:1421-1427
+### code chunk number 24: tests.Rnw:1425-1431
 ###################################################
 options(contrasts=c("contr.SAS", "contr.poly"))
 fit2 <- lm(y ~ x1*x2, data1)
@@ -378,7 +378,7 @@ yates
 
 
 ###################################################
-### code chunk number 26: tests.Rnw:1467-1470
+### code chunk number 26: tests.Rnw:1471-1474
 ###################################################
 wt <- solve(t(X) %*% X, t(X)) # twelve rows (one per coef), n columns
 casewt <- t(effects) %*% wt   # case weights for the three "row efffects"
@@ -386,7 +386,7 @@ for (i in 1:3) print(tapply(casewt[i,], data1$x2, sum))
 
 
 ###################################################
-### code chunk number 27: tests.Rnw:1507-1508
+### code chunk number 27: tests.Rnw:1511-1512
 ###################################################
 fit4 <- lm(y ~ x1*x2 + x3, data=data1)
 

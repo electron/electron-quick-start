@@ -1,0 +1,148 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Pretty Breakpoints</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for pretty {base}"><tr><td>pretty {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Pretty Breakpoints</h2>
+
+<h3>Description</h3>
+
+<p>Compute a  sequence of about <code>n+1</code> equally spaced &lsquo;round&rsquo;
+values which cover the range of the values in <code>x</code>.
+The values are chosen so that they are 1, 2 or 5 times a power of 10.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+pretty(x, ...)
+
+## Default S3 method:
+pretty(x, n = 5, min.n = n %/% 3,  shrink.sml = 0.75,
+       high.u.bias = 1.5, u5.bias = .5 + 1.5*high.u.bias,
+       eps.correct = 0, ...)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>an object coercible to numeric by <code><a href="numeric.html">as.numeric</a></code>.</p>
+</td></tr>
+<tr valign="top"><td><code>n</code></td>
+<td>
+<p>integer giving the <em>desired</em> number of
+intervals.  Non-integer values are rounded down.</p>
+</td></tr>
+<tr valign="top"><td><code>min.n</code></td>
+<td>
+<p>nonnegative integer giving the <em>minimal</em> number of
+intervals.  If <code>min.n == 0</code>, <code>pretty(.)</code> may return a
+single value.</p>
+</td></tr>
+<tr valign="top"><td><code>shrink.sml</code></td>
+<td>
+<p>positive number, a factor (smaller than one)
+by which a default scale is shrunk in the case when
+<code>range(x)</code> is very small (usually 0).</p>
+</td></tr>
+<tr valign="top"><td><code>high.u.bias</code></td>
+<td>
+<p>non-negative numeric, typically <i>&gt; 1</i>.
+The interval unit is determined as {1,2,5,10} times <code>b</code>, a
+power of 10.  Larger <code>high.u.bias</code> values favor larger units.</p>
+</td></tr>
+<tr valign="top"><td><code>u5.bias</code></td>
+<td>
+<p>non-negative numeric
+multiplier favoring factor 5 over 2.  Default and &lsquo;optimal&rsquo;:
+<code>u5.bias = .5 + 1.5*high.u.bias</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>eps.correct</code></td>
+<td>
+<p>integer code, one of {0,1,2}. If non-0, an
+<em>epsilon correction</em> is made at the boundaries such that
+the result boundaries will be outside <code>range(x)</code>; in the
+<em>small</em> case, the correction is only done if <code>eps.correct
+       &gt;= 2</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>further arguments for methods.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p><code>pretty</code> ignores non-finite values in <code>x</code>.
+</p>
+<p>Let <code>d &lt;- max(x) - min(x)</code> <i>&ge; 0</i>.
+If <code>d</code> is not (very close) to 0, we let <code>c &lt;- d/n</code>,
+otherwise more or less <code>c &lt;- max(abs(range(x)))*shrink.sml / min.n</code>.
+Then, the <em>10 base</em> <code>b</code> is
+<i>10^(floor(log10(c)))</i> such
+that <i>b &le; c &lt; 10b</i>.
+</p>
+<p>Now determine the basic <em>unit</em> <i>u</i> as one of
+<i>{1,2,5,10} b</i>, depending on
+<i>c/b in [1,10)</i>
+and the two &lsquo;<em>bias</em>&rsquo; coefficients, <i>h
+  =</i><code>high.u.bias</code> and <i>f =</i><code>u5.bias</code>.
+</p>
+<p>.........
+</p>
+
+
+<h3>References</h3>
+
+<p>Becker, R. A., Chambers, J. M. and Wilks, A. R. (1988)
+<em>The New S Language</em>.
+Wadsworth &amp; Brooks/Cole.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="../../graphics/html/axTicks.html">axTicks</a></code> for the computation of pretty axis tick
+locations in plots, particularly on the log scale.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+pretty(1:15)          # 0  2  4  6  8 10 12 14 16
+pretty(1:15, h = 2)   # 0  5 10 15
+pretty(1:15, n = 4)   # 0  5 10 15
+pretty(1:15 * 2)      # 0  5 10 15 20 25 30
+pretty(1:20)          # 0  5 10 15 20
+pretty(1:20, n = 2)   # 0 10 20
+pretty(1:20, n = 10)  # 0  2  4 ... 20
+
+for(k in 5:11) {
+  cat("k=", k, ": "); print(diff(range(pretty(100 + c(0, pi*10^-k)))))}
+
+##-- more bizarre, when  min(x) == max(x):
+pretty(pi)
+
+add.names &lt;- function(v) { names(v) &lt;- paste(v); v}
+utils::str(lapply(add.names(-10:20), pretty))
+utils::str(lapply(add.names(0:20),   pretty, min.n = 0))
+sapply(    add.names(0:20),   pretty, min.n = 4)
+
+pretty(1.234e100)
+pretty(1001.1001)
+pretty(1001.1001, shrink = 0.2)
+for(k in -7:3)
+  cat("shrink=", formatC(2^k, width = 9),":",
+      formatC(pretty(1001.1001, shrink.sml = 2^k), width = 6),"\n")
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

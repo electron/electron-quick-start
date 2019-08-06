@@ -1,0 +1,229 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Predict method for Linear Model Fits</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for predict.lm {stats}"><tr><td>predict.lm {stats}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Predict method for Linear Model Fits</h2>
+
+<h3>Description</h3>
+
+<p>Predicted values based on linear model object.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+## S3 method for class 'lm'
+predict(object, newdata, se.fit = FALSE, scale = NULL, df = Inf,
+        interval = c("none", "confidence", "prediction"),
+        level = 0.95, type = c("response", "terms"),
+        terms = NULL, na.action = na.pass,
+        pred.var = res.var/weights, weights = 1, ...)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>object</code></td>
+<td>
+<p>Object of class inheriting from <code>"lm"</code></p>
+</td></tr>
+<tr valign="top"><td><code>newdata</code></td>
+<td>
+<p>An optional data frame in which to look for variables with
+which to predict.  If omitted, the fitted values are used.</p>
+</td></tr>
+<tr valign="top"><td><code>se.fit</code></td>
+<td>
+<p>A switch indicating if standard errors are required.</p>
+</td></tr>
+<tr valign="top"><td><code>scale</code></td>
+<td>
+<p>Scale parameter for std.err. calculation.</p>
+</td></tr>
+<tr valign="top"><td><code>df</code></td>
+<td>
+<p>Degrees of freedom for scale.</p>
+</td></tr>
+<tr valign="top"><td><code>interval</code></td>
+<td>
+<p>Type of interval calculation.  Can be abbreviated.</p>
+</td></tr>
+<tr valign="top"><td><code>level</code></td>
+<td>
+<p>Tolerance/confidence level.</p>
+</td></tr>
+<tr valign="top"><td><code>type</code></td>
+<td>
+<p>Type of prediction (response or model term).  Can be abbreviated.</p>
+</td></tr>
+<tr valign="top"><td><code>terms</code></td>
+<td>
+<p>If <code>type = "terms"</code>, which terms (default is all
+terms), a <code><a href="../../base/html/character.html">character</a></code> vector.</p>
+</td></tr>
+<tr valign="top"><td><code>na.action</code></td>
+<td>
+<p>function determining what should be done with missing
+values in <code>newdata</code>.  The default is to predict <code>NA</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>pred.var</code></td>
+<td>
+<p>the variance(s) for future observations to be assumed
+for prediction intervals.  See &lsquo;Details&rsquo;.</p>
+</td></tr>
+<tr valign="top"><td><code>weights</code></td>
+<td>
+<p>variance weights for prediction.  This can be a numeric
+vector or a one-sided model formula.  In the latter case, it is
+interpreted as an expression evaluated in <code>newdata</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>further arguments passed to or from other methods.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p><code>predict.lm</code> produces predicted values, obtained by evaluating
+the regression function in the frame <code>newdata</code> (which defaults to
+<code>model.frame(object)</code>).  If the logical <code>se.fit</code> is
+<code>TRUE</code>, standard errors of the predictions are calculated.  If
+the numeric argument <code>scale</code> is set (with optional <code>df</code>), it
+is used as the residual standard deviation in the computation of the
+standard errors, otherwise this is extracted from the model fit.
+Setting <code>intervals</code> specifies computation of confidence or
+prediction (tolerance) intervals at the specified <code>level</code>, sometimes
+referred to as narrow vs. wide intervals.
+</p>
+<p>If the fit is rank-deficient, some of the columns of the design matrix
+will have been dropped.  Prediction from such a fit only makes sense
+if <code>newdata</code> is contained in the same subspace as the original
+data.  That cannot be checked accurately, so a warning is issued.
+</p>
+<p>If <code>newdata</code> is omitted the predictions are based on the data
+used for the fit.  In that case how cases with missing values in the
+original fit are handled is determined by the <code>na.action</code> argument of that
+fit.  If <code>na.action = na.omit</code> omitted cases will not appear in
+the predictions, whereas if <code>na.action = na.exclude</code> they will
+appear (in predictions, standard errors or interval limits),
+with value <code>NA</code>.  See also <code><a href="nafns.html">napredict</a></code>.
+</p>
+<p>The prediction intervals are for a single observation at each case in
+<code>newdata</code> (or by default, the data used for the fit) with error
+variance(s) <code>pred.var</code>.  This can be a multiple of <code>res.var</code>,
+the estimated value of <i>&sigma;^2</i>: the default is to assume that
+future observations have the same error variance as those
+used for fitting.  If <code>weights</code> is supplied, the inverse of this
+is used as a scale factor.  For a weighted fit, if the prediction
+is for the original data frame, <code>weights</code> defaults to the weights
+used for the  model fit, with a warning since it might not be the
+intended result.  If the fit was weighted and <code>newdata</code> is given, the
+default is to assume constant prediction variance, with a warning.
+</p>
+
+
+<h3>Value</h3>
+
+<p><code>predict.lm</code> produces a vector of predictions or a matrix of
+predictions and bounds with column names <code>fit</code>, <code>lwr</code>, and
+<code>upr</code> if <code>interval</code> is set.  For <code>type = "terms"</code> this
+is a matrix with a column per term and may have an attribute
+<code>"constant"</code>.
+</p>
+<p>If <code>se.fit</code> is
+<code>TRUE</code>, a list with the following components is returned:
+</p>
+<table summary="R valueblock">
+<tr valign="top"><td><code>fit</code></td>
+<td>
+<p>vector or matrix as above</p>
+</td></tr>
+<tr valign="top"><td><code>se.fit</code></td>
+<td>
+<p>standard error of predicted means</p>
+</td></tr>
+<tr valign="top"><td><code>residual.scale</code></td>
+<td>
+<p>residual standard deviations</p>
+</td></tr>
+<tr valign="top"><td><code>df</code></td>
+<td>
+<p>degrees of freedom for residual</p>
+</td></tr>
+</table>
+
+
+<h3>Note</h3>
+
+<p>Variables are first looked for in <code>newdata</code> and then searched for
+in the usual way (which will include the environment of the formula
+used in the fit).  A warning will be given if the
+variables found are not of the same length as those in <code>newdata</code>
+if it was supplied.
+</p>
+<p>Notice that prediction variances and prediction intervals always refer
+to <em>future</em> observations, possibly corresponding to the same
+predictors as used for the fit.  The variance of the <em>residuals</em>
+will be smaller.
+</p>
+<p>Strictly speaking, the formula used for prediction limits assumes that
+the degrees of freedom for the fit are the same as those for the
+residual variance.  This may not be the case if <code>res.var</code> is
+not obtained from the fit.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>The model fitting function <code><a href="lm.html">lm</a></code>, <code><a href="predict.html">predict</a></code>.
+</p>
+<p><a href="makepredictcall.html">SafePrediction</a> for prediction from (univariable) polynomial and
+spline fits.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+require(graphics)
+
+## Predictions
+x &lt;- rnorm(15)
+y &lt;- x + rnorm(15)
+predict(lm(y ~ x))
+new &lt;- data.frame(x = seq(-3, 3, 0.5))
+predict(lm(y ~ x), new, se.fit = TRUE)
+pred.w.plim &lt;- predict(lm(y ~ x), new, interval = "prediction")
+pred.w.clim &lt;- predict(lm(y ~ x), new, interval = "confidence")
+matplot(new$x, cbind(pred.w.clim, pred.w.plim[,-1]),
+        lty = c(1,2,2,3,3), type = "l", ylab = "predicted y")
+
+## Prediction intervals, special cases
+##  The first three of these throw warnings
+w &lt;- 1 + x^2
+fit &lt;- lm(y ~ x)
+wfit &lt;- lm(y ~ x, weights = w)
+predict(fit, interval = "prediction")
+predict(wfit, interval = "prediction")
+predict(wfit, new, interval = "prediction")
+predict(wfit, new, interval = "prediction", weights = (new$x)^2)
+predict(wfit, new, interval = "prediction", weights = ~x^2)
+
+##-- From  aov(.) example ---- predict(.. terms)
+npk.aov &lt;- aov(yield ~ block + N*P*K, npk)
+(termL &lt;- attr(terms(npk.aov), "term.labels"))
+(pt &lt;- predict(npk.aov, type = "terms"))
+pt. &lt;- predict(npk.aov, type = "terms", terms = termL[1:4])
+stopifnot(all.equal(pt[,1:4], pt.,
+                    tolerance = 1e-12, check.attributes = FALSE))
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>stats</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

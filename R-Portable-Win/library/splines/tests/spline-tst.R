@@ -222,3 +222,56 @@ all.equal(p1, p2,  tol=0)# interestingly almost the same
 ispl <- with(women, interpSpline( height, weight ))
 stopifnot(identical(format(formula(ispl)),
 		    "weight ~ height")) ## was wrongly .Primitive(\"~\")(wei...
+
+###------------- Problems for small n ------- want at least good error messages ---
+
+## This gives an error, but not a "human readable" one for k <= 3
+## -- now done: the English error message is  "must have at least 'ord'=4 points"
+## FIXME: Would like to get degree=0 (constant), 1, 2 interpolation spline here
+##        (and could use degree = 0 for both n=0 and n=1) ==> would have *no* error here
+for(n in 0:4) {
+    cat("n = ", n,": ")
+    x <- cumsum(pmax(1, round(10*runif(n)))) # pmax(1,*): x[] must be distinct
+    y <- (x - 2)^2 + round(8*rnorm(n))/4
+    if(!inherits(sp <- try(interpSpline(x,y)), "try-error")) print(sp)
+    cat("-------------------------------\n")
+}
+## for n=4:
+stopifnot(inherits(sp, "polySpline"), is.matrix(sp$coefficients),
+          identical(dim(sp$coefficients), c(4L, 4L)))
+
+## This also gives a "hard to read" error _FIXME_
+try(ns(1[0])) # n = 0
+## Error in splineDesign(Aknots, x, ord) :
+##   length of 'derivs' is larger than length of 'x' -- barely ok  + 2 warnings
+try(bs(1[0])) # n = 0 :  same error etc as  ns()
+
+(b1 <- bs(pi)) # n = 1 :  works fine
+(n1 <- ns(pi)) # n = 1 : now ok; gave error:  "qr.default(.. NA ...)"
+
+##' keep {dim, dimnames} but nothing else :
+noAttr <- function(x) `mostattributes<-`(x, list(dim=dim(x), dimnames=dimnames(x)))
+stopifnot(
+    identical(noAttr(b1), rbind(c(`1`=0, `2`=0, `3`=0))),
+    all.equal(noAttr(n1), matrix(0.400891862868637, 1, dimnames=list(NULL,"1")),
+	      tol = 5e-15))
+
+d1 <- data.frame(u = 2, Y = 5) ## data set with 1 observation
+summary(mbs  <- lm(Y ~ bs(u),           data=d1)) # fine though many coef etc are NA
+summary(mbs1 <- lm(Y ~ bs(u, degree=1), data=d1)) # ok
+stopifnot(
+    identical(coef(mbs), setNames(c(5, NA, NA, NA),
+                                  c("(Intercept)", paste0("bs(u)", 1:3))))
+    ,
+    identical(coef(mbs1), c("(Intercept)" = 5, "bs(u, degree = 1)" = NA)))
+if(FALSE)
+summary(mbs0 <- lm(Y ~ bs(u, degree=0), data=d1)) # error: degree >= 1
+
+## ns() has no 'degree' argument!
+summary(mns  <- lm(Y ~ ns(u),       data=d1)) ## gave Error; now ok
+stopifnot(identical(coef(mns),  c("(Intercept)" = 5, "ns(u)" = NA))
+	  ## perfect prediction: all residuals == 0 :
+	, identical(residuals(mns), c(`1` = 0))
+	, identical(residuals(mbs), c(`1` = 0))
+	, identical(residuals(mbs1),c(`1` = 0))
+	  )

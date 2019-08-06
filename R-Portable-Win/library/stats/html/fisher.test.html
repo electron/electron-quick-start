@@ -1,0 +1,331 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Fisher's Exact Test for Count Data</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for fisher.test {stats}"><tr><td>fisher.test {stats}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Fisher's Exact Test for Count Data</h2>
+
+<h3>Description</h3>
+
+<p>Performs Fisher's exact test for testing the null of independence of
+rows and columns in a contingency table with fixed marginals.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+fisher.test(x, y = NULL, workspace = 200000, hybrid = FALSE,
+            hybridPars = c(expect = 5, percent = 80, Emin = 1),
+            control = list(), or = 1, alternative = "two.sided",
+            conf.int = TRUE, conf.level = 0.95,
+            simulate.p.value = FALSE, B = 2000)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>either a two-dimensional contingency table in matrix form,
+or a factor object.</p>
+</td></tr>
+<tr valign="top"><td><code>y</code></td>
+<td>
+<p>a factor object; ignored if <code>x</code> is a matrix.</p>
+</td></tr>
+<tr valign="top"><td><code>workspace</code></td>
+<td>
+<p>an integer specifying the size of the workspace
+used in the network algorithm.  In units of 4 bytes.  Only used for
+non-simulated p-values larger than <i>2 by 2</i> tables.
+Since <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> version 3.5.0, this also increases the internal stack size
+which allows larger problems to be solved, however sometimes needing
+hours.  In such cases, <code>simulate.p.values=TRUE</code> may be more
+reasonable.</p>
+</td></tr>
+<tr valign="top"><td><code>hybrid</code></td>
+<td>
+<p>a logical. Only used for larger than <i>2 by 2</i>
+tables, in which cases it indicates whether the exact probabilities
+(default) or a hybrid approximation thereof should be computed.</p>
+</td></tr>
+<tr valign="top"><td><code>hybridPars</code></td>
+<td>
+<p>a numeric vector of length 3, by default describing
+&ldquo;Cochran's conditions&rdquo; for the validity of the chisquare
+approximation, see &lsquo;Details&rsquo;.</p>
+</td></tr>
+<tr valign="top"><td><code>control</code></td>
+<td>
+<p>a list with named components for low level algorithm
+control.  At present the only one used is <code>"mult"</code>, a positive
+integer <i>&ge; 2</i> with default 30 used only for larger than
+<i>2 by 2</i> tables.  This says how many times as much
+space should be allocated to paths as to keys: see file
+&lsquo;<span class="file">fexact.c</span>&rsquo; in the sources of this package.</p>
+</td></tr>
+<tr valign="top"><td><code>or</code></td>
+<td>
+<p>the hypothesized odds ratio.  Only used in the
+<i>2 by 2</i> case.</p>
+</td></tr>
+<tr valign="top"><td><code>alternative</code></td>
+<td>
+<p>indicates the alternative hypothesis and must be
+one of <code>"two.sided"</code>, <code>"greater"</code> or <code>"less"</code>.
+You can specify just the initial letter.  Only used in the
+<i>2 by 2</i> case.</p>
+</td></tr>
+<tr valign="top"><td><code>conf.int</code></td>
+<td>
+<p>logical indicating if a confidence interval for the
+odds ratio in a <i>2 by 2</i> table should be
+computed (and returned).</p>
+</td></tr>
+<tr valign="top"><td><code>conf.level</code></td>
+<td>
+<p>confidence level for the returned confidence
+interval.  Only used in the <i>2 by 2</i> case and if
+<code>conf.int = TRUE</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>simulate.p.value</code></td>
+<td>
+<p>a logical indicating whether to compute
+p-values by Monte Carlo simulation, in larger than <i>2 by 2</i> tables.</p>
+</td></tr>
+<tr valign="top"><td><code>B</code></td>
+<td>
+<p>an integer specifying the number of replicates used in the
+Monte Carlo test.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>If <code>x</code> is a matrix, it is taken as a two-dimensional contingency
+table, and hence its entries should be nonnegative integers.
+Otherwise, both <code>x</code> and <code>y</code> must be vectors of the same
+length.  Incomplete cases are removed, the vectors are coerced into
+factor objects, and the contingency table is computed from these.
+</p>
+<p>For <i>2 by 2</i> cases, p-values are obtained directly
+using the (central or non-central) hypergeometric
+distribution. Otherwise, computations are based on a C version of the
+FORTRAN subroutine FEXACT which implements the network developed by
+Mehta and Patel (1983, 1986) and improved by Clarkson, Fan and Joe (1993).
+The FORTRAN code can be obtained from
+<a href="http://www.netlib.org/toms/643">http://www.netlib.org/toms/643</a>.  Note this fails (with an error
+message) when the entries of the table are too large.  (It transposes
+the table if necessary so it has no more rows than columns.  One
+constraint is that the product of the row marginals be less than
+<i>2^31 - 1</i>.)
+</p>
+<p>For <i>2 by 2</i> tables, the null of conditional
+independence is equivalent to the hypothesis that the odds ratio
+equals one.  &lsquo;Exact&rsquo; inference can be based on observing that in
+general, given all marginal totals fixed, the first element of the
+contingency table has a non-central hypergeometric distribution with
+non-centrality parameter given by the odds ratio (Fisher, 1935).  The
+alternative for a one-sided test is based on the odds ratio, so
+<code>alternative = "greater"</code> is a test of the odds ratio being bigger
+than <code>or</code>.
+</p>
+<p>Two-sided tests are based on the probabilities of the tables, and take
+as &lsquo;more extreme&rsquo; all tables with probabilities less than or
+equal to that of the observed table, the p-value being the sum of such
+probabilities.
+</p>
+<p>For larger than <i>2 by 2</i> tables and <code>hybrid = TRUE</code>,
+asymptotic chi-squared probabilities are only used if the
+&lsquo;Cochran conditions&rsquo; (or modified version thereof) specified by
+<code>hybridPars = c(expect = 5, percent = 80, Emin = 1)</code> are
+satisfied, that is if no cell has expected counts less than
+<code>1</code> (<code>= Emin</code>) and more than 80% (<code>= percent</code>) of the
+cells have expected counts at least 5 (<code>= expect</code>), otherwise
+the exact calculation is used.  A corresponding <code>if()</code> decision
+is made for all sub-tables considered.
+
+Accidentally, <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> has used <code>180</code> instead of <code>80</code> as
+<code>percent</code>, i.e., <code>hybridPars[2]</code> in <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> versions between
+3.0.0 and 3.4.1 (inclusive), i.e., the 2nd of the <code>hybridPars</code>
+(all of which used to be hard-coded previous to <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> 3.5.0).
+Consequently, in these versions of <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>, <code>hybrid=TRUE</code> never made a
+difference.
+</p>
+<p>In the <i>r x c</i> case with <i>r &gt; 2</i> or <i>c &gt; 2</i>,
+internal tables can get too large for the exact test in which case an
+error is signalled.  Apart from increasing <code>workspace</code>
+sufficiently, which then may lead to very long running times, using
+<code>simulate.p.value = TRUE</code> may then often be sufficient and hence
+advisable.
+</p>
+<p>Simulation is done conditional on the row and column marginals, and
+works only if the marginals are strictly positive.  (A C translation
+of the algorithm of Patefield (1981) is used.)
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list with class <code>"htest"</code> containing the following components:
+</p>
+<table summary="R valueblock">
+<tr valign="top"><td><code>p.value</code></td>
+<td>
+<p>the p-value of the test.</p>
+</td></tr>
+<tr valign="top"><td><code>conf.int</code></td>
+<td>
+<p>a confidence interval for the odds ratio.
+Only present in the <i>2 by 2</i> case and if argument
+<code>conf.int = TRUE</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>estimate</code></td>
+<td>
+<p>an estimate of the odds ratio.  Note that the
+<em>conditional</em> Maximum Likelihood Estimate (MLE) rather than the
+unconditional MLE (the sample odds ratio) is used.
+Only present in the <i>2 by 2</i> case.</p>
+</td></tr>
+<tr valign="top"><td><code>null.value</code></td>
+<td>
+<p>the odds ratio under the null, <code>or</code>.
+Only present in the <i>2 by 2</i> case.</p>
+</td></tr>
+<tr valign="top"><td><code>alternative</code></td>
+<td>
+<p>a character string describing the alternative
+hypothesis.</p>
+</td></tr>
+<tr valign="top"><td><code>method</code></td>
+<td>
+<p>the character string
+<code>"Fisher's Exact Test for Count Data"</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>data.name</code></td>
+<td>
+<p>a character string giving the names of the data.</p>
+</td></tr>
+</table>
+
+
+<h3>References</h3>
+
+<p>Agresti, A. (1990).
+<em>Categorical data analysis</em>.
+New York: Wiley.
+Pages 59&ndash;66.
+</p>
+<p>Agresti, A. (2002).
+<em>Categorical data analysis</em>. Second edition.
+New York: Wiley.
+Pages 91&ndash;101.
+</p>
+<p>Fisher, R. A. (1935).
+The logic of inductive inference.
+<em>Journal of the Royal Statistical Society Series A</em>, <b>98</b>,
+39&ndash;54.
+doi: <a href="https://doi.org/10.2307/2342435">10.2307/2342435</a>.
+</p>
+<p>Fisher, R. A. (1962).
+Confidence limits for a cross-product ratio.
+<em>Australian Journal of Statistics</em>, <b>4</b>, 41.
+doi: <a href="https://doi.org/10.1111/j.1467-842X.1962.tb00285.x">10.1111/j.1467-842X.1962.tb00285.x</a>.
+</p>
+<p>Fisher, R. A. (1970).
+<em>Statistical Methods for Research Workers</em>.
+Oliver &amp; Boyd.
+</p>
+<p>Mehta, Cyrus R. and Patel, Nitin R. (1983).
+A network algorithm for performing Fisher's exact test in <i>r x c</i> contingency tables.
+<em>Journal of the American Statistical Association</em>, <b>78</b>,
+427&ndash;434.
+doi: <a href="https://doi.org/10.1080/01621459.1983.10477989">10.1080/01621459.1983.10477989</a>.
+</p>
+<p>Mehta, C. R. and Patel, N. R. (1986).
+Algorithm 643: FEXACT, a FORTRAN subroutine for Fisher's exact test
+on unordered <i>r x c</i> contingency tables.
+<em>ACM Transactions on Mathematical Software</em>, <b>12</b>,
+154&ndash;161.
+doi: <a href="https://doi.org/10.1145/6497.214326">10.1145/6497.214326</a>.
+</p>
+<p>Clarkson, D. B., Fan, Y. and Joe, H. (1993)
+A Remark on Algorithm 643: FEXACT: An Algorithm for Performing
+Fisher's Exact Test in <i>r x c</i> Contingency Tables.
+<em>ACM Transactions on Mathematical Software</em>, <b>19</b>,
+484&ndash;488.
+doi: <a href="https://doi.org/10.1145/168173.168412">10.1145/168173.168412</a>.
+</p>
+<p>Patefield, W. M. (1981).
+Algorithm AS 159: An efficient method of generating r x c tables
+with given row and column totals.
+<em>Applied Statistics</em>, <b>30</b>, 91&ndash;97.
+doi: <a href="https://doi.org/10.2307/2346669">10.2307/2346669</a>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="chisq.test.html">chisq.test</a></code>
+</p>
+<p><code>fisher.exact</code> in package <a href="https://CRAN.R-project.org/package=exact2x2"><span class="pkg">exact2x2</span></a> for alternative
+interpretations of two-sided tests and confidence intervals for
+<i>2 by 2</i> tables.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Agresti (1990, p. 61f; 2002, p. 91) Fisher's Tea Drinker
+## A British woman claimed to be able to distinguish whether milk or
+##  tea was added to the cup first.  To test, she was given 8 cups of
+##  tea, in four of which milk was added first.  The null hypothesis
+##  is that there is no association between the true order of pouring
+##  and the woman's guess, the alternative that there is a positive
+##  association (that the odds ratio is greater than 1).
+TeaTasting &lt;-
+matrix(c(3, 1, 1, 3),
+       nrow = 2,
+       dimnames = list(Guess = c("Milk", "Tea"),
+                       Truth = c("Milk", "Tea")))
+fisher.test(TeaTasting, alternative = "greater")
+## =&gt; p = 0.2429, association could not be established
+
+## Fisher (1962, 1970), Criminal convictions of like-sex twins
+Convictions &lt;- matrix(c(2, 10, 15, 3), nrow = 2,
+	              dimnames =
+	       list(c("Dizygotic", "Monozygotic"),
+		    c("Convicted", "Not convicted")))
+Convictions
+fisher.test(Convictions, alternative = "less")
+fisher.test(Convictions, conf.int = FALSE)
+fisher.test(Convictions, conf.level = 0.95)$conf.int
+fisher.test(Convictions, conf.level = 0.99)$conf.int
+
+## A r x c table  Agresti (2002, p. 57) Job Satisfaction
+Job &lt;- matrix(c(1,2,1,0, 3,3,6,1, 10,10,14,9, 6,7,12,11), 4, 4,
+           dimnames = list(income = c("&lt; 15k", "15-25k", "25-40k", "&gt; 40k"),
+                     satisfaction = c("VeryD", "LittleD", "ModerateS", "VeryS")))
+fisher.test(Job) # 0.7827
+fisher.test(Job, simulate.p.value = TRUE, B = 1e5) # also close to 0.78
+
+## 6th example in Mehta &amp; Patel's JASA paper
+MP6 &lt;- rbind(
+        c(1,2,2,1,1,0,1),
+        c(2,0,0,2,3,0,0),
+        c(0,1,1,1,2,7,3),
+        c(1,1,2,0,0,0,1),
+        c(0,1,1,1,1,0,0))
+fisher.test(MP6)
+# Exactly the same p-value, as Cochran's conditions are never met:
+fisher.test(MP6, hybrid=TRUE)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>stats</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

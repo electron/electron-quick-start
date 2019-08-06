@@ -53,7 +53,7 @@ src <- sprintf( '
 
     timer.Reset(); timer.Start();
     for (unsigned int i=0; i<runs; i++) {
-        NumericVector res2 = Rcpp_eval( call, e ) ;
+        NumericVector res2 = Rcpp_fast_eval( call, e ) ;
     }
     timer.Stop();
     double t3 = timer.ElapsedTime();

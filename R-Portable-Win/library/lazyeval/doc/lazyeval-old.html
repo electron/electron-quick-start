@@ -4,61 +4,291 @@
 
 <head>
 
-<meta charset="utf-8">
+<meta charset="utf-8" />
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name="generator" content="pandoc" />
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 
-<meta name="date" content="2016-06-10" />
+<meta name="date" content="2019-03-15" />
 
 <title>Lazyeval: a new approach to NSE</title>
 
 
 
 <style type="text/css">code{white-space: pre;}</style>
-<style type="text/css">
-div.sourceCode { overflow-x: auto; }
-table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
-  margin: 0; padding: 0; vertical-align: baseline; border: none; }
-table.sourceCode { width: 100%; line-height: 100%; }
-td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
-td.sourceCode { padding-left: 5px; }
-code > span.kw { color: #007020; font-weight: bold; } /* Keyword */
-code > span.dt { color: #902000; } /* DataType */
-code > span.dv { color: #40a070; } /* DecVal */
-code > span.bn { color: #40a070; } /* BaseN */
-code > span.fl { color: #40a070; } /* Float */
-code > span.ch { color: #4070a0; } /* Char */
-code > span.st { color: #4070a0; } /* String */
-code > span.co { color: #60a0b0; font-style: italic; } /* Comment */
-code > span.ot { color: #007020; } /* Other */
-code > span.al { color: #ff0000; font-weight: bold; } /* Alert */
-code > span.fu { color: #06287e; } /* Function */
-code > span.er { color: #ff0000; font-weight: bold; } /* Error */
-code > span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
-code > span.cn { color: #880000; } /* Constant */
-code > span.sc { color: #4070a0; } /* SpecialChar */
-code > span.vs { color: #4070a0; } /* VerbatimString */
-code > span.ss { color: #bb6688; } /* SpecialString */
-code > span.im { } /* Import */
-code > span.va { color: #19177c; } /* Variable */
-code > span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
-code > span.op { color: #666666; } /* Operator */
-code > span.bu { } /* BuiltIn */
-code > span.ex { } /* Extension */
-code > span.pp { color: #bc7a00; } /* Preprocessor */
-code > span.at { color: #7d9029; } /* Attribute */
-code > span.do { color: #ba2121; font-style: italic; } /* Documentation */
-code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
-code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
-code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+<style type="text/css" data-origin="pandoc">
+a.sourceLine { display: inline-block; line-height: 1.25; }
+a.sourceLine { pointer-events: none; color: inherit; text-decoration: inherit; }
+a.sourceLine:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode { white-space: pre; position: relative; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+code.sourceCode { white-space: pre-wrap; }
+a.sourceLine { text-indent: -1em; padding-left: 1em; }
+}
+pre.numberSource a.sourceLine
+  { position: relative; left: -4em; }
+pre.numberSource a.sourceLine::before
+  { content: attr(data-line-number);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; pointer-events: all; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {  }
+@media screen {
+a.sourceLine::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+
 </style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    for (var j = 0; j < rules.length; j++) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") continue;
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' || rule.style.backgroundColor === '') continue;
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
 
 
 
-<link href="data:text/css;charset=utf-8,body%20%7B%0Abackground%2Dcolor%3A%20%23fff%3B%0Amargin%3A%201em%20auto%3B%0Amax%2Dwidth%3A%20700px%3B%0Aoverflow%3A%20visible%3B%0Apadding%2Dleft%3A%202em%3B%0Apadding%2Dright%3A%202em%3B%0Afont%2Dfamily%3A%20%22Open%20Sans%22%2C%20%22Helvetica%20Neue%22%2C%20Helvetica%2C%20Arial%2C%20sans%2Dserif%3B%0Afont%2Dsize%3A%2014px%3B%0Aline%2Dheight%3A%201%2E35%3B%0A%7D%0A%23header%20%7B%0Atext%2Dalign%3A%20center%3B%0A%7D%0A%23TOC%20%7B%0Aclear%3A%20both%3B%0Amargin%3A%200%200%2010px%2010px%3B%0Apadding%3A%204px%3B%0Awidth%3A%20400px%3B%0Aborder%3A%201px%20solid%20%23CCCCCC%3B%0Aborder%2Dradius%3A%205px%3B%0Abackground%2Dcolor%3A%20%23f6f6f6%3B%0Afont%2Dsize%3A%2013px%3B%0Aline%2Dheight%3A%201%2E3%3B%0A%7D%0A%23TOC%20%2Etoctitle%20%7B%0Afont%2Dweight%3A%20bold%3B%0Afont%2Dsize%3A%2015px%3B%0Amargin%2Dleft%3A%205px%3B%0A%7D%0A%23TOC%20ul%20%7B%0Apadding%2Dleft%3A%2040px%3B%0Amargin%2Dleft%3A%20%2D1%2E5em%3B%0Amargin%2Dtop%3A%205px%3B%0Amargin%2Dbottom%3A%205px%3B%0A%7D%0A%23TOC%20ul%20ul%20%7B%0Amargin%2Dleft%3A%20%2D2em%3B%0A%7D%0A%23TOC%20li%20%7B%0Aline%2Dheight%3A%2016px%3B%0A%7D%0Atable%20%7B%0Amargin%3A%201em%20auto%3B%0Aborder%2Dwidth%3A%201px%3B%0Aborder%2Dcolor%3A%20%23DDDDDD%3B%0Aborder%2Dstyle%3A%20outset%3B%0Aborder%2Dcollapse%3A%20collapse%3B%0A%7D%0Atable%20th%20%7B%0Aborder%2Dwidth%3A%202px%3B%0Apadding%3A%205px%3B%0Aborder%2Dstyle%3A%20inset%3B%0A%7D%0Atable%20td%20%7B%0Aborder%2Dwidth%3A%201px%3B%0Aborder%2Dstyle%3A%20inset%3B%0Aline%2Dheight%3A%2018px%3B%0Apadding%3A%205px%205px%3B%0A%7D%0Atable%2C%20table%20th%2C%20table%20td%20%7B%0Aborder%2Dleft%2Dstyle%3A%20none%3B%0Aborder%2Dright%2Dstyle%3A%20none%3B%0A%7D%0Atable%20thead%2C%20table%20tr%2Eeven%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0A%7D%0Ap%20%7B%0Amargin%3A%200%2E5em%200%3B%0A%7D%0Ablockquote%20%7B%0Abackground%2Dcolor%3A%20%23f6f6f6%3B%0Apadding%3A%200%2E25em%200%2E75em%3B%0A%7D%0Ahr%20%7B%0Aborder%2Dstyle%3A%20solid%3B%0Aborder%3A%20none%3B%0Aborder%2Dtop%3A%201px%20solid%20%23777%3B%0Amargin%3A%2028px%200%3B%0A%7D%0Adl%20%7B%0Amargin%2Dleft%3A%200%3B%0A%7D%0Adl%20dd%20%7B%0Amargin%2Dbottom%3A%2013px%3B%0Amargin%2Dleft%3A%2013px%3B%0A%7D%0Adl%20dt%20%7B%0Afont%2Dweight%3A%20bold%3B%0A%7D%0Aul%20%7B%0Amargin%2Dtop%3A%200%3B%0A%7D%0Aul%20li%20%7B%0Alist%2Dstyle%3A%20circle%20outside%3B%0A%7D%0Aul%20ul%20%7B%0Amargin%2Dbottom%3A%200%3B%0A%7D%0Apre%2C%20code%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0Aborder%2Dradius%3A%203px%3B%0Acolor%3A%20%23333%3B%0Awhite%2Dspace%3A%20pre%2Dwrap%3B%20%0A%7D%0Apre%20%7B%0Aborder%2Dradius%3A%203px%3B%0Amargin%3A%205px%200px%2010px%200px%3B%0Apadding%3A%2010px%3B%0A%7D%0Apre%3Anot%28%5Bclass%5D%29%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0A%7D%0Acode%20%7B%0Afont%2Dfamily%3A%20Consolas%2C%20Monaco%2C%20%27Courier%20New%27%2C%20monospace%3B%0Afont%2Dsize%3A%2085%25%3B%0A%7D%0Ap%20%3E%20code%2C%20li%20%3E%20code%20%7B%0Apadding%3A%202px%200px%3B%0A%7D%0Adiv%2Efigure%20%7B%0Atext%2Dalign%3A%20center%3B%0A%7D%0Aimg%20%7B%0Abackground%2Dcolor%3A%20%23FFFFFF%3B%0Apadding%3A%202px%3B%0Aborder%3A%201px%20solid%20%23DDDDDD%3B%0Aborder%2Dradius%3A%203px%3B%0Aborder%3A%201px%20solid%20%23CCCCCC%3B%0Amargin%3A%200%205px%3B%0A%7D%0Ah1%20%7B%0Amargin%2Dtop%3A%200%3B%0Afont%2Dsize%3A%2035px%3B%0Aline%2Dheight%3A%2040px%3B%0A%7D%0Ah2%20%7B%0Aborder%2Dbottom%3A%204px%20solid%20%23f7f7f7%3B%0Apadding%2Dtop%3A%2010px%3B%0Apadding%2Dbottom%3A%202px%3B%0Afont%2Dsize%3A%20145%25%3B%0A%7D%0Ah3%20%7B%0Aborder%2Dbottom%3A%202px%20solid%20%23f7f7f7%3B%0Apadding%2Dtop%3A%2010px%3B%0Afont%2Dsize%3A%20120%25%3B%0A%7D%0Ah4%20%7B%0Aborder%2Dbottom%3A%201px%20solid%20%23f7f7f7%3B%0Amargin%2Dleft%3A%208px%3B%0Afont%2Dsize%3A%20105%25%3B%0A%7D%0Ah5%2C%20h6%20%7B%0Aborder%2Dbottom%3A%201px%20solid%20%23ccc%3B%0Afont%2Dsize%3A%20105%25%3B%0A%7D%0Aa%20%7B%0Acolor%3A%20%230033dd%3B%0Atext%2Ddecoration%3A%20none%3B%0A%7D%0Aa%3Ahover%20%7B%0Acolor%3A%20%236666ff%3B%20%7D%0Aa%3Avisited%20%7B%0Acolor%3A%20%23800080%3B%20%7D%0Aa%3Avisited%3Ahover%20%7B%0Acolor%3A%20%23BB00BB%3B%20%7D%0Aa%5Bhref%5E%3D%22http%3A%22%5D%20%7B%0Atext%2Ddecoration%3A%20underline%3B%20%7D%0Aa%5Bhref%5E%3D%22https%3A%22%5D%20%7B%0Atext%2Ddecoration%3A%20underline%3B%20%7D%0A%0Acode%20%3E%20span%2Ekw%20%7B%20color%3A%20%23555%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Edt%20%7B%20color%3A%20%23902000%3B%20%7D%20%0Acode%20%3E%20span%2Edv%20%7B%20color%3A%20%2340a070%3B%20%7D%20%0Acode%20%3E%20span%2Ebn%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Efl%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Ech%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Est%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Eco%20%7B%20color%3A%20%23888888%3B%20font%2Dstyle%3A%20italic%3B%20%7D%20%0Acode%20%3E%20span%2Eot%20%7B%20color%3A%20%23007020%3B%20%7D%20%0Acode%20%3E%20span%2Eal%20%7B%20color%3A%20%23ff0000%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Efu%20%7B%20color%3A%20%23900%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%20code%20%3E%20span%2Eer%20%7B%20color%3A%20%23a61717%3B%20background%2Dcolor%3A%20%23e3d2d2%3B%20%7D%20%0A" rel="stylesheet" type="text/css" />
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#header {
+text-align: center;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; }  code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
 
 </head>
 
@@ -68,7 +298,7 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 
 
 <h1 class="title toc-ignore">Lazyeval: a new approach to NSE</h1>
-<h4 class="date"><em>2016-06-10</em></h4>
+<h4 class="date"><em>2019-03-15</em></h4>
 
 
 
@@ -82,140 +312,140 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <div id="lazy" class="section level2">
 <h2><code>lazy()</code></h2>
 <p>The key tool that makes this approach possible is <code>lazy()</code>, an equivalent to <code>substitute()</code> that captures both expression and environment associated with a function argument:</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(lazyeval)
-f &lt;-<span class="st"> </span>function(<span class="dt">x =</span> a -<span class="st"> </span>b) {
-  <span class="kw">lazy</span>(x)
-}
-<span class="kw">f</span>()
-<span class="co">#&gt; &lt;lazy&gt;</span>
-<span class="co">#&gt;   expr: a - b</span>
-<span class="co">#&gt;   env:  &lt;environment: 0x7fd4dbb11ff0&gt;</span>
-<span class="kw">f</span>(a +<span class="st"> </span>b)
-<span class="co">#&gt; &lt;lazy&gt;</span>
-<span class="co">#&gt;   expr: a + b</span>
-<span class="co">#&gt;   env:  &lt;environment: R_GlobalEnv&gt;</span></code></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="kw">library</span>(lazyeval)</a>
+<a class="sourceLine" id="cb1-2" data-line-number="2">f &lt;-<span class="st"> </span><span class="cf">function</span>(<span class="dt">x =</span> a <span class="op">-</span><span class="st"> </span>b) {</a>
+<a class="sourceLine" id="cb1-3" data-line-number="3">  <span class="kw">lazy</span>(x)</a>
+<a class="sourceLine" id="cb1-4" data-line-number="4">}</a>
+<a class="sourceLine" id="cb1-5" data-line-number="5"><span class="kw">f</span>()</a>
+<a class="sourceLine" id="cb1-6" data-line-number="6"><span class="co">#&gt; &lt;lazy&gt;</span></a>
+<a class="sourceLine" id="cb1-7" data-line-number="7"><span class="co">#&gt;   expr: a - b</span></a>
+<a class="sourceLine" id="cb1-8" data-line-number="8"><span class="co">#&gt;   env:  &lt;environment: 0x7ff852dfd638&gt;</span></a>
+<a class="sourceLine" id="cb1-9" data-line-number="9"><span class="kw">f</span>(a <span class="op">+</span><span class="st"> </span>b)</a>
+<a class="sourceLine" id="cb1-10" data-line-number="10"><span class="co">#&gt; &lt;lazy&gt;</span></a>
+<a class="sourceLine" id="cb1-11" data-line-number="11"><span class="co">#&gt;   expr: a + b</span></a>
+<a class="sourceLine" id="cb1-12" data-line-number="12"><span class="co">#&gt;   env:  &lt;environment: R_GlobalEnv&gt;</span></a></code></pre></div>
 <p>As a complement to <code>eval()</code>, the lazy package provides <code>lazy_eval()</code> that uses the environment associated with the lazy object:</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">a &lt;-<span class="st"> </span><span class="dv">10</span>
-b &lt;-<span class="st"> </span><span class="dv">1</span>
-<span class="kw">lazy_eval</span>(<span class="kw">f</span>())
-<span class="co">#&gt; [1] 9</span>
-<span class="kw">lazy_eval</span>(<span class="kw">f</span>(a +<span class="st"> </span>b))
-<span class="co">#&gt; [1] 11</span></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb2-1" data-line-number="1">a &lt;-<span class="st"> </span><span class="dv">10</span></a>
+<a class="sourceLine" id="cb2-2" data-line-number="2">b &lt;-<span class="st"> </span><span class="dv">1</span></a>
+<a class="sourceLine" id="cb2-3" data-line-number="3"><span class="kw">lazy_eval</span>(<span class="kw">f</span>())</a>
+<a class="sourceLine" id="cb2-4" data-line-number="4"><span class="co">#&gt; [1] 9</span></a>
+<a class="sourceLine" id="cb2-5" data-line-number="5"><span class="kw">lazy_eval</span>(<span class="kw">f</span>(a <span class="op">+</span><span class="st"> </span>b))</a>
+<a class="sourceLine" id="cb2-6" data-line-number="6"><span class="co">#&gt; [1] 11</span></a></code></pre></div>
 <p>The second argument to lazy eval is a list or data frame where names should be looked up first:</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">lazy_eval</span>(<span class="kw">f</span>(), <span class="kw">list</span>(<span class="dt">a =</span> <span class="dv">1</span>))
-<span class="co">#&gt; [1] 0</span></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb3-1" data-line-number="1"><span class="kw">lazy_eval</span>(<span class="kw">f</span>(), <span class="kw">list</span>(<span class="dt">a =</span> <span class="dv">1</span>))</a>
+<a class="sourceLine" id="cb3-2" data-line-number="2"><span class="co">#&gt; [1] 0</span></a></code></pre></div>
 <p><code>lazy_eval()</code> also works with formulas, since they contain the same information as a lazy object: an expression (only the RHS is used by convention) and an environment:</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">lazy_eval</span>(~<span class="st"> </span>a +<span class="st"> </span>b)
-<span class="co">#&gt; [1] 11</span>
-h &lt;-<span class="st"> </span>function(i) {
-  ~<span class="st"> </span><span class="dv">10</span> +<span class="st"> </span>i
-}
-<span class="kw">lazy_eval</span>(<span class="kw">h</span>(<span class="dv">1</span>))
-<span class="co">#&gt; [1] 11</span></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb4-1" data-line-number="1"><span class="kw">lazy_eval</span>(<span class="op">~</span><span class="st"> </span>a <span class="op">+</span><span class="st"> </span>b)</a>
+<a class="sourceLine" id="cb4-2" data-line-number="2"><span class="co">#&gt; [1] 11</span></a>
+<a class="sourceLine" id="cb4-3" data-line-number="3">h &lt;-<span class="st"> </span><span class="cf">function</span>(i) {</a>
+<a class="sourceLine" id="cb4-4" data-line-number="4">  <span class="op">~</span><span class="st"> </span><span class="dv">10</span> <span class="op">+</span><span class="st"> </span>i</a>
+<a class="sourceLine" id="cb4-5" data-line-number="5">}</a>
+<a class="sourceLine" id="cb4-6" data-line-number="6"><span class="kw">lazy_eval</span>(<span class="kw">h</span>(<span class="dv">1</span>))</a>
+<a class="sourceLine" id="cb4-7" data-line-number="7"><span class="co">#&gt; [1] 11</span></a></code></pre></div>
 </div>
 <div id="standard-evaluation" class="section level2">
 <h2>Standard evaluation</h2>
 <p>Whenever we need a function that does non-standard evaluation, always write the standard evaluation version first. For example, let’s implement our own version of <code>subset()</code>:</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">subset2_ &lt;-<span class="st"> </span>function(df, condition) {
-  r &lt;-<span class="st"> </span><span class="kw">lazy_eval</span>(condition, df)
-  r &lt;-<span class="st"> </span>r &amp;<span class="st"> </span>!<span class="kw">is.na</span>(r)
-  df[r, , drop =<span class="st"> </span><span class="ot">FALSE</span>]
-} 
-
-<span class="kw">subset2_</span>(mtcars, <span class="kw">lazy</span>(mpg &gt;<span class="st"> </span><span class="dv">31</span>))
-<span class="co">#&gt;     mpg cyl disp hp drat    wt  qsec vs am gear carb</span>
-<span class="co">#&gt; 18 32.4   4 78.7 66 4.08 2.200 19.47  1  1    4    1</span>
-<span class="co">#&gt; 20 33.9   4 71.1 65 4.22 1.835 19.90  1  1    4    1</span></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb5-1" data-line-number="1">subset2_ &lt;-<span class="st"> </span><span class="cf">function</span>(df, condition) {</a>
+<a class="sourceLine" id="cb5-2" data-line-number="2">  r &lt;-<span class="st"> </span><span class="kw">lazy_eval</span>(condition, df)</a>
+<a class="sourceLine" id="cb5-3" data-line-number="3">  r &lt;-<span class="st"> </span>r <span class="op">&amp;</span><span class="st"> </span><span class="op">!</span><span class="kw">is.na</span>(r)</a>
+<a class="sourceLine" id="cb5-4" data-line-number="4">  df[r, , drop =<span class="st"> </span><span class="ot">FALSE</span>]</a>
+<a class="sourceLine" id="cb5-5" data-line-number="5">} </a>
+<a class="sourceLine" id="cb5-6" data-line-number="6"></a>
+<a class="sourceLine" id="cb5-7" data-line-number="7"><span class="kw">subset2_</span>(mtcars, <span class="kw">lazy</span>(mpg <span class="op">&gt;</span><span class="st"> </span><span class="dv">31</span>))</a>
+<a class="sourceLine" id="cb5-8" data-line-number="8"><span class="co">#&gt;     mpg cyl disp hp drat    wt  qsec vs am gear carb</span></a>
+<a class="sourceLine" id="cb5-9" data-line-number="9"><span class="co">#&gt; 18 32.4   4 78.7 66 4.08 2.200 19.47  1  1    4    1</span></a>
+<a class="sourceLine" id="cb5-10" data-line-number="10"><span class="co">#&gt; 20 33.9   4 71.1 65 4.22 1.835 19.90  1  1    4    1</span></a></code></pre></div>
 <p><code>lazy_eval()</code> will always coerce it’s first argument into a lazy object, so a variety of specifications will work:</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">subset2_</span>(mtcars, ~mpg &gt;<span class="st"> </span><span class="dv">31</span>)
-<span class="co">#&gt;     mpg cyl disp hp drat    wt  qsec vs am gear carb</span>
-<span class="co">#&gt; 18 32.4   4 78.7 66 4.08 2.200 19.47  1  1    4    1</span>
-<span class="co">#&gt; 20 33.9   4 71.1 65 4.22 1.835 19.90  1  1    4    1</span>
-<span class="kw">subset2_</span>(mtcars, <span class="kw">quote</span>(mpg &gt;<span class="st"> </span><span class="dv">31</span>))
-<span class="co">#&gt;     mpg cyl disp hp drat    wt  qsec vs am gear carb</span>
-<span class="co">#&gt; 18 32.4   4 78.7 66 4.08 2.200 19.47  1  1    4    1</span>
-<span class="co">#&gt; 20 33.9   4 71.1 65 4.22 1.835 19.90  1  1    4    1</span>
-<span class="kw">subset2_</span>(mtcars, <span class="st">&quot;mpg &gt; 31&quot;</span>)
-<span class="co">#&gt;     mpg cyl disp hp drat    wt  qsec vs am gear carb</span>
-<span class="co">#&gt; 18 32.4   4 78.7 66 4.08 2.200 19.47  1  1    4    1</span>
-<span class="co">#&gt; 20 33.9   4 71.1 65 4.22 1.835 19.90  1  1    4    1</span></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb6-1" data-line-number="1"><span class="kw">subset2_</span>(mtcars, <span class="op">~</span>mpg <span class="op">&gt;</span><span class="st"> </span><span class="dv">31</span>)</a>
+<a class="sourceLine" id="cb6-2" data-line-number="2"><span class="co">#&gt;     mpg cyl disp hp drat    wt  qsec vs am gear carb</span></a>
+<a class="sourceLine" id="cb6-3" data-line-number="3"><span class="co">#&gt; 18 32.4   4 78.7 66 4.08 2.200 19.47  1  1    4    1</span></a>
+<a class="sourceLine" id="cb6-4" data-line-number="4"><span class="co">#&gt; 20 33.9   4 71.1 65 4.22 1.835 19.90  1  1    4    1</span></a>
+<a class="sourceLine" id="cb6-5" data-line-number="5"><span class="kw">subset2_</span>(mtcars, <span class="kw">quote</span>(mpg <span class="op">&gt;</span><span class="st"> </span><span class="dv">31</span>))</a>
+<a class="sourceLine" id="cb6-6" data-line-number="6"><span class="co">#&gt;     mpg cyl disp hp drat    wt  qsec vs am gear carb</span></a>
+<a class="sourceLine" id="cb6-7" data-line-number="7"><span class="co">#&gt; 18 32.4   4 78.7 66 4.08 2.200 19.47  1  1    4    1</span></a>
+<a class="sourceLine" id="cb6-8" data-line-number="8"><span class="co">#&gt; 20 33.9   4 71.1 65 4.22 1.835 19.90  1  1    4    1</span></a>
+<a class="sourceLine" id="cb6-9" data-line-number="9"><span class="kw">subset2_</span>(mtcars, <span class="st">&quot;mpg &gt; 31&quot;</span>)</a>
+<a class="sourceLine" id="cb6-10" data-line-number="10"><span class="co">#&gt;     mpg cyl disp hp drat    wt  qsec vs am gear carb</span></a>
+<a class="sourceLine" id="cb6-11" data-line-number="11"><span class="co">#&gt; 18 32.4   4 78.7 66 4.08 2.200 19.47  1  1    4    1</span></a>
+<a class="sourceLine" id="cb6-12" data-line-number="12"><span class="co">#&gt; 20 33.9   4 71.1 65 4.22 1.835 19.90  1  1    4    1</span></a></code></pre></div>
 <p>Note that quoted called and strings don’t have environments associated with them, so <code>as.lazy()</code> defaults to using <code>baseenv()</code>. This will work if the expression is self-contained (i.e. doesn’t contain any references to variables in the local environment), and will otherwise fail quickly and robustly.</p>
 </div>
 <div id="non-standard-evaluation" class="section level2">
 <h2>Non-standard evaluation</h2>
 <p>With the SE version in hand, writing the NSE version is easy. We just use <code>lazy()</code> to capture the unevaluated expression and corresponding environment:</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">subset2 &lt;-<span class="st"> </span>function(df, condition) {
-  <span class="kw">subset2_</span>(df, <span class="kw">lazy</span>(condition))
-}
-<span class="kw">subset2</span>(mtcars, mpg &gt;<span class="st"> </span><span class="dv">31</span>)
-<span class="co">#&gt;     mpg cyl disp hp drat    wt  qsec vs am gear carb</span>
-<span class="co">#&gt; 18 32.4   4 78.7 66 4.08 2.200 19.47  1  1    4    1</span>
-<span class="co">#&gt; 20 33.9   4 71.1 65 4.22 1.835 19.90  1  1    4    1</span></code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb7-1" data-line-number="1">subset2 &lt;-<span class="st"> </span><span class="cf">function</span>(df, condition) {</a>
+<a class="sourceLine" id="cb7-2" data-line-number="2">  <span class="kw">subset2_</span>(df, <span class="kw">lazy</span>(condition))</a>
+<a class="sourceLine" id="cb7-3" data-line-number="3">}</a>
+<a class="sourceLine" id="cb7-4" data-line-number="4"><span class="kw">subset2</span>(mtcars, mpg <span class="op">&gt;</span><span class="st"> </span><span class="dv">31</span>)</a>
+<a class="sourceLine" id="cb7-5" data-line-number="5"><span class="co">#&gt;     mpg cyl disp hp drat    wt  qsec vs am gear carb</span></a>
+<a class="sourceLine" id="cb7-6" data-line-number="6"><span class="co">#&gt; 18 32.4   4 78.7 66 4.08 2.200 19.47  1  1    4    1</span></a>
+<a class="sourceLine" id="cb7-7" data-line-number="7"><span class="co">#&gt; 20 33.9   4 71.1 65 4.22 1.835 19.90  1  1    4    1</span></a></code></pre></div>
 <p>This standard evaluation escape hatch is very important because it allows us to implement different NSE approaches. For example, we could create a subsetting function that finds all rows where a variable is above a threshold:</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">above_threshold &lt;-<span class="st"> </span>function(df, var, threshold) {
-  cond &lt;-<span class="st"> </span><span class="kw">interp</span>(~<span class="st"> </span>var &gt;<span class="st"> </span>x, <span class="dt">var =</span> <span class="kw">lazy</span>(var), <span class="dt">x =</span> threshold)
-  <span class="kw">subset2_</span>(df, cond)
-}
-<span class="kw">above_threshold</span>(mtcars, mpg, <span class="dv">31</span>)
-<span class="co">#&gt;     mpg cyl disp hp drat    wt  qsec vs am gear carb</span>
-<span class="co">#&gt; 18 32.4   4 78.7 66 4.08 2.200 19.47  1  1    4    1</span>
-<span class="co">#&gt; 20 33.9   4 71.1 65 4.22 1.835 19.90  1  1    4    1</span></code></pre></div>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb8-1" data-line-number="1">above_threshold &lt;-<span class="st"> </span><span class="cf">function</span>(df, var, threshold) {</a>
+<a class="sourceLine" id="cb8-2" data-line-number="2">  cond &lt;-<span class="st"> </span><span class="kw">interp</span>(<span class="op">~</span><span class="st"> </span>var <span class="op">&gt;</span><span class="st"> </span>x, <span class="dt">var =</span> <span class="kw">lazy</span>(var), <span class="dt">x =</span> threshold)</a>
+<a class="sourceLine" id="cb8-3" data-line-number="3">  <span class="kw">subset2_</span>(df, cond)</a>
+<a class="sourceLine" id="cb8-4" data-line-number="4">}</a>
+<a class="sourceLine" id="cb8-5" data-line-number="5"><span class="kw">above_threshold</span>(mtcars, mpg, <span class="dv">31</span>)</a>
+<a class="sourceLine" id="cb8-6" data-line-number="6"><span class="co">#&gt;     mpg cyl disp hp drat    wt  qsec vs am gear carb</span></a>
+<a class="sourceLine" id="cb8-7" data-line-number="7"><span class="co">#&gt; 18 32.4   4 78.7 66 4.08 2.200 19.47  1  1    4    1</span></a>
+<a class="sourceLine" id="cb8-8" data-line-number="8"><span class="co">#&gt; 20 33.9   4 71.1 65 4.22 1.835 19.90  1  1    4    1</span></a></code></pre></div>
 <p>Here we’re using <code>interp()</code> to modify a formula. We use the value of <code>threshold</code> and the expression in by <code>var</code>.</p>
 </div>
 <div id="scoping" class="section level2">
 <h2>Scoping</h2>
 <p>Because <code>lazy()</code> captures the environment associated with the function argument, we automatically avoid a subtle scoping bug present in <code>subset()</code>:</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">x &lt;-<span class="st"> </span><span class="dv">31</span>
-f1 &lt;-<span class="st"> </span>function(...) {
-  x &lt;-<span class="st"> </span><span class="dv">30</span>
-  <span class="kw">subset</span>(mtcars, ...)
-}
-<span class="co"># Uses 30 instead of 31</span>
-<span class="kw">f1</span>(mpg &gt;<span class="st"> </span>x)
-<span class="co">#&gt;     mpg cyl disp  hp drat    wt  qsec vs am gear carb</span>
-<span class="co">#&gt; 18 32.4   4 78.7  66 4.08 2.200 19.47  1  1    4    1</span>
-<span class="co">#&gt; 19 30.4   4 75.7  52 4.93 1.615 18.52  1  1    4    2</span>
-<span class="co">#&gt; 20 33.9   4 71.1  65 4.22 1.835 19.90  1  1    4    1</span>
-<span class="co">#&gt; 28 30.4   4 95.1 113 3.77 1.513 16.90  1  1    5    2</span>
-
-f2 &lt;-<span class="st"> </span>function(...) {
-  x &lt;-<span class="st"> </span><span class="dv">30</span>
-  <span class="kw">subset2</span>(mtcars, ...)
-}
-<span class="co"># Correctly uses 31</span>
-<span class="kw">f2</span>(mpg &gt;<span class="st"> </span>x)
-<span class="co">#&gt;     mpg cyl disp hp drat    wt  qsec vs am gear carb</span>
-<span class="co">#&gt; 18 32.4   4 78.7 66 4.08 2.200 19.47  1  1    4    1</span>
-<span class="co">#&gt; 20 33.9   4 71.1 65 4.22 1.835 19.90  1  1    4    1</span></code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb9-1" data-line-number="1">x &lt;-<span class="st"> </span><span class="dv">31</span></a>
+<a class="sourceLine" id="cb9-2" data-line-number="2">f1 &lt;-<span class="st"> </span><span class="cf">function</span>(...) {</a>
+<a class="sourceLine" id="cb9-3" data-line-number="3">  x &lt;-<span class="st"> </span><span class="dv">30</span></a>
+<a class="sourceLine" id="cb9-4" data-line-number="4">  <span class="kw">subset</span>(mtcars, ...)</a>
+<a class="sourceLine" id="cb9-5" data-line-number="5">}</a>
+<a class="sourceLine" id="cb9-6" data-line-number="6"><span class="co"># Uses 30 instead of 31</span></a>
+<a class="sourceLine" id="cb9-7" data-line-number="7"><span class="kw">f1</span>(mpg <span class="op">&gt;</span><span class="st"> </span>x)</a>
+<a class="sourceLine" id="cb9-8" data-line-number="8"><span class="co">#&gt;     mpg cyl disp  hp drat    wt  qsec vs am gear carb</span></a>
+<a class="sourceLine" id="cb9-9" data-line-number="9"><span class="co">#&gt; 18 32.4   4 78.7  66 4.08 2.200 19.47  1  1    4    1</span></a>
+<a class="sourceLine" id="cb9-10" data-line-number="10"><span class="co">#&gt; 19 30.4   4 75.7  52 4.93 1.615 18.52  1  1    4    2</span></a>
+<a class="sourceLine" id="cb9-11" data-line-number="11"><span class="co">#&gt; 20 33.9   4 71.1  65 4.22 1.835 19.90  1  1    4    1</span></a>
+<a class="sourceLine" id="cb9-12" data-line-number="12"><span class="co">#&gt; 28 30.4   4 95.1 113 3.77 1.513 16.90  1  1    5    2</span></a>
+<a class="sourceLine" id="cb9-13" data-line-number="13"></a>
+<a class="sourceLine" id="cb9-14" data-line-number="14">f2 &lt;-<span class="st"> </span><span class="cf">function</span>(...) {</a>
+<a class="sourceLine" id="cb9-15" data-line-number="15">  x &lt;-<span class="st"> </span><span class="dv">30</span></a>
+<a class="sourceLine" id="cb9-16" data-line-number="16">  <span class="kw">subset2</span>(mtcars, ...)</a>
+<a class="sourceLine" id="cb9-17" data-line-number="17">}</a>
+<a class="sourceLine" id="cb9-18" data-line-number="18"><span class="co"># Correctly uses 31</span></a>
+<a class="sourceLine" id="cb9-19" data-line-number="19"><span class="kw">f2</span>(mpg <span class="op">&gt;</span><span class="st"> </span>x)</a>
+<a class="sourceLine" id="cb9-20" data-line-number="20"><span class="co">#&gt;     mpg cyl disp hp drat    wt  qsec vs am gear carb</span></a>
+<a class="sourceLine" id="cb9-21" data-line-number="21"><span class="co">#&gt; 18 32.4   4 78.7 66 4.08 2.200 19.47  1  1    4    1</span></a>
+<a class="sourceLine" id="cb9-22" data-line-number="22"><span class="co">#&gt; 20 33.9   4 71.1 65 4.22 1.835 19.90  1  1    4    1</span></a></code></pre></div>
 <p><code>lazy()</code> has another advantage over <code>substitute()</code> - by default, it follows promises across function invocations. This simplifies the casual use of NSE.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">x &lt;-<span class="st"> </span><span class="dv">31</span>
-g1 &lt;-<span class="st"> </span>function(comp) {
-  x &lt;-<span class="st"> </span><span class="dv">30</span>
-  <span class="kw">subset</span>(mtcars, comp)
-}
-<span class="kw">g1</span>(mpg &gt;<span class="st"> </span>x)
-<span class="co">#&gt; Error: object 'mpg' not found</span></code></pre></div>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">g2 &lt;-<span class="st"> </span>function(comp) {
-  x &lt;-<span class="st"> </span><span class="dv">30</span>
-  <span class="kw">subset2</span>(mtcars, comp)
-}
-<span class="kw">g2</span>(mpg &gt;<span class="st"> </span>x)
-<span class="co">#&gt;     mpg cyl disp hp drat    wt  qsec vs am gear carb</span>
-<span class="co">#&gt; 18 32.4   4 78.7 66 4.08 2.200 19.47  1  1    4    1</span>
-<span class="co">#&gt; 20 33.9   4 71.1 65 4.22 1.835 19.90  1  1    4    1</span></code></pre></div>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb10-1" data-line-number="1">x &lt;-<span class="st"> </span><span class="dv">31</span></a>
+<a class="sourceLine" id="cb10-2" data-line-number="2">g1 &lt;-<span class="st"> </span><span class="cf">function</span>(comp) {</a>
+<a class="sourceLine" id="cb10-3" data-line-number="3">  x &lt;-<span class="st"> </span><span class="dv">30</span></a>
+<a class="sourceLine" id="cb10-4" data-line-number="4">  <span class="kw">subset</span>(mtcars, comp)</a>
+<a class="sourceLine" id="cb10-5" data-line-number="5">}</a>
+<a class="sourceLine" id="cb10-6" data-line-number="6"><span class="kw">g1</span>(mpg <span class="op">&gt;</span><span class="st"> </span>x)</a>
+<a class="sourceLine" id="cb10-7" data-line-number="7"><span class="co">#&gt; Error: object 'mpg' not found</span></a></code></pre></div>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb11-1" data-line-number="1">g2 &lt;-<span class="st"> </span><span class="cf">function</span>(comp) {</a>
+<a class="sourceLine" id="cb11-2" data-line-number="2">  x &lt;-<span class="st"> </span><span class="dv">30</span></a>
+<a class="sourceLine" id="cb11-3" data-line-number="3">  <span class="kw">subset2</span>(mtcars, comp)</a>
+<a class="sourceLine" id="cb11-4" data-line-number="4">}</a>
+<a class="sourceLine" id="cb11-5" data-line-number="5"><span class="kw">g2</span>(mpg <span class="op">&gt;</span><span class="st"> </span>x)</a>
+<a class="sourceLine" id="cb11-6" data-line-number="6"><span class="co">#&gt;     mpg cyl disp hp drat    wt  qsec vs am gear carb</span></a>
+<a class="sourceLine" id="cb11-7" data-line-number="7"><span class="co">#&gt; 18 32.4   4 78.7 66 4.08 2.200 19.47  1  1    4    1</span></a>
+<a class="sourceLine" id="cb11-8" data-line-number="8"><span class="co">#&gt; 20 33.9   4 71.1 65 4.22 1.835 19.90  1  1    4    1</span></a></code></pre></div>
 <p>Note that <code>g2()</code> doesn’t have a standard-evaluation escape hatch, so it’s not suitable for programming with in the same way that <code>subset2_()</code> is.</p>
 </div>
 <div id="chained-promises" class="section level2">
 <h2>Chained promises</h2>
 <p>Take the following example:</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(lazyeval)
-f1 &lt;-<span class="st"> </span>function(x) <span class="kw">lazy</span>(x)
-g1 &lt;-<span class="st"> </span>function(y) <span class="kw">f1</span>(y)
-
-<span class="kw">g1</span>(a +<span class="st"> </span>b)
-<span class="co">#&gt; &lt;lazy&gt;</span>
-<span class="co">#&gt;   expr: a + b</span>
-<span class="co">#&gt;   env:  &lt;environment: R_GlobalEnv&gt;</span></code></pre></div>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb12-1" data-line-number="1"><span class="kw">library</span>(lazyeval)</a>
+<a class="sourceLine" id="cb12-2" data-line-number="2">f1 &lt;-<span class="st"> </span><span class="cf">function</span>(x) <span class="kw">lazy</span>(x)</a>
+<a class="sourceLine" id="cb12-3" data-line-number="3">g1 &lt;-<span class="st"> </span><span class="cf">function</span>(y) <span class="kw">f1</span>(y)</a>
+<a class="sourceLine" id="cb12-4" data-line-number="4"></a>
+<a class="sourceLine" id="cb12-5" data-line-number="5"><span class="kw">g1</span>(a <span class="op">+</span><span class="st"> </span>b)</a>
+<a class="sourceLine" id="cb12-6" data-line-number="6"><span class="co">#&gt; &lt;lazy&gt;</span></a>
+<a class="sourceLine" id="cb12-7" data-line-number="7"><span class="co">#&gt;   expr: a + b</span></a>
+<a class="sourceLine" id="cb12-8" data-line-number="8"><span class="co">#&gt;   env:  &lt;environment: R_GlobalEnv&gt;</span></a></code></pre></div>
 <p><code>lazy()</code> returns <code>a + b</code> because it always tries to find the top-level promise.</p>
 <p>In this case the process looks like this:</p>
 <ol style="list-style-type: decimal">
@@ -226,31 +456,31 @@ g1 &lt;-<span class="st"> </span>function(y) <span class="kw">f1</span>(y)
 <li>The expression is not a symbol, so stop.</li>
 </ol>
 <p>Occasionally, you want to avoid this recursive behaviour, so you can use <code>follow_symbol = FALSE</code>:</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">f2 &lt;-<span class="st"> </span>function(x) <span class="kw">lazy</span>(x, <span class="dt">.follow_symbols =</span> <span class="ot">FALSE</span>)
-g2 &lt;-<span class="st"> </span>function(y) <span class="kw">f2</span>(y)
-
-<span class="kw">g2</span>(a +<span class="st"> </span>b)
-<span class="co">#&gt; &lt;lazy&gt;</span>
-<span class="co">#&gt;   expr: x</span>
-<span class="co">#&gt;   env:  &lt;environment: 0x7fd4dc8465b8&gt;</span></code></pre></div>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb13-1" data-line-number="1">f2 &lt;-<span class="st"> </span><span class="cf">function</span>(x) <span class="kw">lazy</span>(x, <span class="dt">.follow_symbols =</span> <span class="ot">FALSE</span>)</a>
+<a class="sourceLine" id="cb13-2" data-line-number="2">g2 &lt;-<span class="st"> </span><span class="cf">function</span>(y) <span class="kw">f2</span>(y)</a>
+<a class="sourceLine" id="cb13-3" data-line-number="3"></a>
+<a class="sourceLine" id="cb13-4" data-line-number="4"><span class="kw">g2</span>(a <span class="op">+</span><span class="st"> </span>b)</a>
+<a class="sourceLine" id="cb13-5" data-line-number="5"><span class="co">#&gt; &lt;lazy&gt;</span></a>
+<a class="sourceLine" id="cb13-6" data-line-number="6"><span class="co">#&gt;   expr: x</span></a>
+<a class="sourceLine" id="cb13-7" data-line-number="7"><span class="co">#&gt;   env:  &lt;environment: 0x7ff853abd7f8&gt;</span></a></code></pre></div>
 <p>Either way, if you evaluate the lazy expression you’ll get the same result:</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">a &lt;-<span class="st"> </span><span class="dv">10</span>
-b &lt;-<span class="st"> </span><span class="dv">1</span>
-
-<span class="kw">lazy_eval</span>(<span class="kw">g1</span>(a +<span class="st"> </span>b))
-<span class="co">#&gt; [1] 11</span>
-<span class="kw">lazy_eval</span>(<span class="kw">g2</span>(a +<span class="st"> </span>b))
-<span class="co">#&gt; [1] 11</span></code></pre></div>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb14-1" data-line-number="1">a &lt;-<span class="st"> </span><span class="dv">10</span></a>
+<a class="sourceLine" id="cb14-2" data-line-number="2">b &lt;-<span class="st"> </span><span class="dv">1</span></a>
+<a class="sourceLine" id="cb14-3" data-line-number="3"></a>
+<a class="sourceLine" id="cb14-4" data-line-number="4"><span class="kw">lazy_eval</span>(<span class="kw">g1</span>(a <span class="op">+</span><span class="st"> </span>b))</a>
+<a class="sourceLine" id="cb14-5" data-line-number="5"><span class="co">#&gt; [1] 11</span></a>
+<a class="sourceLine" id="cb14-6" data-line-number="6"><span class="kw">lazy_eval</span>(<span class="kw">g2</span>(a <span class="op">+</span><span class="st"> </span>b))</a>
+<a class="sourceLine" id="cb14-7" data-line-number="7"><span class="co">#&gt; [1] 11</span></a></code></pre></div>
 <p>Note that the resolution of chained promises only works with unevaluated objects. This is because R deletes the information about the environment associated with a promise when it has been forced, so that the garbage collector is allowed to remove the environment from memory in case it is no longer used. <code>lazy()</code> will fail with an error in such situations.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">var &lt;-<span class="st"> </span><span class="dv">0</span>
-
-f3 &lt;-<span class="st"> </span>function(x) {
-  <span class="kw">force</span>(x)
-  <span class="kw">lazy</span>(x)
-}
-
-<span class="kw">f3</span>(var)
-<span class="co">#&gt; Error in lazy(x): Promise has already been forced</span></code></pre></div>
+<div class="sourceCode" id="cb15"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb15-1" data-line-number="1">var &lt;-<span class="st"> </span><span class="dv">0</span></a>
+<a class="sourceLine" id="cb15-2" data-line-number="2"></a>
+<a class="sourceLine" id="cb15-3" data-line-number="3">f3 &lt;-<span class="st"> </span><span class="cf">function</span>(x) {</a>
+<a class="sourceLine" id="cb15-4" data-line-number="4">  <span class="kw">force</span>(x)</a>
+<a class="sourceLine" id="cb15-5" data-line-number="5">  <span class="kw">lazy</span>(x)</a>
+<a class="sourceLine" id="cb15-6" data-line-number="6">}</a>
+<a class="sourceLine" id="cb15-7" data-line-number="7"></a>
+<a class="sourceLine" id="cb15-8" data-line-number="8"><span class="kw">f3</span>(var)</a>
+<a class="sourceLine" id="cb15-9" data-line-number="9"><span class="co">#&gt; Error in lazy(x): Promise has already been forced</span></a></code></pre></div>
 </div>
 
 
@@ -260,7 +490,7 @@ f3 &lt;-<span class="st"> </span>function(x) {
   (function () {
     var script = document.createElement("script");
     script.type = "text/javascript";
-    script.src  = "https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
     document.getElementsByTagName("head")[0].appendChild(script);
   })();
 </script>

@@ -1,0 +1,262 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Combine R Objects by Rows or Columns</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for cbind {base}"><tr><td>cbind {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Combine R Objects by Rows or Columns</h2>
+
+<h3>Description</h3>
+
+<p>Take a sequence of vector, matrix or data-frame arguments and combine
+by <em>c</em>olumns or <em>r</em>ows, respectively.  These are generic
+functions with methods for other <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> classes.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+cbind(..., deparse.level = 1)
+rbind(..., deparse.level = 1)
+## S3 method for class 'data.frame'
+rbind(..., deparse.level = 1, make.row.names = TRUE,
+      stringsAsFactors = default.stringsAsFactors(), factor.exclude = NA)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>(generalized) vectors or matrices.  These can be given as named
+arguments.  Other <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> objects may be coerced as appropriate, or S4
+methods may be used: see sections &lsquo;Details&rsquo; and
+&lsquo;Value&rsquo;.  (For the <code>"data.frame"</code> method of <code>cbind</code>
+these can be further arguments to <code><a href="data.frame.html">data.frame</a></code> such as
+<code>stringsAsFactors</code>.)</p>
+</td></tr>
+<tr valign="top"><td><code>deparse.level</code></td>
+<td>
+<p>integer controlling the construction of labels in
+the case of non-matrix-like arguments (for the default method):<br />
+<code>deparse.level = 0</code> constructs no labels; the default,<br />
+<code>deparse.level = 1 or 2</code> constructs labels from the argument
+names, see the &lsquo;Value&rsquo; section below.</p>
+</td></tr>
+<tr valign="top"><td><code>make.row.names</code></td>
+<td>
+<p>(only for data frame method:) logical
+indicating if unique and valid <code><a href="row.names.html">row.names</a></code> should be
+constructed from the arguments.</p>
+</td></tr>
+<tr valign="top"><td><code>stringsAsFactors</code></td>
+<td>
+<p>logical, passed to <code><a href="as.data.frame.html">as.data.frame</a></code>;
+only has an effect when the <code>...</code> arguments contain a
+(non-<code>data.frame</code>) <code><a href="character.html">character</a></code>.</p>
+</td></tr>
+<tr valign="top"><td><code>factor.exclude</code></td>
+<td>
+<p>if the data frames contain factors,
+<code>TRUE</code> ensures that <code>NA</code> levels of factors are kept, see
+<a href="https://bugs.R-project.org/bugzilla3/show_bug.cgi?id=17562">PR#17562</a> and the &lsquo;Data frame methods&rsquo;.  In <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> versions up
+to 3.6.x, <code>factor.exclude = NA</code> has been implicitly hardcoded
+(<span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> &lt;= 3.6.0) or the default (<span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> = 3.6.x, x &gt;= 1).</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>The functions <code>cbind</code> and <code>rbind</code> are S3 generic, with
+methods for data frames.  The data frame method will be used if at
+least one argument is a data frame and the rest are vectors or
+matrices.  There can be other methods; in particular, there is one for
+time series objects.  See the section on &lsquo;Dispatch&rsquo; for how
+the method to be used is selected.  If some of the arguments are of an
+S4 class, i.e., <code><a href="isS4.html">isS4</a>(.)</code> is true, S4 methods are sought
+also, and the hidden <code>cbind</code> / <code>rbind</code> functions
+from package <span class="pkg">methods</span> maybe called, which in turn build on
+<code><a href="../../methods/html/cbind2.html">cbind2</a></code> or <code><a href="../../methods/html/cbind2.html">rbind2</a></code>, respectively.  In that
+case, <code>deparse.level</code> is obeyed, similarly to the default method.
+</p>
+<p>In the default method, all the vectors/matrices must be atomic (see
+<code><a href="vector.html">vector</a></code>) or lists.  Expressions are not allowed.
+Language objects (such as formulae and calls) and pairlists will be
+coerced to lists: other objects (such as names and external pointers)
+will be included as elements in a list result.  Any classes the inputs
+might have are discarded (in particular, factors are replaced by their
+internal codes).
+</p>
+<p>If there are several matrix arguments, they must all have the same
+number of columns (or rows) and this will be the number of columns (or
+rows) of the result.  If all the arguments are vectors, the number of
+columns (rows) in the result is equal to the length of the longest
+vector.  Values in shorter arguments are recycled to achieve this
+length (with a <code><a href="warning.html">warning</a></code> if they are recycled only
+<em>fractionally</em>).
+</p>
+<p>When the arguments consist of a mix of matrices and vectors the number
+of columns (rows) of the result is determined by the number of columns
+(rows) of the matrix arguments.  Any vectors have their values
+recycled or subsetted to achieve this length.
+</p>
+<p>For <code>cbind</code> (<code>rbind</code>), vectors of zero length (including
+<code>NULL</code>) are ignored unless the result would have zero rows
+(columns), for S compatibility.
+(Zero-extent matrices do not occur in S3 and are not ignored in <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>.)
+</p>
+<p>Matrices are restricted to less than <i>2^31</i> rows and
+columns even on 64-bit systems.  So input vectors have the same length
+restriction: as from <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> 3.2.0 input matrices with more elements (but
+meeting the row and column restrictions) are allowed.
+</p>
+
+
+<h3>Value</h3>
+
+<p>For the default method, a matrix combining the <code>...</code> arguments
+column-wise or row-wise.  (Exception: if there are no inputs or all
+the inputs are <code>NULL</code>, the value is <code>NULL</code>.)
+</p>
+<p>The type of a matrix result determined from the highest type of any of
+the inputs in the hierarchy raw &lt; logical &lt; integer &lt; double &lt; complex &lt;
+character &lt; list .
+</p>
+<p>For <code>cbind</code> (<code>rbind</code>) the column (row) names are taken from
+the <code>colnames</code> (<code>rownames</code>) of the arguments if these are
+matrix-like.  Otherwise from the names of the arguments or where those
+are not supplied and <code>deparse.level &gt; 0</code>, by deparsing the
+expressions given, for <code>deparse.level = 1</code> only if that gives a
+sensible name (a &lsquo;symbol&rsquo;, see <code><a href="name.html">is.symbol</a></code>).
+</p>
+<p>For <code>cbind</code> row names are taken from the first argument with
+appropriate names: rownames for a matrix, or names for a vector of
+length the number of rows of the result.
+</p>
+<p>For <code>rbind</code> column names are taken from the first argument with
+appropriate names: colnames for a matrix, or names for a vector of
+length the number of columns of the result.
+</p>
+
+
+<h3>Data frame methods</h3>
+
+<p>The <code>cbind</code> data frame method is just a wrapper for
+<code><a href="data.frame.html">data.frame</a>(..., check.names = FALSE)</code>.  This means that
+it will split matrix columns in data frame arguments, and convert
+character columns to factors unless <code>stringsAsFactors = FALSE</code> is
+specified.
+</p>
+<p>The <code>rbind</code> data frame method first drops all zero-column and
+zero-row arguments.  (If that leaves none, it returns the first
+argument with columns otherwise a zero-column zero-row data frame.)
+It then takes the classes of the columns from the
+first data frame, and matches columns by name (rather than by
+position).  Factors have their levels expanded as necessary (in the
+order of the levels of the levelsets of the factors encountered) and
+the result is an ordered factor if and only if all the components were
+ordered factors.  (The last point differs from S-PLUS.)  Old-style
+categories (integer vectors with levels) are promoted to factors.
+</p>
+<p>Note that for result column <code>j</code>, <code><a href="factor.html">factor</a>(., exclude = X(j))</code>
+is applied, where </p>
+<pre>  X(j) := if(isTRUE(factor.exclude)) {
+             if(!NA.lev[j]) NA # else NULL
+          } else factor.exclude</pre>
+<p>where <code>NA.lev[j]</code> is true iff any contributing data frame has had a
+<code><a href="factor.html">factor</a></code> in column <code>j</code> with an explicit <code>NA</code> level.
+</p>
+
+
+<h3>Dispatch</h3>
+
+<p>The method dispatching is <em>not</em> done via
+<code><a href="UseMethod.html">UseMethod</a>()</code>, but by C-internal dispatching.
+Therefore there is no need for, e.g., <code>rbind.default</code>.
+</p>
+<p>The dispatch algorithm is described in the source file
+(&lsquo;<span class="file">.../src/main/bind.c</span>&rsquo;) as
+</p>
+
+<ol>
+<li><p> For each argument we get the list of possible class
+memberships from the class attribute.
+</p>
+</li>
+<li><p> We inspect each class in turn to see if there is an
+applicable method.
+</p>
+</li>
+<li><p> If we find an applicable method we make sure that it is
+identical to any method determined for prior arguments.
+If it is identical, we proceed, otherwise we immediately
+drop through to the default code.
+</p>
+</li></ol>
+
+<p>If you want to combine other objects with data frames, it may be
+necessary to coerce them to data frames first.  (Note that this
+algorithm can result in calling the data frame method if all the
+arguments are either data frames or vectors, and this will result in
+the coercion of character vectors to factors.)
+</p>
+
+
+<h3>References</h3>
+
+<p>Becker, R. A., Chambers, J. M. and Wilks, A. R. (1988)
+<em>The New S Language</em>.
+Wadsworth &amp; Brooks/Cole.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="c.html">c</a></code> to combine vectors (and lists) as vectors,
+<code><a href="data.frame.html">data.frame</a></code> to combine vectors and matrices as a data
+frame.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+m &lt;- cbind(1, 1:7) # the '1' (= shorter vector) is recycled
+m
+m &lt;- cbind(m, 8:14)[, c(1, 3, 2)] # insert a column
+m
+cbind(1:7, diag(3)) # vector is subset -&gt; warning
+
+cbind(0, rbind(1, 1:3))
+cbind(I = 0, X = rbind(a = 1, b = 1:3))  # use some names
+xx &lt;- data.frame(I = rep(0,2))
+cbind(xx, X = rbind(a = 1, b = 1:3))   # named differently
+
+cbind(0, matrix(1, nrow = 0, ncol = 4)) #&gt; Warning (making sense)
+dim(cbind(0, matrix(1, nrow = 2, ncol = 0))) #-&gt; 2 x 1
+
+## deparse.level
+dd &lt;- 10
+rbind(1:4, c = 2, "a++" = 10, dd, deparse.level = 0) # middle 2 rownames
+rbind(1:4, c = 2, "a++" = 10, dd, deparse.level = 1) # 3 rownames (default)
+rbind(1:4, c = 2, "a++" = 10, dd, deparse.level = 2) # 4 rownames
+
+## cheap row names:
+b0 &lt;- gl(3,4, labels=letters[1:3])
+bf &lt;- setNames(b0, paste0("o", seq_along(b0)))
+df  &lt;- data.frame(a = 1, B = b0, f = gl(4,3))
+df. &lt;- data.frame(a = 1, B = bf, f = gl(4,3))
+new &lt;- data.frame(a = 8, B ="B", f = "1")
+(df1  &lt;- rbind(df , new))
+(df.1 &lt;- rbind(df., new))
+stopifnot(identical(df1, rbind(df,  new, make.row.names=FALSE)),
+          identical(df1, rbind(df., new, make.row.names=FALSE)))
+
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

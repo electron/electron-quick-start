@@ -1,0 +1,213 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Test Objects for Exact Equality</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for identical {base}"><tr><td>identical {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Test Objects for Exact Equality</h2>
+
+<h3>Description</h3>
+
+<p>The safe and reliable way to test two objects for being
+<em>exactly</em> equal.  It returns <code>TRUE</code> in this case,
+<code>FALSE</code> in every other case.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+identical(x, y, num.eq = TRUE, single.NA = TRUE, attrib.as.set = TRUE,
+          ignore.bytecode = TRUE, ignore.environment = FALSE,
+          ignore.srcref = TRUE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x, y</code></td>
+<td>
+<p>any <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> objects.</p>
+</td></tr>
+<tr valign="top"><td><code>num.eq</code></td>
+<td>
+<p>logical indicating if (<code><a href="double.html">double</a></code> and
+<code><a href="complex.html">complex</a></code> non-<code><a href="NA.html">NA</a></code>) numbers should be
+compared using <code><a href="Comparison.html">==</a></code> (&lsquo;equal&rsquo;), or by bitwise
+comparison.  The latter (non-default) differentiates between
+<code>-0</code> and <code>+0</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>single.NA</code></td>
+<td>
+<p>logical indicating if there is conceptually just one numeric
+<code><a href="NA.html">NA</a></code> and one <code><a href="is.finite.html">NaN</a></code>;  <code>single.NA = FALSE</code>
+differentiates bit patterns.</p>
+</td></tr>
+<tr valign="top"><td><code>attrib.as.set</code></td>
+<td>
+<p>logical indicating if <code><a href="attributes.html">attributes</a></code> of
+<code>x</code> and <code>y</code> should be treated as <em>unordered</em> tagged
+pairlists (&ldquo;sets&rdquo;); this currently also applies to
+<code><a href="../../methods/html/slot.html">slot</a></code>s of S4 objects.  It may well be too strict to set
+<code>attrib.as.set = FALSE</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>ignore.bytecode</code></td>
+<td>
+<p>logical indicating if byte code should be
+ignored when comparing <a href="function.html">closure</a>s.</p>
+</td></tr>
+<tr valign="top"><td><code>ignore.environment</code></td>
+<td>
+<p>logical indicating if their environments
+should be ignored when comparing <a href="function.html">closure</a>s.</p>
+</td></tr>
+<tr valign="top"><td><code>ignore.srcref</code></td>
+<td>
+<p>logical indicating if their <code>"srcref"</code>
+attributes should be ignored when comparing <a href="function.html">closure</a>s.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>A call to <code>identical</code> is the way to test exact equality in
+<code>if</code> and <code>while</code> statements, as well as in logical
+expressions that use <code>&amp;&amp;</code> or <code>||</code>.  In all these
+applications you need to be assured of getting a single logical
+value.
+</p>
+<p>Users often use the comparison operators, such as <code>==</code> or
+<code>!=</code>, in these situations.  It looks natural, but it is not what
+these operators are designed to do in <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>.  They return an object like
+the arguments.  If you expected <code>x</code> and <code>y</code> to be of length
+1, but it happened that one of them was not, you will <em>not</em> get a
+single <code>FALSE</code>.  Similarly, if one of the arguments is <code>NA</code>,
+the result is also <code>NA</code>.  In either case, the expression
+<code>if(x == y)....</code> won't work as expected.
+</p>
+<p>The function <code>all.equal</code> is also sometimes used to test equality
+this way, but was intended for something different:  it allows for
+small differences in numeric results.
+</p>
+<p>The computations in <code>identical</code> are also reliable and usually
+fast.  There should never be an error.  The only known way to kill
+<code>identical</code> is by having an invalid pointer at the C level,
+generating a memory fault.  It will usually find inequality quickly.
+Checking equality for two large, complicated objects can take longer
+if the objects are identical or nearly so, but represent completely
+independent copies.  For most applications, however, the computational cost
+should be negligible.
+</p>
+<p>If <code>single.NA</code> is true, as by default, <code>identical</code> sees
+<code><a href="is.finite.html">NaN</a></code> as different from <code><a href="NA.html">NA_real_</a></code>, but all
+<code>NaN</code>s are equal (and all <code>NA</code> of the same type are equal).
+</p>
+<p>Character strings are regarded as identical if they are in different
+marked encodings but would agree when translated to UTF-8.
+</p>
+<p>If <code>attrib.as.set</code> is true, as by default, comparison of
+attributes view them as a set (and not a vector, so order is not
+tested).
+</p>
+<p>If <code>ignore.bytecode</code> is true (the default), the compiled
+bytecode of a function (see <code><a href="../../compiler/html/compile.html">cmpfun</a></code>) will be ignored in
+the comparison.  If it is false, functions will compare equal only if
+they are copies of the same compiled object (or both are
+uncompiled).  To check whether two different compiles are equal, you
+should compare the results of <code><a href="../../compiler/html/compile.html">disassemble</a>()</code>.
+</p>
+<p>You almost never want to use <code>identical</code> on datetimes of class
+<code>"POSIXlt"</code>: not only can different times in the different
+time zones represent the same time and time zones have multiple names,
+but several of the components are optional.
+</p>
+<p>Note that <code>identical(x, y, FALSE, FALSE, FALSE, FALSE)</code> pickily
+tests for exact equality.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A single logical value, <code>TRUE</code> or <code>FALSE</code>, never <code>NA</code>
+and never anything other than a single value.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>John Chambers and R Core</p>
+
+
+<h3>References</h3>
+
+<p>Chambers, J. M. (1998)
+<em>Programming with Data.  A Guide to the S Language</em>.
+Springer.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="all.equal.html">all.equal</a></code> for descriptions of how two objects differ;
+<a href="Comparison.html">Comparison</a> for operators that generate elementwise comparisons.
+<code><a href="Logic.html">isTRUE</a></code> is a simple wrapper based on <code>identical</code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+identical(1, NULL) ## FALSE -- don't try this with ==
+identical(1, 1.)   ## TRUE in R (both are stored as doubles)
+identical(1, as.integer(1)) ## FALSE, stored as different types
+
+x &lt;- 1.0; y &lt;- 0.99999999999
+## how to test for object equality allowing for numeric fuzz :
+(E &lt;- all.equal(x, y))
+isTRUE(E) # which is simply defined to just use
+identical(TRUE, E)
+## If all.equal thinks the objects are different, it returns a
+## character string, and the above expression evaluates to FALSE
+
+## even for unusual R objects :
+identical(.GlobalEnv, environment())
+
+### ------- Pickyness Flags : -----------------------------
+
+## the infamous example:
+identical(0., -0.) # TRUE, i.e. not differentiated
+identical(0., -0., num.eq = FALSE)
+## similar:
+identical(NaN, -NaN) # TRUE
+identical(NaN, -NaN, single.NA = FALSE) # differ on bit-level
+
+### For functions ("closure"s): ----------------------------------------------
+###     ~~~~~~~~~
+f &lt;- function(x) x
+f
+g &lt;- compiler::cmpfun(f)
+g
+identical(f, g)                        # TRUE, as bytecode is ignored by default
+identical(f, g, ignore.bytecode=FALSE) # FALSE: bytecode differs
+
+## GLM families contain several functions, some of which share an environment:
+p1 &lt;- poisson() ; p2 &lt;- poisson()
+identical(p1, p2)                          # FALSE
+identical(p1, p2, ignore.environment=TRUE) # TRUE
+
+## in interactive use, the 'keep.source' option is typically true:
+op &lt;- options(keep.source = TRUE) # and so, these have differing "srcref" :
+f1 &lt;- function() {}
+f2 &lt;- function() {}
+identical(f1,f2)# ignore.srcref= TRUE : TRUE
+identical(f1,f2,  ignore.srcref=FALSE)# FALSE
+options(op) # revert to previous state
+
+
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

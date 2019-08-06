@@ -1,0 +1,224 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Class Methods</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for UseMethod {base}"><tr><td>UseMethod {base}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Class Methods</h2>
+
+<h3>Description</h3>
+
+<p><span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> possesses a simple generic function mechanism which can be used for
+an object-oriented style of programming.  Method dispatch takes place
+based on the class(es) of the first argument to the generic function or of
+the object supplied as an argument to <code>UseMethod</code> or <code>NextMethod</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+UseMethod(generic, object)
+
+NextMethod(generic = NULL, object = NULL, ...)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>generic</code></td>
+<td>
+<p>a character string naming a function (and not a
+built-in operator).  Required for <code>UseMethod</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>object</code></td>
+<td>
+<p>for <code>UseMethod</code>: an object whose class will
+determine the method to be dispatched.  Defaults to the first
+argument of the enclosing function.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>further arguments to be passed to the next method.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>An <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> object is a data object which has a <code>class</code>
+attribute (and this can be tested by <code><a href="is.object.html">is.object</a></code>).
+A class attribute is a character vector giving the names of
+the classes from which the object <em>inherits</em>.
+If the object does not have a class attribute, it has an implicit
+class.  Matrices and arrays have class <code>"matrix"</code>
+or<code>"array"</code> followed by the class of the underlying vector.
+Most vectors have class the result of <code><a href="mode.html">mode</a>(x)</code>, except
+that integer vectors have class <code>c("integer", "numeric")</code> and
+real vectors have class <code>c("double", "numeric")</code>.
+</p>
+<p>When a function calling <code>UseMethod("fun")</code> is applied to an
+object with class attribute <code>c("first", "second")</code>, the system
+searches for a function called <code>fun.first</code> and, if it finds it,
+applies it to the object.  If no such function is found a function
+called <code>fun.second</code> is tried.  If no class name produces a
+suitable function, the function <code>fun.default</code> is used, if it
+exists, or an error results.
+</p>
+<p>Function <code><a href="../../utils/html/methods.html">methods</a></code> can be used to find out about the
+methods for a particular generic function or class.
+</p>
+<p><code>UseMethod</code> is a primitive function but uses standard argument
+matching.  It is not the only means of dispatch of methods, for there
+are <a href="InternalMethods.html">internal generic</a> and <a href="groupGeneric.html">group generic</a> functions.
+<code>UseMethod</code> currently dispatches on the implicit class even for
+arguments that are not objects, but the other means of dispatch do
+not.
+</p>
+<p><code>NextMethod</code> invokes the next method (determined by the
+class vector, either of the object supplied to the generic, or of
+the first argument to the function containing <code>NextMethod</code> if a
+method was invoked directly).  Normally <code>NextMethod</code> is used with
+only one argument, <code>generic</code>, but if further arguments are
+supplied these modify the call to the next method.
+</p>
+<p><code>NextMethod</code> should not be called except in methods called by
+<code>UseMethod</code> or from internal generics (see
+<a href="InternalMethods.html">InternalGenerics</a>).  In particular it will not work inside
+anonymous calling functions (e.g., <code>get("print.ts")(AirPassengers)</code>).
+</p>
+<p>Namespaces can register methods for generic functions.  To support
+this, <code>UseMethod</code> and <code>NextMethod</code> search for methods in
+two places: in the environment in which the generic function
+is called, and in the registration data base for the
+environment in which the generic is defined (typically a namespace).
+So methods for a generic function need to be available in the
+environment of the call to the generic, or they must be registered.
+(It does not matter whether they are visible in the environment in
+which the generic is defined.)  As from <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> 3.5.0, the registration
+data base is searched after the top level environment (see
+<code><a href="ns-topenv.html">topenv</a></code>) of the calling environment (but before the
+parents of the top level environment).
+</p>
+
+
+<h3>Technical Details</h3>
+
+<p>Now for some obscure details that need to appear somewhere.  These
+comments will be slightly different than those in Chambers(1992).
+(See also the draft &lsquo;R Language Definition&rsquo;.)
+<code>UseMethod</code> creates a new function call with
+arguments matched as they came in to the generic.  Any local variables
+defined before the call to <code>UseMethod</code> are retained (unlike S).  Any
+statements after the call to <code>UseMethod</code> will not be evaluated as
+<code>UseMethod</code> does not return.  <code>UseMethod</code> can be called with
+more than two arguments: a warning will be given and additional
+arguments ignored.  (They are not completely ignored in S.)  If it is
+called with just one argument, the class of the first argument of the
+enclosing function is used as <code>object</code>: unlike S this is the first
+actual argument passed and not the current value of the object of that
+name.
+</p>
+<p><code>NextMethod</code> works by creating a special call frame for the next
+method.  If no new arguments are supplied, the arguments will be the
+same in number, order and name as those to the current method but
+their values will be promises to evaluate their name in the current
+method and environment.  Any named arguments matched to <code>...</code>
+are handled specially: they either replace existing arguments of the
+same name or are appended to the argument list.  They are passed on as
+the promise that was supplied as an argument to the current
+environment.  (S does this differently!)  If they have been evaluated
+in the current (or a previous environment) they remain evaluated.
+(This is a complex area, and subject to change: see the draft
+&lsquo;R Language Definition&rsquo;.)
+</p>
+<p>The search for methods for <code>NextMethod</code> is slightly different
+from that for <code>UseMethod</code>.   Finding no <code>fun.default</code> is not
+necessarily an error, as the search continues to the generic
+itself.  This is to pick up an <a href="InternalMethods.html">internal generic</a> like <code>[</code>
+which has no separate default method, and succeeds only if the generic
+is a <a href="Primitive.html">primitive</a> function or a wrapper for a
+<code><a href="Internal.html">.Internal</a></code> function of the same name.  (When a primitive
+is called as the default method, argument matching may not work as
+described above due to the different semantics of primitives.)
+</p>
+<p>You will see objects such as <code>.Generic</code>, <code>.Method</code>, and
+<code>.Class</code> used in methods.  These are set in the environment
+within which the method is evaluated by the dispatch mechanism, which
+is as follows:
+</p>
+
+<ol>
+<li><p> Find the context for the calling function (the generic): this
+gives us the unevaluated arguments for the original call.
+</p>
+</li>
+<li><p> Evaluate the object (usually an argument) to be used for
+dispatch, and find a method (possibly the default method) or throw
+an error.
+</p>
+</li>
+<li><p> Create an environment for evaluating the method and insert
+special variables (see below) into that environment.  Also copy any
+variables in the environment of the generic that are not formal (or
+actual) arguments.
+</p>
+</li>
+<li><p> Fix up the argument list to be the arguments of the call
+matched to the formals of the method.
+</p>
+</li></ol>
+
+<p><code>.Generic</code> is a length-one character vector naming the generic function.
+</p>
+<p><code>.Method</code> is a character vector (normally of length one) naming
+the method function.  (For functions in the group generic
+<code><a href="groupGeneric.html">Ops</a></code> it is of length two.)
+</p>
+<p><code>.Class</code> is a character vector of classes used to find the next
+method.  <code>NextMethod</code> adds an attribute <code>"previous"</code> to
+<code>.Class</code> giving the <code>.Class</code> last used for dispatch, and
+shifts <code>.Class</code> along to that used for dispatch.
+</p>
+<p><code>.GenericCallEnv</code> and <code>.GenericDefEnv</code> are the environments
+of the call to be generic and defining the generic respectively.  (The
+latter is used to find methods registered for the generic.)
+</p>
+<p>Note that <code>.Class</code> is set when the generic is called, and is
+unchanged if the class of the dispatching argument is changed in a
+method.  It is possible to change the method that <code>NextMethod</code>
+would dispatch by manipulating <code>.Class</code>, but &lsquo;this is not
+recommended unless you understand the inheritance mechanism
+thoroughly&rsquo; (Chambers &amp; Hastie, 1992, p. 469).
+</p>
+
+
+<h3>Note</h3>
+
+<p>This scheme is called <em>S3</em> (S version 3).  For new projects,
+it is recommended to use the more flexible and robust <em>S4</em> scheme
+provided in the <span class="pkg">methods</span> package.
+</p>
+
+
+<h3>References</h3>
+
+<p>Chambers, J. M. (1992)
+<em>Classes and methods: object-oriented programming in S.</em>
+Appendix A of <em>Statistical Models in S</em>
+eds J. M. Chambers and T. J. Hastie, Wadsworth &amp; Brooks/Cole.
+</p>
+
+
+<h3>See Also</h3>
+
+<p>The draft &lsquo;R Language Definition&rsquo;.
+</p>
+<p><code><a href="../../utils/html/methods.html">methods</a></code>, <code><a href="class.html">class</a></code>,
+<code><a href="../../utils/html/getS3method.html">getS3method</a></code>, <code><a href="is.object.html">is.object</a></code>.
+</p>
+
+<hr /><div style="text-align: center;">[Package <em>base</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

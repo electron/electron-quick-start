@@ -1,0 +1,162 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Simulate Responses</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for simulate {stats}"><tr><td>simulate {stats}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Simulate Responses</h2>
+
+<h3>Description</h3>
+
+<p>Simulate one or more responses from the distribution
+corresponding to a fitted model object.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+simulate(object, nsim = 1, seed = NULL, ...)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>object</code></td>
+<td>
+<p>an object representing a fitted model.</p>
+</td></tr>
+<tr valign="top"><td><code>nsim</code></td>
+<td>
+<p>number of response vectors to simulate.  Defaults to <code>1</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>seed</code></td>
+<td>
+<p>an object specifying if and how the random number
+generator should be initialized (&lsquo;seeded&rsquo;).<br />
+For the &quot;lm&quot; method, either <code>NULL</code> or an integer that will be
+used in a call to <code>set.seed</code> before simulating the response
+vectors.  If set, the value is saved as the <code>"seed"</code> attribute
+of the returned value.  The default, <code>NULL</code> will not change the
+random generator state, and return <code><a href="../../base/html/Random.html">.Random.seed</a></code> as the
+<code>"seed"</code> attribute, see &lsquo;Value&rsquo;.
+</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>additional optional arguments.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>This is a generic function.  Consult the individual modeling functions
+for details on how to use this function.
+</p>
+<p>Package <span class="pkg">stats</span> has a method for <code>"lm"</code> objects which is used
+for <code><a href="lm.html">lm</a></code> and <code><a href="glm.html">glm</a></code> fits.  There is a method
+for fits from <code>glm.nb</code> in package <a href="https://CRAN.R-project.org/package=MASS"><span class="pkg">MASS</span></a>, and hence the
+case of negative binomial families is not covered by the <code>"lm"</code>
+method.
+</p>
+<p>The methods for linear models fitted by <code>lm</code> or <code>glm(family
+  = "gaussian")</code> assume that any weights which have been supplied are
+inversely proportional to the error variance.  For other GLMs the
+(optional) <code>simulate</code> component of the <code><a href="family.html">family</a></code>
+object is used&mdash;there is no appropriate simulation method for
+&lsquo;quasi&rsquo; models as they are specified only up to two moments.
+</p>
+<p>For binomial and Poisson GLMs the dispersion is fixed at one.  Integer
+prior weights <i>w_i</i> can be interpreted as meaning that
+observation <i>i</i> is an average of <i>w_i</i> observations, which is
+natural for binomials specified as proportions but less so for a
+Poisson, for which prior weights are ignored with a warning.
+</p>
+<p>For a gamma GLM the shape parameter is estimated by maximum likelihood
+(using function <code><a href="../../MASS/html/gamma.shape.glm.html">gamma.shape</a></code> in package
+<a href="https://CRAN.R-project.org/package=MASS"><span class="pkg">MASS</span></a>).  The interpretation of weights is as multipliers to a
+basic shape parameter, since dispersion is inversely proportional to
+shape.
+</p>
+<p>For an inverse gaussian GLM the model assumed is
+<i>IG(&mu;_i, &lambda; w_i)</i> (see
+<a href="https://en.wikipedia.org/wiki/Inverse_Gaussian_distribution">https://en.wikipedia.org/wiki/Inverse_Gaussian_distribution</a>)
+where <i>&lambda;</i> is estimated by the inverse of the dispersion
+estimate for the fit.  The variance is
+<i>&mu;_i^3/(&lambda; w_i)</i> and
+hence inversely proportional to the prior weights.  The simulation is
+done by function <code><a href="../../SuppDists/html/invGauss.html">rinvGauss</a></code> from the
+<a href="https://CRAN.R-project.org/package=SuppDists"><span class="pkg">SuppDists</span></a> package, which must be installed.
+</p>
+
+
+<h3>Value</h3>
+
+<p>Typically, a list of length <code>nsim</code> of simulated responses.  Where
+appropriate the result can be a data frame (which is a special type of
+list).
+
+
+</p>
+<p>For the <code>"lm"</code> method, the result is a data frame with an
+attribute <code>"seed"</code>.  If argument <code>seed</code> is <code>NULL</code>, the
+attribute is the value of <code><a href="../../base/html/Random.html">.Random.seed</a></code> before the
+simulation was started; otherwise it is the value of the argument with
+a <code>"kind"</code> attribute with value <code>as.list(<a href="../../base/html/Random.html">RNGkind</a>())</code>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="../../base/html/Random.html">RNG</a></code> about random number generation in <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>,
+<code><a href="fitted.values.html">fitted.values</a></code> and <code><a href="residuals.html">residuals</a></code> for related methods;
+<code><a href="glm.html">glm</a></code>, <code><a href="lm.html">lm</a></code> for model fitting.
+</p>
+<p>There are further examples in the &lsquo;<span class="file">simulate.R</span>&rsquo; tests file in the
+sources for package <span class="pkg">stats</span>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+x &lt;- 1:5
+mod1 &lt;- lm(c(1:3, 7, 6) ~ x)
+S1 &lt;- simulate(mod1, nsim = 4)
+## repeat the simulation:
+.Random.seed &lt;- attr(S1, "seed")
+identical(S1, simulate(mod1, nsim = 4))
+
+S2 &lt;- simulate(mod1, nsim = 200, seed = 101)
+rowMeans(S2) # should be about the same as
+fitted(mod1)
+
+## repeat identically:
+(sseed &lt;- attr(S2, "seed")) # seed; RNGkind as attribute
+stopifnot(identical(S2, simulate(mod1, nsim = 200, seed = sseed)))
+
+## To be sure about the proper RNGkind, e.g., after
+RNGversion("2.7.0")
+## first set the RNG kind, then simulate
+do.call(RNGkind, attr(sseed, "kind"))
+identical(S2, simulate(mod1, nsim = 200, seed = sseed))
+
+## Binomial GLM examples
+yb1 &lt;- matrix(c(4, 4, 5, 7, 8, 6, 6, 5, 3, 2), ncol = 2)
+modb1 &lt;- glm(yb1 ~ x, family = binomial)
+S3 &lt;- simulate(modb1, nsim = 4)
+# each column of S3 is a two-column matrix.
+
+x2 &lt;- sort(runif(100))
+yb2 &lt;- rbinom(100, prob = plogis(2*(x2-1)), size = 1)
+yb2 &lt;- factor(1 + yb2, labels = c("failure", "success"))
+modb2 &lt;- glm(yb2 ~ x2, family = binomial)
+S4 &lt;- simulate(modb2, nsim = 4)
+# each column of S4 is a factor
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>stats</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

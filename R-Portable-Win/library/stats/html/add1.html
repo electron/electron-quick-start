@@ -1,0 +1,215 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Add or Drop All Possible Single Terms to a Model</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for add1 {stats}"><tr><td>add1 {stats}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Add or Drop All Possible Single Terms to a Model</h2>
+
+<h3>Description</h3>
+
+<p>Compute all the single terms in the <code>scope</code> argument that can be
+added to or dropped from the model, fit those models and compute a
+table of the changes in fit.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+add1(object, scope, ...)
+
+## Default S3 method:
+add1(object, scope, scale = 0, test = c("none", "Chisq"),
+     k = 2, trace = FALSE, ...)
+
+## S3 method for class 'lm'
+add1(object, scope, scale = 0, test = c("none", "Chisq", "F"),
+     x = NULL, k = 2, ...)
+
+## S3 method for class 'glm'
+add1(object, scope, scale = 0,
+     test = c("none", "Rao", "LRT", "Chisq", "F"),
+     x = NULL, k = 2, ...)
+
+drop1(object, scope, ...)
+
+## Default S3 method:
+drop1(object, scope, scale = 0, test = c("none", "Chisq"),
+      k = 2, trace = FALSE, ...)
+
+## S3 method for class 'lm'
+drop1(object, scope, scale = 0, all.cols = TRUE,
+      test = c("none", "Chisq", "F"), k = 2, ...)
+
+## S3 method for class 'glm'
+drop1(object, scope, scale = 0,
+      test = c("none", "Rao", "LRT", "Chisq", "F"),
+      k = 2, ...)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>object</code></td>
+<td>
+<p>a fitted model object.</p>
+</td></tr>
+<tr valign="top"><td><code>scope</code></td>
+<td>
+<p>a formula giving the terms to be considered for adding or
+dropping.</p>
+</td></tr>
+<tr valign="top"><td><code>scale</code></td>
+<td>
+<p>an estimate of the residual mean square to be
+used in computing <i>Cp</i>. Ignored if <code>0</code> or <code>NULL</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>test</code></td>
+<td>
+<p>should the results include a test statistic relative to the
+original model?  The F test is only appropriate for <code><a href="lm.html">lm</a></code> and
+<code><a href="aov.html">aov</a></code> models or perhaps for <code><a href="glm.html">glm</a></code> fits with
+estimated dispersion.
+The <i>Chisq</i> test can be an exact test
+(<code>lm</code> models with known scale) or a likelihood-ratio test or a
+test of the reduction in scaled deviance depending on the method.
+For <code><a href="glm.html">glm</a></code> fits, you can also choose <code>"LRT"</code> and
+<code>"Rao"</code> for likelihood ratio tests and Rao's efficient score test.
+The former is synonymous with <code>"Chisq"</code> (although both have
+an asymptotic chi-square distribution).
+Values can be abbreviated.
+</p>
+</td></tr>
+<tr valign="top"><td><code>k</code></td>
+<td>
+<p>the penalty constant in AIC / <i>Cp</i>.</p>
+</td></tr>
+<tr valign="top"><td><code>trace</code></td>
+<td>
+<p>if <code>TRUE</code>, print out progress reports.</p>
+</td></tr>
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>a model matrix containing columns for the fitted model and all
+terms in the upper scope.  Useful if <code>add1</code> is to be called
+repeatedly.  <b>Warning:</b> no checks are done on its validity.</p>
+</td></tr>
+<tr valign="top"><td><code>all.cols</code></td>
+<td>
+<p>(Provided for compatibility with S.)  Logical to specify
+whether all columns of the design matrix should be used.  If
+<code>FALSE</code> then non-estimable columns are dropped, but the result
+is not usually statistically meaningful.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>further arguments passed to or from other methods.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>For <code>drop1</code> methods, a missing <code>scope</code> is taken to be all
+terms in the model. The hierarchy is respected when considering terms
+to be added or dropped: all main effects contained in a second-order
+interaction must remain, and so on.
+</p>
+<p>In a <code>scope</code> formula <code>.</code> means &lsquo;what is already there&rsquo;.
+</p>
+<p>The methods for <code><a href="lm.html">lm</a></code> and <code><a href="glm.html">glm</a></code> are more
+efficient in that they do not recompute the model matrix and call the
+<code>fit</code> methods directly.
+</p>
+<p>The default output table gives AIC, defined as minus twice log
+likelihood plus <i>2p</i> where <i>p</i> is the rank of the model (the
+number of effective parameters).  This is only defined up to an
+additive constant (like log-likelihoods).  For linear Gaussian models
+with fixed scale, the constant is chosen to give Mallows' <i>Cp</i>,
+<i>RSS/scale + 2p - n</i>.  Where <i>Cp</i> is used,
+the column is labelled as <code>Cp</code> rather than <code>AIC</code>.
+</p>
+<p>The F tests for the <code>"glm"</code> methods are based on analysis of
+deviance tests, so if the dispersion is estimated it is based on the
+residual deviance, unlike the F tests of <code><a href="anova.glm.html">anova.glm</a></code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class <code>"anova"</code> summarizing the differences in fit
+between the models.
+</p>
+
+
+<h3>Warning</h3>
+
+<p>The model fitting must apply the models to the same dataset. Most
+methods will attempt to use a subset of the data with no missing
+values for any of the variables if <code>na.action = na.omit</code>, but
+this may give biased results.  Only use these functions with data
+containing missing values with great care.
+</p>
+<p>The default methods make calls to the function <code><a href="nobs.html">nobs</a></code> to
+check that the number of observations involved in the fitting process
+remained unchanged.
+</p>
+
+
+<h3>Note</h3>
+
+<p>These are not fully equivalent to the functions in S.  There is no
+<code>keep</code> argument, and the methods used are not quite so
+computationally efficient.
+</p>
+<p>Their authors' definitions of Mallows' <i>Cp</i> and Akaike's AIC
+are used, not those of the authors of the models chapter of S.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>The design was inspired by the S functions of the same names described
+in Chambers (1992).
+</p>
+
+
+<h3>References</h3>
+
+<p>Chambers, J. M. (1992)
+<em>Linear models.</em>
+Chapter 4 of <em>Statistical Models in S</em>
+eds J. M. Chambers and T. J. Hastie, Wadsworth &amp; Brooks/Cole.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="step.html">step</a></code>, <code><a href="aov.html">aov</a></code>, <code><a href="lm.html">lm</a></code>,
+<code><a href="extractAIC.html">extractAIC</a></code>, <code><a href="anova.html">anova</a></code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+
+require(graphics); require(utils)
+## following example(swiss)
+lm1 &lt;- lm(Fertility ~ ., data = swiss)
+add1(lm1, ~ I(Education^2) + .^2)
+drop1(lm1, test = "F")  # So called 'type II' anova
+
+## following example(glm)
+
+drop1(glm.D93, test = "Chisq")
+drop1(glm.D93, test = "F")
+add1(glm.D93, scope = ~outcome*treatment, test = "Rao") ## Pearson Chi-square
+
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>stats</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

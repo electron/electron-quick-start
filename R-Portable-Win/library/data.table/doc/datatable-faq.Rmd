@@ -52,7 +52,7 @@ Reminder: you can place _any_ R expression inside `DT[...]` using column names a
 
 ## Why does `DT[,"region"]` return a 1-column data.table rather than a vector?
 
-See the [answer above](#j-num). Try `DT$region` instead. Or `DT[["region"]]`. 
+See the [answer above](#j-num). Try `DT$region` instead. Or `DT[["region"]]`.
 
 
 ## Why does `DT[, region]` return a vector for the "region" column?  I'd like a 1-column data.table.
@@ -67,15 +67,15 @@ The `j` expression is the 2nd argument. Try `DT[ , c("x","y","z")]` or `DT[ , .(
 
 ## I assigned a variable `mycol = "x"` but then `DT[ , mycol]` returns `"x"`. How do I get it to look up the column name contained in the `mycol` variable?
 
-In v1.9.8 released Nov 2016 there is an abililty to turn on new behaviour: `options(datatable.WhenJisSymbolThenCallingScope=TRUE)`. It will then work as you expected, just like data.frame. If you are a new user of data.table, you should probably do this. You can place this command in your .Rprofile file so you don't have to remember again. See the long item in release notes about this. The release notes are linked at the top of the data.table homepage: [NEWS](https://github.com/Rdatatable/data.table/blob/master/NEWS.md).
+In v1.9.8 released Nov 2016 there is an ability to turn on new behaviour: `options(datatable.WhenJisSymbolThenCallingScope=TRUE)`. It will then work as you expected, just like data.frame. If you are a new user of data.table, you should probably do this. You can place this command in your .Rprofile file so you don't have to remember again. See the long item in release notes about this. The release notes are linked at the top of the data.table homepage: [NEWS](https://github.com/Rdatatable/data.table/blob/master/NEWS.md).
 
-Without turning on that new behavior, what's happening is that the `j` expression sees objects in the calling scope. The variable `mycol` does not exist as a column name of `DT` so data.table then looked in the calling scope and found `mycol` there and returned its value `"x"`. This is correct behaviour currently. Had `mycol` been a column name, then that column's data would have been returned. What has been done to date has been `DT[ , mycol, with = FALSE]` which will return the `x` column's data as required. That will still work in the future, too. Alternatively, since a data.table _is_ a `list`, too, you have been and still will be able to write and rely on `DT[[mycol]]`.
+Without turning on that new behaviour, what's happening is that the `j` expression sees objects in the calling scope. The variable `mycol` does not exist as a column name of `DT` so data.table then looked in the calling scope and found `mycol` there and returned its value `"x"`. This is correct behaviour currently. Had `mycol` been a column name, then that column's data would have been returned. What has been done to date has been `DT[ , mycol, with = FALSE]` which will return the `x` column's data as required. That will still work in the future, too. Alternatively, since a data.table _is_ a `list`, too, you have been and still will be able to write and rely on `DT[[mycol]]`.
 
 ## What are the benefits of being able to use column names as if they are variables inside `DT[...]`?
 
 `j` doesn't have to be just column names. You can write any R _expression_ of column names directly in `j`, _e.g._, `DT[ , mean(x*y/z)]`.  The same applies to `i`, _e.g._, `DT[x>1000, sum(y*z)]`.
 
-This runs the `j` expression on the set of rows where the `i` expression is true. You don't even need to return data, _e.g._, `DT[x>1000, plot(y, z)]`. You can do `j` by group simply by adding `by = `; e.g., `DT[x>1000, sum(y*z), by = w]`. This runs `j` for each group in column `w` but just over the rows where `x>1000`. By placing the 3 parts of the query (i=where, j=select and by=group by) inside the square brackets, data.table sees this query as a whole before any part of it is evaluated. Thus it can optimize the combined query for performance. It can do this because the R language uniquely has lazy evalation (Python and Julia do not). data.table sees the expressions inside `DT[...]` before they are evaluated and optimizes them before evaluation. For example, if data.table see that you're only using 2 columns out of 100, it won't bother to subset the 98 that aren't needed by your j expression.
+This runs the `j` expression on the set of rows where the `i` expression is true. You don't even need to return data, _e.g._, `DT[x>1000, plot(y, z)]`. You can do `j` by group simply by adding `by = `; e.g., `DT[x>1000, sum(y*z), by = w]`. This runs `j` for each group in column `w` but just over the rows where `x>1000`. By placing the 3 parts of the query (i=where, j=select and by=group by) inside the square brackets, data.table sees this query as a whole before any part of it is evaluated. Thus it can optimize the combined query for performance. It can do this because the R language uniquely has lazy evaluation (Python and Julia do not). data.table sees the expressions inside `DT[...]` before they are evaluated and optimizes them before evaluation. For example, if data.table see that you're only using 2 columns out of 100, it won't bother to subset the 98 that aren't needed by your j expression.
 
 ## OK, I'm starting to see what data.table is about, but why didn't you just enhance `data.frame` in R? Why does it have to be a new package?
 
@@ -87,7 +87,7 @@ We _have_ proposed enhancements to R wherever possible, too. One of these was ac
 
 > `unique()` and `match()` are now faster on character vectors where all elements are in the global CHARSXP cache and have unmarked encoding (ASCII).  Thanks to Matt Dowle for suggesting improvements to the way the hash code is generated in unique.c.
 
-A second proposal was to use `memcpy` in duplicate.c, which is much faster than a for loop in C. This would improve the _way_ that R copies data internally (on some measures by 13 times). The thread on r-devel is [here](http://tolstoy.newcastle.edu.au/R/e10/devel/10/04/0148.html).
+A second proposal was to use `memcpy` in duplicate.c, which is much faster than a for loop in C. This would improve the _way_ that R copies data internally (on some measures by 13 times). The thread on r-devel is [here](http://r.789695.n4.nabble.com/suggestion-how-to-use-memcpy-in-duplicate-c-td2019184.html).
 
 A third more significant proposal that was accepted is that R now uses data.table's radix sort code as from R 3.3.0 :
 
@@ -217,7 +217,7 @@ sapply(DT[0], class)
 ## Why has the `DT()` alias been removed? {#DTremove1}
 `DT` was introduced originally as a wrapper for a list of `j `expressions. Since `DT` was an alias for data.table, this was a convenient way to take care of silent recycling in cases where each item of the `j` list evaluated to different lengths. The alias was one reason grouping was slow, though.
 
-As of v1.3, `list()` or `.()` should be passed instead to the `j` argument. These are much faster, especially when there are many groups. Internally, this was a nontrivial change. Vector recycling is now done internally, along with several other speed enhancements for grouping.
+As of v1.3, `list()` or `.()` should be passed instead to the `j` argument. These are much faster, especially when there are many groups. Internally, this was a non-trivial change. Vector recycling is now done internally, along with several other speed enhancements for grouping.
 
 ## But my code uses `j = DT(...)` and it works. The previous FAQ says that `DT()` has been removed. {#DTremove2}
 
@@ -352,7 +352,7 @@ Yes :
  - `i`  $\Leftrightarrow$  order by (in compound syntax)
  - `i`  $\Leftrightarrow$  having (in compound syntax)
  - `nomatch = NA`  $\Leftrightarrow$  outer join
- - `nomatch = 0L`  $\Leftrightarrow$  inner join
+ - `nomatch = NULL`  $\Leftrightarrow$  inner join
  - `mult = "first"|"last"`  $\Leftrightarrow$  N/A because SQL is inherently unordered
  - `roll = TRUE`  $\Leftrightarrow$  N/A because SQL is inherently unordered
 
@@ -362,7 +362,7 @@ The general form is :
 DT[where, select|update, group by][order by][...] ... [...]
 ```
 
-A key advantage of column vectors in R is that they are _ordered_, unlike SQL[^2]. We can use ordered functions in `data.table queries such as `diff()` and we can use _any_ R function from any package, not just the functions that are defined in SQL. A disadvantage is that R objects must fit in memory, but with several R packages such as ff, bigmemory, mmap and indexing, this is changing.
+A key advantage of column vectors in R is that they are _ordered_, unlike SQL[^2]. We can use ordered functions in `data.table` queries such as `diff()` and we can use _any_ R function from any package, not just the functions that are defined in SQL. A disadvantage is that R objects must fit in memory, but with several R packages such as `ff`, `bigmemory`, `mmap` and `indexing`, this is changing.
 
 [^2]: It may be a surprise to learn that `select top 10 * from ...` does _not_ reliably return the same rows over time in SQL. You do need to include an `order by` clause, or use a clustered index to guarantee row order; _i.e._, SQL is inherently unordered.
 
@@ -469,7 +469,7 @@ Several reasons:
 
 ## I don't have a `key` on a large table, but grouping is still really quick. Why is that?
 
-data.table uses radix sorting. This is significantly faster than other sort algorithms. See [our presentations](http://user2015.math.aau.dk/presentations/234.pdf) on [our homepage](https://github.com/Rdatatable/data.table/wiki) for more information.
+data.table uses radix sorting. This is significantly faster than other sort algorithms. See [our presentations](https://github.com/Rdatatable/data.table/wiki/Presentations) for more information, in particular from useR!2015 Denmark.
 
 This is also one reason why `setkey()` is quick.
 
@@ -595,13 +595,14 @@ Please file suggestions, bug reports and enhancement requests on our [issues tra
 
 Please do star the package on [GitHub](https://github.com/Rdatatable/data.table/wiki). This helps encourage the developers and helps other R users find the package.
 
-You can submit pull requests to change the code and/or documentation yourself; see our [Contribution Guidelines](https://github.com/Rdatatable/data.table/blob/master/Contributing.md).
+You can submit pull requests to change the code and/or documentation yourself; see our [Contribution Guidelines](https://github.com/Rdatatable/data.table/blob/master/CONTRIBUTING.md).
 
 ## I think it's not great. How do I warn others about my experience?
-Please put your vote and comments on [Crantastic](http://crantastic.org/packages/data-table). Please make it constructive so we have a chance to improve.
+
+We add all articles we know about (whether positive or negative) to the [Articles](https://github.com/Rdatatable/data.table/wiki/Articles) page. All pages in the project's wiki on GitHub are open-access with no modify restrictions. Feel free to write an article, link to a negative one someone else wrote that you found, or add a new page to our wiki to collect your criticisms. Please make it constructive so we have a chance to improve.
 
 ## I have a question. I know the r-help posting guide tells me to contact the maintainer (not r-help), but is there a larger group of people I can ask?
-Yes, there are two options. You can post to [datatable-help](mailto:datatable-help@lists.r-forge.r-project.org). It's like r-help, but just for this package. Or the [`[data.table]` tag](https://stackoverflow.com/tags/data.table/info) on [Stack Overflow](https://stackoverflow.com/). Feel free to answer questions in those places, too.
+Please see the [support guide](https://github.com/Rdatatable/data.table/wiki/Support) on the project's homepage which contains up-to-date links.
 
 ## Where are the datatable-help archives?
 The [homepage](https://github.com/Rdatatable/data.table/wiki) contains links to the archives in several formats.
@@ -612,5 +613,4 @@ Sure. You're more likely to get a faster answer from the Issues page or Stack Ov
 ## I have created a package that uses data.table. How do I ensure my package is data.table-aware so that inheritance from `data.frame` works?
 
 Please see [this answer](http://stackoverflow.com/a/10529888/403310).
-
 

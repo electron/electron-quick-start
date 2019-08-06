@@ -1,6 +1,8 @@
-'use strict';
+"use strict";
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
+
+function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
 //---------------------------------------------------------------------
 // Source file: ../srcjs/_start.js
@@ -9,6 +11,8 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
   var $ = jQuery;
 
   var exports = window.Shiny = window.Shiny || {};
+
+  exports.version = "1.3.2"; // Version number inserted by Grunt
 
   var origPushState = window.history.pushState;
   window.history.pushState = function () {
@@ -175,7 +179,17 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
   // "with" on the argument value, and return the result.
   function scopeExprToFunc(expr) {
     /*jshint evil: true */
-    var func = new Function("with (this) {return (" + expr + ");}");
+    var expr_escaped = expr.replace(/[\\"']/g, '\\$&').replace(/\u0000/g, '\\0').replace(/\n/g, '\\n').replace(/\r/g, '\\r')
+    // \b has a special meaning; need [\b] to match backspace char.
+    .replace(/[\b]/g, '\\b');
+
+    try {
+      var func = new Function("with (this) {\n        try {\n          return (" + expr + ");\n        } catch (e) {\n          console.error('Error evaluating expression: " + expr_escaped + "');\n          throw e;\n        }\n      }");
+    } catch (e) {
+      console.error("Error parsing expression: " + expr);
+      throw e;
+    }
+
     return function (scope) {
       return func.call(scope);
     };
@@ -235,10 +249,77 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
   function mapValues(obj, f) {
     var newObj = {};
     for (var key in obj) {
-      if (obj.hasOwnProperty(key)) newObj[key] = f(obj[key]);
+      if (obj.hasOwnProperty(key)) newObj[key] = f(obj[key], key, obj);
     }
     return newObj;
   }
+
+  // This is does the same as Number.isNaN, but that function unfortunately does
+  // not exist in any version of IE.
+  function isnan(x) {
+    return typeof x === 'number' && isNaN(x);
+  }
+
+  // Binary equality function used by the equal function.
+  function _equal(x, y) {
+    if ($.type(x) === "object" && $.type(y) === "object") {
+      if (Object.keys(x).length !== Object.keys(y).length) return false;
+      for (var prop in x) {
+        if (!y.hasOwnProperty(prop) || !_equal(x[prop], y[prop])) return false;
+      }return true;
+    } else if ($.type(x) === "array" && $.type(y) === "array") {
+      if (x.length !== y.length) return false;
+      for (var i = 0; i < x.length; i++) {
+        if (!_equal(x[i], y[i])) return false;
+      }return true;
+    } else {
+      return x === y;
+    }
+  }
+
+  // Structural or "deep" equality predicate. Tests two or more arguments for
+  // equality, traversing arrays and objects (as determined by $.type) as
+  // necessary.
+  //
+  // Objects other than objects and arrays are tested for equality using ===.
+  function equal() {
+    for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
+      args[_key] = arguments[_key];
+    }
+
+    if (args.length < 2) throw new Error("equal requires at least two arguments.");
+    for (var i = 0; i < args.length - 1; i++) {
+      if (!_equal(args[i], args[i + 1])) return false;
+    }
+    return true;
+  };
+
+  // Compare version strings like "1.0.1", "1.4-2". `op` must be a string like
+  // "==" or "<".
+  exports.compareVersion = function (a, op, b) {
+    function versionParts(ver) {
+      return (ver + "").replace(/-/, ".").replace(/(\.0)+[^\.]*$/, "").split(".");
+    }
+
+    function cmpVersion(a, b) {
+      a = versionParts(a);
+      b = versionParts(b);
+      var len = Math.min(a.length, b.length);
+      var cmp;
+
+      for (var i = 0; i < len; i++) {
+        cmp = parseInt(a[i], 10) - parseInt(b[i], 10);
+        if (cmp !== 0) {
+          return cmp;
+        }
+      }
+      return a.length - b.length;
+    }
+
+    var diff = cmpVersion(a, b);
+
+    if (op === "==") return diff === 0;else if (op === ">=") return diff >= 0;else if (op === ">") return diff > 0;else if (op === "<=") return diff <= 0;else if (op === "<") return diff < 0;else throw "Unknown operator: " + op;
+  };
 
   //---------------------------------------------------------------------
   // Source file: ../srcjs/browser.js
@@ -464,26 +545,34 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
     this.lastChanceCallback = [];
   };
   (function () {
-    this.setInput = function (name, value) {
-      var self = this;
-
+    this.setInput = function (name, value, opts) {
       this.pendingData[name] = value;
 
-      if (!this.timerId && !this.reentrant) {
-        this.timerId = setTimeout(function () {
-          self.reentrant = true;
-          try {
-            $.each(self.lastChanceCallback, function (i, callback) {
-              callback();
-            });
-            self.timerId = null;
-            var currentData = self.pendingData;
-            self.pendingData = {};
-            self.shinyapp.sendInput(currentData);
-          } finally {
-            self.reentrant = false;
-          }
-        }, 0);
+      if (!this.reentrant) {
+        if (opts.priority === "event") {
+          this.$sendNow();
+        } else if (!this.timerId) {
+          this.timerId = setTimeout(this.$sendNow.bind(this), 0);
+        }
+      }
+    };
+
+    this.$sendNow = function () {
+      if (this.reentrant) {
+        console.trace("Unexpected reentrancy in InputBatchSender!");
+      }
+
+      this.reentrant = true;
+      try {
+        this.timerId = null;
+        $.each(this.lastChanceCallback, function (i, callback) {
+          callback();
+        });
+        var currentData = this.pendingData;
+        this.pendingData = {};
+        this.shinyapp.sendInput(currentData);
+      } finally {
+        this.reentrant = false;
       }
     };
   }).call(InputBatchSender.prototype);
@@ -493,11 +582,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
     this.lastSentValues = this.reset(initialValues);
   };
   (function () {
-    this.setInput = function (name, value) {
-      // Note that opts is not passed to setInput at this stage of the input
-      // decorator stack. If in the future this setInput keeps track of opts, it
-      // would be best not to store the `el`, because that could prevent it from
-      // being GC'd.
+    this.setInput = function (name, value, opts) {
       var _splitInputNameType = splitInputNameType(name);
 
       var inputName = _splitInputNameType.name;
@@ -505,11 +590,11 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
       var jsonValue = JSON.stringify(value);
 
-      if (this.lastSentValues[inputName] && this.lastSentValues[inputName].jsonValue === jsonValue && this.lastSentValues[inputName].inputType === inputType) {
+      if (opts.priority !== "event" && this.lastSentValues[inputName] && this.lastSentValues[inputName].jsonValue === jsonValue && this.lastSentValues[inputName].inputType === inputType) {
         return;
       }
       this.lastSentValues[inputName] = { jsonValue: jsonValue, inputType: inputType };
-      this.target.setInput(name, value);
+      this.target.setInput(name, value, opts);
     };
     this.reset = function () {
       var values = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
@@ -552,6 +637,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
       evt.value = value;
       evt.binding = opts.binding;
       evt.el = opts.el;
+      evt.priority = opts.priority;
 
       $(document).trigger(evt);
 
@@ -559,9 +645,9 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
         name = evt.name;
         if (evt.inputType !== '') name += ':' + evt.inputType;
 
-        // opts aren't passed along to lower levels in the input decorator
+        // Most opts aren't passed along to lower levels in the input decorator
         // stack.
-        this.target.setInput(name, evt.value);
+        this.target.setInput(name, evt.value, { priority: opts.priority });
       }
     };
   }).call(InputEventDecorator.prototype);
@@ -574,7 +660,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
     this.setInput = function (name, value, opts) {
       this.$ensureInit(name);
 
-      if (opts.immediate) this.inputRatePolicies[name].immediateCall(name, value, opts);else this.inputRatePolicies[name].normalCall(name, value, opts);
+      if (opts.priority !== "deferred") this.inputRatePolicies[name].immediateCall(name, value, opts);else this.inputRatePolicies[name].normalCall(name, value, opts);
     };
     this.setRatePolicy = function (name, mode, millis) {
       if (mode === 'direct') {
@@ -626,11 +712,25 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
   // Merge opts with defaults, and return a new object.
   function addDefaultInputOpts(opts) {
-    return $.extend({
-      immediate: false,
+
+    opts = $.extend({
+      priority: "immediate",
       binding: null,
       el: null
     }, opts);
+
+    if (opts && typeof opts.priority !== "undefined") {
+      switch (opts.priority) {
+        case "deferred":
+        case "immediate":
+        case "event":
+          break;
+        default:
+          throw new Error("Unexpected input value mode: '" + opts.priority + "'");
+      }
+    }
+
+    return opts;
   }
 
   function splitInputNameType(name) {
@@ -783,26 +883,8 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
     };
 
     this.$notifyDisconnected = function () {
-
-      // function to normalize hostnames
-      var normalize = function normalize(hostname) {
-        if (hostname === "127.0.0.1") return "localhost";else return hostname;
-      };
-
-      // Send a 'disconnected' message to parent if we are on the same domin
-      var parentUrl = parent !== window ? document.referrer : null;
-      if (parentUrl) {
-        // parse the parent href
-        var a = document.createElement('a');
-        a.href = parentUrl;
-
-        // post the disconnected message if the hostnames are the same
-        if (normalize(a.hostname) === normalize(window.location.hostname)) {
-          var protocol = a.protocol.replace(':', ''); // browser compatability
-          var origin = protocol + '://' + a.hostname;
-          if (a.port) origin = origin + ':' + a.port;
-          parent.postMessage('disconnected', origin);
-        }
+      if (window.parent) {
+        window.parent.postMessage("disconnected", "*");
       }
     };
 
@@ -967,17 +1049,22 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
     };
 
     this.receiveOutput = function (name, value) {
-      if (this.$values[name] === value) return undefined;
-
-      this.$values[name] = value;
-      delete this.$errors[name];
-
       var binding = this.$bindings[name];
       var evt = jQuery.Event('shiny:value');
       evt.name = name;
       evt.value = value;
       evt.binding = binding;
+
+      if (this.$values[name] === value) {
+        $(binding ? binding.el : document).trigger(evt);
+        return undefined;
+      }
+
+      this.$values[name] = value;
+      delete this.$errors[name];
+
       $(binding ? binding.el : document).trigger(evt);
+
       if (!evt.isDefaultPrevented() && binding) {
         binding.onValueChange(evt.value);
       }
@@ -1003,6 +1090,33 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
         return false;
       }
     };
+
+    // Narrows a scopeComponent -- an input or output object -- to one constrained
+    // by nsPrefix. Returns a new object with keys removed and renamed as
+    // necessary.
+    function narrowScopeComponent(scopeComponent, nsPrefix) {
+      return Object.keys(scopeComponent).filter(function (k) {
+        return k.indexOf(nsPrefix) === 0;
+      }).map(function (k) {
+        return _defineProperty({}, k.substring(nsPrefix.length), scopeComponent[k]);
+      }).reduce(function (obj, pair) {
+        return $.extend(obj, pair);
+      }, {});
+    }
+
+    // Narrows a scope -- an object with input and output "subComponents" -- to
+    // one constrained by the nsPrefix string.
+    //
+    // If nsPrefix is null or empty, returns scope without modification.
+    //
+    // Otherwise, returns a new object with keys in subComponents removed and
+    // renamed as necessary.
+    function narrowScope(scope, nsPrefix) {
+      return nsPrefix ? {
+        input: narrowScopeComponent(scope.input, nsPrefix),
+        output: narrowScopeComponent(scope.output, nsPrefix)
+      } : scope;
+    }
 
     this.$updateConditionals = function () {
       $(document).trigger({
@@ -1033,7 +1147,9 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
           el.data('data-display-if-func', condFunc);
         }
 
-        var show = condFunc(scope);
+        var nsPrefix = el.attr('data-ns-prefix');
+        var nsScope = narrowScope(scope, nsPrefix);
+        var show = condFunc(nsScope);
         var showing = el.css("display") !== "none";
         if (show !== showing) {
           if (show) {
@@ -1295,6 +1411,282 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
       });
     });
 
+    function getTabset(id) {
+      var $tabset = $("#" + $escape(id));
+      if ($tabset.length === 0) throw "There is no tabsetPanel (or navbarPage or navlistPanel) " + "with id equal to '" + id + "'";
+      return $tabset;
+    }
+
+    function getTabContent($tabset) {
+      var tabsetId = $tabset.attr("data-tabsetid");
+      var $tabContent = $("div.tab-content[data-tabsetid='" + $escape(tabsetId) + "']");
+      return $tabContent;
+    }
+
+    function getTargetTabs($tabset, $tabContent, target) {
+      var dataValue = "[data-value='" + $escape(target) + "']";
+      var $aTag = $tabset.find("a" + dataValue);
+      var $liTag = $aTag.parent();
+      if ($liTag.length === 0) {
+        throw "There is no tabPanel (or navbarMenu) with value" + " (or menuName) equal to '" + target + "'";
+      }
+      var $liTags = [];
+      var $divTags = [];
+
+      if ($aTag.attr("data-toggle") === "dropdown") {
+        // dropdown
+        var $dropdownTabset = $aTag.find("+ ul.dropdown-menu");
+        var dropdownId = $dropdownTabset.attr("data-tabsetid");
+
+        var $dropdownLiTags = $dropdownTabset.find("a[data-toggle='tab']").parent("li");
+        $dropdownLiTags.each(function (i, el) {
+          $liTags.push($(el));
+        });
+        var selector = "div.tab-pane[id^='tab-" + $escape(dropdownId) + "']";
+        var $dropdownDivs = $tabContent.find(selector);
+        $dropdownDivs.each(function (i, el) {
+          $divTags.push($(el));
+        });
+      } else {
+        // regular tab
+        $divTags.push($tabContent.find("div" + dataValue));
+      }
+      return { $liTag: $liTag, $liTags: $liTags, $divTags: $divTags };
+    }
+
+    addMessageHandler("shiny-insert-tab", function (message) {
+      var $parentTabset = getTabset(message.inputId);
+      var $tabset = $parentTabset;
+      var $tabContent = getTabContent($tabset);
+      var tabsetId = $parentTabset.attr("data-tabsetid");
+
+      var $divTag = $(message.divTag.html);
+      var $liTag = $(message.liTag.html);
+      var $aTag = $liTag.find("> a");
+
+      // Unless the item is being prepended/appended, the target tab
+      // must be provided
+      var target = null;
+      var $targetLiTag = null;
+      if (message.target !== null) {
+        target = getTargetTabs($tabset, $tabContent, message.target);
+        $targetLiTag = target.$liTag;
+      }
+
+      // If the item is to be placed inside a navbarMenu (dropdown),
+      // change the value of $tabset from the parent's ul tag to the
+      // dropdown's ul tag
+      var dropdown = getDropdown();
+      if (dropdown !== null) {
+        if ($aTag.attr("data-toggle") === "dropdown") throw "Cannot insert a navbarMenu inside another one";
+        $tabset = dropdown.$tabset;
+        tabsetId = dropdown.id;
+      }
+
+      // For regular tab items, fix the href (of the li > a tag)
+      // and the id (of the div tag). This does not apply to plain
+      // text items (which function as dividers and headers inside
+      // navbarMenus) and whole navbarMenus (since those get
+      // constructed from scratch on the R side and therefore
+      // there are no ids that need matching)
+      if ($aTag.attr("data-toggle") === "tab") {
+        var index = getTabIndex($tabset, tabsetId);
+        var tabId = "tab-" + tabsetId + "-" + index;
+        $liTag.find("> a").attr("href", "#" + tabId);
+        $divTag.attr("id", tabId);
+      }
+
+      // actually insert the item into the right place
+      if (message.position === "before") {
+        if ($targetLiTag) {
+          $targetLiTag.before($liTag);
+        } else {
+          $tabset.append($liTag);
+        }
+      } else if (message.position === "after") {
+        if ($targetLiTag) {
+          $targetLiTag.after($liTag);
+        } else {
+          $tabset.prepend($liTag);
+        }
+      }
+
+      exports.renderContent($liTag[0], { html: $liTag.html(), deps: message.liTag.deps });
+      // jcheng 2017-07-28: This next part might look a little insane versus the
+      // more obvious `$tabContent.append($divTag);`, but there's a method to the
+      // madness.
+      //
+      // 1) We need to load the dependencies, and this needs to happen before
+      //    any scripts in $divTag get a chance to run.
+      // 2) The scripts in $divTag need to run only once.
+      // 3) The contents of $divTag need to be sent through renderContent so that
+      //    singletons may be registered and/or obeyed, and so that inputs/outputs
+      //    may be bound.
+      //
+      // Add to these constraints these facts:
+      //
+      // A) The (non-jQuery) DOM manipulation functions don't cause scripts to
+      //    run, but the jQuery functions all do.
+      // B) renderContent must be called on an element that's attached to the
+      //    document.
+      // C) $divTag may be of length > 1 (e.g. navbarMenu). I also noticed text
+      //    elements consisting of just "\n" being included in the nodeset of
+      //    $divTag.
+      // D) renderContent has a bug where only position "replace" (the default)
+      //    uses the jQuery functions, so other positions like "beforeend" will
+      //    prevent child script tags from running.
+      //
+      // In theory the same problem exists for $liTag but since that content is
+      // much less likely to include arbitrary scripts, we're skipping it.
+      //
+      // This code could be nicer if we didn't use renderContent, but rather the
+      // lower-level functions that renderContent uses. Like if we pre-process
+      // the value of message.divTag.html for singletons, we could do that, then
+      // render dependencies, then do $tabContent.append($divTag).
+      exports.renderContent($tabContent[0], { html: "", deps: message.divTag.deps }, "beforeend");
+      $divTag.get().forEach(function (el) {
+        // Must not use jQuery for appending el to the doc, we don't want any
+        // scripts to run (since they will run when renderContent takes a crack).
+        $tabContent[0].appendChild(el);
+        // If `el` itself is a script tag, this approach won't work (the script
+        // won't be run), since we're only sending innerHTML through renderContent
+        // and not the whole tag. That's fine in this case because we control the
+        // R code that generates this HTML, and we know that the element is not
+        // a script tag.
+        exports.renderContent(el, el.innerHTML || el.textContent);
+      });
+
+      if (message.select) {
+        $liTag.find("a").tab("show");
+      }
+
+      /* Barbara -- August 2017
+      Note: until now, the number of tabs in a tabsetPanel (or navbarPage
+      or navlistPanel) was always fixed. So, an easy way to give an id to
+      a tab was simply incrementing a counter. (Just like it was easy to
+      give a random 4-digit number to identify the tabsetPanel). Now that
+      we're introducing dynamic tabs, we must retrieve these numbers and
+      fix the dummy id given to the tab in the R side -- there, we always
+      set the tab id (counter dummy) to "id" and the tabset id to "tsid")
+      */
+      function getTabIndex($tabset, tabsetId) {
+        // The 0 is to ensure this works for empty tabsetPanels as well
+        var existingTabIds = [0];
+        var leadingHref = "#tab-" + tabsetId + "-";
+        // loop through all existing tabs, find the one with highest id
+        // (since this is based on a numeric counter), and increment
+        $tabset.find("> li").each(function () {
+          var $tab = $(this).find("> a[data-toggle='tab']");
+          if ($tab.length > 0) {
+            var index = $tab.attr("href").replace(leadingHref, "");
+            existingTabIds.push(Number(index));
+          }
+        });
+        return Math.max.apply(null, existingTabIds) + 1;
+      }
+
+      // Finds out if the item will be placed inside a navbarMenu
+      // (dropdown). If so, returns the dropdown tabset (ul tag)
+      // and the dropdown tabsetid (to be used to fix the tab ID)
+      function getDropdown() {
+        if (message.menuName !== null) {
+          // menuName is only provided if the user wants to prepend
+          // or append an item inside a navbarMenu (dropdown)
+          var $dropdownATag = $("a.dropdown-toggle[data-value='" + $escape(message.menuName) + "']");
+          if ($dropdownATag.length === 0) {
+            throw "There is no navbarMenu with menuName equal to '" + message.menuName + "'";
+          }
+          var $dropdownTabset = $dropdownATag.find("+ ul.dropdown-menu");
+          var dropdownId = $dropdownTabset.attr("data-tabsetid");
+          return { $tabset: $dropdownTabset, id: dropdownId };
+        } else if (message.target !== null) {
+          // if our item is to be placed next to a tab that is inside
+          // a navbarMenu, our item will also be inside
+          var $uncleTabset = $targetLiTag.parent("ul");
+          if ($uncleTabset.hasClass("dropdown-menu")) {
+            var uncleId = $uncleTabset.attr("data-tabsetid");
+            return { $tabset: $uncleTabset, id: uncleId };
+          }
+        }
+        return null;
+      }
+    });
+
+    // If the given tabset has no active tabs, select the first one
+    function ensureTabsetHasVisibleTab($tabset) {
+      if ($tabset.find("li.active").not(".dropdown").length === 0) {
+        // Note: destTabValue may be null. We still want to proceed
+        // through the below logic and setValue so that the input
+        // value for the tabset gets updated (i.e. input$tabsetId
+        // should be null if there are no tabs).
+        var destTabValue = getFirstTab($tabset);
+        var inputBinding = $tabset.data('shiny-input-binding');
+        var evt = jQuery.Event('shiny:updateinput');
+        evt.binding = inputBinding;
+        $tabset.trigger(evt);
+        inputBinding.setValue($tabset[0], destTabValue);
+      }
+    }
+
+    // Given a tabset ul jquery object, return the value of the first tab
+    // (in document order) that's visible and able to be selected.
+    function getFirstTab($ul) {
+      return $ul.find("li:visible a[data-toggle='tab']").first().attr("data-value") || null;
+    }
+
+    function tabApplyFunction(target, func) {
+      var liTags = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : false;
+
+      $.each(target, function (key, el) {
+        if (key === "$liTag") {
+          // $liTag is always just one jQuery element
+          func(el);
+        } else if (key === "$divTags") {
+          // $divTags is always an array (even if length = 1)
+          $.each(el, function (i, div) {
+            func(div);
+          });
+        } else if (liTags && key === "$liTags") {
+          // $liTags is always an array (even if length = 0)
+          $.each(el, function (i, div) {
+            func(div);
+          });
+        }
+      });
+    }
+
+    addMessageHandler("shiny-remove-tab", function (message) {
+      var $tabset = getTabset(message.inputId);
+      var $tabContent = getTabContent($tabset);
+      var target = getTargetTabs($tabset, $tabContent, message.target);
+
+      tabApplyFunction(target, removeEl);
+
+      ensureTabsetHasVisibleTab($tabset);
+
+      function removeEl($el) {
+        exports.unbindAll($el, true);
+        $el.remove();
+      }
+    });
+
+    addMessageHandler("shiny-change-tab-visibility", function (message) {
+      var $tabset = getTabset(message.inputId);
+      var $tabContent = getTabContent($tabset);
+      var target = getTargetTabs($tabset, $tabContent, message.target);
+
+      tabApplyFunction(target, changeVisibility, true);
+
+      ensureTabsetHasVisibleTab($tabset);
+
+      function changeVisibility($el) {
+        if (message.type === "show") $el.css("display", "");else if (message.type === "hide") {
+          $el.hide();
+          $el.removeClass("active");
+        }
+      }
+    });
+
     addMessageHandler('updateQueryString', function (message) {
 
       // leave the bookmarking code intact
@@ -1349,8 +1741,13 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
       binding: function binding(message) {
         var key = message.id;
         var binding = this.$bindings[key];
-        if (binding && binding.showProgress) {
-          binding.showProgress(true);
+        if (binding) {
+          $(binding.el).trigger({
+            type: 'shiny:outputinvalidated',
+            binding: binding,
+            name: key
+          });
+          if (binding.showProgress) binding.showProgress(true);
         }
       },
 
@@ -1363,7 +1760,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
           // Progress bar starts hidden; will be made visible if a value is provided
           // during updates.
           exports.notifications.show({
-            html: '<div id="shiny-progress-' + message.id + '" class="shiny-progress-notification">' + '<div class="progress progress-striped active" style="display: none;"><div class="progress-bar"></div></div>' + '<div class="progress-text">' + '<span class="progress-message">message</span> ' + '<span class="progress-detail"></span>' + '</div>' + '</div>',
+            html: "<div id=\"shiny-progress-" + message.id + "\" class=\"shiny-progress-notification\">" + '<div class="progress progress-striped active" style="display: none;"><div class="progress-bar"></div></div>' + '<div class="progress-text">' + '<span class="progress-message">message</span> ' + '<span class="progress-detail"></span>' + '</div>' + '</div>',
             id: message.id,
             duration: null
           });
@@ -1460,10 +1857,10 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
     // Returns a URL which can be queried to get values from inside the server
     // function. This is enabled with `options(shiny.testmode=TRUE)`.
     this.getTestSnapshotBaseUrl = function () {
-      var _ref = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+      var _ref2 = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
 
-      var _ref$fullUrl = _ref.fullUrl;
-      var fullUrl = _ref$fullUrl === undefined ? true : _ref$fullUrl;
+      var _ref2$fullUrl = _ref2.fullUrl;
+      var fullUrl = _ref2$fullUrl === undefined ? true : _ref2$fullUrl;
 
       var loc = window.location;
       var url = "";
@@ -1532,22 +1929,22 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
     var fadeDuration = 250;
 
     function show() {
-      var _ref2 = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+      var _ref3 = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
 
-      var _ref2$html = _ref2.html;
-      var html = _ref2$html === undefined ? '' : _ref2$html;
-      var _ref2$action = _ref2.action;
-      var action = _ref2$action === undefined ? '' : _ref2$action;
-      var _ref2$deps = _ref2.deps;
-      var deps = _ref2$deps === undefined ? [] : _ref2$deps;
-      var _ref2$duration = _ref2.duration;
-      var duration = _ref2$duration === undefined ? 5000 : _ref2$duration;
-      var _ref2$id = _ref2.id;
-      var id = _ref2$id === undefined ? null : _ref2$id;
-      var _ref2$closeButton = _ref2.closeButton;
-      var closeButton = _ref2$closeButton === undefined ? true : _ref2$closeButton;
-      var _ref2$type = _ref2.type;
-      var type = _ref2$type === undefined ? null : _ref2$type;
+      var _ref3$html = _ref3.html;
+      var html = _ref3$html === undefined ? '' : _ref3$html;
+      var _ref3$action = _ref3.action;
+      var action = _ref3$action === undefined ? '' : _ref3$action;
+      var _ref3$deps = _ref3.deps;
+      var deps = _ref3$deps === undefined ? [] : _ref3$deps;
+      var _ref3$duration = _ref3.duration;
+      var duration = _ref3$duration === undefined ? 5000 : _ref3$duration;
+      var _ref3$id = _ref3.id;
+      var id = _ref3$id === undefined ? null : _ref3$id;
+      var _ref3$closeButton = _ref3.closeButton;
+      var closeButton = _ref3$closeButton === undefined ? true : _ref3$closeButton;
+      var _ref3$type = _ref3.type;
+      var type = _ref3$type === undefined ? null : _ref3$type;
 
       if (!id) id = randomId();
 
@@ -1559,7 +1956,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
       if ($notification.length === 0) $notification = _create(id);
 
       // Render html and dependencies
-      var newHtml = '<div class="shiny-notification-content-text">' + html + '</div>' + ('<div class="shiny-notification-content-action">' + action + '</div>');
+      var newHtml = "<div class=\"shiny-notification-content-text\">" + html + "</div>" + ("<div class=\"shiny-notification-content-action\">" + action + "</div>");
       var $content = $notification.find('.shiny-notification-content');
       exports.renderContent($content, { html: newHtml, deps: deps });
 
@@ -1639,7 +2036,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
       var $notification = _get(id);
 
       if ($notification.length === 0) {
-        $notification = $('<div id="shiny-notification-' + id + '" class="shiny-notification">' + '<div class="shiny-notification-close">&times;</div>' + '<div class="shiny-notification-content"></div>' + '</div>');
+        $notification = $("<div id=\"shiny-notification-" + id + "\" class=\"shiny-notification\">" + '<div class="shiny-notification-close">&times;</div>' + '<div class="shiny-notification-content"></div>' + '</div>');
 
         $notification.find('.shiny-notification-close').on('click', function (e) {
           e.preventDefault();
@@ -1691,12 +2088,12 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
     // content is non-Bootstrap. Bootstrap modals require some special handling,
     // which is coded in here.
     show: function show() {
-      var _ref3 = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+      var _ref4 = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
 
-      var _ref3$html = _ref3.html;
-      var html = _ref3$html === undefined ? '' : _ref3$html;
-      var _ref3$deps = _ref3.deps;
-      var deps = _ref3$deps === undefined ? [] : _ref3$deps;
+      var _ref4$html = _ref4.html;
+      var html = _ref4$html === undefined ? '' : _ref4$html;
+      var _ref4$deps = _ref4.deps;
+      var deps = _ref4$deps === undefined ? [] : _ref4$deps;
 
 
       // If there was an existing Bootstrap modal, then there will be a modal-
@@ -1956,9 +2353,6 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
       var $el = $(el);
       var img;
 
-      // Remove event handlers that were added in previous renderValue()
-      $el.off('.image_output');
-
       // Get existing img element if present.
       var $img = $el.find('img');
 
@@ -2019,6 +2413,16 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
         if (value === null || key === 'coordmap') {
           return;
         }
+        // this checks only against base64 encoded src values
+        // images put here are only from renderImage and renderPlot
+        if (key === "src" && value === img.getAttribute("src")) {
+          // Ensure the browser actually fires an onLoad event, which doesn't
+          // happen on WebKit if the value we set on src is the same as the
+          // value it already has
+          // https://github.com/rstudio/shiny/issues/2197
+          // https://stackoverflow.com/questions/5024111/javascript-image-onload-doesnt-fire-in-webkit-if-loading-same-image
+          img.removeAttribute("src");
+        }
         img.setAttribute(key, value);
       });
 
@@ -2033,74 +2437,101 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
         }
       }
 
-      if (!opts.coordmap) opts.coordmap = [];
-
-      imageutils.initCoordmap($el, opts.coordmap);
-
-      // This object listens for mousedowns, and triggers mousedown2 and dblclick2
-      // events as appropriate.
-      var clickInfo = imageutils.createClickInfo($el, opts.dblclickId, opts.dblclickDelay);
-
-      $el.on('mousedown.image_output', clickInfo.mousedown);
-
-      if (browser.isIE && browser.IEVersion === 8) {
-        $el.on('dblclick.image_output', clickInfo.dblclickIE8);
+      if (!opts.coordmap) {
+        opts.coordmap = {
+          panels: [],
+          dims: {
+            // These values be set to the naturalWidth and naturalHeight once the image has loaded
+            height: null,
+            width: null
+          }
+        };
       }
 
-      // ----------------------------------------------------------
-      // Register the various event handlers
-      // ----------------------------------------------------------
-      if (opts.clickId) {
-        var clickHandler = imageutils.createClickHandler(opts.clickId, opts.clickClip, opts.coordmap);
-        $el.on('mousedown2.image_output', clickHandler.mousedown);
+      // Remove event handlers that were added in previous runs of this function.
+      $el.off('.image_output');
+      $img.off('.image_output');
 
-        // When img is reset, do housekeeping: clear $el's mouse listener and
-        // call the handler's onResetImg callback.
-        $img.on('reset', clickHandler.onResetImg);
-      }
+      // When the image loads, initialize all the interaction handlers. When the
+      // value of src is set, the browser may not load the image immediately,
+      // even if it's a data URL. If we try to initialize this stuff
+      // immediately, it can cause problems because we use we need the raw image
+      // height and width
+      $img.off("load.shiny_image_interaction");
+      $img.one("load.shiny_image_interaction", function () {
 
-      if (opts.dblclickId) {
-        // We'll use the clickHandler's mousedown function, but register it to
-        // our custom 'dblclick2' event.
-        var dblclickHandler = imageutils.createClickHandler(opts.dblclickId, opts.clickClip, opts.coordmap);
-        $el.on('dblclick2.image_output', dblclickHandler.mousedown);
+        imageutils.initCoordmap($el, opts.coordmap);
 
-        $img.on('reset', dblclickHandler.onResetImg);
-      }
+        // This object listens for mousedowns, and triggers mousedown2 and dblclick2
+        // events as appropriate.
+        var clickInfo = imageutils.createClickInfo($el, opts.dblclickId, opts.dblclickDelay);
 
-      if (opts.hoverId) {
-        var hoverHandler = imageutils.createHoverHandler(opts.hoverId, opts.hoverDelay, opts.hoverDelayType, opts.hoverClip, opts.hoverNullOutside, opts.coordmap);
-        $el.on('mousemove.image_output', hoverHandler.mousemove);
-        $el.on('mouseout.image_output', hoverHandler.mouseout);
+        $el.on('mousedown.image_output', clickInfo.mousedown);
 
-        $img.on('reset', hoverHandler.onResetImg);
-      }
+        if (browser.isIE && browser.IEVersion === 8) {
+          $el.on('dblclick.image_output', clickInfo.dblclickIE8);
+        }
 
-      if (opts.brushId) {
-        // Make image non-draggable (Chrome, Safari)
-        $img.css('-webkit-user-drag', 'none');
-        // Firefox, IE<=10
-        $img.on('dragstart', function () {
-          return false;
-        });
+        // ----------------------------------------------------------
+        // Register the various event handlers
+        // ----------------------------------------------------------
+        if (opts.clickId) {
+          var clickHandler = imageutils.createClickHandler(opts.clickId, opts.clickClip, opts.coordmap);
+          $el.on('mousedown2.image_output', clickHandler.mousedown);
 
-        // Disable selection of image and text when dragging in IE<=10
-        $el.on('selectstart.image_output', function () {
-          return false;
-        });
+          $el.on('resize.image_output', clickHandler.onResize);
 
-        var brushHandler = imageutils.createBrushHandler(opts.brushId, $el, opts, opts.coordmap, outputId);
-        $el.on('mousedown.image_output', brushHandler.mousedown);
-        $el.on('mousemove.image_output', brushHandler.mousemove);
+          // When img is reset, do housekeeping: clear $el's mouse listener and
+          // call the handler's onResetImg callback.
+          $img.on('reset.image_output', clickHandler.onResetImg);
+        }
 
-        $img.on('reset', brushHandler.onResetImg);
-      }
+        if (opts.dblclickId) {
+          // We'll use the clickHandler's mousedown function, but register it to
+          // our custom 'dblclick2' event.
+          var dblclickHandler = imageutils.createClickHandler(opts.dblclickId, opts.clickClip, opts.coordmap);
+          $el.on('dblclick2.image_output', dblclickHandler.mousedown);
 
-      if (opts.clickId || opts.dblclickId || opts.hoverId || opts.brushId) {
-        $el.addClass('crosshair');
-      }
+          $el.on('resize.image_output', dblclickHandler.onResize);
+          $img.on('reset.image_output', dblclickHandler.onResetImg);
+        }
 
-      if (data.error) console.log('Error on server extracting coordmap: ' + data.error);
+        if (opts.hoverId) {
+          var hoverHandler = imageutils.createHoverHandler(opts.hoverId, opts.hoverDelay, opts.hoverDelayType, opts.hoverClip, opts.hoverNullOutside, opts.coordmap);
+          $el.on('mousemove.image_output', hoverHandler.mousemove);
+          $el.on('mouseout.image_output', hoverHandler.mouseout);
+
+          $el.on('resize.image_output', hoverHandler.onResize);
+          $img.on('reset.image_output', hoverHandler.onResetImg);
+        }
+
+        if (opts.brushId) {
+          // Make image non-draggable (Chrome, Safari)
+          $img.css('-webkit-user-drag', 'none');
+          // Firefox, IE<=10
+          $img.on('dragstart.image_output', function () {
+            return false;
+          });
+
+          // Disable selection of image and text when dragging in IE<=10
+          $el.on('selectstart.image_output', function () {
+            return false;
+          });
+
+          var brushHandler = imageutils.createBrushHandler(opts.brushId, $el, opts, opts.coordmap, outputId);
+          $el.on('mousedown.image_output', brushHandler.mousedown);
+          $el.on('mousemove.image_output', brushHandler.mousemove);
+
+          $el.on('resize.image_output', brushHandler.onResize);
+          $img.on('reset.image_output', brushHandler.onResetImg);
+        }
+
+        if (opts.clickId || opts.dblclickId || opts.hoverId || opts.brushId) {
+          $el.addClass('crosshair');
+        }
+
+        if (data.error) console.log('Error on server extracting coordmap: ' + data.error);
+      });
     },
 
     renderError: function renderError(el, err) {
@@ -2116,15 +2547,21 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
       }).remove();
 
       OutputBinding.prototype.clearError.call(this, el);
+    },
+
+    resize: function resize(el, width, height) {
+      $(el).find("img").trigger("resize");
     }
   });
   outputBindings.register(imageOutputBinding, 'shiny.imageOutput');
 
   var imageutils = {};
 
-  // Modifies the panel objects in a coordmap, adding scale(), scaleInv(),
-  // and clip() functions to each one.
-  imageutils.initPanelScales = function (coordmap) {
+  // Modifies the panel objects in a coordmap, adding scaleImgToData(),
+  // scaleDataToImg(), and clipImg() functions to each one. The panel objects
+  // use img and data coordinates only; they do not use css coordinates. The
+  // domain is in data coordinates; the range is in img coordinates.
+  imageutils.initPanelScales = function (panels) {
     // Map a value x from a domain to a range. If clip is true, clip it to the
     // range.
     function mapLinear(x, domainMin, domainMax, rangeMin, rangeMax, clip) {
@@ -2169,153 +2606,221 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
       var xscaler = scaler1D(d.left, d.right, r.left, r.right, xlog);
       var yscaler = scaler1D(d.bottom, d.top, r.bottom, r.top, ylog);
 
-      panel.scale = function (val, clip) {
-        return {
-          x: xscaler.scale(val.x, clip),
-          y: yscaler.scale(val.y, clip)
-        };
+      // Given an object of form {x:1, y:2}, or {x:1, xmin:2:, ymax: 3}, convert
+      // from data coordinates to img. Whether a value is converted as x or y
+      // depends on the first character of the key.
+      panel.scaleDataToImg = function (val, clip) {
+        return mapValues(val, function (value, key) {
+          var prefix = key.substring(0, 1);
+          if (prefix === "x") {
+            return xscaler.scale(value, clip);
+          } else if (prefix === "y") {
+            return yscaler.scale(value, clip);
+          }
+          return null;
+        });
       };
 
-      panel.scaleInv = function (val, clip) {
-        return {
-          x: xscaler.scaleInv(val.x, clip),
-          y: yscaler.scaleInv(val.y, clip)
-        };
+      panel.scaleImgToData = function (val, clip) {
+        return mapValues(val, function (value, key) {
+          var prefix = key.substring(0, 1);
+          if (prefix === "x") {
+            return xscaler.scaleInv(value, clip);
+          } else if (prefix === "y") {
+            return yscaler.scaleInv(value, clip);
+          }
+          return null;
+        });
       };
 
-      // Given a scaled offset (in pixels), clip it to the nearest panel region.
-      panel.clip = function (offset) {
+      // Given a scaled offset (in img pixels), clip it to the nearest panel region.
+      panel.clipImg = function (offset_img) {
         var newOffset = {
-          x: offset.x,
-          y: offset.y
+          x: offset_img.x,
+          y: offset_img.y
         };
 
         var bounds = panel.range;
 
-        if (offset.x > bounds.right) newOffset.x = bounds.right;else if (offset.x < bounds.left) newOffset.x = bounds.left;
+        if (offset_img.x > bounds.right) newOffset.x = bounds.right;else if (offset_img.x < bounds.left) newOffset.x = bounds.left;
 
-        if (offset.y > bounds.bottom) newOffset.y = bounds.bottom;else if (offset.y < bounds.top) newOffset.y = bounds.top;
+        if (offset_img.y > bounds.bottom) newOffset.y = bounds.bottom;else if (offset_img.y < bounds.top) newOffset.y = bounds.top;
 
         return newOffset;
       };
     }
 
     // Add the functions to each panel object.
-    for (var i = 0; i < coordmap.length; i++) {
-      var panel = coordmap[i];
+    for (var i = 0; i < panels.length; i++) {
+      var panel = panels[i];
       addScaleFuns(panel);
     }
   };
 
   // This adds functions to the coordmap object to handle various
-  // coordinate-mapping tasks, and send information to the server.
-  // The input coordmap is an array of objects, each of which represents a panel.
-  // coordmap must be an array, even if empty, so that it can be modified in
-  // place; when empty, we add a dummy panel to the array.
-  // It also calls initPanelScales, which modifies each panel object to have
-  // scale, scaleInv, and clip functions.
+  // coordinate-mapping tasks, and send information to the server. The input
+  // coordmap is an array of objects, each of which represents a panel. coordmap
+  // must be an array, even if empty, so that it can be modified in place; when
+  // empty, we add a dummy panel to the array. It also calls initPanelScales,
+  // which modifies each panel object to have scaleImgToData, scaleDataToImg,
+  // and clip functions.
+  //
+  // There are three coordinate spaces which we need to translate between:
+  //
+  // 1. css: The pixel coordinates in the web browser, also known as CSS pixels.
+  //    The origin is the upper-left corner of the <img> (not including padding
+  //    and border).
+  // 2. img: The pixel coordinates of the image data. A common case is on a
+  //    HiDPI device, where the source PNG image could be 1000 pixels wide but
+  //    be displayed in 500 CSS pixels. Another case is when the image has
+  //    additional scaling due to CSS transforms or width.
+  // 3. data: The coordinates in the data space. This is a bit more complicated
+  //    than the other two, because there can be multiple panels (as in facets).
   imageutils.initCoordmap = function ($el, coordmap) {
-    var el = $el[0];
+    var $img = $el.find("img");
+    var img = $img[0];
 
     // If we didn't get any panels, create a dummy one where the domain and range
     // are simply the pixel dimensions.
     // that we modify.
-    if (coordmap.length === 0) {
+    if (coordmap.panels.length === 0) {
       var bounds = {
         top: 0,
         left: 0,
-        right: el.clientWidth - 1,
-        bottom: el.clientHeight - 1
+        right: img.clientWidth - 1,
+        bottom: img.clientHeight - 1
       };
 
-      coordmap[0] = {
+      coordmap.panels[0] = {
         domain: bounds,
         range: bounds,
         mapping: {}
       };
     }
 
+    // If no dim height and width values are found, set them to the raw image height and width
+    // These values should be the same...
+    // This is only done to initialize an image output, whose height and width are unknown until the image is retrieved
+    coordmap.dims.height = coordmap.dims.height || img.naturalHeight;
+    coordmap.dims.width = coordmap.dims.width || img.naturalWidth;
+
     // Add scaling functions to each panel
-    imageutils.initPanelScales(coordmap);
+    imageutils.initPanelScales(coordmap.panels);
 
-    // Firefox doesn't have offsetX/Y, so we need to use an alternate
-    // method of calculation for it. Even though other browsers do have
-    // offsetX/Y, we need to calculate relative to $el, because sometimes the
-    // mouse event can come with offset relative to other elements on the
-    // page. This happens when the event listener is bound to, say, window.
-    coordmap.mouseOffset = function (mouseEvent) {
-      var offset = $el.offset();
+    // This returns the offset of the mouse in CSS pixels relative to the img,
+    // but not including the  padding or border, if present.
+    coordmap.mouseOffsetCss = function (mouseEvent) {
+      var img_origin = findOrigin($img);
+
+      // The offset of the mouse from the upper-left corner of the img, in
+      // pixels.
       return {
-        x: mouseEvent.pageX - offset.left,
-        y: mouseEvent.pageY - offset.top
+        x: mouseEvent.pageX - img_origin.x,
+        y: mouseEvent.pageY - img_origin.y
       };
     };
 
-    // Given two sets of x/y coordinates, return an object representing the
-    // min and max x and y values. (This could be generalized to any number
-    // of points).
-    coordmap.findBox = function (offset1, offset2) {
+    // Given an offset in an img in CSS pixels, return the corresponding offset
+    // in source image pixels. The offset_css can have properties like "x",
+    // "xmin", "y", and "ymax" -- anything that starts with "x" and "y". If the
+    // img content is 1000 pixels wide, but is scaled to 400 pixels on screen,
+    // and the input is x:400, then this will return x:1000.
+    coordmap.scaleCssToImg = function (offset_css) {
+      var pixel_scaling = coordmap.imgToCssScalingRatio();
+
+      var result = mapValues(offset_css, function (value, key) {
+        var prefix = key.substring(0, 1);
+
+        if (prefix === "x") {
+          return offset_css[key] / pixel_scaling.x;
+        } else if (prefix === "y") {
+          return offset_css[key] / pixel_scaling.y;
+        }
+        return null;
+      });
+
+      return result;
+    };
+
+    // Given an offset in an img, in source image pixels, return the
+    // corresponding offset in CSS pixels. If the img content is 1000 pixels
+    // wide, but is scaled to 400 pixels on screen, and the input is x:1000,
+    // then this will return x:400.
+    coordmap.scaleImgToCss = function (offset_img) {
+      var pixel_scaling = coordmap.imgToCssScalingRatio();
+
+      var result = mapValues(offset_img, function (value, key) {
+        var prefix = key.substring(0, 1);
+
+        if (prefix === "x") {
+          return offset_img[key] * pixel_scaling.x;
+        } else if (prefix === "y") {
+          return offset_img[key] * pixel_scaling.y;
+        }
+        return null;
+      });
+
+      return result;
+    };
+
+    // Returns the x and y ratio the image content is scaled to on screen. If
+    // the image data is 1000 pixels wide and is scaled to 300 pixels on screen,
+    // then this returns 0.3. (Note the 300 pixels refers to CSS pixels.)
+    coordmap.imgToCssScalingRatio = function () {
+      var img_dims = findDims($img);
       return {
-        xmin: Math.min(offset1.x, offset2.x),
-        xmax: Math.max(offset1.x, offset2.x),
-        ymin: Math.min(offset1.y, offset2.y),
-        ymax: Math.max(offset1.y, offset2.y)
+        x: img_dims.x / coordmap.dims.width,
+        y: img_dims.y / coordmap.dims.height
       };
     };
 
-    // Shift an array of values so that they are within a min and max.
-    // The vals will be shifted so that they maintain the same spacing
-    // internally. If the range in vals is larger than the range of
-    // min and max, the result might not make sense.
-    coordmap.shiftToRange = function (vals, min, max) {
-      if (!(vals instanceof Array)) vals = [vals];
-
-      var maxval = Math.max.apply(null, vals);
-      var minval = Math.min.apply(null, vals);
-      var shiftAmount = 0;
-      if (maxval > max) {
-        shiftAmount = max - maxval;
-      } else if (minval < min) {
-        shiftAmount = min - minval;
-      }
-
-      var newvals = [];
-      for (var i = 0; i < vals.length; i++) {
-        newvals[i] = vals[i] + shiftAmount;
-      }
-      return newvals;
+    coordmap.cssToImgScalingRatio = function () {
+      var res = coordmap.imgToCssScalingRatio();
+      return {
+        x: 1 / res.x,
+        y: 1 / res.y
+      };
     };
 
-    // Given an offset, return an object representing which panel it's in. The
-    // `expand` argument tells it to expand the panel area by that many pixels.
-    // It's possible for an offset to be within more than one panel, because
-    // of the `expand` value. If that's the case, find the nearest panel.
-    coordmap.getPanel = function (offset, expand) {
-      expand = expand || 0;
+    // Given an offset in css pixels, return an object representing which panel
+    // it's in. The `expand` argument tells it to expand the panel area by that
+    // many pixels. It's possible for an offset to be within more than one
+    // panel, because of the `expand` value. If that's the case, find the
+    // nearest panel.
+    coordmap.getPanelCss = function (offset_css) {
+      var expand = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 0;
 
-      var x = offset.x;
-      var y = offset.y;
+      var offset_img = coordmap.scaleCssToImg(offset_css);
+      var x = offset_img.x;
+      var y = offset_img.y;
+
+      // Convert expand from css pixels to img pixels
+      var cssToImgRatio = coordmap.cssToImgScalingRatio();
+      var expand_img = {
+        x: expand * cssToImgRatio.x,
+        y: expand * cssToImgRatio.y
+      };
 
       var matches = []; // Panels that match
       var dists = []; // Distance of offset to each matching panel
-      var b;
-      for (var i = 0; i < coordmap.length; i++) {
-        b = coordmap[i].range;
+      var b = void 0;
+      for (var i = 0; i < coordmap.panels.length; i++) {
+        b = coordmap.panels[i].range;
 
-        if (x <= b.right + expand && x >= b.left - expand && y <= b.bottom + expand && y >= b.top - expand) {
-          matches.push(coordmap[i]);
+        if (x <= b.right + expand_img.x && x >= b.left - expand_img.x && y <= b.bottom + expand_img.y && y >= b.top - expand_img.y) {
+          matches.push(coordmap.panels[i]);
 
           // Find distance from edges for x and y
           var xdist = 0;
           var ydist = 0;
-          if (x > b.right && x <= b.right + expand) {
+          if (x > b.right && x <= b.right + expand_img.x) {
             xdist = x - b.right;
-          } else if (x < b.left && x >= b.left - expand) {
+          } else if (x < b.left && x >= b.left - expand_img.x) {
             xdist = x - b.left;
           }
-          if (y > b.bottom && y <= b.bottom + expand) {
+          if (y > b.bottom && y <= b.bottom + expand_img.y) {
             ydist = y - b.bottom;
-          } else if (y < b.top && y >= b.top - expand) {
+          } else if (y < b.top && y >= b.top - expand_img.y) {
             ydist = y - b.top;
           }
 
@@ -2337,12 +2842,12 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
       return null;
     };
 
-    // Is an offset in a panel? If supplied, `expand` tells us to expand the
-    // panels by that many pixels in all directions.
-    coordmap.isInPanel = function (offset, expand) {
-      expand = expand || 0;
+    // Is an offset (in css pixels) in a panel? If supplied, `expand` tells us
+    // to expand the panels by that many pixels in all directions.
+    coordmap.isInPanelCss = function (offset_css) {
+      var expand = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 0;
 
-      if (coordmap.getPanel(offset, expand)) return true;
+      if (coordmap.getPanelCss(offset_css, expand)) return true;
 
       return false;
     };
@@ -2355,23 +2860,35 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
       return function (e) {
         if (e === null) {
-          exports.onInputChange(inputId, null);
+          exports.setInputValue(inputId, null);
           return;
         }
-
-        var offset = coordmap.mouseOffset(e);
+        var coords = {};
+        var coords_css = coordmap.mouseOffsetCss(e);
         // If outside of plotting region
-        if (!coordmap.isInPanel(offset)) {
+        if (!coordmap.isInPanelCss(coords_css)) {
           if (nullOutside) {
-            exports.onInputChange(inputId, null);
+            exports.setInputValue(inputId, null);
             return;
           }
           if (clip) return;
-        }
-        if (clip && !coordmap.isInPanel(offset)) return;
 
-        var panel = coordmap.getPanel(offset);
-        var coords = panel.scaleInv(offset);
+          coords.coords_css = coords_css;
+          coords.coords_img = coordmap.scaleCssToImg(coords_css);
+
+          exports.setInputValue(inputId, coords, { priority: "event" });
+          return;
+        }
+        var panel = coordmap.getPanelCss(coords_css);
+
+        var coords_img = coordmap.scaleCssToImg(coords_css);
+        var coords_data = panel.scaleImgToData(coords_img);
+        coords.x = coords_data.x;
+        coords.y = coords_data.y;
+        coords.coords_css = coords_css;
+        coords.coords_img = coords_img;
+
+        coords.img_css_ratio = coordmap.cssToImgScalingRatio();
 
         // Add the panel (facet) variables, if present
         $.extend(coords, panel.panel_vars);
@@ -2384,10 +2901,44 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
         coords.range = panel.range;
         coords.log = panel.log;
 
-        coords[".nonce"] = Math.random();
-        exports.onInputChange(inputId, coords);
+        exports.setInputValue(inputId, coords, { priority: "event" });
       };
     };
+  };
+
+  // Given two sets of x/y coordinates, return an object representing the min
+  // and max x and y values. (This could be generalized to any number of
+  // points).
+  imageutils.findBox = function (offset1, offset2) {
+    return {
+      xmin: Math.min(offset1.x, offset2.x),
+      xmax: Math.max(offset1.x, offset2.x),
+      ymin: Math.min(offset1.y, offset2.y),
+      ymax: Math.max(offset1.y, offset2.y)
+    };
+  };
+
+  // Shift an array of values so that they are within a min and max. The vals
+  // will be shifted so that they maintain the same spacing internally. If the
+  // range in vals is larger than the range of min and max, the result might not
+  // make sense.
+  imageutils.shiftToRange = function (vals, min, max) {
+    if (!(vals instanceof Array)) vals = [vals];
+
+    var maxval = Math.max.apply(null, vals);
+    var minval = Math.min.apply(null, vals);
+    var shiftAmount = 0;
+    if (maxval > max) {
+      shiftAmount = max - maxval;
+    } else if (minval < min) {
+      shiftAmount = min - minval;
+    }
+
+    var newvals = [];
+    for (var i = 0; i < vals.length; i++) {
+      newvals[i] = vals[i] + shiftAmount;
+    }
+    return newvals;
   };
 
   // This object provides two public event listeners: mousedown, and
@@ -2501,7 +3052,8 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
       },
       onResetImg: function onResetImg() {
         clickInfoSender(null);
-      }
+      },
+      onResize: null
     };
   };
 
@@ -2524,7 +3076,8 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
       mouseout: mouseout,
       onResetImg: function onResetImg() {
         hoverInfoSender.immediateCall(null);
-      }
+      },
+      onResize: null
     };
   };
 
@@ -2572,7 +3125,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
       // We're in a new or reset state
       if (isNaN(coords.xmin)) {
-        exports.onInputChange(inputId, null);
+        exports.setInputValue(inputId, null);
         // Must tell other brushes to clear.
         imageOutputBinding.find(document).trigger("shiny-internal:brushed", {
           brushId: inputId, outputId: null
@@ -2584,6 +3137,11 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
       // Add the panel (facet) variables, if present
       $.extend(coords, panel.panel_vars);
+
+      coords.coords_css = brush.boundsCss();
+      coords.coords_img = coordmap.scaleCssToImg(coords.coords_css);
+
+      coords.img_css_ratio = coordmap.cssToImgScalingRatio();
 
       // Add variable name mappings
       coords.mapping = panel.mapping;
@@ -2599,7 +3157,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
       coords.outputId = outputId;
 
       // Send data to server
-      exports.onInputChange(inputId, coords);
+      exports.setInputValue(inputId, coords);
 
       $el.data("mostRecentBrush", true);
       imageOutputBinding.find(document).trigger("shiny-internal:brushed", coords);
@@ -2621,31 +3179,32 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
       // Listen for left mouse button only
       if (e.which !== 1) return;
 
-      var offset = coordmap.mouseOffset(e);
+      // In general, brush uses css pixels, and coordmap uses img pixels.
+      var offset_css = coordmap.mouseOffsetCss(e);
 
       // Ignore mousedown events outside of plotting region, expanded by
       // a number of pixels specified in expandPixels.
-      if (opts.brushClip && !coordmap.isInPanel(offset, expandPixels)) return;
+      if (opts.brushClip && !coordmap.isInPanelCss(offset_css, expandPixels)) return;
 
       brush.up({ x: NaN, y: NaN });
-      brush.down(offset);
+      brush.down(offset_css);
 
-      if (brush.isInResizeArea(offset)) {
-        brush.startResizing(offset);
+      if (brush.isInResizeArea(offset_css)) {
+        brush.startResizing(offset_css);
 
         // Attach the move and up handlers to the window so that they respond
         // even when the mouse is moved outside of the image.
         $(document).on('mousemove.image_brush', mousemoveResizing).on('mouseup.image_brush', mouseupResizing);
-      } else if (brush.isInsideBrush(offset)) {
-        brush.startDragging(offset);
+      } else if (brush.isInsideBrush(offset_css)) {
+        brush.startDragging(offset_css);
         setCursorStyle('grabbing');
 
         // Attach the move and up handlers to the window so that they respond
         // even when the mouse is moved outside of the image.
         $(document).on('mousemove.image_brush', mousemoveDragging).on('mouseup.image_brush', mouseupDragging);
       } else {
-        var panel = coordmap.getPanel(offset, expandPixels);
-        brush.startBrushing(panel.clip(offset));
+        var panel = coordmap.getPanelCss(offset_css, expandPixels);
+        brush.startBrushing(panel.clipImg(coordmap.scaleCssToImg(offset_css)));
 
         // Attach the move and up handlers to the window so that they respond
         // even when the mouse is moved outside of the image.
@@ -2655,12 +3214,13 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
     // This sets the cursor style when it's in the el
     function mousemove(e) {
-      var offset = coordmap.mouseOffset(e);
+      // In general, brush uses css pixels, and coordmap uses img pixels.
+      var offset_css = coordmap.mouseOffsetCss(e);
 
       if (!(brush.isBrushing() || brush.isDragging() || brush.isResizing())) {
         // Set the cursor depending on where it is
-        if (brush.isInResizeArea(offset)) {
-          var r = brush.whichResizeSides(offset);
+        if (brush.isInResizeArea(offset_css)) {
+          var r = brush.whichResizeSides(offset_css);
 
           if (r.left && r.top || r.right && r.bottom) {
             setCursorStyle('nwse-resize');
@@ -2671,9 +3231,9 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
           } else if (r.top || r.bottom) {
             setCursorStyle('ns-resize');
           }
-        } else if (brush.isInsideBrush(offset)) {
+        } else if (brush.isInsideBrush(offset_css)) {
           setCursorStyle('grabbable');
-        } else if (coordmap.isInPanel(offset, expandPixels)) {
+        } else if (coordmap.isInPanelCss(offset_css, expandPixels)) {
           setCursorStyle('crosshair');
         } else {
           setCursorStyle(null);
@@ -2683,17 +3243,17 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
     // mousemove handlers while brushing or dragging
     function mousemoveBrushing(e) {
-      brush.brushTo(coordmap.mouseOffset(e));
+      brush.brushTo(coordmap.mouseOffsetCss(e));
       brushInfoSender.normalCall();
     }
 
     function mousemoveDragging(e) {
-      brush.dragTo(coordmap.mouseOffset(e));
+      brush.dragTo(coordmap.mouseOffsetCss(e));
       brushInfoSender.normalCall();
     }
 
     function mousemoveResizing(e) {
-      brush.resizeTo(coordmap.mouseOffset(e));
+      brush.resizeTo(coordmap.mouseOffsetCss(e));
       brushInfoSender.normalCall();
     }
 
@@ -2704,7 +3264,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
       $(document).off('mousemove.image_brush').off('mouseup.image_brush');
 
-      brush.up(coordmap.mouseOffset(e));
+      brush.up(coordmap.mouseOffsetCss(e));
 
       brush.stopBrushing();
       setCursorStyle('crosshair');
@@ -2729,7 +3289,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
       $(document).off('mousemove.image_brush').off('mouseup.image_brush');
 
-      brush.up(coordmap.mouseOffset(e));
+      brush.up(coordmap.mouseOffsetCss(e));
 
       brush.stopDragging();
       setCursorStyle('grabbable');
@@ -2743,7 +3303,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
       $(document).off('mousemove.image_brush').off('mouseup.image_brush');
 
-      brush.up(coordmap.mouseOffset(e));
+      brush.up(coordmap.mouseOffsetCss(e));
       brush.stopResizing();
 
       if (brushInfoSender.isPending()) brushInfoSender.immediateCall();
@@ -2766,15 +3326,30 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
     if (!opts.brushResetOnNew) {
       if ($el.data("mostRecentBrush")) {
+        // Importing an old brush must happen after the image data has loaded
+        // and the <img> DOM element has the updated size. If importOldBrush()
+        // is called before this happens, then the css-img coordinate mappings
+        // will give the wrong result, and the brush will have the wrong
+        // position.
+        //
+        // jcheng 09/26/2018: This used to happen in img.onLoad, but recently
+        // we moved to all brush initialization moving to img.onLoad so this
+        // logic can be executed inline.
         brush.importOldBrush();
         brushInfoSender.immediateCall();
       }
     }
 
+    function onResize() {
+      brush.onResize();
+      brushInfoSender.immediateCall();
+    }
+
     return {
       mousedown: mousedown,
       mousemove: mousemove,
-      onResetImg: onResetImg
+      onResetImg: onResetImg,
+      onResize: onResize
     };
   };
 
@@ -2788,6 +3363,11 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
     var $div = null; // The div representing the brush
 
     var state = {};
+
+    // Aliases for conciseness
+    var cssToImg = coordmap.scaleCssToImg;
+    var imgToCss = coordmap.scaleImgToCss;
+
     reset();
 
     function reset() {
@@ -2796,7 +3376,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
       state.dragging = false;
       state.resizing = false;
 
-      // Offset of last mouse down and up events
+      // Offset of last mouse down and up events (in CSS pixels)
       state.down = { x: NaN, y: NaN };
       state.up = { x: NaN, y: NaN };
 
@@ -2808,10 +3388,11 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
         bottom: false
       };
 
-      // Bounding rectangle of the brush, in pixel and data dimensions. We need to
-      // record data dimensions along with pixel dimensions so that when a new
-      // plot is sent, we can re-draw the brush div with the appropriate coords.
-      state.boundsPx = {
+      // Bounding rectangle of the brush, in CSS pixel and data dimensions. We
+      // need to record data dimensions along with pixel dimensions so that when
+      // a new plot is sent, we can re-draw the brush div with the appropriate
+      // coords.
+      state.boundsCss = {
         xmin: NaN,
         xmax: NaN,
         ymin: NaN,
@@ -2827,7 +3408,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
       // Panel object that the brush is in
       state.panel = null;
 
-      // The bounds at the start of a drag/resize
+      // The bounds at the start of a drag/resize (in CSS pixels)
       state.changeStartBounds = {
         xmin: NaN,
         xmax: NaN,
@@ -2850,40 +3431,15 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
       if (!oldBoundsData || !oldPanel) return;
 
-      // Compare two objects. This checks that objects a and b have the same est
-      // of keys, and that each key has the same value. This function isn't
-      // perfect, but it's good enough for comparing variable mappings, below.
-      function isEquivalent(a, b) {
-        if (a === undefined) {
-          if (b === undefined) return true;else return false;
-        }
-        if (a === null) {
-          if (b === null) return true;else return false;
-        }
-
-        var aProps = Object.getOwnPropertyNames(a);
-        var bProps = Object.getOwnPropertyNames(b);
-
-        if (aProps.length !== bProps.length) return false;
-
-        for (var i = 0; i < aProps.length; i++) {
-          var propName = aProps[i];
-          if (a[propName] !== b[propName]) {
-            return false;
-          }
-        }
-        return true;
-      }
-
       // Find a panel that has matching vars; if none found, we can't restore.
       // The oldPanel and new panel must match on their mapping vars, and the
       // values.
-      for (var i = 0; i < coordmap.length; i++) {
-        var curPanel = coordmap[i];
+      for (var i = 0; i < coordmap.panels.length; i++) {
+        var curPanel = coordmap.panels[i];
 
-        if (isEquivalent(oldPanel.mapping, curPanel.mapping) && isEquivalent(oldPanel.panel_vars, curPanel.panel_vars)) {
+        if (equal(oldPanel.mapping, curPanel.mapping) && equal(oldPanel.panel_vars, curPanel.panel_vars)) {
           // We've found a matching panel
-          state.panel = coordmap[i];
+          state.panel = coordmap.panels[i];
           break;
         }
       }
@@ -2900,21 +3456,36 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
       updateDiv();
     }
 
+    // This will reposition the brush div when the image is resized, maintaining
+    // the same data coordinates. Note that the "resize" here refers to the
+    // wrapper div/img being resized; elsewhere, "resize" refers to the brush
+    // div being resized.
+    function onResize() {
+      var bounds_data = boundsData();
+      // Check to see if we have valid boundsData
+      for (var val in bounds_data) {
+        if (isnan(bounds_data[val])) return;
+      }
+
+      boundsData(bounds_data);
+      updateDiv();
+    }
+
     // Return true if the offset is inside min/max coords
-    function isInsideBrush(offset) {
-      var bounds = state.boundsPx;
-      return offset.x <= bounds.xmax && offset.x >= bounds.xmin && offset.y <= bounds.ymax && offset.y >= bounds.ymin;
+    function isInsideBrush(offset_css) {
+      var bounds = state.boundsCss;
+      return offset_css.x <= bounds.xmax && offset_css.x >= bounds.xmin && offset_css.y <= bounds.ymax && offset_css.y >= bounds.ymin;
     }
 
     // Return true if offset is inside a region to start a resize
-    function isInResizeArea(offset) {
-      var sides = whichResizeSides(offset);
+    function isInResizeArea(offset_css) {
+      var sides = whichResizeSides(offset_css);
       return sides.left || sides.right || sides.top || sides.bottom;
     }
 
     // Return an object representing which resize region(s) the cursor is in.
-    function whichResizeSides(offset) {
-      var b = state.boundsPx;
+    function whichResizeSides(offset_css) {
+      var b = state.boundsCss;
       // Bounds with expansion
       var e = {
         xmin: b.xmin - resizeExpand,
@@ -2929,34 +3500,36 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
         bottom: false
       };
 
-      if ((opts.brushDirection === 'xy' || opts.brushDirection === 'x') && offset.y <= e.ymax && offset.y >= e.ymin) {
-        if (offset.x < b.xmin && offset.x >= e.xmin) res.left = true;else if (offset.x > b.xmax && offset.x <= e.xmax) res.right = true;
+      if ((opts.brushDirection === 'xy' || opts.brushDirection === 'x') && offset_css.y <= e.ymax && offset_css.y >= e.ymin) {
+        if (offset_css.x < b.xmin && offset_css.x >= e.xmin) res.left = true;else if (offset_css.x > b.xmax && offset_css.x <= e.xmax) res.right = true;
       }
 
-      if ((opts.brushDirection === 'xy' || opts.brushDirection === 'y') && offset.x <= e.xmax && offset.x >= e.xmin) {
-        if (offset.y < b.ymin && offset.y >= e.ymin) res.top = true;else if (offset.y > b.ymax && offset.y <= e.ymax) res.bottom = true;
+      if ((opts.brushDirection === 'xy' || opts.brushDirection === 'y') && offset_css.x <= e.xmax && offset_css.x >= e.xmin) {
+        if (offset_css.y < b.ymin && offset_css.y >= e.ymin) res.top = true;else if (offset_css.y > b.ymax && offset_css.y <= e.ymax) res.bottom = true;
       }
 
       return res;
     }
 
-    // Sets the bounds of the brush, given a box and optional panel. This
-    // will fit the box bounds into the panel, so we don't brush outside of it.
-    // This knows whether we're brushing in the x, y, or xy directions, and sets
-    // bounds accordingly.
-    // If no box is passed in, just return current bounds.
-    function boundsPx(box) {
-      if (box === undefined) return state.boundsPx;
+    // Sets the bounds of the brush (in CSS pixels), given a box and optional
+    // panel. This will fit the box bounds into the panel, so we don't brush
+    // outside of it. This knows whether we're brushing in the x, y, or xy
+    // directions, and sets bounds accordingly. If no box is passed in, just
+    // return current bounds.
+    function boundsCss(box_css) {
+      if (box_css === undefined) {
+        return $.extend({}, state.boundsCss);
+      }
 
-      var min = { x: box.xmin, y: box.ymin };
-      var max = { x: box.xmax, y: box.ymax };
+      var min_css = { x: box_css.xmin, y: box_css.ymin };
+      var max_css = { x: box_css.xmax, y: box_css.ymax };
 
       var panel = state.panel;
-      var panelBounds = panel.range;
+      var panelBounds_img = panel.range;
 
       if (opts.brushClip) {
-        min = panel.clip(min);
-        max = panel.clip(max);
+        min_css = imgToCss(panel.clipImg(cssToImg(min_css)));
+        max_css = imgToCss(panel.clipImg(cssToImg(max_css)));
       }
 
       if (opts.brushDirection === 'xy') {
@@ -2964,26 +3537,26 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
       } else if (opts.brushDirection === 'x') {
         // Extend top and bottom of plotting area
-        min.y = panelBounds.top;
-        max.y = panelBounds.bottom;
+        min_css.y = imgToCss({ y: panelBounds_img.top }).y;
+        max_css.y = imgToCss({ y: panelBounds_img.bottom }).y;
       } else if (opts.brushDirection === 'y') {
-        min.x = panelBounds.left;
-        max.x = panelBounds.right;
+        min_css.x = imgToCss({ x: panelBounds_img.left }).x;
+        max_css.x = imgToCss({ x: panelBounds_img.right }).x;
       }
 
-      state.boundsPx = {
-        xmin: min.x,
-        xmax: max.x,
-        ymin: min.y,
-        ymax: max.y
+      state.boundsCss = {
+        xmin: min_css.x,
+        xmax: max_css.x,
+        ymin: min_css.y,
+        ymax: max_css.y
       };
 
       // Positions in data space
-      var minData = state.panel.scaleInv(min);
-      var maxData = state.panel.scaleInv(max);
+      var min_data = state.panel.scaleImgToData(cssToImg(min_css));
+      var max_data = state.panel.scaleImgToData(cssToImg(max_css));
       // For reversed scales, the min and max can be reversed, so use findBox
       // to ensure correct order.
-      state.boundsData = coordmap.findBox(minData, maxData);
+      state.boundsData = imageutils.findBox(min_data, max_data);
       // Round to 14 significant digits to avoid spurious changes in FP values
       // (#1634).
       state.boundsData = mapValues(state.boundsData, function (val) {
@@ -2999,24 +3572,25 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
     }
 
     // Get or set the bounds of the brush using coordinates in the data space.
-    function boundsData(box) {
-      if (box === undefined) {
-        return state.boundsData;
+    function boundsData(box_data) {
+      if (box_data === undefined) {
+        return $.extend({}, state.boundsData);
       }
 
-      var min = { x: box.xmin, y: box.ymin };
-      var max = { x: box.xmax, y: box.ymax };
-
-      var minPx = state.panel.scale(min);
-      var maxPx = state.panel.scale(max);
+      var box_css = imgToCss(state.panel.scaleDataToImg(box_data));
+      // Round to 13 significant digits to avoid spurious changes in FP values
+      // (#2197).
+      box_css = mapValues(box_css, function (val) {
+        return roundSignif(val, 13);
+      });
 
       // The scaling function can reverse the direction of the axes, so we need to
       // find the min and max again.
-      boundsPx({
-        xmin: Math.min(minPx.x, maxPx.x),
-        xmax: Math.max(minPx.x, maxPx.x),
-        ymin: Math.min(minPx.y, maxPx.y),
-        ymax: Math.max(minPx.y, maxPx.y)
+      boundsCss({
+        xmin: Math.min(box_css.xmin, box_css.xmax),
+        xmax: Math.max(box_css.xmin, box_css.xmax),
+        ymin: Math.min(box_css.ymin, box_css.ymax),
+        ymax: Math.max(box_css.ymin, box_css.ymax)
       });
       return undefined;
     }
@@ -3062,25 +3636,26 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
     function updateDiv() {
       // Need parent offset relative to page to calculate mouse offset
       // relative to page.
-      var imgOffset = $el.offset();
-      var b = state.boundsPx;
+      var img_offset_css = findOrigin($el.find("img"));
+      var b = state.boundsCss;
+
       $div.offset({
-        top: imgOffset.top + b.ymin,
-        left: imgOffset.left + b.xmin
+        top: img_offset_css.y + b.ymin,
+        left: img_offset_css.x + b.xmin
       }).outerWidth(b.xmax - b.xmin + 1).outerHeight(b.ymax - b.ymin + 1);
     }
 
-    function down(offset) {
-      if (offset === undefined) return state.down;
+    function down(offset_css) {
+      if (offset_css === undefined) return state.down;
 
-      state.down = offset;
+      state.down = offset_css;
       return undefined;
     }
 
-    function up(offset) {
-      if (offset === undefined) return state.up;
+    function up(offset_css) {
+      if (offset_css === undefined) return state.up;
 
-      state.up = offset;
+      state.up = offset_css;
       return undefined;
     }
 
@@ -3091,23 +3666,22 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
     function startBrushing() {
       state.brushing = true;
       addDiv();
-      state.panel = coordmap.getPanel(state.down, expandPixels);
+      state.panel = coordmap.getPanelCss(state.down, expandPixels);
 
-      boundsPx(coordmap.findBox(state.down, state.down));
+      boundsCss(imageutils.findBox(state.down, state.down));
       updateDiv();
     }
 
-    function brushTo(offset) {
-      boundsPx(coordmap.findBox(state.down, offset));
+    function brushTo(offset_css) {
+      boundsCss(imageutils.findBox(state.down, offset_css));
       $div.show();
       updateDiv();
     }
 
     function stopBrushing() {
       state.brushing = false;
-
       // Save the final bounding box of the brush
-      boundsPx(coordmap.findBox(state.down, state.up));
+      boundsCss(imageutils.findBox(state.down, state.up));
     }
 
     function isDragging() {
@@ -3116,17 +3690,17 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
     function startDragging() {
       state.dragging = true;
-      state.changeStartBounds = $.extend({}, state.boundsPx);
+      state.changeStartBounds = $.extend({}, state.boundsCss);
     }
 
-    function dragTo(offset) {
+    function dragTo(offset_css) {
       // How far the brush was dragged
-      var dx = offset.x - state.down.x;
-      var dy = offset.y - state.down.y;
+      var dx = offset_css.x - state.down.x;
+      var dy = offset_css.y - state.down.y;
 
       // Calculate what new positions would be, before clipping.
       var start = state.changeStartBounds;
-      var newBounds = {
+      var newBounds_css = {
         xmin: start.xmin + dx,
         xmax: start.xmax + dx,
         ymin: start.ymin + dy,
@@ -3135,25 +3709,26 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
       // Clip to the plotting area
       if (opts.brushClip) {
-        var panelBounds = state.panel.range;
+        var panelBounds_img = state.panel.range;
+        var newBounds_img = cssToImg(newBounds_css);
 
         // Convert to format for shiftToRange
-        var xvals = [newBounds.xmin, newBounds.xmax];
-        var yvals = [newBounds.ymin, newBounds.ymax];
+        var xvals_img = [newBounds_img.xmin, newBounds_img.xmax];
+        var yvals_img = [newBounds_img.ymin, newBounds_img.ymax];
 
-        xvals = coordmap.shiftToRange(xvals, panelBounds.left, panelBounds.right);
-        yvals = coordmap.shiftToRange(yvals, panelBounds.top, panelBounds.bottom);
+        xvals_img = imageutils.shiftToRange(xvals_img, panelBounds_img.left, panelBounds_img.right);
+        yvals_img = imageutils.shiftToRange(yvals_img, panelBounds_img.top, panelBounds_img.bottom);
 
         // Convert back to bounds format
-        newBounds = {
-          xmin: xvals[0],
-          xmax: xvals[1],
-          ymin: yvals[0],
-          ymax: yvals[1]
-        };
+        newBounds_css = imgToCss({
+          xmin: xvals_img[0],
+          xmax: xvals_img[1],
+          ymin: yvals_img[0],
+          ymax: yvals_img[1]
+        });
       }
 
-      boundsPx(newBounds);
+      boundsCss(newBounds_css);
       updateDiv();
     }
 
@@ -3167,32 +3742,40 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
     function startResizing() {
       state.resizing = true;
-      state.changeStartBounds = $.extend({}, state.boundsPx);
+      state.changeStartBounds = $.extend({}, state.boundsCss);
       state.resizeSides = whichResizeSides(state.down);
     }
 
-    function resizeTo(offset) {
+    function resizeTo(offset_css) {
       // How far the brush was dragged
-      var dx = offset.x - state.down.x;
-      var dy = offset.y - state.down.y;
+      var d_css = {
+        x: offset_css.x - state.down.x,
+        y: offset_css.y - state.down.y
+      };
+
+      var d_img = cssToImg(d_css);
 
       // Calculate what new positions would be, before clipping.
-      var b = $.extend({}, state.changeStartBounds);
-      var panelBounds = state.panel.range;
+      var b_img = cssToImg(state.changeStartBounds);
+      var panelBounds_img = state.panel.range;
 
       if (state.resizeSides.left) {
-        b.xmin = coordmap.shiftToRange([b.xmin + dx], panelBounds.left, b.xmax)[0];
+        var xmin_img = imageutils.shiftToRange(b_img.xmin + d_img.x, panelBounds_img.left, b_img.xmax)[0];
+        b_img.xmin = xmin_img;
       } else if (state.resizeSides.right) {
-        b.xmax = coordmap.shiftToRange([b.xmax + dx], b.xmin, panelBounds.right)[0];
+        var xmax_img = imageutils.shiftToRange(b_img.xmax + d_img.x, b_img.xmin, panelBounds_img.right)[0];
+        b_img.xmax = xmax_img;
       }
 
       if (state.resizeSides.top) {
-        b.ymin = coordmap.shiftToRange([b.ymin + dy], panelBounds.top, b.ymax)[0];
+        var ymin_img = imageutils.shiftToRange(b_img.ymin + d_img.y, panelBounds_img.top, b_img.ymax)[0];
+        b_img.ymin = ymin_img;
       } else if (state.resizeSides.bottom) {
-        b.ymax = coordmap.shiftToRange([b.ymax + dy], b.ymin, panelBounds.bottom)[0];
+        var ymax_img = imageutils.shiftToRange(b_img.ymax + d_img.y, b_img.ymin, panelBounds_img.bottom)[0];
+        b_img.ymax = ymax_img;
       }
 
-      boundsPx(b);
+      boundsCss(imgToCss(b_img));
       updateDiv();
     }
 
@@ -3208,7 +3791,9 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
       isInResizeArea: isInResizeArea,
       whichResizeSides: whichResizeSides,
 
-      boundsPx: boundsPx,
+      onResize: onResize, // A callback when the wrapper div or img is resized.
+
+      boundsCss: boundsCss,
       boundsData: boundsData,
       getPanel: getPanel,
 
@@ -3233,11 +3818,67 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
   };
 
   exports.resetBrush = function (brushId) {
-    exports.onInputChange(brushId, null);
+    exports.setInputValue(brushId, null);
     imageOutputBinding.find(document).trigger("shiny-internal:brushed", {
       brushId: brushId, outputId: null
     });
   };
+
+  // -----------------------------------------------------------------------
+  // Utility functions for finding dimensions and locations of DOM elements
+  // -----------------------------------------------------------------------
+
+  // Returns the ratio that an element has been scaled (for example, by CSS
+  // transforms) in the x and y directions.
+  function findScalingRatio($el) {
+    var boundingRect = $el[0].getBoundingClientRect();
+    return {
+      x: boundingRect.width / $el.outerWidth(),
+      y: boundingRect.height / $el.outerHeight()
+    };
+  }
+
+  function findOrigin($el) {
+    var offset = $el.offset();
+    var scaling_ratio = findScalingRatio($el);
+
+    // Find the size of the padding and border, for the top and left. This is
+    // before any transforms.
+    var paddingBorder = {
+      left: parseInt($el.css("border-left-width")) + parseInt($el.css("padding-left")),
+      top: parseInt($el.css("border-top-width")) + parseInt($el.css("padding-top"))
+    };
+
+    // offset() returns the upper left corner of the element relative to the
+    // page, but it includes padding and border. Here we find the upper left
+    // of the element, not including padding and border.
+    return {
+      x: offset.left + scaling_ratio.x * paddingBorder.left,
+      y: offset.top + scaling_ratio.y * paddingBorder.top
+    };
+  }
+
+  // Find the dimensions of a tag, after transforms, and without padding and
+  // border.
+  function findDims($el) {
+    // If there's any padding/border, we need to find the ratio of the actual
+    // element content compared to the element plus padding and border.
+    var content_ratio = {
+      x: $el.width() / $el.outerWidth(),
+      y: $el.height() / $el.outerHeight()
+    };
+
+    // Get the dimensions of the element _after_ any CSS transforms. This
+    // includes the padding and border.
+    var bounding_rect = $el[0].getBoundingClientRect();
+
+    // Dimensions of the element after any CSS transforms, and without
+    // padding/border.
+    return {
+      x: content_ratio.x * bounding_rect.width,
+      y: content_ratio.y * bounding_rect.height
+    };
+  }
 
   //---------------------------------------------------------------------
   // Source file: ../srcjs/output_binding_html.js
@@ -3275,15 +3916,13 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
       exports.unbindAll(el);
     }
 
-    exports.unbindAll(el);
-
     var html;
     var dependencies = [];
     if (content === null) {
       html = '';
     } else if (typeof content === 'string') {
       html = content;
-    } else if ((typeof content === 'undefined' ? 'undefined' : _typeof(content)) === 'object') {
+    } else if ((typeof content === "undefined" ? "undefined" : _typeof(content)) === 'object') {
       html = content.html;
       dependencies = content.deps || [];
     }
@@ -3689,12 +4328,15 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
       if (data.hasOwnProperty('label')) $(el).parent().find('label[for="' + $escape(el.id) + '"]').text(data.label);
 
+      if (data.hasOwnProperty('placeholder')) el.placeholder = data.placeholder;
+
       $(el).trigger('change');
     },
     getState: function getState(el) {
       return {
         label: $(el).parent().find('label[for="' + $escape(el.id) + '"]').text(),
-        value: el.value
+        value: el.value,
+        placeholder: el.placeholder
       };
     },
     getRatePolicy: function getRatePolicy() {
@@ -3817,6 +4459,33 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
     if (slider.$cache && slider.$cache.input) slider.$cache.input.trigger('change');else console.log("Couldn't force ion slider to update");
   }
 
+  function getTypePrettifyer(dataType, timeFormat, timezone) {
+    var timeFormatter;
+    var prettify;
+    if (dataType === 'date') {
+      timeFormatter = strftime.utc();
+      prettify = function prettify(num) {
+        return timeFormatter(timeFormat, new Date(num));
+      };
+    } else if (dataType === 'datetime') {
+      if (timezone) timeFormatter = strftime.timezone(timezone);else timeFormatter = strftime;
+
+      prettify = function prettify(num) {
+        return timeFormatter(timeFormat, new Date(num));
+      };
+    } else {
+      // The default prettify function for ion.rangeSlider adds thousands
+      // separators after the decimal mark, so we have our own version here.
+      // (#1958)
+      prettify = function prettify(num) {
+        // When executed, `this` will refer to the `IonRangeSlider.options`
+        // object.
+        return formatNumber(num, this.prettify_separator);
+      };
+    }
+    return prettify;
+  }
+
   var sliderInputBinding = {};
   $.extend(sliderInputBinding, textInputBinding, {
     find: function find(scope) {
@@ -3895,11 +4564,29 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
           msg.from = data.value;
         }
       }
-      if (data.hasOwnProperty('min')) msg.min = data.min;
-      if (data.hasOwnProperty('max')) msg.max = data.max;
-      if (data.hasOwnProperty('step')) msg.step = data.step;
+      var sliderFeatures = ['min', 'max', 'step'];
+      for (var i = 0; i < sliderFeatures.length; i++) {
+        var feats = sliderFeatures[i];
+        if (data.hasOwnProperty(feats)) {
+          msg[feats] = data[feats];
+        }
+      }
 
       if (data.hasOwnProperty('label')) $el.parent().find('label[for="' + $escape(el.id) + '"]').text(data.label);
+
+      var domElements = ['data-type', 'time-format', 'timezone'];
+      for (var i = 0; i < domElements.length; i++) {
+        var elem = domElements[i];
+        if (data.hasOwnProperty(elem)) {
+          $el.data(elem, data[elem]);
+        }
+      }
+
+      var dataType = $el.data('data-type');
+      var timeFormat = $el.data('time-format');
+      var timezone = $el.data('timezone');
+
+      msg.prettify = getTypePrettifyer(dataType, timeFormat, timezone);
 
       $el.data('immediate', true);
       try {
@@ -3921,22 +4608,9 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
       var $el = $(el);
       var dataType = $el.data('data-type');
       var timeFormat = $el.data('time-format');
-      var timeFormatter;
+      var timezone = $el.data('timezone');
 
-      // Set up formatting functions
-      if (dataType === 'date') {
-        timeFormatter = strftime.utc();
-        opts.prettify = function (num) {
-          return timeFormatter(timeFormat, new Date(num));
-        };
-      } else if (dataType === 'datetime') {
-        var timezone = $el.data('timezone');
-        if (timezone) timeFormatter = strftime.timezone(timezone);else timeFormatter = strftime;
-
-        opts.prettify = function (num) {
-          return timeFormatter(timeFormat, new Date(num));
-        };
-      }
+      opts.prettify = getTypePrettifyer(dataType, timeFormat, timezone);
 
       $el.ionRangeSlider(opts);
     },
@@ -3947,6 +4621,24 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
     }
   });
   inputBindings.register(sliderInputBinding, 'shiny.sliderInput');
+
+  // Format numbers for nicer output.
+  // formatNumber(1234567.12345)           === "1,234,567.12345"
+  // formatNumber(1234567.12345, ".", ",") === "1.234.567,12345"
+  // formatNumber(1000, " ")               === "1 000"
+  // formatNumber(20)                      === "20"
+  // formatNumber(1.2345e24)               === "1.2345e+24"
+  function formatNumber(num) {
+    var thousand_sep = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : ",";
+    var decimal_sep = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : ".";
+
+    var parts = num.toString().split(".");
+
+    // Add separators to portion before decimal mark.
+    parts[0] = parts[0].replace(/(\d{1,3}(?=(?:\d\d\d)+(?!\d)))/g, "$1" + thousand_sep);
+
+    if (parts.length === 1) return parts[0];else if (parts.length === 2) return parts[0] + decimal_sep + parts[1];else return "";
+  };
 
   $(document).on('click', '.slider-animate-button', function (evt) {
     evt.preventDefault();
@@ -4384,6 +5076,18 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
     find: function find(scope) {
       return $(scope).find('select');
     },
+    getType: function getType(el) {
+      var $el = $(el);
+      if (!$el.hasClass("symbol")) {
+        // default character type
+        return null;
+      }
+      if ($el.attr("multiple") === "multiple") {
+        return 'shiny.symbolList';
+      } else {
+        return 'shiny.symbol';
+      }
+    },
     getId: function getId(el) {
       return InputBinding.prototype.getId.call(this, el) || el.name;
     },
@@ -4391,10 +5095,14 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
       return $(el).val();
     },
     setValue: function setValue(el, value) {
-      var selectize = this._selectize(el);
-      if (typeof selectize !== 'undefined') {
-        selectize.setValue(value);
-      } else $(el).val(value);
+      if (!this._is_selectize(el)) {
+        $(el).val(value);
+      } else {
+        var selectize = this._selectize(el);
+        if (selectize) {
+          selectize.setValue(value);
+        }
+      }
     },
     getState: function getState(el) {
       // Store options in an array of objects, each with with value and label
@@ -4435,8 +5143,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
       if (data.hasOwnProperty('url')) {
         selectize = this._selectize(el);
         selectize.clearOptions();
-        var thiz = this,
-            loaded = false;
+        var loaded = false;
         selectize.settings.load = function (query, callback) {
           var settings = selectize.settings;
           $.ajax({
@@ -4453,8 +5160,29 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
               callback();
             },
             success: function success(res) {
+              // res = [{label: '1', value: '1', group: '1'}, ...]
+              // success is called after options are added, but
+              // groups need to be added manually below
+              $.each(res, function (index, elem) {
+                // Call selectize.addOptionGroup once for each optgroup; the
+                // first argument is the group ID, the second is an object with
+                // the group's label and value. We use the current settings of
+                // the selectize object to decide the fieldnames of that obj.
+                var optgroupId = elem[settings.optgroupField || "optgroup"];
+                var optgroup = {};
+                optgroup[settings.optgroupLabelField || "label"] = optgroupId;
+                optgroup[settings.optgroupValueField || "value"] = optgroupId;
+                selectize.addOptionGroup(optgroupId, optgroup);
+              });
               callback(res);
-              if (!loaded && data.hasOwnProperty('value')) thiz.setValue(el, data.value);
+              if (!loaded) {
+                if (data.hasOwnProperty('value')) {
+                  selectize.setValue(data.value);
+                } else if (settings.maxItems === 1) {
+                  // first item selected by default only for single-select
+                  selectize.setValue(res[0].value);
+                }
+              }
               loaded = true;
             }
           });
@@ -4467,12 +5195,26 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
         this.setValue(el, data.value);
       }
 
-      if (data.hasOwnProperty('label')) $(el).parent().parent().find('label[for="' + $escape(el.id) + '"]').text(data.label);
+      if (data.hasOwnProperty('label')) {
+        var escaped_id = $escape(el.id);
+        if (this._is_selectize(el)) {
+          escaped_id += "-selectized";
+        }
+        $(el).parent().parent().find('label[for="' + escaped_id + '"]').text(data.label);
+      }
 
       $(el).trigger('change');
     },
     subscribe: function subscribe(el, callback) {
+      var _this = this;
+
       $(el).on('change.selectInputBinding', function (event) {
+        // https://github.com/rstudio/shiny/issues/2162
+        // Prevent spurious events that are gonna be squelched in
+        // a second anyway by the onItemRemove down below
+        if (el.nonempty && _this.getValue(el) === "") {
+          return;
+        }
         callback();
       });
     },
@@ -4482,18 +5224,26 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
     initialize: function initialize(el) {
       this._selectize(el);
     },
+    // Return true if it's a selectize input, false if it's a regular select input.
+    _is_selectize: function _is_selectize(el) {
+      var config = $(el).parent().find('script[data-for="' + $escape(el.id) + '"]');
+      return config.length > 0;
+    },
     _selectize: function _selectize(el, update) {
       if (!$.fn.selectize) return undefined;
       var $el = $(el);
       var config = $el.parent().find('script[data-for="' + $escape(el.id) + '"]');
       if (config.length === 0) return undefined;
+
       var options = $.extend({
         labelField: 'label',
         valueField: 'value',
         searchField: ['label']
       }, JSON.parse(config.html()));
+
       // selectize created from selectInput()
       if (typeof config.data('nonempty') !== 'undefined') {
+        el.nonempty = true;
         options = $.extend(options, {
           onItemRemove: function onItemRemove(value) {
             if (this.getValue() === "") $("select#" + $escape(el.id)).empty().append($("<option/>", {
@@ -4505,6 +5255,8 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
             if (this.getValue() === "") this.setValue($("select#" + $escape(el.id)).val());
           }
         });
+      } else {
+        el.nonempty = false;
       }
       // options that should be eval()ed
       if (config.data('eval') instanceof Array) $.each(config.data('eval'), function (i, x) {
@@ -4785,14 +5537,23 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
     },
     setValue: function setValue(el, value) {
       var self = this;
-      var anchors = $(el).find('li:not(.dropdown)').children('a');
-      anchors.each(function () {
-        if (self._getTabName($(this)) === value) {
-          $(this).tab('show');
-          return false; // Break out of each()
-        }
-        return true;
-      });
+      var success = false;
+      if (value) {
+        var anchors = $(el).find('li:not(.dropdown)').children('a');
+        anchors.each(function () {
+          if (self._getTabName($(this)) === value) {
+            $(this).tab('show');
+            success = true;
+            return false; // Break out of each()
+          }
+          return true;
+        });
+      }
+      if (!success) {
+        // This is to handle the case where nothing is selected, e.g. the last tab
+        // was removed using removeTab.
+        $(el).trigger("change");
+      }
     },
     getState: function getState(el) {
       return { value: this.getValue(el) };
@@ -4801,7 +5562,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
       if (data.hasOwnProperty('value')) this.setValue(el, data.value);
     },
     subscribe: function subscribe(el, callback) {
-      $(el).on('shown.bootstrapTabInputBinding shown.bs.tab.bootstrapTabInputBinding', function (event) {
+      $(el).on('change shown.bootstrapTabInputBinding shown.bs.tab.bootstrapTabInputBinding', function (event) {
         callback();
       });
     },
@@ -4838,6 +5599,9 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
         // invalidated reactives, but observers don't actually execute.
         self.shinyapp.makeRequest('uploadieFinish', [], function () {}, function () {});
         $(self.iframe).remove();
+        // Reset the file input's value to "". This allows the same file to be
+        // uploaded again. https://stackoverflow.com/a/22521275
+        $(self.fileEl).val("");
       };
       if (this.iframe.attachEvent) {
         this.iframe.attachEvent('onload', iframeDestroy);
@@ -4917,6 +5681,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
           return xhrVal;
         },
         data: file,
+        contentType: 'application/octet-stream',
         processData: false,
         success: function success() {
           self.progressBytes += file.size;
@@ -4953,6 +5718,9 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
         self.$setActive(false);
         self.onProgress(null, 1);
         self.$bar().text('Upload complete');
+        // Reset the file input's value to "". This allows the same file to be
+        // uploaded again. https://stackoverflow.com/a/22521275
+        $(evt.el).val("");
       }, function (error) {
         self.onError(error);
       });
@@ -4990,11 +5758,43 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
     };
   }).call(FileUploader.prototype);
 
-  function uploadFiles(evt) {
-    // If previously selected files are uploading, abort that.
-    var $el = $(evt.target);
+  // NOTE On Safari, at least version 10.1.2, *if the developer console is open*,
+  // setting the input's value will behave strangely because of a Safari bug. The
+  // uploaded file's name will appear over the placeholder value, instead of
+  // replacing it. The workaround is to restart Safari. When I (Alan Dipert) ran
+  // into this bug Winston Chang helped me diagnose the exact problem, and Winston
+  // then submitted a bug report to Apple.
+  function setFileText($el, files) {
+    var $fileText = $el.closest('div.input-group').find('input[type=text]');
+    if (files.length === 1) {
+      $fileText.val(files[0].name);
+    } else {
+      $fileText.val(files.length + " files");
+    }
+  }
+
+  // If previously selected files are uploading, abort that.
+  function abortCurrentUpload($el) {
     var uploader = $el.data('currentUploader');
     if (uploader) uploader.abort();
+    // Clear data-restore attribute if present.
+    $el.removeAttr('data-restore');
+  }
+
+  function uploadDroppedFilesIE10Plus(el, files) {
+    var $el = $(el);
+    abortCurrentUpload($el);
+
+    // Set the label in the text box
+    setFileText($el, files);
+
+    // Start the new upload and put the uploader in 'currentUploader'.
+    $el.data('currentUploader', new FileUploader(exports.shinyapp, fileInputBinding.getId(el), files, el));
+  }
+
+  function uploadFiles(evt) {
+    var $el = $(evt.target);
+    abortCurrentUpload($el);
 
     var files = evt.target.files;
     // IE8 here does not necessarily mean literally IE8; it indicates if the web
@@ -5004,18 +5804,13 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
     if (!IE8 && files.length === 0) return;
 
-    // Clear data-restore attribute if present.
-    $el.removeAttr('data-restore');
-
     // Set the label in the text box
     var $fileText = $el.closest('div.input-group').find('input[type=text]');
     if (IE8) {
       // If we're using IE8/9, just use this placeholder
       $fileText.val("[Uploaded file]");
-    } else if (files.length === 1) {
-      $fileText.val(files[0].name);
     } else {
-      $fileText.val(files.length + " files");
+      setFileText($el, files);
     }
 
     // Start the new upload and put the uploader in 'currentUploader'.
@@ -5026,6 +5821,12 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
       $el.data('currentUploader', new FileUploader(exports.shinyapp, id, files, evt.target));
     }
   }
+
+  // Here we maintain a list of all the current file inputs. This is necessary
+  // because we need to trigger events on them in order to respond to file drag
+  // events. For example, they should all light up when a file is dragged on to
+  // the page.
+  var $fileInputs = $();
 
   var fileInputBinding = new InputBinding();
   $.extend(fileInputBinding, {
@@ -5071,11 +5872,169 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
       // This will be used only when restoring a file from a saved state.
       return 'shiny.file';
     },
-    subscribe: function subscribe(el, callback) {
-      $(el).on('change.fileInputBinding', uploadFiles);
+    _zoneOf: function _zoneOf(el) {
+      return $(el).closest("div.input-group");
     },
+    // This function makes it possible to attach listeners to the dragenter,
+    // dragleave, and drop events of a single element with children. It's not
+    // intuitive to do directly because outer elements fire "dragleave" events
+    // both when the drag leaves the element and when the drag enters a child. To
+    // make it easier, we maintain a count of the elements being dragged across
+    // and trigger 3 new types of event:
+    //
+    // 1. draghover:enter - When a drag enters el and any of its children.
+    // 2. draghover:leave - When the drag leaves el and all of its children.
+    // 3. draghover:drop - When an item is dropped on el or any of its children.
+    _enableDraghover: function _enableDraghover(el) {
+      var $el = $(el),
+          childCounter = 0;
+      $el.on({
+        "dragenter.draghover": function dragenterDraghover(e) {
+          if (childCounter++ === 0) {
+            $el.trigger("draghover:enter", e);
+          }
+        },
+        "dragleave.draghover": function dragleaveDraghover(e) {
+          if (--childCounter === 0) {
+            $el.trigger("draghover:leave", e);
+          }
+          if (childCounter < 0) {
+            console.error("draghover childCounter is negative somehow");
+          }
+        },
+        "dragover.draghover": function dragoverDraghover(e) {
+          e.preventDefault();
+        },
+        "drop.draghover": function dropDraghover(e) {
+          childCounter = 0;
+          $el.trigger("draghover:drop", e);
+          e.preventDefault();
+        }
+      });
+      return $el;
+    },
+    _disableDraghover: function _disableDraghover(el) {
+      return $(el).off(".draghover");
+    },
+    _ZoneClass: {
+      ACTIVE: "shiny-file-input-active",
+      OVER: "shiny-file-input-over"
+    },
+    _enableDocumentEvents: function _enableDocumentEvents() {
+      var _this2 = this;
+
+      var $doc = $("html");
+      var _ZoneClass = this._ZoneClass;
+      var ACTIVE = _ZoneClass.ACTIVE;
+      var OVER = _ZoneClass.OVER;
+
+      this._enableDraghover($doc).on({
+        "draghover:enter.draghover": function draghoverEnterDraghover(e) {
+          _this2._zoneOf($fileInputs).addClass(ACTIVE);
+        },
+        "draghover:leave.draghover": function draghoverLeaveDraghover(e) {
+          _this2._zoneOf($fileInputs).removeClass(ACTIVE);
+        },
+        "draghover:drop.draghover": function draghoverDropDraghover(e) {
+          _this2._zoneOf($fileInputs).removeClass(OVER).removeClass(ACTIVE);
+        }
+      });
+    },
+    _disableDocumentEvents: function _disableDocumentEvents() {
+      var $doc = $("html");
+      $doc.off(".draghover");
+      this._disableDraghover($doc);
+    },
+    _canSetFiles: function _canSetFiles(fileList) {
+      var testEl = document.createElement("input");
+      testEl.type = "file";
+      try {
+        testEl.files = fileList;
+      } catch (e) {
+        return false;
+      }
+      return true;
+    },
+    _handleDrop: function _handleDrop(e, el) {
+      var files = e.originalEvent.dataTransfer.files,
+          $el = $(el);
+      if (files === undefined || files === null) {
+        // 1. The FileList object isn't supported by this browser, and
+        // there's nothing else we can try. (< IE 10)
+        console.log("Dropping files is not supported on this browser. (no FileList)");
+      } else if (!this._canSetFiles(files)) {
+        // 2. The browser doesn't support assigning a type=file input's .files
+        // property, but we do have a FileList to work with. (IE10+/Edge)
+        $el.val("");
+        uploadDroppedFilesIE10Plus(el, files);
+      } else {
+        // 3. The browser supports FileList and input.files assignment.
+        // (Chrome, Safari)
+        $el.val("");
+        el.files = e.originalEvent.dataTransfer.files;
+        // Recent versions of Firefox (57+, or "Quantum" and beyond) don't seem to
+        // automatically trigger a change event, so we trigger one manually here.
+        // On browsers that do trigger change, this operation appears to be
+        // idempotent, as el.files doesn't change between events.
+        $el.trigger("change");
+      }
+    },
+    _isIE9: function _isIE9() {
+      try {
+        return window.navigator.userAgent.match(/MSIE 9\./) && true || false;
+      } catch (e) {
+        return false;
+      }
+    },
+    subscribe: function subscribe(el, callback) {
+      var _this3 = this;
+
+      $(el).on("change.fileInputBinding", uploadFiles);
+      // Here we try to set up the necessary events for Drag and Drop ("DnD") on
+      // every browser except IE9. We specifically exclude IE9 because it's one
+      // browser that supports just enough of the functionality we need to be
+      // confusing. In particular, it supports drag events, so drop zones will
+      // highlight when a file is dragged into the browser window. It doesn't
+      // support the FileList object though, so the user's expectation that DnD is
+      // supported based on this highlighting would be incorrect.
+      if (!this._isIE9()) {
+        (function () {
+          if ($fileInputs.length === 0) _this3._enableDocumentEvents();
+          $fileInputs = $fileInputs.add(el);
+          var $zone = _this3._zoneOf(el);
+          var OVER = _this3._ZoneClass.OVER;
+
+          _this3._enableDraghover($zone).on({
+            "draghover:enter.draghover": function draghoverEnterDraghover(e) {
+              $zone.addClass(OVER);
+            },
+            "draghover:leave.draghover": function draghoverLeaveDraghover(e) {
+              $zone.removeClass(OVER);
+              // Prevent this event from bubbling to the document handler,
+              // which would deactivate all zones.
+              e.stopPropagation();
+            },
+            "draghover:drop.draghover": function draghoverDropDraghover(e, dropEvent) {
+              _this3._handleDrop(dropEvent, el);
+            }
+          });
+        })();
+      }
+    },
+
     unsubscribe: function unsubscribe(el) {
-      $(el).off('.fileInputBinding');
+      var $el = $(el),
+          $zone = this._zoneOf(el);
+
+      $zone.removeClass(this._ZoneClass.OVER).removeClass(this._ZoneClass.ACTIVE);
+
+      this._disableDraghover($zone);
+      $el.off(".fileInputBinding");
+      $zone.off(".draghover");
+
+      // Remove el from list of inputs and (maybe) clean up global event handlers.
+      $fileInputs = $fileInputs.not(el);
+      if ($fileInputs.length === 0) this._disableDocumentEvents();
     }
   });
   inputBindings.register(fileInputBinding, 'shiny.fileInputBinding');
@@ -5187,7 +6146,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
     inputs = new InputValidateDecorator(inputs);
 
-    exports.onInputChange = function (name, value, opts) {
+    exports.setInputValue = exports.onInputChange = function (name, value, opts) {
       opts = addDefaultInputOpts(opts);
       inputs.setInput(name, value, opts);
     };
@@ -5201,7 +6160,11 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
         var type = binding.getType(el);
         if (type) id = id + ":" + type;
 
-        var opts = { immediate: !allowDeferred, binding: binding, el: el };
+        var opts = {
+          priority: allowDeferred ? "deferred" : "immediate",
+          binding: binding,
+          el: el
+        };
         inputs.setInput(id, value, opts);
       }
     }
@@ -5364,7 +6327,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
     // The server needs to know the size of each image and plot output element,
     // in case it is auto-sizing
-    $('.shiny-image-output, .shiny-plot-output').each(function () {
+    $('.shiny-image-output, .shiny-plot-output, .shiny-report-size').each(function () {
       var id = getIdFromEl(this);
       if (this.offsetWidth !== 0 || this.offsetHeight !== 0) {
         initialValues['.clientdata_output_' + id + '_width'] = this.offsetWidth;
@@ -5372,7 +6335,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
       }
     });
     function doSendImageSize() {
-      $('.shiny-image-output, .shiny-plot-output').each(function () {
+      $('.shiny-image-output, .shiny-plot-output, .shiny-report-size').each(function () {
         var id = getIdFromEl(this);
         if (this.offsetWidth !== 0 || this.offsetHeight !== 0) {
           inputs.setInput('.clientdata_output_' + id + '_width', this.offsetWidth);
@@ -5596,6 +6559,25 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
     if (e.which !== 114 || !e.ctrlKey && !e.metaKey || e.shiftKey || e.altKey) return;
     var url = 'reactlog?w=' + window.escape(exports.shinyapp.config.workerId) + "&s=" + window.escape(exports.shinyapp.config.sessionId);
     window.open(url);
+    e.preventDefault();
+  });
+
+  $(document).on('keydown', function (e) {
+    if (e.which !== 115 || !e.ctrlKey && !e.metaKey || e.shiftKey || e.altKey) return;
+    var url = 'reactlog/mark?w=' + window.escape(exports.shinyapp.config.workerId) + "&s=" + window.escape(exports.shinyapp.config.sessionId);
+
+    // send notification
+    $.get(url, function (result) {
+      if (result !== "marked") return;
+
+      var html = '<span id="shiny-reactlog-mark-text">Marked time point in reactlog</span>';
+
+      exports.notifications.show({
+        html: html,
+        closeButton: true
+      });
+    });
+
     e.preventDefault();
   });
 

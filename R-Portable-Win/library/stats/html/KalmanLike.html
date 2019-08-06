@@ -1,0 +1,219 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Kalman Filtering</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for KalmanLike {stats}"><tr><td>KalmanLike {stats}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Kalman Filtering</h2>
+
+<h3>Description</h3>
+
+<p>Use Kalman Filtering to find the (Gaussian) log-likelihood, or for
+forecasting or smoothing.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+KalmanLike(y, mod, nit = 0L, update = FALSE)
+KalmanRun(y, mod, nit = 0L, update = FALSE)
+KalmanSmooth(y, mod, nit = 0L)
+KalmanForecast(n.ahead = 10L, mod, update = FALSE)
+
+makeARIMA(phi, theta, Delta, kappa = 1e6,
+          SSinit = c("Gardner1980", "Rossignol2011"),
+          tol = .Machine$double.eps)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>y</code></td>
+<td>
+<p>a univariate time series.</p>
+</td></tr>
+<tr valign="top"><td><code>mod</code></td>
+<td>
+<p>a list describing the state-space model: see &lsquo;Details&rsquo;.</p>
+</td></tr>
+<tr valign="top"><td><code>nit</code></td>
+<td>
+<p>the time at which the initialization is computed.
+<code>nit = 0L</code> implies that the initialization is for a one-step
+prediction, so <code>Pn</code> should not be computed at the first step.</p>
+</td></tr>
+<tr valign="top"><td><code>update</code></td>
+<td>
+<p>if <code>TRUE</code> the update <code>mod</code> object will be
+returned as attribute <code>"mod"</code> of the result.</p>
+</td></tr>
+<tr valign="top"><td><code>n.ahead</code></td>
+<td>
+<p>the number of steps ahead for which prediction is
+required.</p>
+</td></tr>
+<tr valign="top"><td><code>phi, theta</code></td>
+<td>
+<p>numeric vectors of length <i>&ge; 0</i> giving AR
+and MA parameters.</p>
+</td></tr>
+<tr valign="top"><td><code>Delta</code></td>
+<td>
+<p>vector of differencing coefficients, so an ARMA model is
+fitted to <code>y[t] - Delta[1]*y[t-1] - ...</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>kappa</code></td>
+<td>
+<p>the prior variance (as a multiple of the innovations
+variance) for the past observations in a differenced model.</p>
+</td></tr>
+<tr valign="top"><td><code>SSinit</code></td>
+<td>
+<p>a string specifying the algorithm to compute the
+<code>Pn</code> part of the state-space initialization; see
+&lsquo;Details&rsquo;.</p>
+</td></tr>
+<tr valign="top"><td><code>tol</code></td>
+<td>
+<p>tolerance eventually passed to <code><a href="../../base/html/solve.html">solve.default</a></code>
+when <code>SSinit = "Rossignol2011"</code>.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>These functions work with a general univariate state-space model
+with state vector <span class="samp">a</span>, transitions <span class="samp">a &lt;- T a + R e</span>,
+<i>e ~ N(0, kappa Q)</i> and observation
+equation <span class="samp">y = Z'a + eta</span>,
+<i>eta ~ N(0, kappa h)</i>.
+The likelihood is a profile likelihood after estimation of
+<i>kappa</i>.
+</p>
+<p>The model is specified as a list with at least components
+</p>
+
+<dl>
+<dt><code>T</code></dt><dd><p>the transition matrix</p>
+</dd>
+<dt><code>Z</code></dt><dd><p>the observation coefficients</p>
+</dd>
+<dt><code>h</code></dt><dd><p>the observation variance</p>
+</dd>
+<dt><code>V</code></dt><dd><p><span class="samp">RQR'</span></p>
+</dd>
+<dt><code>a</code></dt><dd><p>the current state estimate</p>
+</dd>
+<dt><code>P</code></dt><dd><p>the current estimate of the state uncertainty matrix <i>Q</i></p>
+</dd>
+<dt><code>Pn</code></dt><dd><p>the estimate at time <i>t-1</i> of the state
+uncertainty matrix <i>Q</i> (not updated by <code>KalmanForecast</code>).</p>
+</dd>
+</dl>
+
+<p><code>KalmanSmooth</code> is the workhorse function for <code><a href="tsSmooth.html">tsSmooth</a></code>.
+</p>
+<p><code>makeARIMA</code> constructs the state-space model for an ARIMA model,
+see also <code><a href="arima.html">arima</a></code>.
+</p>
+<p>The state-space initialization has used Gardner <em>et al</em>'s method
+(<code>SSinit = "Gardner1980"</code>), as only method for years.  However,
+that suffers sometimes from deficiencies when close to non-stationarity.
+For this reason, it may be replaced as default in the future and only
+kept for reproducibility reasons.  Explicit specification of
+<code>SSinit</code> is therefore recommended, notably also in
+<code><a href="arima.html">arima</a>()</code>.
+The <code>"Rossignol2011"</code> method has been proposed and partly
+documented by Raphael Rossignol, Univ. Grenoble, on 2011-09-20 (see
+PR#14682, below), and later been ported to C by Matwey V. Kornilov.
+It computes the covariance matrix of
+<i>(X_{t-1},...,X_{t-p},Z_t,...,Z_{t-q})</i>
+by the method of difference equations (page 93 of Brockwell and Davis),
+apparently suggested by a referee of  Gardner <em>et al</em> (see p.314 of
+their paper).
+</p>
+
+
+<h3>Value</h3>
+
+<p>For <code>KalmanLike</code>, a list with components <code>Lik</code> (the
+log-likelihood less some constants) and <code>s2</code>, the estimate of
+<i>kappa</i>.
+</p>
+<p>For <code>KalmanRun</code>, a list with components <code>values</code>, a vector
+of length 2 giving the output of <code>KalmanLike</code>, <code>resid</code> (the
+residuals) and <code>states</code>, the contemporaneous state estimates,
+a matrix with one row for each observation time.
+</p>
+<p>For <code>KalmanSmooth</code>, a list with two components.
+Component <code>smooth</code> is a <code>n</code> by <code>p</code> matrix of state
+estimates based on all the observations, with one row for each time.
+Component <code>var</code> is a <code>n</code> by <code>p</code> by <code>p</code> array of
+variance matrices.
+</p>
+<p>For <code>KalmanForecast</code>, a list with components <code>pred</code>, the
+predictions, and <code>var</code>, the unscaled variances of the prediction
+errors (to be multiplied by <code>s2</code>).
+</p>
+<p>For <code>makeARIMA</code>, a model list including components for
+its arguments.
+</p>
+
+
+<h3>Warning</h3>
+
+<p>These functions are designed to be called from other functions which
+check the validity of the arguments passed, so very little checking is
+done.
+</p>
+
+
+<h3>References</h3>
+
+<p>Durbin, J. and Koopman, S. J. (2001).
+<em>Time Series Analysis by State Space Methods</em>.
+Oxford University Press.
+</p>
+<p>Gardner, G, Harvey, A. C. and Phillips, G. D. A. (1980).
+Algorithm AS 154: An algorithm for exact maximum likelihood estimation
+of  autoregressive-moving average models by means of Kalman filtering.
+<em>Applied Statistics</em>, <b>29</b>, 311&ndash;322.
+doi: <a href="https://doi.org/10.2307/2346910">10.2307/2346910</a>.
+</p>
+<p>R bug report PR#14682 (2011-2013)
+<a href="https://bugs.r-project.org/bugzilla3/show_bug.cgi?id=14682">https://bugs.r-project.org/bugzilla3/show_bug.cgi?id=14682</a>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="arima.html">arima</a></code>, <code><a href="StructTS.html">StructTS</a></code>. <code><a href="tsSmooth.html">tsSmooth</a></code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## an ARIMA fit
+fit3 &lt;- arima(presidents, c(3, 0, 0))
+predict(fit3, 12)
+## reconstruct this
+pr &lt;- KalmanForecast(12, fit3$model)
+pr$pred + fit3$coef[4]
+sqrt(pr$var * fit3$sigma2)
+## and now do it year by year
+mod &lt;- fit3$model
+for(y in 1:3) {
+  pr &lt;- KalmanForecast(4, mod, TRUE)
+  print(list(pred = pr$pred + fit3$coef["intercept"], 
+             se = sqrt(pr$var * fit3$sigma2)))
+  mod &lt;- attr(pr, "mod")
+}
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>stats</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

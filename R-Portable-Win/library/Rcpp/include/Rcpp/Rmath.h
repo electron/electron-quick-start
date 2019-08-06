@@ -219,7 +219,8 @@ namespace R {
 #ifndef HAVE_HYPOT
     inline double hypot(double a, double b)	{ return ::Rf_hypot(a, b); }
 #endif
-    inline double pythag(double a, double b)	{ return ::Rf_pythag(a, b); }
+    /* Gone since R 2.14.0 according to Brian Ripley and is now comment out per his request */
+    /* inline double pythag(double a, double b)	{ return ::Rf_pythag(a, b); } */
 #ifndef HAVE_EXPM1
     inline double expm1(double x); /* = exp(x)-1 {care for small x} */	{ return ::Rf_expm1(x); }
 #endif

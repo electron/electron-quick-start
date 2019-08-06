@@ -1,0 +1,404 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Create a Generic Version of a Function</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for setGeneric {methods}"><tr><td>setGeneric {methods}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Create a Generic Version of a Function</h2>
+
+<h3>Description</h3>
+
+<p>Create a generic version of the named function so that methods may
+be defined for it.  A call to <code><a href="setMethod.html">setMethod</a></code> will call
+<code>setGeneric</code> automatically if applied to a non-generic
+function.
+</p>
+<p>An explicit call to <code>setGeneric</code> is usually not required, but
+doesn't hurt and makes explicit that methods are being defined for a
+non-generic function.
+</p>
+<p>Standard calls will be of the form:
+</p>
+<p><code>setGeneric(name)</code>
+</p>
+<p>where <code>name</code> specifies an existing function, possibly in another
+package.  An alternative when creating a new generic function in this package is:
+</p>
+<p><code>setGeneric(name, def)</code>
+</p>
+<p>where the function definition <code>def</code> specifies the formal
+arguments and becomes the default method.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+setGeneric(name, def= , group=list(), valueClass=character(),
+           where= , package= , signature= , useAsDefault= ,
+           genericFunction= , simpleInheritanceOnly = )
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>name</code></td>
+<td>
+<p> The character string name of the generic function.
+</p>
+</td></tr>
+<tr valign="top"><td><code>def</code></td>
+<td>
+<p>An optional function object, defining the non-generic
+version, to become the default method.  This is equivalent in
+effect to assigning <code>def</code> as the function and then using
+the one-argument call to <code>setGeneric</code>.
+</p>
+<p><em>The following arguments are specialized, optionally used
+when creating a new generic function with non-standard
+features. They should not be used when the non-generic is in
+another package.</em>
+</p>
+</td></tr>
+<tr valign="top"><td><code>group</code></td>
+<td>
+<p> The name of the group
+generic function to which this function belongs.  See
+<a href="Methods_Details.html">Methods_Details</a> for details of group generic functions in method
+selection and <a href="S4groupGeneric.html">S4groupGeneric</a> for existing groups.
+</p>
+</td></tr>
+<tr valign="top"><td><code>valueClass</code></td>
+<td>
+<p> A character vector specifying one or more class
+names.  The value returned by the generic function must
+have (or extend) this class, or one of the classes; otherwise,
+an error is generated.
+</p>
+</td></tr>
+<tr valign="top"><td><code>signature</code></td>
+<td>
+
+<p>The vector of names from among the formal arguments to
+the function, that will be allowed in the signature of methods for this
+function, in calls to <code><a href="setMethod.html">setMethod</a></code>.  By default and
+usually, this will be all formal arguments except <code>...</code>.
+</p>
+<p>A non-standard signature for the generic function may be
+used to exclude arguments that take advantage of lazy evaluation;
+in particular, if the argument may <em>not</em> be evaluated then it
+cannot be part of the signature.
+</p>
+<p>While <code>...</code> cannot be used as part of a general signature,
+it is possible to have this as the <em>only</em> element of the
+signature.
+Methods will then be selected if their signature matches
+all the <code>...</code> arguments.  See the documentation for topic
+<a href="dotsMethods.html">dotsMethods</a> for details.  It is not
+possible to mix <code>...</code> and other arguments in the signature.
+</p>
+<p>It's usually a mistake to omit arguments from the signature in the
+belief that this improves efficiency.  For method selection, the
+arguments that are used in the signatures for the <em>methods</em>
+are what counts, and then only seriously on the first call to the
+function with that combination of classes.
+</p>
+</td></tr>
+<tr valign="top"><td><code>simpleInheritanceOnly</code></td>
+<td>
+
+<p>Supply this argument as <code>TRUE</code> to require that methods selected
+be inherited through simple inheritance only; that is, from
+superclasses specified in the <code>contains=</code> argument to
+<code><a href="setClass.html">setClass</a></code>, or by simple inheritance to a class union or
+other virtual class.  Generic functions should require simple
+inheritance if they need to be assured that they get the complete
+original object, not one that has been transformed.  Examples of
+functions requiring simple inheritance are <code><a href="new.html">initialize</a></code>,
+because by definition it must return an object from the same class
+as its argument, and <code><a href="show.html">show</a></code>, because it claims to give a
+full description of the object provided as its argument.
+</p>
+</td></tr>
+<tr valign="top"><td><code>useAsDefault</code></td>
+<td>
+
+<p>Override the usual default method mechanism.  Only relevant when
+defining a nonstandard generic function.
+See the section &lsquo;Specialized Local Generics&rsquo;.
+</p>
+<p><em>The remaining arguments are obsolete for normal applications.</em>
+</p>
+</td></tr>
+<tr valign="top"><td><code>package</code></td>
+<td>
+<p> The name of the package with which this function is
+associated.  Should be determined automatically from the
+non-generic version.
+</p>
+</td></tr>
+<tr valign="top"><td><code>where</code></td>
+<td>
+<p> Where to store the resulting objects as side effects.
+The default, to store in the package's namespace, is the only
+safe choice.
+</p>
+</td></tr>
+<tr valign="top"><td><code>genericFunction</code></td>
+<td>
+<p>Obsolete.</p>
+</td></tr>
+</table>
+
+
+<h3>Value</h3>
+
+<p>The <code>setGeneric</code> function exists for its side effect: saving the
+generic function to allow methods to be specified later.  It returns
+<code>name</code>.
+</p>
+
+
+<h3>Basic Use</h3>
+
+<p>The <code>setGeneric</code> function is called to initialize a generic
+function as preparation for defining some methods for that function.
+</p>
+<p>The simplest and most common situation is that <code>name</code> specifies
+an existing function, usually in another package. You now want to
+define methods for this function.  In this case you should
+supply only <code>name</code>, for example:
+</p>
+<p><code>setGeneric("colSums")</code>
+</p>
+<p>There must be an existing function of this name (in this case in
+package <code>"base"</code>).  The non-generic function can be in the same
+package as the call, typically the case when you are creating a new
+function plus methods for it. When the function is in
+another package, it must be available by name, for
+example through an <code>importFrom()</code> directive in this package's
+<code>NAMESPACE</code> file. Not required for functions in <code>"base"</code>,
+which are implicitly imported.
+</p>
+<p>A generic version of
+the function will be created in the current package.  The existing function
+becomes the default method, and the package slot of the new generic
+function is set to the location of the original function
+(<code>"base"</code> in the example).  
+</p>
+<p>Two special types of non-generic should be noted.
+Functions that dispatch S3 methods by calling
+<code><a href="../../base/html/UseMethod.html">UseMethod</a></code> are ordinary functions, not objects from the
+<code>"genericFunction"</code> class.  They are made generic like any
+other function, but some special considerations apply to ensure that
+S4 and S3 method dispatch is consistent (see <a href="Methods_for_S3.html">Methods_for_S3</a>).
+</p>
+<p>Primitive functions are handled in C code and don't exist as normal
+functions.
+A call to <code>setGeneric</code> is allowed in the simple form, but no
+actual generic function object is created.  Method dispatch will
+take place in the C code. See the section on Primitive Functions for
+more details.
+</p>
+<p>It's an important feature that the
+identical generic function definition is created in every package that
+uses the same <code>setGeneric()</code> call.
+When any of these packages is loaded into an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> session, this
+function will be added to a table of generic functions, and will
+contain a methods table of all the available methods for the
+function.
+</p>
+<p>Calling <code>setGeneric()</code> is not strictly
+necessary before calling <code>setMethod()</code>.  If
+the function specified in the call to <code>setMethod</code> is not generic,
+<code>setMethod</code> will execute the call to <code>setGeneric</code> itself.
+In the case that the non-generic is in another package, does not
+dispatch S3 methods and is not a primitive, a message is printed noting the
+creation of the generic function the first time <code>setMethod</code> is called.
+</p>
+<p>The second common use of <code>setGeneric()</code> is to create a new
+generic function, unrelated to any existing function.  See the
+<code>asRObject()</code> example below.
+This case can be handled just like the previous examples, with only
+the difference that the non-generic function exists in the
+current package.
+Again, the non-generic version becomes the default method.
+For clarity it's best for the assignment to immediately precede the
+call to <code>setGeneric()</code> in the source code.
+</p>
+<p>Exactly the same result can be obtained by supplying the default as
+the <code>def</code> argument instead of assigning it.
+In some applications, there will be no completely general default
+method. While there is a special mechanism for this (see the
+&lsquo;Specialized Local Generics&rsquo; section), the recommendation is to provide a
+default method that signals an error, but with a message that
+explains as clearly as you can why a non-default method is needed.
+</p>
+
+
+<h3>Specialized Local Generics</h3>
+
+<p>The great majority of calls to <code>setGeneric()</code> should either
+have one argument to ensure that an existing function can have
+methods, or arguments <code>name</code> and <code>def</code> to create a new
+generic function and optionally a default method.
+</p>
+<p>It is possible to create generic functions with nonstandard
+signatures, or functions that do additional computations besides
+method dispatch or that belong to a group of generic functions.
+</p>
+<p>None of these mechanisms should be used with a non-generic function
+from a <em>different</em> package, because the result is to create a
+generic function that may not be consistent from one package to another.
+When any such options are used,
+the new generic function will be assigned with a
+package slot set to the <em>current</em> package, not the one in which
+the non-generic version of the function is found.
+</p>
+<p>There is a mechanism to define a specialized generic version of a
+non-generic function, the <code><a href="implicitGeneric.html">implicitGeneric</a></code>
+construction.
+This defines the generic version, but then reverts the function to
+it non-generic form, saving the implicit generic in a table to be
+activated when methods are defined.
+However, the mechanism can only legitimately be used either for a non-generic
+in the same package or by the <code>"methods"</code> package itself.
+And in the first case, there is no compelling reason not to simply
+make the function generic, with the non-generic as the default
+method.
+See <code><a href="implicitGeneric.html">implicitGeneric</a></code> for details.
+</p>
+<p>The body of a generic function usually does nothing except for
+dispatching methods by a call to <code>standardGeneric</code>.  Under some
+circumstances you might just want to do some additional computation in
+the generic function itself.  As long as your function eventually
+calls <code>standardGeneric</code> that is permissible.
+See the example <code>"authorNames"</code> below.
+</p>
+<p>In this case, the <code>def</code> argument will define the nonstandard
+generic, not the default method.
+An existing non-generic of the same name and calling sequence should
+be pre-assigned.  It will become the default method, as usual.
+(An alternative is the <code>useAsDefault</code> argument.)
+</p>
+<p>By default, the generic function can return any object.  If
+<code>valueClass</code> is supplied, it should be a vector of class names;
+the value returned by a method is then required to satisfy
+<code>is(object, Class)</code> for one of the specified classes.  An empty
+(i.e., zero length) vector of classes means anything is allowed.  Note
+that more complicated requirements on the result can be specified
+explicitly, by defining a non-standard generic function.
+</p>
+<p>If the <code>def</code> argument calls <code>standardGeneric()</code> (with or
+without additional computations) and there is no existing
+non-generic version of the function, the generic is created without
+a default method.  This is not usually a good idea:  better to have a
+default method that signals an error with a message explaining why
+the default case is not defined.
+</p>
+<p>A new generic function can be created belonging to an existing group
+by including the <code>group</code> argument.  The argument list of the
+new generic must agree with that of the group. See
+<code><a href="setGroupGeneric.html">setGroupGeneric</a></code> for defining a new group generic.
+For the role of group generics in
+dispatching methods, see <a href="S4groupGeneric.html">GroupGenericFunctions</a> and section
+10.5 of the second reference.
+</p>
+
+
+<h3>Generic Functions and Primitive Functions</h3>
+
+<p>A number of the basic <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> functions are specially implemented as
+primitive functions, to be evaluated directly in the underlying C code
+rather than by evaluating an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> language definition.  Most have
+implicit generics (see <code><a href="implicitGeneric.html">implicitGeneric</a></code>), and become
+generic as soon as methods (including group methods) are defined on
+them.  Others cannot be made generic.
+</p>
+<p>Calling <code>setGeneric()</code> for
+the primitive functions in the base package differs in that it does not, in fact,
+generate an explicit generic function.
+Methods for primitives are selected and dispatched from
+the internal C code, to satisfy concerns for efficiency.
+The same is true for a few
+non-primitive functions that dispatch internally. These include
+<code>unlist</code> and <code>as.vector</code>.
+</p>
+<p>Note, that the implementation restrict methods for
+primitive functions to signatures in which at least one of the classes
+in the signature is a formal S4 class.
+Otherwise the internal C code will not look for methods.
+This is a desirable restriction in principle, since optional
+packages should not be allowed to change the behavior of basic R
+computations on existing data types.
+</p>
+<p>To see the generic version of a primitive function, use
+<code><a href="RMethodUtils.html">getGeneric</a>(name)</code>.  The function
+<code><a href="GenericFunctions.html">isGeneric</a></code> will tell you whether methods are defined
+for the function in the current session.
+</p>
+<p>Note that S4 methods can only be set on those primitives which are
+&lsquo;<a href="../../base/html/InternalMethods.html">internal generic</a>&rsquo;, plus <code>%*%</code>.
+</p>
+
+
+<h3>References</h3>
+
+<p>Chambers, John M. (2016)
+<em>Extending R</em>,
+Chapman &amp; Hall.
+(Chapters 9 and 10.)
+</p>
+<p>Chambers, John M. (2008)
+<em>Software for Data Analysis: Programming with R</em>
+Springer. (Section 10.5 for some details.)
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="Methods_Details.html">Methods_Details</a></code> and the links there for a general discussion,
+<code><a href="dotsMethods.html">dotsMethods</a></code> for methods that dispatch on
+<code>...</code>, and <code><a href="setMethod.html">setMethod</a></code> for method definitions.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+
+## Specify that this package will define methods for plot()
+setGeneric("plot")
+
+## create a new generic function, with a default method
+setGeneric("props", function(object) attributes(object))
+
+###   A non-standard generic function.  It insists that the methods
+###   return a non-empty character vector (a stronger requirement than
+###    valueClass = "character" in the call to setGeneric)
+
+setGeneric("authorNames",
+    function(text) {
+      value &lt;- standardGeneric("authorNames")
+      if(!(is(value, "character") &amp;&amp; any(nchar(value)&gt;0)))
+        stop("authorNames methods must return non-empty strings")
+      value
+      })
+
+## the asRObject generic function, from package XR
+## Its default method just returns object
+## See the reference, Chapter 12 for methods
+
+setGeneric("asRObject", function(object, evaluator) {
+        object
+})
+
+
+
+
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>methods</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

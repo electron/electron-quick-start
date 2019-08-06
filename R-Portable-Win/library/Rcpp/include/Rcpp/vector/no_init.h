@@ -2,7 +2,7 @@
 //
 // Vector.h: Rcpp R/C++ interface class library -- vectors
 //
-// Copyright (C) 2010 - 2013 Dirk Eddelbuettel and Romain Francois
+// Copyright (C) 2010 - 2017 Dirk Eddelbuettel and Romain Francois
 //
 // This file is part of Rcpp.
 //
@@ -37,7 +37,11 @@ public:
 
     template <int RTYPE, template <class> class StoragePolicy >
     operator Vector<RTYPE, StoragePolicy>() const {
-        return Rf_allocVector(RTYPE, size) ;
+        // Explicitly protect temporary vector to avoid false positive
+        // with rchk (#892)
+        Shield<SEXP> x(Rf_allocVector(RTYPE, size));
+        Vector<RTYPE, PreserveStorage> ret(x);
+        return ret;
     }
 
 private:
@@ -58,7 +62,11 @@ public:
 
     template <int RTYPE, template <class> class StoragePolicy >
     operator Matrix<RTYPE, StoragePolicy>() const {
-        return Rf_allocMatrix(RTYPE, nr, nc);
+        // Explicitly protect temporary matrix to avoid false positive
+        // with rchk (#892)
+        Shield<SEXP> x(Rf_allocMatrix(RTYPE, nr, nc));
+        Matrix<RTYPE, PreserveStorage> ret(x);
+        return ret;
     }
 
 private:
@@ -66,7 +74,7 @@ private:
     int nc;
 } ;
 
-inline no_init_vector no_init(int size) {
+inline no_init_vector no_init(R_xlen_t size) {
     return no_init_vector(size);
 }
 

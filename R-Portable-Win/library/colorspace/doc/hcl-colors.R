@@ -68,20 +68,20 @@ pal(rev(heat_hcl(12, h = c(0, -100), c = c(40, 80), l = c(75, 40),
 ###################################################
 ### code chunk number 7: pal-d (eval = FALSE)
 ###################################################
-## pal(diverge_hcl(7))
-## pal(diverge_hcl(7, c = 100, l = c(50, 90), power = 1))
-## pal(diverge_hcl(7, h = c(130, 43), c = 100, l = c(70, 90)))
-## pal(diverge_hcl(7, h = c(180, 330), c = 59, l = c(75, 95)))
+## pal(diverging_hcl(7))
+## pal(diverging_hcl(7, c = 100, l = c(50, 90), power = 1))
+## pal(diverging_hcl(7, h = c(130, 43), c = 100, l = c(70, 90)))
+## pal(diverging_hcl(7, h = c(180, 330), c = 59, l = c(75, 95)))
 
 
 ###################################################
 ### code chunk number 8: pal-d1
 ###################################################
 par(mfrow = c(4, 1), mar = c(0, 0, 0, 0))
-pal(diverge_hcl(7))
-pal(diverge_hcl(7, c = 100, l = c(50, 90), power = 1))
-pal(diverge_hcl(7, h = c(130, 43), c = 100, l = c(70, 90)))
-pal(diverge_hcl(7, h = c(180, 330), c = 59, l = c(75, 95)))
+pal(diverging_hcl(7))
+pal(diverging_hcl(7, c = 100, l = c(50, 90), power = 1))
+pal(diverging_hcl(7, h = c(130, 43), c = 100, l = c(70, 90)))
+pal(diverging_hcl(7, h = c(180, 330), c = 59, l = c(75, 95)))
 
 
 ###################################################

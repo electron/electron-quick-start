@@ -1,0 +1,126 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Roman Numerals</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for roman {utils}"><tr><td>roman {utils}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Roman Numerals</h2>
+
+<h3>Description</h3>
+
+<p>Simple manipulation of (a small set of) integer numbers as roman numerals.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+as.roman(x)
+.romans
+
+r1 + r2
+r1 &lt;= r2
+max(r1)
+sum(r2)
+
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>a numeric or character vector of arabic or roman numerals.</p>
+</td></tr>
+<tr valign="top"><td><code>r1, r2</code></td>
+<td>
+<p>a roman number vector, i.e., of <code><a href="../../base/html/class.html">class</a></code>
+<code>"roman"</code>.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p><code>as.roman</code> creates objects of class <code>"roman"</code> which are
+internally represented as integers, and have suitable methods for
+printing, formatting, subsetting, coercion, etc, see
+<code><a href="methods.html">methods</a>(class = "roman")</code>.
+</p>
+<p>Arithmetic (<code>"<a href="../../methods/html/S4groupGeneric.html">Arith</a>"</code>), Comparison (<code>"<a href="../../methods/html/S4groupGeneric.html">Compare</a>"</code>)
+and  (<code>"<a href="../../methods/html/S4groupGeneric.html">Logic</a>"</code>), i.e., all <code>"<a href="../../methods/html/S4groupGeneric.html">Ops</a>"</code> group
+operations work as for regular numbers via <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>'s integer functionality.
+</p>
+<p>Only numbers between 1 and 3899 have a unique representation as roman
+numbers, and hence others result in <code>as.roman(NA)</code>.
+</p>
+<p><code>.romans</code> is the basic dictionary, a named <code><a href="../../base/html/character.html">character</a></code> vector.
+</p>
+
+
+<h3>References</h3>
+
+<p>Wikipedia contributors (2006). Roman numerals.
+Wikipedia, The Free Encyclopedia.
+<a href="https://en.wikipedia.org/w/index.php?title=Roman_numerals&amp;oldid=78252134">https://en.wikipedia.org/w/index.php?title=Roman_numerals&amp;oldid=78252134</a>.
+Accessed September 29, 2006.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## First five roman 'numbers'.
+(y &lt;- as.roman(1 : 5))
+## Middle one.
+y[3]
+## Current year as a roman number.
+(y &lt;- as.roman(format(Sys.Date(), "%Y")))
+## Today, and  10, 20, 30, and 100 years ago ...
+y - 10*c(0:3,10)
+
+## mixture of arabic and roman numbers :
+as.roman(c(NA, 1:3, "", strrep("I", 1:6))) # + NA with a warning for "IIIIII"
+cc &lt;- c(NA, 1:3, strrep("I", 0:5))
+(rc &lt;- as.roman(cc)) # two NAs: 0 is not "roman"
+(ic &lt;- as.integer(rc)) # works automatically [without an explicit method]
+rNA &lt;- as.roman(NA)
+## simple consistency checks -- arithmetic when result is in  {1,2,..,3899} :
+stopifnot(identical(rc, as.roman(rc)), # as.roman(.) is "idempotent"
+          identical(rc + rc + (3*rc), rc*5),
+          identical(ic, c(NA, 1:3, NA, 1:5)),
+          identical(as.integer(5*rc), 5L*ic),
+          identical(as.numeric(rc), as.numeric(ic)),
+          identical(rc[1], rNA),
+          identical(as.roman(0), rNA),
+          identical(as.roman(NA_character_), rNA),
+          identical(as.list(rc), as.list(ic)))
+## Non-Arithmetic 'Ops' :
+stopifnot(exprs = {
+        # Comparisons :
+        identical(ic &lt; 1:5, rc &lt; 1:5)
+        identical(ic &lt; 1:5, rc &lt; as.roman(1:5))
+        # Logic  [integers |-&gt; logical] :
+        identical(rc &amp; TRUE , ic &amp; TRUE)
+        identical(rc &amp; FALSE, ic &amp; FALSE)
+        identical(rc | FALSE, ic | FALSE)
+        identical(rc | NA   , ic | NA)
+})
+## 'Summary' group functions (and comparison):
+(rc. &lt;- rc[!is.na(rc)])
+stopifnot(exprs = {
+        identical(min(rc), as.roman(NA))
+        identical(min(rc, na.rm=TRUE),
+         as.roman(min(ic, na.rm=TRUE)))
+        identical(range(rc.),
+         as.roman(range(as.integer(rc.))))
+        identical(sum (rc, na.rm=TRUE), as.roman("XXI"))
+        identical(format(prod(rc, na.rm=TRUE)), "DCCXX")
+        format(prod(rc.)) == "DCCXX"
+})
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>utils</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

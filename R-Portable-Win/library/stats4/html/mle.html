@@ -1,0 +1,139 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Maximum Likelihood Estimation</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for mle {stats4}"><tr><td>mle {stats4}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Maximum Likelihood Estimation</h2>
+
+<h3>Description</h3>
+
+<p>Estimate parameters by the method of maximum likelihood.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+mle(minuslogl, start = formals(minuslogl), method = "BFGS",
+    fixed = list(), nobs, ...)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>minuslogl</code></td>
+<td>
+<p>Function to calculate negative log-likelihood.</p>
+</td></tr>
+<tr valign="top"><td><code>start</code></td>
+<td>
+<p>Named list. Initial values for optimizer.</p>
+</td></tr>
+<tr valign="top"><td><code>method</code></td>
+<td>
+<p>Optimization method to use. See <code><a href="../../stats/html/optim.html">optim</a></code>.</p>
+</td></tr>
+<tr valign="top"><td><code>fixed</code></td>
+<td>
+<p>Named list.  Parameter values to keep fixed during
+optimization.</p>
+</td></tr>
+<tr valign="top"><td><code>nobs</code></td>
+<td>
+<p>optional integer: the number of observations, to be used for
+e.g. computing <code><a href="../../stats/html/AIC.html">BIC</a></code>.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>Further arguments to pass to <code><a href="../../stats/html/optim.html">optim</a></code>.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>The <code><a href="../../stats/html/optim.html">optim</a></code> optimizer is used to find the minimum of the
+negative log-likelihood.  An approximate covariance matrix for the
+parameters is obtained by inverting the Hessian matrix at the optimum.
+</p>
+
+
+<h3>Value</h3>
+
+<p>An object of class <code><a href="mle-class.html">mle-class</a></code>.
+</p>
+
+
+<h3>Note</h3>
+
+<p>Be careful to note that the argument is -log L (not -2 log L). It
+is for the user to ensure that the likelihood is correct, and that
+asymptotic likelihood inference is valid.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="mle-class.html">mle-class</a></code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## Avoid printing to unwarranted accuracy
+od &lt;- options(digits = 5)
+x &lt;- 0:10
+y &lt;- c(26, 17, 13, 12, 20, 5, 9, 8, 5, 4, 8)
+
+## Easy one-dimensional MLE:
+nLL &lt;- function(lambda) -sum(stats::dpois(y, lambda, log = TRUE))
+fit0 &lt;- mle(nLL, start = list(lambda = 5), nobs = NROW(y))
+# For 1D, this is preferable:
+fit1 &lt;- mle(nLL, start = list(lambda = 5), nobs = NROW(y),
+            method = "Brent", lower = 1, upper = 20)
+stopifnot(nobs(fit0) == length(y))
+
+## This needs a constrained parameter space: most methods will accept NA
+ll &lt;- function(ymax = 15, xhalf = 6) {
+    if(ymax &gt; 0 &amp;&amp; xhalf &gt; 0)
+      -sum(stats::dpois(y, lambda = ymax/(1+x/xhalf), log = TRUE))
+    else NA
+}
+(fit &lt;- mle(ll, nobs = length(y)))
+mle(ll, fixed = list(xhalf = 6))
+## alternative using bounds on optimization
+ll2 &lt;- function(ymax = 15, xhalf = 6)
+    -sum(stats::dpois(y, lambda = ymax/(1+x/xhalf), log = TRUE))
+mle(ll2, method = "L-BFGS-B", lower = rep(0, 2))
+
+AIC(fit)
+BIC(fit)
+
+summary(fit)
+logLik(fit)
+vcov(fit)
+plot(profile(fit), absVal = FALSE)
+confint(fit)
+
+## Use bounded optimization
+## The lower bounds are really &gt; 0,
+## but we use &gt;=0 to stress-test profiling
+(fit2 &lt;- mle(ll, method = "L-BFGS-B", lower = c(0, 0)))
+plot(profile(fit2), absVal = FALSE)
+
+## a better parametrization:
+ll3 &lt;- function(lymax = log(15), lxhalf = log(6))
+    -sum(stats::dpois(y, lambda = exp(lymax)/(1+x/exp(lxhalf)), log = TRUE))
+(fit3 &lt;- mle(ll3))
+plot(profile(fit3), absVal = FALSE)
+exp(confint(fit3))
+
+options(od)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>stats4</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

@@ -1,0 +1,170 @@
+
+stop("WIP")
+
+# Speed test of chmatch vs match.
+# sortedmatch was 40 times slower and the wrong approach, removed in v1.8.0.
+# Example from Tom in Jan 2011 who first found and raised the issue with sortedmatch.
+cat("Running 30sec (max) test ... "); flush.console()
+n = 1e6
+a = as.character(as.hexmode(sample(n,replace=TRUE)))
+b = as.character(as.hexmode(sample(n,replace=TRUE)))
+test(529, system.time(ans1<-match(a,b))["user.self"] > system.time(ans2<-chmatch(a,b))["user.self"])
+test(530, ans1, ans2)
+# sorting a and b no longer makes a difference since both match and chmatch work via hash in some way or another
+cat("done\n")
+
+
+# Test character and list columns in tables with many small groups
+N = 1000L   # the version in tests.Rraw has 100L
+DT = data.table(grp=1:(2*N),char=sample(as.hexmode(1:N),4*N,replace=TRUE),int=sample(1:N,4*N,replace=TRUE))
+ans = DT[,list(p=paste(unique(char),collapse=","),
+               i=list(unique(int))), by=grp]
+test(476, nrow(as.matrix(ans)), 2L*N)
+
+
+# Test that as.list.data.table no longer copies via unclass, so speeding up sapply(DT,class) and lapply(.SD,...) etc, #2000
+N = 1e6
+DT = data.table(a=1:N,b=1:N,c=1:N,d=1:N)   # 15MB in dev testing, but test with N=1e7
+test(603, system.time(sapply(DT,class))["user.self"] < 0.1)
+
+
+# Tests on loopability, i.e. that overhead of [.data.table isn't huge, as in speed example in example(":=")
+# These are just to catch slow down regressions where instead of 1s it takes 40s
+if (.devtesting) {  # TO DO: find more robust way to turn these on for CRAN checks
+test(604, system.time(for (i in 1:1000) nrow(DT))["user.self"] < 0.5)
+test(605, system.time(for (i in 1:1000) ncol(DT))["user.self"] < 0.5)
+test(606, system.time(for (i in 1:1000) length(DT[[1L]]))["user.self"] < 0.5) # much faster than nrow, TO DO: replace internally
+}
+# TO DO: move to stress test script off CRAN ...
+# DT = as.data.table(matrix(1L,nrow=100000,ncol=100))
+# test(607, system.time(for (i in 1:1000) DT[i,V1:=i])["user.self"] < 10)  # 10 to be very wide margin for CRAN
+# test(608, DT[1:1000,V1], 1:1000)
+
+
+# Test faster mean.  Example from (now not needed as much) data.table wiki point 3.
+# Example is a lot of very small groups.
+set.seed(100)
+n=1e5  # small n so as not to overload daily CRAN checks.
+DT=data.table(grp1=sample(1:750, n, replace=TRUE),
+              grp2=sample(1:750, n, replace=TRUE),
+              x=rnorm(n),
+              y=rnorm(n))
+DT[c(2,5),x:=NA]  # seed chosen to get a group of size 2 and 3 in the first 5 to easily inspect.
+DT[c(3,4),y:=NA]
+tt1 = system.time(ans1<-DT[,list(mean(x),mean(y)),by=list(grp1,grp2)])    # 1.1s
+tt2 = system.time(ans2<-DT[,list(.Internal(mean(x)),.Internal(mean(y))),by=list(grp1,grp2)])  # 1.1s
+basemean = base::mean  # to isolate time of `::` itself
+tt3 = system.time(ans3<-DT[,list(basemean(x),basemean(y)),by=list(grp1,grp2)])   # 11s
+test(646, ans1, ans2)
+test(647, ans1, ans3)
+# this'll error with `valgrind` because of the 'long double' usage in gsumm.c (although I wonder if we need long double precision).
+# http://valgrind.org/docs/manual/manual-core.html#manual-core.limits
+# http://comments.gmane.org/gmane.comp.debugging.valgrind/10340
+test(648, any(is.na(ans1$V1)) && !any(is.nan(ans1$V1)))
+# test 649 removed as compared 1.1s to 1.1s
+if (.devtesting) test(650, tt1["user.self"] < tt3["user.self"])
+
+tt1 = system.time(ans1<-DT[,list(mean(x,na.rm=TRUE),mean(y,na.rm=TRUE)),by=list(grp1,grp2)])   # 2.0s
+tt2 = system.time(ans2<-DT[,list(mean.default(x,na.rm=TRUE),mean.default(y,na.rm=TRUE)),by=list(grp1,grp2)])  # 5.0s
+test(651, ans1, ans2)
+test(652, any(is.nan(ans1$V1)))
+if (.devtesting) test(653, tt1["user.self"] < tt2["user.self"])
+
+# See FR#2067. Here we're just testing the optimization of mean and lapply, should be comparable to above
+tt2 = system.time(ans2<-DT[,lapply(.SD,mean,na.rm=TRUE),by=list(grp1,grp2)])
+setnames(ans2,"x","V1")
+setnames(ans2,"y","V2")
+test(654, ans1, ans2)
+test(655, abs(tt1["user.self"] - tt2["user.self"])<2.0)  # unoptimized tt2 takes 30 seconds rather than 2. The difference between tt1 and tt2 is under 0.2 seconds usually, so 2.0 is very large margin for error to ensure it's not 30secs.
+
+
+# Test for optimisation of 'order' to 'forder'.
+set.seed(45L)
+DT <- data.table(x=sample(1e2, 1e6,TRUE), y=sample(1e2, 1e6,TRUE))
+old = options(datatable.optimize=Inf)
+t1 = system.time(ans1 <- DT[order(x,-y)])[['elapsed']]   # optimized to forder()
+t2 = system.time(ans2 <- DT[base_order(x,-y)])[['elapsed']]  # not optimized
+test(1241.1, ans1, ans2)
+if (.devtesting) test(1241.2, t1 < t2+0.1)
+# 0.2 < 3.8 on Matt's laptop seems safe enough to test.
+# Even so, 1241.2 has been known to fail, perhaps if system swaps and this R sessions pauses or something?
+# We shouldn't have timing tests here that run on CRAN for this reason.  Hence wrapping with .devtesting
+options(old)
+
+
+# fwrite showProgress test 1735. Turned off as too long/big for CRAN.
+if (FALSE) {
+  N = 6e8  # apx 6GB
+  DT = data.table(C1=sample(100000,N,replace=TRUE), C2=sample(paste0(LETTERS,LETTERS,LETTERS), N, replace=TRUE))
+  gc()
+  d = "/dev/shm/"
+  # and
+  d = "/tmp/"
+  f = paste0(d,"test.txt")
+  system.time(fwrite(DT, f, nThread=1))
+  file.info(f)$size/1024^3
+  unlink(f)
+  # ensure progress meter itself isn't taking time; e.g. too many calls to time() or clock()
+  system.time(fwrite(DT, f, showProgress=FALSE, nThread=1))
+  system.time(fwrite(DT, f, nThread=2))
+  system.time(fwrite(DT, f, nThread=4))
+  system.time(fwrite(DT, f, verbose=TRUE))
+  f2 = paste0(d,"test2.txt")
+  system.time(fwrite(DT, f2, verbose=TRUE))  # test 'No space left on device'
+  unlink(f)
+  unlink(f2)
+  system.time(fwrite(DT, f2))  # try again, should work now space free'd
+  file.info(f2)$size/1024^3
+  unlink(f2)
+}
+
+
+# test the speed of simple comparison
+DT <- data.table(a = 1:1e7)
+t1 = system.time(DT[a == 100])[3]
+t2 = system.time(DT[which(a == 100)])[3]
+# make sure we're at most 30% slower than "which" (should pass most of the time)
+test(1110, (t1 - t2)/t2 < 0.3)
+
+# Fix for bug #5106 - DT[, .N, by=y] was slow when "y" is not a column in DT
+DT <- data.table(x=sample.int(10, 1e6, replace=TRUE))
+y <- DT$x
+te1 <- system.time(ans1 <- DT[, .N, by=x])[["elapsed"]]
+te2 <- system.time(ans2 <- DT[, .N, by=y])[["elapsed"]]
+test(1143.1, ans1, setnames(ans2, "y", "x"))
+test(1143.2, abs(te1-te2) < 1, TRUE)
+
+# fwrite crash on very large number of columns (say 100k)
+set.seed(123)
+m <- matrix(runif(3*100000), nrow = 3)
+DT <- as.data.table(m)
+f <- tempfile()
+system.time(fwrite(DT, f, eol='\n', quote=TRUE))  # eol fixed so size test passes on Windows
+system.time(fwrite(DT, f, eol='\n', quote=TRUE))  # run again to force seg fault
+test(1664, abs(file.info(f)$size %/% 100000 - 62) <= 1.5)  # file size appears to be 34 bytes bigger on Windows (6288931 vs 6288965)
+unlink(f)
+
+n=10000
+grp1=sample(1:50,n,replace=TRUE)
+grp2=sample(1:50,n,replace=TRUE)
+dt=data.table(x=rnorm(n),y=rnorm(n),grp1=grp1,grp2=grp2)
+tt = system.time(ans <- dt[,list(.Internal(mean(x)),.Internal(mean(y))),by="grp1,grp2"])
+# test(120, tt[1] < 0.5)   # actually takes more like 0.068 << 0.5, but the micro EC2 instance can be slow sometimes.
+# TO DO: incorporate performance testing into R CMD check (using testthat?), that somehow copes with running on slow machines.
+i = sample(nrow(ans),1)
+test(121, all.equal(ans[i,c(V1,V2)], dt[grp1==ans[i,grp1] & grp2==ans[i,grp2], c(mean(x),mean(y))]))
+# To DO: add a data.frame aggregate method here and check data.table is faster
+
+
+# > 1e6 columns (there used to be VLAs at C level that caused stack overflow), #1903
+set.seed(1)
+L = lapply(1:1e6, sample, x=100, size=2)
+x = capture.output(fwrite(L))
+test(1742.1, nchar(x), c(2919861L, 2919774L))   # tests 2 very long lines, too
+test(1742.2, substring(x,1,10), c("27,58,21,9","38,91,90,6"))
+test(1742.3, L[[1L]], c(27L,38L))
+test(1742.4, L[[1000000L]], c(76L, 40L))
+test(1742.5, substring(x,nchar(x)-10,nchar(x)), c("50,28,95,76","62,87,23,40"))
+
+# Add scaled-up non-ASCII forder test 1896
+

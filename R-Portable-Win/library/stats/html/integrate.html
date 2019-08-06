@@ -1,0 +1,194 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Integration of One-Dimensional Functions</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for integrate {stats}"><tr><td>integrate {stats}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Integration of One-Dimensional Functions</h2>
+
+<h3>Description</h3>
+
+<p>Adaptive quadrature of functions of one variable over a finite or
+infinite interval.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+integrate(f, lower, upper, ..., subdivisions = 100L,
+          rel.tol = .Machine$double.eps^0.25, abs.tol = rel.tol,
+          stop.on.error = TRUE, keep.xy = FALSE, aux = NULL)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>f</code></td>
+<td>
+<p>an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> function taking a numeric first argument and returning
+a numeric vector of the same length.  Returning a non-finite element will
+generate an error.</p>
+</td></tr>
+<tr valign="top"><td><code>lower, upper</code></td>
+<td>
+<p>the limits of integration.  Can be infinite.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p>additional arguments to be passed to <code>f</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>subdivisions</code></td>
+<td>
+<p>the maximum number of subintervals.</p>
+</td></tr>
+<tr valign="top"><td><code>rel.tol</code></td>
+<td>
+<p>relative accuracy requested.</p>
+</td></tr>
+<tr valign="top"><td><code>abs.tol</code></td>
+<td>
+<p>absolute accuracy requested.</p>
+</td></tr>
+<tr valign="top"><td><code>stop.on.error</code></td>
+<td>
+<p>logical. If true (the default) an error stops the
+function.  If false some errors will give a result with a warning in
+the <code>message</code> component.</p>
+</td></tr>
+<tr valign="top"><td><code>keep.xy</code></td>
+<td>
+<p>unused.  For compatibility with S.</p>
+</td></tr>
+<tr valign="top"><td><code>aux</code></td>
+<td>
+<p>unused.  For compatibility with S.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>Note that arguments after <code>...</code> must be matched exactly.
+</p>
+<p>If one or both limits are infinite, the infinite range is mapped onto
+a finite interval.
+</p>
+<p>For a finite interval, globally adaptive interval subdivision is used
+in connection with extrapolation by Wynn's Epsilon algorithm, with the
+basic step being Gauss&ndash;Kronrod quadrature.
+</p>
+<p><code>rel.tol</code> cannot be less than <code>max(50*.Machine$double.eps,
+    0.5e-28)</code> if <code>abs.tol &lt;= 0</code>.
+</p>
+<p>In <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> versions <i>&lt;=</i> 3.2.x, the first entries of
+<code>lower</code> and <code>upper</code> were used whereas an error is signalled
+now if they are not of length one.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A list of class <code>"integrate"</code> with components
+</p>
+<table summary="R valueblock">
+<tr valign="top"><td><code>value</code></td>
+<td>
+<p>the final estimate of the integral.</p>
+</td></tr>
+<tr valign="top"><td><code>abs.error</code></td>
+<td>
+<p>estimate of the modulus of the absolute error.</p>
+</td></tr>
+<tr valign="top"><td><code>subdivisions</code></td>
+<td>
+<p>the number of subintervals produced in the
+subdivision process.</p>
+</td></tr>
+<tr valign="top"><td><code>message</code></td>
+<td>
+<p><code>"OK"</code> or a character string giving the error message.</p>
+</td></tr>
+<tr valign="top"><td><code>call</code></td>
+<td>
+<p>the matched call.</p>
+</td></tr>
+</table>
+
+
+<h3>Note</h3>
+
+<p>Like all numerical integration routines, these evaluate the function
+on a finite set of points.  If the function is approximately constant
+(in particular, zero) over nearly all its range it is possible that
+the result and error estimate may be seriously wrong.
+</p>
+<p>When integrating over infinite intervals do so explicitly, rather than
+just using a large number as the endpoint.  This increases the chance
+of a correct answer &ndash; any function whose integral over an infinite
+interval is finite must be near zero for most of that interval.
+</p>
+<p>For values at a finite set of points to be a fair reflection of the
+behaviour of the function elsewhere, the function needs to be
+well-behaved, for example differentiable except perhaps for a small
+number of jumps or integrable singularities.
+</p>
+<p><code>f</code> must accept a vector of inputs and produce a vector of function
+evaluations at those points.  The <code><a href="../../base/html/Vectorize.html">Vectorize</a></code> function
+may be helpful to convert <code>f</code> to this form.
+</p>
+
+
+<h3>Source</h3>
+
+<p>Based on QUADPACK routines <code>dqags</code> and <code>dqagi</code> by
+R. Piessens and E. deDoncker&ndash;Kapenga, available from Netlib.
+</p>
+
+
+<h3>References</h3>
+
+<p>R. Piessens, E. deDoncker&ndash;Kapenga, C. Uberhuber, D. Kahaner (1983)
+<em>Quadpack: a Subroutine Package for Automatic Integration</em>;
+Springer Verlag.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+integrate(dnorm, -1.96, 1.96)
+integrate(dnorm, -Inf, Inf)
+
+## a slowly-convergent integral
+integrand &lt;- function(x) {1/((x+1)*sqrt(x))}
+integrate(integrand, lower = 0, upper = Inf)
+
+## don't do this if you really want the integral from 0 to Inf
+integrate(integrand, lower = 0, upper = 10)
+integrate(integrand, lower = 0, upper = 100000)
+integrate(integrand, lower = 0, upper = 1000000, stop.on.error = FALSE)
+
+## some functions do not handle vector input properly
+f &lt;- function(x) 2.0
+try(integrate(f, 0, 1))
+integrate(Vectorize(f), 0, 1)  ## correct
+integrate(function(x) rep(2.0, length(x)), 0, 1)  ## correct
+
+## integrate can fail if misused
+integrate(dnorm, 0, 2)
+integrate(dnorm, 0, 20)
+integrate(dnorm, 0, 200)
+integrate(dnorm, 0, 2000)
+integrate(dnorm, 0, 20000) ## fails on many systems
+integrate(dnorm, 0, Inf)   ## works
+
+integrate(dnorm, 0:1, 20) #-&gt; error!
+## "silently" gave  integrate(dnorm, 0, 20)  in earlier versions of R
+
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>stats</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

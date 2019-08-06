@@ -1,0 +1,96 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Utility Function for Safe Prediction</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for makepredictcall {stats}"><tr><td>makepredictcall {stats}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Utility Function for Safe Prediction</h2>
+
+<h3>Description</h3>
+
+<p>A utility to help <code><a href="model.frame.html">model.frame.default</a></code> create the right
+matrices when predicting from models with terms like (univariate)
+<code>poly</code> or <code>ns</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+makepredictcall(var, call)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>var</code></td>
+<td>
+<p>A variable.</p>
+</td></tr>
+<tr valign="top"><td><code>call</code></td>
+<td>
+<p>The term in the formula, as a call.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>This is a generic function with methods for <code>poly</code>, <code>bs</code> and
+<code>ns</code>: the default method handles <code>scale</code>.  If
+<code>model.frame.default</code> encounters such a term when
+creating a model frame, it modifies the <code>predvars</code> attribute of
+the terms supplied by replacing the term with one which will work for
+predicting new data.  For example <code>makepredictcall.ns</code> adds
+arguments for the knots and intercept.
+</p>
+<p>To make use of this, have your model-fitting function return the
+<code>terms</code> attribute of the model frame, or copy the <code>predvars</code>
+attribute of the <code>terms</code> attribute of the model frame to your
+<code>terms</code> object.
+</p>
+<p>To extend this, make sure the term creates variables with a class,
+and write a suitable method for that class.
+</p>
+
+
+<h3>Value</h3>
+
+<p>A replacement for <code>call</code> for the <code>predvars</code> attribute of
+the terms.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="model.frame.html">model.frame</a></code>, <code><a href="poly.html">poly</a></code>, <code><a href="../../base/html/scale.html">scale</a></code>;
+<code><a href="../../splines/html/bs.html">bs</a></code> and <code><a href="../../splines/html/ns.html">ns</a></code> in package <span class="pkg">splines</span>.
+</p>
+<p><code><a href="../../datasets/html/cars.html">cars</a></code> for an example of prediction from a polynomial fit.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+require(graphics)
+
+## using poly: this did not work in R &lt; 1.5.0
+fm &lt;- lm(weight ~ poly(height, 2), data = women)
+plot(women, xlab = "Height (in)", ylab = "Weight (lb)")
+ht &lt;- seq(57, 73, len = 200)
+nD &lt;- data.frame(height = ht)
+pfm &lt;- predict(fm, nD)
+lines(ht, pfm)
+pf2 &lt;- predict(update(fm, ~ stats::poly(height, 2)), nD)
+stopifnot(all.equal(pfm, pf2)) ## was off (rel.diff. 0.0766) in R &lt;= 3.5.0
+
+## see also example(cars)
+
+## see bs and ns for spline examples.
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>stats</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

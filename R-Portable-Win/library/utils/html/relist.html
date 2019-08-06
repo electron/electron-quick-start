@@ -1,0 +1,156 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Allow Re-Listing an unlist()ed Object</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for relist {utils}"><tr><td>relist {utils}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Allow Re-Listing an unlist()ed Object</h2>
+
+<h3>Description</h3>
+
+<p><code>relist()</code> is an S3 generic function with a few methods in order
+to allow easy inversion of <code><a href="../../base/html/unlist.html">unlist</a>(obj)</code> when that is used
+with an object <code>obj</code> of (S3) class <code>"relistable"</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+relist(flesh, skeleton)
+## Default S3 method:
+relist(flesh, skeleton = attr(flesh, "skeleton"))
+## S3 method for class 'factor'
+relist(flesh, skeleton = attr(flesh, "skeleton"))
+## S3 method for class 'list'
+relist(flesh, skeleton = attr(flesh, "skeleton"))
+## S3 method for class 'matrix'
+relist(flesh, skeleton = attr(flesh, "skeleton"))
+
+as.relistable(x)
+is.relistable(x)
+
+## S3 method for class 'relistable'
+unlist(x, recursive = TRUE, use.names = TRUE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>flesh</code></td>
+<td>
+<p>a vector to be relisted</p>
+</td></tr>
+<tr valign="top"><td><code>skeleton</code></td>
+<td>
+<p>a list, the structure of which determines the structure
+of the result</p>
+</td></tr>
+<tr valign="top"><td><code>x</code></td>
+<td>
+<p>an <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> object, typically a list (or vector).</p>
+</td></tr>
+<tr valign="top"><td><code>recursive</code></td>
+<td>
+<p>logical.  Should unlisting be applied to list
+components of <code>x</code>?</p>
+</td></tr>
+<tr valign="top"><td><code>use.names</code></td>
+<td>
+<p>logical.  Should names be preserved?</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>Some functions need many parameters, which are most easily represented in
+complex structures, e.g., nested lists.  Unfortunately, many
+mathematical functions in <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>, including <code><a href="../../stats/html/optim.html">optim</a></code> and
+<code><a href="../../stats/html/nlm.html">nlm</a></code> can only operate on functions whose domain is
+a vector.  <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> has <code><a href="../../base/html/unlist.html">unlist</a>()</code> to convert nested list
+objects into a vector representation.  <code>relist()</code>, its methods and
+the functionality mentioned here provide the inverse operation to convert
+vectors back to the convenient structural representation.
+This allows structured functions (such as <code>optim()</code>) to have simple
+mathematical interfaces.
+</p>
+<p>For example, a likelihood function for a multivariate normal model needs a
+variance-covariance matrix and a mean vector.  It would be most convenient to
+represent it as a list containing a vector and a matrix.  A typical parameter
+might look like
+</p>
+<pre>      list(mean = c(0, 1), vcov = cbind(c(1, 1), c(1, 0))).</pre>
+<p>However, <code><a href="../../stats/html/optim.html">optim</a></code> cannot operate on functions that take
+lists as input; it only likes numeric vectors.  The solution is
+conversion. Given a function <code>mvdnorm(x, mean, vcov, log = FALSE)</code>
+which computes the required probability density, then
+</p>
+<pre>        ipar &lt;- list(mean = c(0, 1), vcov = c bind(c(1, 1), c(1, 0)))
+        initial.param &lt;- as.relistable(ipar)
+
+        ll &lt;- function(param.vector)
+        {
+           param &lt;- relist(param.vector, skeleton = ipar)
+           -sum(mvdnorm(x, mean = param$mean, vcov = param$vcov,
+                        log = TRUE))
+        }
+
+        optim(unlist(initial.param), ll)
+</pre>
+<p><code>relist</code> takes two parameters: skeleton and flesh.  Skeleton is a sample
+object that has the right <code>shape</code> but the wrong content.  <code>flesh</code>
+is a vector with the right content but the wrong shape.  Invoking
+</p>
+<pre>    relist(flesh, skeleton)</pre>
+<p>will put the content of flesh on the skeleton.  You don't need to specify
+skeleton explicitly if the skeleton is stored as an attribute inside flesh.
+In particular, if flesh was created from some object obj with
+<code>unlist(as.relistable(obj))</code>
+then the skeleton attribute is automatically set.  (Note that this
+does not apply to the example here, as <code><a href="../../stats/html/optim.html">optim</a></code> is creating
+a new vector to pass to <code>ll</code> and not its <code>par</code> argument.)
+</p>
+<p>As long as <code>skeleton</code> has the right shape, it should be a precise inverse
+of <code><a href="../../base/html/unlist.html">unlist</a></code>.  These equalities hold:
+</p>
+<pre>   relist(unlist(x), x) == x
+   unlist(relist(y, skeleton)) == y
+
+   x &lt;- as.relistable(x)
+   relist(unlist(x)) == x
+</pre>
+
+
+<h3>Value</h3>
+
+<p>an object of (S3) class <code>"relistable"</code> (and <code>"<a href="../../base/html/list.html">list</a>"</code>).
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>R Core, based on a code proposal by Andrew Clausen.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="../../base/html/unlist.html">unlist</a></code>
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+ ipar &lt;- list(mean = c(0, 1), vcov = cbind(c(1, 1), c(1, 0)))
+ initial.param &lt;- as.relistable(ipar)
+ ul &lt;- unlist(initial.param)
+ relist(ul)
+ stopifnot(identical(relist(ul), initial.param))
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>utils</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

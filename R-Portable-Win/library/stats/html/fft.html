@@ -1,0 +1,129 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Fast Discrete Fourier Transform (FFT)</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for fft {stats}"><tr><td>fft {stats}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Fast Discrete Fourier Transform (FFT)</h2>
+
+<h3>Description</h3>
+
+<p>Computes the Discrete Fourier Transform (DFT) of an array with a fast
+algorithm, the &ldquo;Fast Fourier Transform&rdquo; (FFT).
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+fft(z, inverse = FALSE)
+mvfft(z, inverse = FALSE)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>z</code></td>
+<td>
+<p>a real or complex array containing the values to be
+transformed.  Long vectors are not supported.</p>
+</td></tr>
+<tr valign="top"><td><code>inverse</code></td>
+<td>
+<p>if <code>TRUE</code>, the unnormalized inverse transform is
+computed (the inverse has a <code>+</code> in the exponent of <i>e</i>,
+but here, we do <em>not</em> divide by <code>1/length(x)</code>).</p>
+</td></tr>
+</table>
+
+
+<h3>Value</h3>
+
+<p>When <code>z</code> is a vector, the value computed and returned by
+<code>fft</code> is the unnormalized univariate discrete Fourier transform of the
+sequence of values in <code>z</code>.  Specifically, <code>y &lt;- fft(z)</code> returns
+</p>
+<p style="text-align: center;"><i>
+        y[h] =  sum_{k=1}^n z[k]*exp(-2*pi*1i*(k-1)*(h-1)/n)</i></p>
+
+<p>for <i>h = 1, ..., n</i> where n = <code>length(y)</code>.  If
+<code>inverse</code> is <code>TRUE</code>, <i>exp(-2*pi...)</i>
+is replaced with <i>exp(2*pi...)</i>.
+</p>
+<p>When <code>z</code> contains an array, <code>fft</code> computes and returns the
+multivariate (spatial) transform.  If <code>inverse</code> is <code>TRUE</code>,
+the (unnormalized) inverse Fourier transform is returned, i.e.,
+if <code>y &lt;- fft(z)</code>, then <code>z</code> is
+<code>fft(y, inverse = TRUE) / length(y)</code>.
+</p>
+<p>By contrast, <code>mvfft</code> takes a real or complex matrix as argument,
+and returns a similar shaped matrix, but with each column replaced by
+its discrete Fourier transform.  This is useful for analyzing
+vector-valued series.
+</p>
+<p>The FFT is fastest when the length of the series being transformed
+is highly composite (i.e., has many factors).  If this is not the
+case, the transform may take a long time to compute and will use a
+large amount of memory.
+</p>
+
+
+<h3>Source</h3>
+
+<p>Uses C translation of Fortran code in Singleton (1979).
+</p>
+
+
+<h3>References</h3>
+
+<p>Becker, R. A., Chambers, J. M. and Wilks, A. R. (1988).
+<em>The New S Language</em>.
+Wadsworth &amp; Brooks/Cole.
+</p>
+<p>Singleton, R. C. (1979).
+Mixed Radix Fast Fourier Transforms,
+in <em>Programs for Digital Signal Processing</em>,
+IEEE Digital Signal Processing Committee eds.
+IEEE Press.
+</p>
+<p>Cooley, James W., and Tukey, John W. (1965).
+An algorithm for the machine calculation of complex Fourier series,
+<em>Mathematics of Computation</em>, <b>19</b>(90), 297&ndash;301.
+doi: <a href="https://doi.org/10.2307/2003354">10.2307/2003354</a>.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="convolve.html">convolve</a></code>, <code><a href="nextn.html">nextn</a></code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+x &lt;- 1:4
+fft(x)
+fft(fft(x), inverse = TRUE)/length(x)
+
+## Slow Discrete Fourier Transform (DFT) - e.g., for checking the formula
+fft0 &lt;- function(z, inverse=FALSE) {
+  n &lt;- length(z)
+  if(n == 0) return(z)
+  k &lt;- 0:(n-1)
+  ff &lt;- (if(inverse) 1 else -1) * 2*pi * 1i * k/n
+  vapply(1:n, function(h) sum(z * exp(ff*(h-1))), complex(1))
+}
+
+relD &lt;- function(x,y) 2* abs(x - y) / abs(x + y)
+n &lt;- 2^8
+z &lt;- complex(n, rnorm(n), rnorm(n))
+## relative differences in the order of 4*10^{-14} :
+summary(relD(fft(z), fft0(z)))
+summary(relD(fft(z, inverse=TRUE), fft0(z, inverse=TRUE)))
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>stats</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

@@ -1,0 +1,154 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Construct Self-starting Nonlinear Models</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for selfStart {stats}"><tr><td>selfStart {stats}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Construct Self-starting Nonlinear Models</h2>
+
+<h3>Description</h3>
+
+<p>Construct self-starting nonlinear models to be used in
+<code><a href="nls.html">nls</a></code>, etc.  Via function <code>initial</code> to compute
+approximate parameter values from data, such models are
+&ldquo;self-starting&rdquo;, i.e., do not need a <code>start</code> argument in,
+e.g., <code><a href="nls.html">nls</a>()</code>.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+selfStart(model, initial, parameters, template)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>model</code></td>
+<td>
+<p>a function object defining a nonlinear model or
+a nonlinear <code><a href="formula.html">formula</a></code> object of the form <code>~ expression</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>initial</code></td>
+<td>
+<p>a function object, taking three arguments: <code>mCall</code>,
+<code>data</code>, and <code>LHS</code>, representing, respectively, a matched
+call to the function <code>model</code>, a data frame in
+which to interpret the variables in <code>mCall</code>, and the expression
+from the left-hand side of the model formula in the call to <code>nls</code>.
+This function should return initial values for the parameters in
+<code>model</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>parameters</code></td>
+<td>
+<p>a character vector specifying the terms on the right
+hand side of <code>model</code> for which initial estimates should be
+calculated.  Passed as the <code>namevec</code> argument to the
+<code>deriv</code> function.</p>
+</td></tr>
+<tr valign="top"><td><code>template</code></td>
+<td>
+<p>an optional prototype for the calling sequence of the
+returned object, passed as the <code>function.arg</code> argument to the
+<code>deriv</code> function.  By default, a template is generated with the
+covariates in <code>model</code> coming first and the parameters in
+<code>model</code> coming last in the calling sequence.</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p><code><a href="nls.html">nls</a>()</code> calls <code><a href="getInitial.html">getInitial</a></code> and the
+<code>initial</code> function for these self-starting models.
+</p>
+<p>This function is generic; methods functions can be written to handle
+specific classes of objects.
+</p>
+
+
+<h3>Value</h3>
+
+<p>a <code><a href="../../base/html/function.html">function</a></code> object of class <code>"selfStart"</code>, for the
+<code>formula</code> method obtained by applying <code><a href="deriv.html">deriv</a></code>
+to the right hand side of the <code>model</code> formula.  An
+<code>initial</code> attribute (defined by the <code>initial</code> argument) is
+added to the function to calculate starting estimates for the
+parameters in the model automatically.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>José Pinheiro and Douglas Bates</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="nls.html">nls</a></code>, <code><a href="getInitial.html">getInitial</a></code>.
+</p>
+<p>Each of the following are <code>"selfStart"</code> models (with examples)
+<code><a href="SSasymp.html">SSasymp</a></code>, <code><a href="SSasympOff.html">SSasympOff</a></code>, <code><a href="SSasympOrig.html">SSasympOrig</a></code>,
+<code><a href="SSbiexp.html">SSbiexp</a></code>, <code><a href="SSfol.html">SSfol</a></code>, <code><a href="SSfpl.html">SSfpl</a></code>,
+<code><a href="SSgompertz.html">SSgompertz</a></code>, <code><a href="SSlogis.html">SSlogis</a></code>, <code><a href="SSmicmen.html">SSmicmen</a></code>,
+<code><a href="SSweibull.html">SSweibull</a></code>.
+</p>
+<p>Further, package <a href="https://CRAN.R-project.org/package=nlme"><span class="pkg">nlme</span></a>'s <code><a href="../../nlme/html/nlsList.html">nlsList</a></code>.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+## self-starting logistic model
+
+## The "initializer" (finds initial values for parameters from data):
+initLogis &lt;- function(mCall, data, LHS) {
+    xy &lt;- data.frame(sortedXyData(mCall[["input"]], LHS, data))
+    if(nrow(xy) &lt; 4)
+        stop("too few distinct input values to fit a logistic model")
+    z &lt;- xy[["y"]]
+    ## transform to proportion, i.e. in (0,1) :
+    rng &lt;- range(z); dz &lt;- diff(rng)
+    z &lt;- (z - rng[1L] + 0.05 * dz)/(1.1 * dz)
+    xy[["z"]] &lt;- log(z/(1 - z))		# logit transformation
+    aux &lt;- coef(lm(x ~ z, xy))
+    pars &lt;- coef(nls(y ~ 1/(1 + exp((xmid - x)/scal)),
+                     data = xy,
+                     start = list(xmid = aux[[1L]], scal = aux[[2L]]),
+                     algorithm = "plinear"))
+    setNames(pars[c(".lin", "xmid", "scal")], nm = mCall[c("Asym", "xmid", "scal")])
+}
+
+SSlogis &lt;- selfStart(~ Asym/(1 + exp((xmid - x)/scal)),
+                     initial = initLogis,
+                     parameters = c("Asym", "xmid", "scal"))
+
+
+# 'first.order.log.model' is a function object defining a first order
+# compartment model
+# 'first.order.log.initial' is a function object which calculates initial
+# values for the parameters in 'first.order.log.model'
+#
+# self-starting first order compartment model
+## Not run: 
+SSfol &lt;- selfStart(first.order.log.model, first.order.log.initial)
+
+## End(Not run)
+
+## Explore the self-starting models already available in R's  "stats":
+pos.st &lt;- which("package:stats" == search())
+mSS &lt;- apropos("^SS..", where = TRUE, ignore.case = FALSE)
+(mSS &lt;- unname(mSS[names(mSS) == pos.st]))
+fSS &lt;- sapply(mSS, get, pos = pos.st, mode = "function")
+all(sapply(fSS, inherits, "selfStart"))  # -&gt; TRUE
+
+## Show the argument list of each self-starting function:
+str(fSS, give.attr = FALSE)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>stats</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

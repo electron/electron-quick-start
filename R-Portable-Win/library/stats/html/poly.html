@@ -1,0 +1,163 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: Compute Orthogonal Polynomials</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for poly {stats}"><tr><td>poly {stats}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>Compute Orthogonal Polynomials</h2>
+
+<h3>Description</h3>
+
+<p>Returns or evaluates orthogonal polynomials of degree 1 to
+<code>degree</code> over the specified set of points <code>x</code>: these are all
+orthogonal to the constant polynomial of degree 0.  Alternatively,
+evaluate raw polynomials.
+</p>
+
+
+<h3>Usage</h3>
+
+<pre>
+poly(x, ..., degree = 1, coefs = NULL, raw = FALSE, simple = FALSE)
+polym  (..., degree = 1, coefs = NULL, raw = FALSE)
+
+## S3 method for class 'poly'
+predict(object, newdata, ...)
+</pre>
+
+
+<h3>Arguments</h3>
+
+<table summary="R argblock">
+<tr valign="top"><td><code>x, newdata</code></td>
+<td>
+<p>a numeric vector at which to evaluate the
+polynomial. <code>x</code> can also be a matrix.  Missing values are not
+allowed in <code>x</code>.</p>
+</td></tr>
+<tr valign="top"><td><code>degree</code></td>
+<td>
+<p>the degree of the polynomial.  Must be less than the
+number of unique points when <code>raw</code> is false, as by default.</p>
+</td></tr>
+<tr valign="top"><td><code>coefs</code></td>
+<td>
+<p>for prediction, coefficients from a previous fit.</p>
+</td></tr>
+<tr valign="top"><td><code>raw</code></td>
+<td>
+<p>if true, use raw and not orthogonal polynomials.</p>
+</td></tr>
+<tr valign="top"><td><code>simple</code></td>
+<td>
+<p>logical indicating if a simple matrix (with no further
+<code><a href="../../base/html/attributes.html">attributes</a></code> but <code><a href="../../base/html/dimnames.html">dimnames</a></code>) should be
+returned.  For speedup only.</p>
+</td></tr>
+<tr valign="top"><td><code>object</code></td>
+<td>
+<p>an object inheriting from class <code>"poly"</code>, normally
+the result of a call to <code>poly</code> with a single vector argument.</p>
+</td></tr>
+<tr valign="top"><td><code>...</code></td>
+<td>
+<p><code>poly</code>, <code>polym</code>: further vectors.<br />
+<code>predict.poly</code>: arguments to be passed to or from other methods.
+</p>
+</td></tr>
+</table>
+
+
+<h3>Details</h3>
+
+<p>Although formally <code>degree</code> should be named (as it follows
+<code>...</code>), an unnamed second argument of length 1 will be
+interpreted as the degree, such that <code>poly(x, 3)</code> can be used in
+formulas.
+</p>
+<p>The orthogonal polynomial is summarized by the coefficients, which can
+be used to evaluate it via the three-term recursion given in Kennedy
+&amp; Gentle (1980, pp. 343&ndash;4), and used in the <code>predict</code> part of
+the code.
+</p>
+<p><code>poly</code> using <code>...</code> is just a convenience wrapper for
+<code>polym</code>: <code>coef</code> is ignored.  Conversely, if <code>polym</code> is
+called with a single argument in <code>...</code> it is a wrapper for
+<code>poly</code>.
+</p>
+
+
+<h3>Value</h3>
+
+<p>For <code>poly</code> and <code>polym()</code> (when <code>simple=FALSE</code> and
+<code>coefs=NULL</code> as per default):<br />
+A matrix with rows corresponding to points in <code>x</code> and columns
+corresponding to the degree, with attributes <code>"degree"</code> specifying
+the degrees of the columns and (unless <code>raw = TRUE</code>)
+<code>"coefs"</code> which contains the centering and normalization
+constants used in constructing the orthogonal polynomials and
+class <code>c("poly", "matrix")</code>.
+</p>
+<p>For <code>poly(*, simple=TRUE)</code>, <code>polym(*, coefs=&lt;non-NULL&gt;)</code>,
+and <code>predict.poly()</code>: a matrix.
+</p>
+
+
+<h3>Note</h3>
+
+<p>This routine is intended for statistical purposes such as
+<code>contr.poly</code>: it does not attempt to orthogonalize to
+machine accuracy.
+</p>
+
+
+<h3>Author(s)</h3>
+
+<p>R Core Team.  Keith Jewell (Campden BRI Group, UK) contributed
+improvements for correct prediction on subsets.
+</p>
+
+
+<h3>References</h3>
+
+<p>Chambers, J. M. and Hastie, T. J. (1992)
+<em>Statistical Models in S</em>.
+Wadsworth &amp; Brooks/Cole.
+</p>
+<p>Kennedy, W. J. Jr and Gentle, J. E. (1980)
+<em>Statistical Computing</em> Marcel Dekker.
+</p>
+
+
+<h3>See Also</h3>
+
+<p><code><a href="contrast.html">contr.poly</a></code>.
+</p>
+<p><code><a href="../../datasets/html/cars.html">cars</a></code> for an example of polynomial regression.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+od &lt;- options(digits = 3) # avoid too much visual clutter
+(z &lt;- poly(1:10, 3))
+predict(z, seq(2, 4, 0.5))
+zapsmall(poly(seq(4, 6, 0.5), 3, coefs = attr(z, "coefs")))
+
+ zm &lt;- zapsmall(polym (    1:4, c(1, 4:6),  degree = 3)) # or just poly():
+(z1 &lt;- zapsmall(poly(cbind(1:4, c(1, 4:6)), degree = 3)))
+## they are the same :
+stopifnot(all.equal(zm, z1, tol = 1e-15))
+
+## poly(&lt;matrix&gt;, df) --- used to fail till July 14 (vive la France!), 2017:
+m2 &lt;- cbind(1:4, c(1, 4:6))
+pm2 &lt;- zapsmall(poly(m2, 3)) # "unnamed degree = 3"
+stopifnot(all.equal(pm2, zm, tol = 1e-15))
+
+options(od)
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>stats</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>

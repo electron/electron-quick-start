@@ -1,0 +1,210 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><title>R: The Use of '...' in Method Signatures</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link rel="stylesheet" type="text/css" href="R.css" />
+</head><body>
+
+<table width="100%" summary="page for dotsMethods {methods}"><tr><td>dotsMethods {methods}</td><td style="text-align: right;">R Documentation</td></tr></table>
+
+<h2>The Use of <code>...</code> in Method Signatures</h2>
+
+<h3>Description</h3>
+
+<p>The &ldquo;...&rdquo; argument in <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> functions is treated specially, in that it
+matches zero, one or more actual arguments (and so, objects).  A
+mechanism has been added to <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span> to allow &ldquo;...&rdquo; as the signature of a
+generic function.  Methods defined for such functions will be
+selected and called when <em>all</em>  the arguments matching &ldquo;...&rdquo;
+are from the specified class or from some subclass of that class.
+</p>
+
+
+<h3>Using &quot;...&quot; in a Signature</h3>
+
+<p>Beginning with version 2.8.0 of <span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>, S4 methods can be dispatched
+(selected and called) corresponding to the special argument &ldquo;...&rdquo;.
+Currently, &ldquo;...&rdquo; cannot be mixed with other formal arguments:
+either the signature of the generic function is &ldquo;...&rdquo; only, or it
+does not contain &ldquo;...&rdquo;.  (This restriction may be lifted in a future
+version.)
+</p>
+<p>Given a suitable generic function, methods are specified in the
+usual way by a call to <code><a href="setMethod.html">setMethod</a></code>.  The method
+definition must be written expecting all the arguments corresponding
+to &ldquo;...&rdquo; to be from the class specified in the method's signature,
+or from a class that extends that class (i.e., a subclass of that
+class).
+</p>
+<p>Typically the methods will pass &ldquo;...&rdquo; down to another function or
+will create a list of the arguments and iterate over that.  See the
+examples below.
+</p>
+<p>When you have a computation that is suitable for more than one existing
+class, a convenient approach may be to define a union of these
+classes by a call to <code><a href="setClassUnion.html">setClassUnion</a></code>. See the example
+below.
+</p>
+
+
+<h3>Method Selection and Dispatch for &quot;...&quot;</h3>
+
+<p>See <a href="Methods_Details.html">Methods_Details</a> for a general discussion.  The following assumes
+you have read the &ldquo;Method Selection and Dispatch&rdquo; section of
+that documentation.
+</p>
+<p>A method selecting on &ldquo;...&rdquo; is specified by a single class in the
+call to <code><a href="setMethod.html">setMethod</a></code>.  If all the actual arguments
+corresponding to &ldquo;...&rdquo; have this class, the corresponding method is
+selected directly.
+</p>
+<p>Otherwise, the class of each argument and that class' superclasses are
+computed, beginning with the first &ldquo;...&rdquo; argument.  For the first
+argument, eligible methods are those for any of the classes.   For
+each succeeding argument that introduces a class not considered previously, the eligible methods are further
+restricted to those matching the argument's class or
+superclasses. If no further eligible classes exist, the iteration
+breaks out and the default method, if any, is selected.
+</p>
+<p>At the end of the iteration, one or more methods may be eligible.
+If more than one, the selection looks for the method with the least
+distance to the actual arguments.  For each argument, any inherited
+method corresponds to a distance, available from the <code>contains</code>
+slot of the class definition.  Since the same class can arise for
+more than one argument, there may be several distances associated
+with it.  Combining them is inevitably arbitrary:  the current
+computation uses the minimum distance.  Thus, for example, if a
+method matched one argument directly, one as  first generation
+superclass and another as a second generation superclass, the
+distances are 0, 1 and 2.  The current selection computation would
+use distance 0 for this
+method.  In particular, this selection criterion tends to use a method that
+matches exactly one or more of the arguments' class.
+</p>
+<p>As with ordinary method selection, there may be multiple methods
+with the same distance.  A warning  message is issued and one of the
+methods is chosen (the first encountered, which in this case is
+rather arbitrary).
+</p>
+<p>Notice that, while the computation examines all arguments, the
+essential cost of dispatch goes up with the number of
+<em>distinct</em> classes among the arguments, likely to be much
+smaller than the number of arguments when the latter is large.
+</p>
+
+
+<h3>Implementation Details</h3>
+
+<p>Methods dispatching on &ldquo;...&rdquo; were introduced in version 2.8.0 of
+<span style="font-family: Courier New, Courier; color: #666666;"><b>R</b></span>.  The initial implementation of the corresponding selection and
+dispatch is in an R function, for flexibility while the new
+mechanism is being studied.  In this implementation, a local version
+of <code>standardGeneric</code> is inserted in the generic function's
+environment.  The local version selects a method according to the
+criteria above and calls that method, from the environment of the
+generic function.  This is slightly different from the action taken
+by the C implementation when &ldquo;...&rdquo; is not involved.  Aside from the
+extra computing time required, the method is evaluated in a true
+function call, as opposed to the special context constructed by the
+C version (which cannot be exactly replicated in R code.)  However,
+situations in which different computational results would
+be obtained have not been encountered so far, and seem very
+unlikely.
+</p>
+<p>Methods dispatching on arguments other than &ldquo;...&rdquo; are <em>cached</em> by storing
+the inherited method in the table of all methods, where it will be
+found on the next selection with the same combination of classes
+in the actual arguments (but not used for inheritance searches).
+Methods based on &ldquo;...&rdquo; are also cached, but not found quite
+as immediately.  As noted, the selected method depends only on the
+set of classes that occur in the &ldquo;...&rdquo; arguments.  Each of
+these classes can appear one or more times, so many combinations of
+actual argument classes will give rise to the same effective
+signature.  The selection computation first computes and sorts the
+distinct classes encountered.  This gives a label that will be
+cached in the table of all methods, avoiding any further search for
+inherited classes after the first occurrence.  A call to
+<code><a href="showMethods.html">showMethods</a></code> will expose such inherited methods.
+</p>
+<p>The intention is that the &ldquo;...&rdquo; features will be added to the
+standard C code when enough experience with them has been obtained.
+It is possible that at the same time, combinations of &ldquo;...&rdquo; with
+other arguments in signatures may be supported.
+</p>
+
+
+<h3>References</h3>
+
+<p>Chambers, John M. (2008)
+<em>Software for Data Analysis: Programming with R</em>
+Springer.  (For the R version.)
+</p>
+<p>Chambers, John M. (1998)
+<em>Programming with Data</em>
+Springer (For the original S4 version.)
+</p>
+
+
+<h3>See Also</h3>
+
+<p>For the general discussion of methods, see  <a href="Methods_Details.html">Methods_Details</a> and links
+from there.
+</p>
+
+
+<h3>Examples</h3>
+
+<pre>
+cc &lt;- function(...)c(...)
+
+setGeneric("cc")
+
+setMethod("cc", "character", function(...)paste(...))
+
+setClassUnion("Number", c("numeric", "complex"))
+
+setMethod("cc", "Number", function(...) sum(...))
+
+setClass("cdate", contains = "character", slots = c(date = "Date"))
+
+setClass("vdate", contains = "vector", slots = c(date = "Date"))
+
+cd1 &lt;- new("cdate", "abcdef", date = Sys.Date())
+
+cd2 &lt;- new("vdate", "abcdef", date = Sys.Date())
+
+stopifnot(identical(cc(letters, character(), cd1),
+           paste(letters, character(), cd1))) # the "character" method
+
+stopifnot(identical(cc(letters, character(), cd2),
+                    c(letters, character(), cd2)))
+# the default, because "vdate" doesn't extend "character"
+
+stopifnot(identical(cc(1:10, 1+1i), sum(1:10, 1+1i))) # the "Number" method
+
+stopifnot(identical(cc(1:10, 1+1i, TRUE), c(1:10, 1+1i, TRUE))) # the default
+
+stopifnot(identical(cc(), c())) # no arguments implies the default method
+
+setGeneric("numMax", function(...)standardGeneric("numMax"))
+
+setMethod("numMax", "numeric", function(...)max(...))
+# won't work for complex data
+setMethod("numMax", "Number", function(...) paste(...))
+# should not be selected w/o complex args
+
+stopifnot(identical(numMax(1:10, pi, 1+1i), paste(1:10, pi, 1+1i)))
+stopifnot(identical(numMax(1:10, pi, 1), max(1:10, pi, 1)))
+
+try(numMax(1:10, pi, TRUE)) # should be an error:  no default method
+
+## A generic version of paste(), dispatching on the "..." argument:
+setGeneric("paste", signature = "...")
+
+setMethod("paste", "Number", function(..., sep, collapse) c(...))
+
+stopifnot(identical(paste(1:10, pi, 1), c(1:10, pi, 1)))
+
+
+</pre>
+
+<hr /><div style="text-align: center;">[Package <em>methods</em> version 3.6.1 <a href="00Index.html">Index</a>]</div>
+</body></html>
