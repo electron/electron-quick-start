@@ -11,7 +11,7 @@ $(SHLIB): $(OBJECTS)
 .PHONY: all shlib-clean
 
 shlib-clean:
-	@rm -rf .libs _libs
+	@rm -Rf .libs _libs
 	@rm -f $(OBJECTS) symbols.rds
 
 

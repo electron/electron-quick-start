@@ -37,7 +37,7 @@ setHook("grid.newpage", get("grid_plot_hook", pos = "CheckExEnv"))
 assign("cleanEx",
        function(env = .GlobalEnv) {
 	   rm(list = ls(envir = env, all.names = TRUE), envir = env)
-           RNGkind("default", "default")
+           RNGkind("default", "default", "default")
 	   set.seed(1)
    	   options(warn = 1)
 	   .CheckExEnv <- as.environment("CheckExEnv")
@@ -50,8 +50,27 @@ assign("cleanEx",
            if(length(newitems)) tools:::detachPackages(newitems)
 	   missitems <- .oldSearch[! .oldSearch %in% sch]
 	   if(length(missitems))
-	       warning("items ", paste(missitems, collapse=", "),
-		       " have been removed from the search path", domain = NA)
+	       warning(sprintf("items %s were removed from the search path",
+                               paste(sQuote(missitems), collapse=", ")),
+                       call. = FALSE, immediate. = TRUE, domain = NA)
+           ## Old massaged files will not have set .old_wd.
+           if(exists(".old_wd") && (wd <- getwd()) != .old_wd) {
+               warning(sprintf("working directory was changed to %s, resetting",
+                               sQuote(wd)),
+                       call. = FALSE, immediate. = TRUE, domain = NA)
+               setwd(.old_wd)
+           }
+           ## stop in case users left connections open,
+           ## also indicating that parallel cluster are still running
+           if(Sys.getenv("_R_CHECK_CONNECTIONS_LEFT_OPEN_", FALSE)){
+               sC <- showConnections()
+               if(nrow(sC)){
+                   stop("connections left open:\n",
+                       paste(apply(sC[,1:2, drop = FALSE], 1L, function(x)
+                           paste0("\t", x[1L], " (", x[2L], ")")), collapse="\n"),
+				       call. = FALSE, domain = NA)
+               }
+           }
        },
        pos = "CheckExEnv")
 assign("ptime", proc.time(), pos = "CheckExEnv")

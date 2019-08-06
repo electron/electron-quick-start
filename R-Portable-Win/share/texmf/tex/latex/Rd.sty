@@ -218,14 +218,25 @@
 %% list for \code and \samp and their variants.
 \def\Rd@nolig@list{\do\`\do\,\do\'\do\-}
 \def\Rd@noligs{\let\do\do@noligs \Rd@nolig@list}
+%% Using \frenchspacing in \Rd@code gives 'Undefined control sequence'
+%% errors in combination with hyperref and amsmath (e.g., parallel.Rnw):
+%% Hence try using the variant below.
+\def\Rd@frenchspacing{\sfcode`.=\@m \sfcode`?=\@m \sfcode`!=\@m
+  \sfcode`:=\@m \sfcode`;=\@m \sfcode`,=\@m }
+\def\Rd@code#1{%
+  \normalfont
+  \Rd@frenchspacing
+  \spaceskip=\fontdimen2\font\relax
+  \texttt{#1}%
+  \egroup
+}
 
-\DeclareRobustCommand\code{\bgroup\Rd@noligs\@vobeyspaces\Rd@code}
-\def\Rd@code#1{\normalfont\texttt{#1}\egroup}
+\DeclareRobustCommand{\code}{\bgroup\Rd@noligs\Rd@code}
 \let\command=\code
 \let\env=\code
 
-\DeclareRobustCommand\samp{`\bgroup\Rd@noligs\@vobeyspaces\@sampx}
-\def\@sampx#1{{\normalfont\texttt{#1}}\egroup'}
+\def\Rd@samp#1{\Rd@code{#1}\rq}
+\DeclareRobustCommand{\samp}{\lq\bgroup\Rd@noligs\Rd@samp}
 \let\option=\samp
 
 \def\AsIs{\bgroup\let\do\@makeother\Rd@AsIs@dospecials\@noligs\obeylines\@vobeyspaces\parskip\z@skip\Rd@AsIsX}
