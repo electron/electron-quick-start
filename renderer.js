@@ -9,6 +9,8 @@
 const fs = require('fs');
 var exec = require('child_process').exec;
 var spawn = require('child_process').spawn;
+const remote = require('electron').remote;
+const dialog = remote.dialog;
 
 //local variables
 var $rootDir = ""
@@ -79,4 +81,19 @@ $("#menu-home").click(function () {
 $("#menu-install-kiosk").click(function () {
     $("section").css("display", "none");
     $("#install-kiosk").css("display", "");
+});
+
+exec(`"${psPath}" -noninteractive "${$rootDir}\\_cbgui\\scripts\\gather-computer-info.ps1"`, (error, stdout, stderr) => {
+    if (stdout) {
+        $("#Home_Data").html(stdout);
+        return;
+    }
+    if (stderr) {
+        console.error(stderr);
+        return;
+    }
+    if (error) {
+        console.error(error);
+        return;
+    }
 });
