@@ -120,6 +120,9 @@ var $IK_schema = {
                 "type": "string",
             },
             "options": {
+                "selectize": {
+                    "create": true
+                },
                 "dependencies": {
                     "RadioButtons": "Web Kiosk"
                 }
