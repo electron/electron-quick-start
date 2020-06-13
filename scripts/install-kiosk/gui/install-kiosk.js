@@ -242,10 +242,16 @@ var $IK_schema = {
 }
 
 //initializations
-var $targetHTML = `${$rootDir}\\scripts\\install-kiosk\\gui\\kiosk-installation-guide-(ubuntu).html`;
-fs.readFile($targetHTML, (err, data) => {
+var $IK_HelpTab1 = `${$rootDir}\\scripts\\install-kiosk\\gui\\kiosk-installation-guide-(ubuntu).html`;
+fs.readFile($IK_HelpTab1, (err, data) => {
     if (err) throw err;
     $("#IK_HelpTab1").append(data.toString());
+});
+
+var $IK_HelpTab2 = `${$rootDir}\\scripts\\install-kiosk\\gui\\kiosk-installation-guide-(raspberry-pi).html`;
+fs.readFile($IK_HelpTab2, (err, data) => {
+    if (err) throw err;
+    $("#IK_HelpTab2").append(data.toString());
 });
 
 var $IK_element = $("#IK_Form")[0]
