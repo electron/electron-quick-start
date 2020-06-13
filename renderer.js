@@ -15,13 +15,12 @@ const dialog = remote.dialog;
 //local variables
 var $rootDir = ""
 var $scripts = new Object();
-$scripts['install-windows'] = "_install-windows\\gui\\install-windows";
-$scripts['install-kiosk'] = "_install-kiosk\\gui\\install-kiosk";
+$scripts['install-windows'] = "scripts\\install-windows\\gui\\install-windows";
+$scripts['install-kiosk'] = "scripts\\install-kiosk\\gui\\install-kiosk";
 
 //other options
 JSONEditor.defaults.options.theme = 'bootstrap4';
 JSONEditor.defaults.options.disable_collapse = true;
-// JSONEditor.defaults.options.disable_edit_json = true;
 JSONEditor.defaults.options.disable_properties = true;
 JSONEditor.defaults.options.prompt_before_delete = false;
 JSONEditor.defaults.options.disable_array_delete_last_row = true;
@@ -33,15 +32,13 @@ JSONEditor.defaults.options.array_controls_top = true;
 /**
  * getRootDir dynamically determines the path of the folder *outside* of the executable
  * This is needed because it changes based on if we are running in dev, or a packaged executable
- */
+ **/
 function getRootDir() {
     let $directories = __dirname.split("\\");
-    let $directoriesIndex
+    let $directoriesIndex = $directories.length;
 
     if ($directories[$directories.length - 1] == 'app.asar' && $directories[$directories.length - 2] == 'resources') {
-        $directoriesIndex = $directories.length - 3;
-    } else {
-        $directoriesIndex = $directories.length - 1;
+        $directoriesIndex = $directories.length - 2;
     }
 
     for (let index = 0; index < $directoriesIndex; index++) {
@@ -52,7 +49,8 @@ function getRootDir() {
 }
 
 $rootDir = getRootDir();
-var psPath = $rootDir + "\\pwsh-local\\pwsh.exe";
+
+var psPath = $rootDir + "\\tools\\pwsh\\pwsh.exe";
 
 //let's import our subcategories
 for (var key in $scripts) {
@@ -83,7 +81,7 @@ $("#menu-install-kiosk").click(function () {
     $("#install-kiosk").css("display", "");
 });
 
-exec(`"${psPath}" -noninteractive "${$rootDir}\\_cbgui\\scripts\\gather-computer-info.ps1"`, (error, stdout, stderr) => {
+exec(`"${psPath}" -noninteractive "${$rootDir}\\scripts\\gather-computer-info.ps1"`, (error, stdout, stderr) => {
     if (stdout) {
         $("#Home_Data").html(stdout);
         return;
