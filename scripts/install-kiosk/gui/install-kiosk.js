@@ -112,13 +112,12 @@ var $IK_schema = {
             "propertyOrder": 9
         },
         "BrowserURLWhitelist": {
-            "title": "Browser Whitelist (leave empty to not use)",
+            "title": "Browser Whitelist (leave blank to not use)",
             "type": "array",
-            "format": "table",
+            "format": "selectize",
             "uniqueItems": true,
             "items": {
                 "type": "string",
-                "title": "Domain Addresses"
             },
             "options": {
                 "dependencies": {
