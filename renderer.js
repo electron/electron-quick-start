@@ -81,7 +81,7 @@ $("#menu-install-kiosk").click(function () {
     $("#install-kiosk").css("display", "");
 });
 
-exec(`"${psPath}" -noninteractive "${$rootDir}\\scripts\\gather-computer-info.ps1"`, (error, stdout, stderr) => {
+exec(`"${psPath}" -noninteractive -executionpolicy bypass "${$rootDir}\\scripts\\gather-computer-info.ps1"`, (error, stdout, stderr) => {
     if (stdout) {
         $("#Home_Data").html(stdout);
         return;

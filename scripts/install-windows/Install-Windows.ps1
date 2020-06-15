@@ -265,7 +265,7 @@ if ($config.DriverFolder) {
 New-Item -ItemType Directory -Path "O:\temp\deploy\installers" -Force
 foreach ($installer in $config.installers) {
     write-output $installer
-    copy-item "$pwd\..\assets\installers\$installer" "O:\temp\deploy\installers\$installer" -recurse
+    copy-item "$pwd\files\$($config.profile)\installers\$installer" "O:\temp\deploy\installers\$installer" -recurse
 }
 
 #wifi profiles

@@ -189,7 +189,7 @@ var $WI_schema = {
 function generateForm() {
     $WI_imagePath = $("#WI_imagepath").val()
 
-    exec(`"${psPath}" -noninteractive "${$rootDir}\\scripts\\install-windows\\gui\\wi-gather-data.ps1" ${$WI_imagePath}`, (error, stdout, stderr) => {
+    exec(`"${psPath}" -noninteractive -executionpolicy bypass "${$rootDir}\\scripts\\install-windows\\gui\\wi-gather-data.ps1" ${$WI_imagePath}`, (error, stdout, stderr) => {
         if (stdout) {
             gatheredData = JSON.parse(stdout);
             console.log(gatheredData)
@@ -239,7 +239,7 @@ $("#WI_autodetectimage").click(function () {
     $("#WI_autodetectimage").attr("disabled", true);
     $("#WI_browseimage").attr("disabled", true);
 
-    exec(`"${psPath}" -noninteractive "${$rootDir}\\scripts\\install-windows\\gui\\wi-detect-image.ps1"`, (error, stdout, stderr) => {
+    exec(`"${psPath}" -noninteractive -executionpolicy bypass "${$rootDir}\\scripts\\install-windows\\gui\\wi-detect-image.ps1"`, (error, stdout, stderr) => {
         if (stdout) {
             $("#WI_imagepath").val(stdout);
             generateForm();
@@ -303,7 +303,7 @@ $("#WI_Run").click(function () {
     $("#WI_Reset").prop("disabled", true);
 
     // spawn the final script
-    var args = ["-file", `${$rootDir}\\scripts\\install-windows\\Install-windows.ps1`, "-json", JSON.stringify($WI_finalJSON)];
+    var args = ["-noninteractive", "-executionpolicy", "bypass", "-file", `${$rootDir}\\scripts\\install-windows\\Install-windows.ps1`, "-json", JSON.stringify($WI_finalJSON)];
     $WI_scriptProcess = spawn(psPath, args);
 
 

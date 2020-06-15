@@ -297,7 +297,7 @@ $("#IK_Run").click(function () {
     $("#IK_Run").prop("disabled", true);
     
     // spawn the final script
-    var args = ["-file", `${$rootDir}\\scripts\\install-kiosk\\Install-Kiosk.ps1`, "-json", JSON.stringify($IK_finalJSON)];
+    var args = ["-noninteractive", "-executionpolicy", "bypass", "-file", `${$rootDir}\\scripts\\install-kiosk\\Install-Kiosk.ps1`, "-json", JSON.stringify($IK_finalJSON)];
     $IK_scriptProcess = spawn(psPath, args);
 
 
