@@ -14,8 +14,9 @@ param([string]$JSON)
 
 #---------------------------------------------------------[Initialisations]-----------------------------------------------------
 
-#Convert JSON into our config object
-$config = convertfrom-json $JSON
+#Convert JSON into our config object. We are assuming the JSON is also base64 encoded
+
+$config = convertfrom-json ([System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($JSON)))
 
 if (!$config) {
     write-error "JSON parsing went wrong"

@@ -237,10 +237,10 @@ write-host "testing and installing powershell if not present"
 $plinkArgs = @("-batch", "-ssh", "-pw", $config.plaintextpassword, "root@$($config.ComputerName)", "chmod +x /tmp/files/Install-Powershell.sh && /tmp/files/Install-Powershell.sh")
 &"$plinkloc" $plinkArgs
 
-#next step is to run the rest of the script in powershell mode. We pass all arguments as JSON
+#next step is to run the rest of the script in powershell mode. We pass all arguments as a base64 encoded JSON to avoid string parsing issues
 write-host "performing configuration tasks"
-$jsonConfig = (convertto-json $config).replace("`'", "`'\`'`'").replace("`"", "\`"").replace("$", "\u0024")
-$plinkArgs = @("-batch", "-ssh", "-pw", $config.plaintextpassword, "root@$($config.ComputerName)", "pwsh /tmp/files/Set-KioskConfig.ps1 -json `'$($jsonConfig)`'")
+$base64Config = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes((convertto-json $config)))
+$plinkArgs = @("-batch", "-ssh", "-pw", $config.plaintextpassword, "root@$($config.ComputerName)", "pwsh /tmp/files/Set-KioskConfig.ps1 -json `'$base64Config`'")
 &"$plinkloc" $plinkArgs
 
 
