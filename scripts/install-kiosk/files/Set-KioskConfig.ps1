@@ -48,13 +48,16 @@ apt-get dist-upgrade -qy
 
 write-output "installing applications for kiosk"
 
-if($config.enableRDP) {
+#we include customStartup because we don't know what programs the startup will use.
+#we can assume xibo will not be one of them though
+
+if($config.enableRDP -or $config.customStartup) {
     $installList += "freerdp2-x11"
 }
 if($config.enableXibo) {
     snap install xibo-player
 }
-if($config.EnableBrowser) {
+if($config.EnableBrowser -or $config.customStartup) {
     if($config.architecture -eq "ubuntu") {
         $installList += "chromium-browser"
     }
@@ -144,6 +147,11 @@ if ($config.KioskResolution) {
 
 if ($config.browserAutoRefresh) {
     $startup = $startup.replace('#/home/', "/home/")
+}
+
+#if we have a custom startup script, overwrite the script now
+if($config.customStartup) {
+    $startup = $config.customStartup
 }
 
 $startup | set-content "/home/kiosk/startup.sh"

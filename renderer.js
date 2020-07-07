@@ -27,7 +27,7 @@ JSONEditor.defaults.options.disable_array_delete_last_row = true;
 JSONEditor.defaults.options.disable_array_delete_all_rows = true;
 JSONEditor.defaults.options.disable_array_reorder = true;
 JSONEditor.defaults.options.array_controls_top = true;
-
+JSONEditor.defaults.options.modes = ['text', 'code', 'tree', 'form', 'view'];
 
 /**
  * getRootDir dynamically determines the path of the folder *outside* of the executable

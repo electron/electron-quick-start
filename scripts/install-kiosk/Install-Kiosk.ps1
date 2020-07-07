@@ -27,6 +27,7 @@ param(
     [parameter(ParameterSetName = 'cmd')] [string]$MeshCentralURL,
     [parameter(ParameterSetName = 'cmd')] [string]$MeshCentralGroupKey,
     [parameter(ParameterSetName = 'cmd')] [switch]$MeshCentralForceReinstall,
+    [parameter(ParameterSetName = 'cmd')] [string]$customStartup,
     [parameter(ParameterSetName = 'json', Mandatory = $true)] [string]$JSON,
     [string]$Logfile
 )

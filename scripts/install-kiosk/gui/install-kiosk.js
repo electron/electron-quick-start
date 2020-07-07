@@ -56,7 +56,7 @@ var $IK_schema = {
             "type": "string",
             "format": "radio",
             "title": "Kiosk Options",
-            "enum": ["Web Kiosk", "RDP Kiosk", "Xibo Kiosk"],
+            "enum": ["Web Kiosk", "RDP Kiosk", "Xibo Kiosk", "Custom"],
             "propertyOrder": 5
         },
         "BrowserURL": {
@@ -190,11 +190,24 @@ var $IK_schema = {
             },
             "propertyOrder": 14
         },
+        "customStartup": {
+            "title": "Custom Startup Script",
+            "type": "string",
+            "format": "textarea",
+            "options": {
+                "dependencies": {
+                    "RadioButtons": "Custom"
+                },
+                "infoText": "This is used for custom startup scripts that might not fall in the other categories (for example: drivers kiosks that require custom touch input settings).\
+                 You can check the private git repository for custom startup scripts, sorted by asset tag"
+            },
+            "propertyOrder": 15
+        },
         "EnableMeshCentral": {
             "title": "Update or Install Meshcentral",
             "type": "boolean",
             "format": "checkbox",
-            "propertyOrder": 15
+            "propertyOrder": 16
         },
         "MeshCentralURL": {
             "title": "Mesh Central Site URL",
@@ -209,7 +222,7 @@ var $IK_schema = {
                 },
                 "infoText": "The address of the site you log in to remotely manage machines (IE: mesh.<domain>.com.au)"
             },
-            "propertyOrder": 16
+            "propertyOrder": 17
         },
         "MeshCentralGroupKey": {
             "title": "Mesh Central Group Key",
@@ -225,7 +238,7 @@ var $IK_schema = {
                 "infoText": "The base64 encoded key that associates the client with a group. You can find this key by going into meshcentral, going to 'Add Agent' (next to the group),\
                 and using the linux dropdown. The key is within there"
             },
-            "propertyOrder": 17
+            "propertyOrder": 18
         },
         "MeshCentralForceReinstall": {
             "title": "Force Update of Meshcentral",
@@ -236,7 +249,7 @@ var $IK_schema = {
                     "EnableMeshCentral": true
                 }
             },
-            "propertyOrder": 18
+            "propertyOrder": 19
         }
     }
 }
@@ -295,7 +308,7 @@ $("#IK_Run").click(function () {
     // Disable form controls
     $("#IK_Reset").prop("disabled", true);
     $("#IK_Run").prop("disabled", true);
-    
+
     // spawn the final script
     var args = ["-noninteractive", "-executionpolicy", "bypass", "-file", `${$rootDir}\\scripts\\install-kiosk\\Install-Kiosk.ps1`, "-json", JSON.stringify($IK_finalJSON)];
     $IK_scriptProcess = spawn(psPath, args);
@@ -328,7 +341,7 @@ $("#IK_Run").click(function () {
 });
 
 $("#IK_Abort").click(function () {
-    if($IK_scriptProcess) {
+    if ($IK_scriptProcess) {
         process.kill($IK_scriptProcess.pid);
         $IK_scriptProcess = null
     }
@@ -337,7 +350,7 @@ $("#IK_Abort").click(function () {
     $("#IK_Edit").prop("disabled", false);
 });
 
-$("#IK_Reset").click(function() {
+$("#IK_Reset").click(function () {
     $("#IK_Nav1").trigger('click');
     $IK_editor.destroy();
     $IK_editor = new JSONEditor($IK_element, {
