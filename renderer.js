@@ -18,6 +18,7 @@ var $scripts = new Object();
 $scripts['menu-install-windows'] = "scripts\\install-windows\\gui\\install-windows";
 $scripts['menu-install-kiosk'] = "scripts\\install-kiosk\\gui\\install-kiosk";
 $scripts['menu-install-trbonet'] = "scripts\\install-trbonet\\gui\\install-trbonet";
+$scripts['menu-backup-user-profiles'] = "scripts\\backup-user-profiles\\gui\\backup-user-profiles";
 
 //other options
 JSONEditor.defaults.options.theme = 'bootstrap4';
@@ -97,6 +98,11 @@ $("#menu-install-kiosk").click(function () {
 $("#menu-install-trbonet").click(function () {
     $("section").css("display", "none");
     $("#install-trbonet").css("display", "");
+});
+
+$("#menu-backup-user-profiles").click(function () {
+    $("section").css("display", "none");
+    $("#backup-user-profiles").css("display", "");
 });
 
 exec(`"${psPath}" -noninteractive -executionpolicy bypass "${$rootDir}\\scripts\\gather-computer-info.ps1"`, (error, stdout, stderr) => {

@@ -1,0 +1,319 @@
+var $BU_schema = {
+    "title": "Backup User Profiles",
+    "type": "object",
+    "format": "grid-strict",
+    "description": "This program will give you a list of users detected on the target computer. Then we can back them up to a remote location to restore on another computer/windows install",
+    "properties": {
+        "ComputerName": {
+            "type": "string",
+            "title": "Computer Name",
+            "minLength": 1,
+            "options": {
+                "grid_columns": 12,
+                "inputAttributes": {
+                    "placeholder": "cdcvicws-00001"
+                },
+                "infoText": "Name of the remote computer we will be backing up the user profiles",
+                "dependencies": {
+                    "LocalHost": false
+                }
+            }
+        },
+        "LocalHost": {
+            "type": "boolean",
+            "format": "checkbox",
+            "title": "Run Script Locally",
+            "options": {
+                "grid_columns": 12
+            },
+            "default": false
+        }
+    }
+}
+
+var $BU_schema2 = {
+    "title": "Backup User Profiles",
+    "type": "object",
+    "format": "grid-strict",
+    "description": "This program will give you a list of users detected on the target computer. Then we can back them up to a remote location to restore on another computer/windows install",
+    "properties": {
+        "ComputerName": {
+            "type": "string",
+            "title": "Computer Name",
+            "minLength": 1,
+            "options": {
+                "grid_columns": 12,
+                "inputAttributes": {
+                    "placeholder": "cdcvicws-00001"
+                },
+                "infoText": "Name of the remote computer we will be backing up the user profiles",
+                "dependencies": {
+                    "LocalHost": false
+                }
+            }
+        },
+        "LocalHost": {
+            "type": "boolean",
+            "format": "checkbox",
+            "title": "Run Script Locally",
+            "options": {
+                "grid_columns": 12
+            },
+            "default": false
+        },
+        "Users": {
+            "title": "Users to Back Up",
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "format": "selectize",
+            "items": {
+                "type": "string",
+                "enum": [],
+                "options": {
+                    "enum_titles": []
+                }
+            },
+            "options": {
+                "grid_columns": 12,
+                "selectize": {
+                    "create": false
+                }
+            }
+        },
+        "RadioButtons": {
+            "type": "string",
+            "format": "radio",
+            "title": "Backup Location",
+            "enum": ["Local Drive", "Network Drive"],
+            "options": {
+                "grid_columns": 12
+            }
+        },
+        "LocalDrive": {
+            "title": "Local Drive Path",
+            "minLength": 1,
+            "type": "string",
+            "options": {
+                "grid_columns": 12,
+                "inputAttributes": {
+                    "placeholder": "D:\\MyBackup"
+                },
+                "dependencies": {
+                    "RadioButtons": "Local Drive"
+                },
+                "infoText": "The local folder *on the target machine* that you want to save the profile data"
+            }
+        },
+        "NetworkDrive": {
+            "title": "Network Drive Path",
+            "minLength": 1,
+            "type": "string",
+            "pattern": "\\\\\\\\[a-zA-Z0-9\\.\\-_]{1,}(\\\\[a-zA-Z0-9\\-_]{1,}){1,}[\\$]{0,1}",
+            "options": {
+                "grid_columns": 12,
+                "patternmessage": "The path should follow UNC path guidelines (\\\\server\\path)",
+                "inputAttributes": {
+                    "placeholder": "\\\\networkdrive\\backup"
+                },
+                "dependencies": {
+                    "RadioButtons": "Network Drive"
+                },
+                "infoText": "The local folder *on the target machine* that you want to save the profile data. If it does not exist, it will be created."
+            }
+        },
+        "username": {
+            "title": "Username",
+            "type": "string",
+            "minLength": 1,
+            "options": {
+                "grid_columns": 6,
+                "inputAttributes": {
+                    "placeholder": "domain.com.au\\firstname.lastname"
+                },
+                "dependencies": {
+                    "RadioButtons": "Network Drive"
+                },
+                "infoText": "The username and password for the user who has permissions to map the network drive. This is required (even if you have permissions) due to double hop rules"
+            }
+        },
+        "PlainTextPassword": {
+            "title": "Password",
+            "minLength": 1,
+            "type": "string",
+            "format": "password",
+            "options": {
+                "inputAttributes": {
+                    "placeholder": "hunter2"
+                },
+                "grid_columns": 6,
+                "dependencies": {
+                    "RadioButtons": "Network Drive"
+                }
+            }
+        },
+    }
+}
+
+
+//initializations
+var $BU_element = $("#BU_Form")[0]
+var $BU_editor = new JSONEditor($BU_element, {
+    schema: $BU_schema
+});
+
+$("#BU_GetUsers").click(function () {
+    if (!($BU_editor.validate().length)) {
+
+        //disable the button we just clicked
+        $("#BU_GetUsers").prop("disabled", true);
+        $("#BU_GetUsersAlert").css("display", "none");
+
+        //disable the form
+        $BU_editor.disable();
+
+        //get the form data
+        GetUsersJSON = JSON.stringify($BU_editor.getValue());
+
+        //run the powershell script that gets our users
+        exec(`"${psPath}" -noninteractive -executionpolicy bypass "${$rootDir}\\scripts\\backup-user-profiles\\gui\\bu-get-users.ps1" -json ${GetUsersJSON}`, (error, stdout, stderr) => {
+            if (stdout) {
+                //receive the output
+                gatheredData = JSON.parse(stdout);
+
+                //use the output to set our next form's values
+                $BU_schema2.properties.Users.items.enum = gatheredData.name
+                $BU_schema2.properties.Users.items.options.enum_titles = gatheredData.description
+
+                //set the default values that we've already determined from the previous form
+                $BU_schema2.properties.ComputerName.default = $BU_editor.getValue().ComputerName
+                $BU_schema2.properties.LocalHost.default = $BU_editor.getValue().LocalHost
+
+                //create the form again with the updated schema
+                $BU_editor.destroy();
+                $BU_editor = new JSONEditor($BU_element, {
+                    schema: $BU_schema2
+                });
+
+                //disable the parts we've already determined
+                $BU_editor.getEditor('root.ComputerName').disable();
+                $BU_editor.getEditor('root.LocalHost').disable();
+
+                //Show our new buttons
+                $("#BU_Validate").css("display", "initial");
+                $("#BU_Run").css("display", "initial");
+                $("#BU_GetUsers").css("display", "none");
+            }
+            if (stderr) {
+                console.error(stderr);
+                //enable the button we just clicked
+                $("#BU_GetUsers").prop("disabled", false);
+                //display an alert
+                $("#BU_GetUsersAlert").css("display", "initial");
+
+                //enable the form
+                $BU_editor.enable();
+                return;
+            }
+            if (error) {
+                //enable the button we just clicked
+                $("#BU_GetUsers").prop("disabled", false);
+                //display an alert
+                $("#BU_GetUsersAlert").css("display", "initial");
+
+                //enable the form
+                $BU_editor.enable();
+                console.error(error);
+                return;
+            }
+        });
+    }
+
+    //If we didn't validate properly, show that in our form
+    $BU_editor.options.show_errors = "always"
+    $BU_editor.onChange();
+});
+
+
+
+$("#BU_Validate").click(function () {
+    if (!($BU_editor.validate().length)) {
+        $("#BU_Run").prop("disabled", false);
+        $("#BU_Edit").css("display", "initial");
+        $("#BU_Validate").css("display", "none");
+        $BU_editor.disable();
+    }
+    $BU_finalJSON = $BU_editor.getValue();
+    $BU_editor.options.show_errors = "always"
+    $BU_editor.onChange();
+});
+
+$("#BU_Edit").click(function () {
+    $("#BU_Edit").css("display", "none");
+    $("#BU_Validate").css("display", "initial");
+    $("#BU_Run").prop("disabled", true);
+    $BU_editor.enable();
+});
+
+$("#BU_Run").click(function () {
+    // $('#BU_Log').prepend(JSON.stringify($BU_finalJSON));
+    // Disable form controls
+    $("#BU_Reset").prop("disabled", true);
+    $("#BU_Run").prop("disabled", true);
+
+    // spawn the final script
+    var args = ["-noninteractive", "-executionpolicy", "bypass", "-file", `${$rootDir}\\scripts\\install-trbonet\\install-trbonet.ps1`, "-json", JSON.stringify($BU_finalJSON)];
+    $BU_scriptProcess = spawn(psPath, args);
+
+
+    $("#BU_Nav2").trigger('click');
+
+    $BU_scriptProcess.stdout.on('data', (data) => {
+        if (data) {
+            data = data.toString('utf8');
+            $('#BU_Log').prepend(data);
+            // console.log(data);
+        }
+    });
+
+    $BU_scriptProcess.stderr.on('data', (data) => {
+        if (data) {
+            data = data.toString('utf8');
+            $('#BU_Log').prepend(data);
+            // console.log(data);
+        }
+    });
+
+    $BU_scriptProcess.on('close', (code) => {
+        $('#BU_Log').prepend(`finished with code ${code}\n`);
+        $("#BU_Run").prop("disabled", false);
+        $("#BU_Reset").prop("disabled", false);
+        $BU_scriptProcess = null
+    });
+});
+
+$("#BU_Abort").click(function () {
+    if ($BU_scriptProcess) {
+        process.kill($BU_scriptProcess.pid);
+        $BU_scriptProcess = null
+    }
+    $("#BU_Run").prop("disabled", false);
+    $("#BU_Reset").prop("disabled", false);
+    $("#BU_Edit").prop("disabled", false);
+});
+
+$("#BU_Reset").click(function () {
+    $("#BU_Nav1").trigger('click');
+    $BU_editor.destroy();
+    $BU_editor = new JSONEditor($BU_element, {
+        schema: $BU_schema
+    });
+    $("#BU_Validate").prop("disabled", false);
+    $("#BU_Run").prop("disabled", true);
+
+    //show initial button state new buttons
+    $("#BU_Validate").css("display", "none");
+    $("#BU_Run").css("display", "none");
+    $("#BU_GetUsers").css("display", "initial");
+    $("#BU_GetUsers").prop("disabled", false);
+});
