@@ -27,39 +27,13 @@ var $BU_schema = {
                 "grid_columns": 12
             },
             "default": false
-        }
-    }
-}
-
-var $BU_schema2 = {
-    "title": "Backup User Profiles",
-    "type": "object",
-    "format": "grid-strict",
-    "description": "This program will give you a list of users detected on the target computer. Then we can back them up to a remote location to restore on another computer/windows install",
-    "properties": {
-        "ComputerName": {
-            "type": "string",
-            "title": "Computer Name",
-            "minLength": 1,
-            "options": {
-                "grid_columns": 12,
-                "inputAttributes": {
-                    "placeholder": "cdcvicws-00001"
-                },
-                "infoText": "Name of the remote computer we will be backing up the user profiles",
-                "dependencies": {
-                    "LocalHost": false
-                }
-            }
         },
-        "LocalHost": {
+        "Phase1": {
             "type": "boolean",
-            "format": "checkbox",
-            "title": "Run Script Locally",
+            "default": false,
             "options": {
-                "grid_columns": 12
-            },
-            "default": false
+                "hidden": true
+            }
         },
         "Users": {
             "title": "Users to Back Up",
@@ -78,6 +52,9 @@ var $BU_schema2 = {
                 "grid_columns": 12,
                 "selectize": {
                     "create": false
+                },
+                "dependencies": {
+                    "Phase1": true
                 }
             }
         },
@@ -87,7 +64,10 @@ var $BU_schema2 = {
             "title": "Backup Location",
             "enum": ["Local Drive", "Network Drive"],
             "options": {
-                "grid_columns": 12
+                "grid_columns": 12,
+                "dependencies": {
+                    "Phase1": true
+                }
             }
         },
         "LocalDrive": {
@@ -100,7 +80,8 @@ var $BU_schema2 = {
                     "placeholder": "D:\\MyBackup"
                 },
                 "dependencies": {
-                    "RadioButtons": "Local Drive"
+                    "RadioButtons": "Local Drive",
+                    "Phase1": true
                 },
                 "infoText": "The local folder *on the target machine* that you want to save the profile data"
             }
@@ -117,7 +98,8 @@ var $BU_schema2 = {
                     "placeholder": "\\\\networkdrive\\backup"
                 },
                 "dependencies": {
-                    "RadioButtons": "Network Drive"
+                    "RadioButtons": "Network Drive",
+                    "Phase1": true
                 },
                 "infoText": "The local folder *on the target machine* that you want to save the profile data. If it does not exist, it will be created."
             }
@@ -132,7 +114,8 @@ var $BU_schema2 = {
                     "placeholder": "domain.com.au\\firstname.lastname"
                 },
                 "dependencies": {
-                    "RadioButtons": "Network Drive"
+                    "RadioButtons": "Network Drive",
+                    "Phase1": true
                 },
                 "infoText": "The username and password for the user who has permissions to map the network drive. This is required (even if you have permissions) due to double hop rules"
             }
@@ -148,12 +131,14 @@ var $BU_schema2 = {
                 },
                 "grid_columns": 6,
                 "dependencies": {
-                    "RadioButtons": "Network Drive"
+                    "RadioButtons": "Network Drive",
+                    "Phase1": true
                 }
             }
-        },
+        }
     }
 }
+
 
 
 //initializations
@@ -162,38 +147,49 @@ var $BU_editor = new JSONEditor($BU_element, {
     schema: $BU_schema
 });
 
+function getMethods(obj)
+{
+    var res = [];
+    for(var m in obj) {
+        if(typeof obj[m] == "function") {
+            res.push(m)
+        }
+    }
+    return res;
+}
+
 $("#BU_GetUsers").click(function () {
     if (!($BU_editor.validate().length)) {
 
         //disable the button we just clicked
         $("#BU_GetUsers").prop("disabled", true);
         $("#BU_GetUsersAlert").css("display", "none");
-
         //disable the form
         $BU_editor.disable();
 
         //get the form data
-        GetUsersJSON = JSON.stringify($BU_editor.getValue());
+        Phase1Data = $BU_editor.getValue()
+        Phase1Json = JSON.stringify(Phase1Data);
 
         //run the powershell script that gets our users
-        exec(`"${psPath}" -noninteractive -executionpolicy bypass "${$rootDir}\\scripts\\backup-user-profiles\\gui\\bu-get-users.ps1" -json ${GetUsersJSON}`, (error, stdout, stderr) => {
+        exec(`"${psPath}" -noninteractive -executionpolicy bypass "${$rootDir}\\scripts\\backup-user-profiles\\gui\\bu-get-users.ps1" -json ${Phase1Json}`, (error, stdout, stderr) => {
             if (stdout) {
                 //receive the output
                 gatheredData = JSON.parse(stdout);
 
-                //use the output to set our next form's values
-                $BU_schema2.properties.Users.items.enum = gatheredData.name
-                $BU_schema2.properties.Users.items.options.enum_titles = gatheredData.description
+                //generate a new form based on the first form's schema
+                $BU_schema2 = JSON.parse(JSON.stringify($BU_schema));
 
-                //set the default values that we've already determined from the previous form
-                $BU_schema2.properties.ComputerName.default = $BU_editor.getValue().ComputerName
-                $BU_schema2.properties.LocalHost.default = $BU_editor.getValue().LocalHost
+                //use the output to set our next form's values
+                $BU_schema2.properties.Users.items.enum = gatheredData.name;
+                $BU_schema2.properties.Users.items.options.enum_titles = gatheredData.description;
+                $BU_schema2.properties.Phase1.default = true;
+                $BU_schema2.properties.ComputerName.default = Phase1Data.ComputerName
+                $BU_schema2.properties.LocalHost.default = Phase1Data.LocalHost
 
                 //create the form again with the updated schema
                 $BU_editor.destroy();
-                $BU_editor = new JSONEditor($BU_element, {
-                    schema: $BU_schema2
-                });
+                $BU_editor = new JSONEditor($BU_element, {schema: $BU_schema2});
 
                 //disable the parts we've already determined
                 $BU_editor.getEditor('root.ComputerName').disable();
