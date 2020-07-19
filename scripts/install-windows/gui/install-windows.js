@@ -5,7 +5,7 @@ var $WI_schema = {
     "title": "Install Windows",
     "type": "object",
     "format": "grid-strict",
-    "description": "This program is designed to be used with a PE Environment Only. Used to provide a gui assisted installation of windows",
+    "description": "This program is designed to be used with a PE Environment Only. Used to provide a gui assisted installation of windows. NOTE: Only compatible with windows 10 and server 2016 or newer",
     "required": [
         "DiskNumber",
         "ImageLocation",
