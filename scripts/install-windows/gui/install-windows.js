@@ -28,6 +28,14 @@ var $WI_schema = {
 
             }
         },
+        "Phase2": {
+            "type": "boolean",
+            "default": false,
+            "options": {
+                "grid_columns": 12,
+                "hidden": true,
+            }
+        },
         "DiskNumber": {
             "title": "Disk to be Wiped",
             "type": "integer",
@@ -36,6 +44,9 @@ var $WI_schema = {
             "default": 0,
             "options": {
                 "grid_columns": 12,
+                "dependencies": {
+                    "Phase2": true
+                },
                 "enum_titles": []
             }
         },
@@ -47,6 +58,9 @@ var $WI_schema = {
             "default": 6,
             "options": {
                 "grid_columns": 12,
+                "dependencies": {
+                    "Phase2": true
+                },
                 "enum_titles": []
             }
         },
@@ -58,6 +72,9 @@ var $WI_schema = {
             "pattern": "[^.:|\\\\/*?<>\"][^:|\\\\/*?<>\"]*$",
             "options": {
                 "grid_columns": 12,
+                "dependencies": {
+                    "Phase2": true
+                },
                 "patternmessage": "The name must follow microsoft guidelines: (https://support.microsoft.com/en-au/help/909264/naming-conventions-in-active-directory-for-computers-domains-sites-and)",
                 "inputAttributes": {
                     "placeholder": "CDCVICxx-xxxxx"
@@ -76,6 +93,9 @@ var $WI_schema = {
             },
             "options": {
                 "grid_columns": 12,
+                "dependencies": {
+                    "Phase2": true
+                },
                 "selectize": {
                     "create": false
                 }
@@ -88,6 +108,9 @@ var $WI_schema = {
             "default": true,
             "options": {
                 "grid_columns": 12,
+                "dependencies": {
+                    "Phase2": true
+                },
                 "infoText": "Decide whether or not to install in UEFI mode. Unchecked defaults to MBR mode"
             }
         },
@@ -97,7 +120,10 @@ var $WI_schema = {
             "format": "checkbox",
             "default": false,
             "options": {
-                "grid_columns": 12
+                "grid_columns": 12,
+                "dependencies": {
+                    "Phase2": true
+                }
             }
         },
         "Domain": {
@@ -113,7 +139,8 @@ var $WI_schema = {
                     "placeholder": "domain.com.au"
                 },
                 "dependencies": {
-                    "EnableJoinDomain": true
+                    "EnableJoinDomain": true,
+                    "Phase2": true
                 },
                 "infoText": "The full FQDN (fully qualified domain name) for the domain we are joining"
             }
@@ -128,7 +155,8 @@ var $WI_schema = {
                     "placeholder": "firstname.lastname"
                 },
                 "dependencies": {
-                    "EnableJoinDomain": true
+                    "EnableJoinDomain": true,
+                    "Phase2": true
                 },
                 "infoText": "The username and password for the user who has permissions to join people to the domain"
             }
@@ -144,7 +172,8 @@ var $WI_schema = {
                 },
                 "grid_columns": 6,
                 "dependencies": {
-                    "EnableJoinDomain": true
+                    "EnableJoinDomain": true,
+                    "Phase2": true
                 }
             }
         },
@@ -155,6 +184,9 @@ var $WI_schema = {
             "default": false,
             "options": {
                 "grid_columns": 12,
+                "dependencies": {
+                    "Phase2": true
+                },
                 "infoText": "If you have a folder of drivers to integrate, you can enable that option"
             }
         },
@@ -168,7 +200,8 @@ var $WI_schema = {
                     "placeholder": "D:\\drivers"
                 },
                 "dependencies": {
-                    "IntegrateDrivers": true
+                    "IntegrateDrivers": true,
+                    "Phase2": true
                 },
                 "infoText": "the path of to the folder containing drivers. Example: D:\\ (for root) or D:\\subfolder"
             }
@@ -180,36 +213,46 @@ var $WI_schema = {
             "default": false,
             "options": {
                 "grid_columns": 12,
+                "dependencies": {
+                    "Phase2": true
+                },
                 "infoText": "Include the wifi profiles associated with CDC"
             }
         }
     }
 }
 
-function generateForm() {
-    $WI_imagePath = $("#WI_imagepath").val()
+//generate the form
+var $WI_element = $("#WI_Form")[0]
+var $WI_editor = new JSONEditor($WI_element, {schema: $WI_schema});
+$WI_editor.getEditor('root.ImageLocation').disable();
 
-    exec(`"${psPath}" -noninteractive -executionpolicy bypass "${$rootDir}\\scripts\\install-windows\\gui\\wi-gather-data.ps1" ${$WI_imagePath}`, (error, stdout, stderr) => {
+//We make a copy of the schema for phase 2,
+//so the original is available if we reset the form
+$WI_schema2 = JSON.parse(JSON.stringify($WI_schema));
+
+function generateForm($imagePath) {
+    exec(`"${psPath}" -noninteractive -executionpolicy bypass "${$rootDir}\\scripts\\install-windows\\gui\\wi-gather-data.ps1" ${$imagePath}`, (error, stdout, stderr) => {
         if (stdout) {
             gatheredData = JSON.parse(stdout);
-            console.log(gatheredData)
+            // console.log(gatheredData)
 
             //generate form based off gathered information
-            $WI_schema.properties.ImageLocation.enum = [$("#WI_imagepath").val()];
-            $WI_schema.properties.ImageIndex.enum = gatheredData.imageIndex;
-            $WI_schema.properties.ImageIndex.options.enum_titles = gatheredData.imageName;
-            $WI_schema.properties.DiskNumber.enum = gatheredData.driveIndex;
-            $WI_schema.properties.DiskNumber.options.enum_titles = gatheredData.driveCaption;
-            $WI_schema.properties.Installers.items.enum = gatheredData.Installers
+            $WI_schema2.properties.ImageIndex.enum = gatheredData.imageIndex;
+            $WI_schema2.properties.ImageIndex.options.enum_titles = gatheredData.imageName;
+            $WI_schema2.properties.DiskNumber.enum = gatheredData.driveIndex;
+            $WI_schema2.properties.DiskNumber.options.enum_titles = gatheredData.driveCaption;
+            $WI_schema2.properties.Installers.items.enum = gatheredData.Installers
+            $WI_schema2.properties.Phase2.default = true
 
-            $('#WI_Form').css("display", "initial");
-            $('#WI_FormValidate').css("display", "initial");
-            $('#WI_Header').css("display", "none");
-
-            var $WI_element = $("#WI_Form")[0]
-            $WI_editor = new JSONEditor($WI_element, {
-                schema: $WI_schema
-            });
+            $("#WI_Autodetect").css("display", "none");
+            $("#WI_Browse").css("display", "none");
+            $("#WI_Validate").css("display", "initial");
+            $("#WI_Run").css("display", "initial");
+            
+            $WI_editor.destroy();
+            $WI_editor = new JSONEditor($WI_element, {schema: $WI_schema2});
+            $WI_editor.getEditor('root.ImageLocation').disable();
             return;
         }
         if (stderr) {
@@ -224,36 +267,41 @@ function generateForm() {
 }
 
 
-$("#WI_browseimage").click(function () {
+$("#WI_Browse").click(function () {
+
+    $("#WI_Browse").attr("disabled", true);
+    $("#WI_Autodetect").attr("disabled", true);
+
     dialog.showOpenDialog({ properties: ['openFile'], filters: [{ name: 'Image Files', extensions: ['wim', 'swm'] }] }).then(result => {
         if (result.filePaths.length != 0) {
-            $("#WI_autodetectimage").attr("disabled", true);
-            $("#WI_browseimage").attr("disabled", true);
-            $("#WI_imagepath").val(result.filePaths);
-            generateForm();
+            $WI_schema2.properties.ImageLocation.default = result.filePaths[0];
+            generateForm(result.filePaths[0]);
+        } else {
+            $("#WI_Browse").attr("disabled", false);
+            $("#WI_Autodetect").attr("disabled", false);
         }
     });
 });
 
-$("#WI_autodetectimage").click(function () {
-    $("#WI_autodetectimage").attr("disabled", true);
-    $("#WI_browseimage").attr("disabled", true);
+$("#WI_Autodetect").click(function () {
+    $("#WI_Browse").attr("disabled", true);
+    $("#WI_Autodetect").attr("disabled", true);
 
     exec(`"${psPath}" -noninteractive -executionpolicy bypass "${$rootDir}\\scripts\\install-windows\\gui\\wi-detect-image.ps1"`, (error, stdout, stderr) => {
         if (stdout) {
-            $("#WI_imagepath").val(stdout);
-            generateForm();
+            $WI_schema2.properties.ImageLocation.default = stdout;
+            generateForm(stdout);
             return;
         }
         if (stderr) {
             console.error(stderr);
-            $("#WI_autodetectimage").attr("disabled", false);
-            $("#WI_browseimage").attr("disabled", false);
+            $("#WI_Browse").attr("disabled", false);
+            $("#WI_Autodetect").attr("disabled", false);
             return;
         }
         if (error) {
-            $("#WI_autodetectimage").attr("disabled", false);
-            $("#WI_browseimage").attr("disabled", false);
+            $("#WI_Browse").attr("disabled", false);
+            $("#WI_Autodetect").attr("disabled", false);
             console.error(error);
             return;
         }
@@ -284,15 +332,25 @@ $("#WI_Edit").click(function () {
 $("#WI_Reset").click(function () {
     $("#WI_Nav1").trigger('click');
     $WI_editor.destroy();
-    $("#WI_Validate").css("display", "initial");
+
+    //set buttons to initial values
+    $("#WI_Validate").prop("disabled", false);
+    $("#WI_Validate").css("display", "none");
+
     $("#WI_Run").prop("disabled", true);
-    $("#WI_imagepath").val(null);
-    $('#WI_Form').css("display", "none");
-    $('#WI_FormValidate').css("display", "none");
-    $('#WI_Header').css("display", "initial");
-    $("#WI_autodetectimage").attr("disabled", false);
-    $("#WI_browseimage").attr("disabled", false);
+    $("#WI_Run").css("display", "none");
+
     $("#WI_Edit").css("display", "none");
+
+    $("#WI_Autodetect").attr("disabled", false);
+    $("#WI_Autodetect").css("display", "initial");
+
+    $("#WI_Browse").attr("disabled", false);
+    $("#WI_Browse").css("display", "initial");
+
+    //generate the form again
+    $WI_editor = new JSONEditor($WI_element, {schema: $WI_schema});
+    $WI_editor.getEditor('root.ImageLocation').disable();
 });
 
 $("#WI_Run").click(function () {

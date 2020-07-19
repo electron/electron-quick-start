@@ -28,7 +28,7 @@ var $BU_schema = {
             },
             "default": false
         },
-        "Phase1": {
+        "Phase2": {
             "type": "boolean",
             "default": false,
             "options": {
@@ -54,7 +54,7 @@ var $BU_schema = {
                     "create": false
                 },
                 "dependencies": {
-                    "Phase1": true
+                    "Phase2": true
                 }
             }
         },
@@ -66,7 +66,7 @@ var $BU_schema = {
             "options": {
                 "grid_columns": 12,
                 "dependencies": {
-                    "Phase1": true
+                    "Phase2": true
                 }
             }
         },
@@ -77,11 +77,11 @@ var $BU_schema = {
             "options": {
                 "grid_columns": 12,
                 "inputAttributes": {
-                    "placeholder": "D:\\MyBackup"
+                    "placeholder": "D:\\MyBackup\\NameOfBackup"
                 },
                 "dependencies": {
                     "RadioButtons": "Local Drive",
-                    "Phase1": true
+                    "Phase2": true
                 },
                 "infoText": "The local folder *on the target machine* that you want to save the profile data"
             }
@@ -95,11 +95,11 @@ var $BU_schema = {
                 "grid_columns": 12,
                 "patternmessage": "The path should follow UNC path guidelines (\\\\server\\path)",
                 "inputAttributes": {
-                    "placeholder": "\\\\networkdrive\\backup"
+                    "placeholder": "\\\\networkdrive\\backup\\NameOfBackup"
                 },
                 "dependencies": {
                     "RadioButtons": "Network Drive",
-                    "Phase1": true
+                    "Phase2": true
                 },
                 "infoText": "The local folder *on the target machine* that you want to save the profile data. If it does not exist, it will be created."
             }
@@ -115,7 +115,7 @@ var $BU_schema = {
                 },
                 "dependencies": {
                     "RadioButtons": "Network Drive",
-                    "Phase1": true
+                    "Phase2": true
                 },
                 "infoText": "The username and password for the user who has permissions to map the network drive. This is required (even if you have permissions) due to double hop rules"
             }
@@ -132,7 +132,7 @@ var $BU_schema = {
                 "grid_columns": 6,
                 "dependencies": {
                     "RadioButtons": "Network Drive",
-                    "Phase1": true
+                    "Phase2": true
                 }
             }
         }
@@ -143,20 +143,7 @@ var $BU_schema = {
 
 //initializations
 var $BU_element = $("#BU_Form")[0]
-var $BU_editor = new JSONEditor($BU_element, {
-    schema: $BU_schema
-});
-
-function getMethods(obj)
-{
-    var res = [];
-    for(var m in obj) {
-        if(typeof obj[m] == "function") {
-            res.push(m)
-        }
-    }
-    return res;
-}
+var $BU_editor = new JSONEditor($BU_element, {schema: $BU_schema});
 
 $("#BU_GetUsers").click(function () {
     if (!($BU_editor.validate().length)) {
@@ -168,24 +155,26 @@ $("#BU_GetUsers").click(function () {
         $BU_editor.disable();
 
         //get the form data
-        Phase1Data = $BU_editor.getValue()
-        Phase1Json = JSON.stringify(Phase1Data);
+        Phase2Data = $BU_editor.getValue()
+        Phase2Json = JSON.stringify(Phase2Data);
 
         //run the powershell script that gets our users
-        exec(`"${psPath}" -noninteractive -executionpolicy bypass "${$rootDir}\\scripts\\backup-user-profiles\\gui\\bu-get-users.ps1" -json ${Phase1Json}`, (error, stdout, stderr) => {
+        exec(`"${psPath}" -noninteractive -executionpolicy bypass "${$rootDir}\\scripts\\backup-user-profiles\\gui\\bu-get-users.ps1" -json ${Phase2Json}`, (error, stdout, stderr) => {
             if (stdout) {
                 //receive the output
                 gatheredData = JSON.parse(stdout);
 
-                //generate a new form based on the first form's schema
+                //generate a new form based on the first form's schema.
+                //We make a copy so the original is available if we reset the form
                 $BU_schema2 = JSON.parse(JSON.stringify($BU_schema));
 
-                //use the output to set our next form's values
+                //use the output to set our next form's values.
+                //The Phase2 boolean unlocks the rest of our form
                 $BU_schema2.properties.Users.items.enum = gatheredData.name;
                 $BU_schema2.properties.Users.items.options.enum_titles = gatheredData.description;
-                $BU_schema2.properties.Phase1.default = true;
-                $BU_schema2.properties.ComputerName.default = Phase1Data.ComputerName
-                $BU_schema2.properties.LocalHost.default = Phase1Data.LocalHost
+                $BU_schema2.properties.Phase2.default = true;
+                $BU_schema2.properties.ComputerName.default = Phase2Data.ComputerName
+                $BU_schema2.properties.LocalHost.default = Phase2Data.LocalHost
 
                 //create the form again with the updated schema
                 $BU_editor.destroy();
@@ -249,6 +238,8 @@ $("#BU_Edit").click(function () {
     $("#BU_Validate").css("display", "initial");
     $("#BU_Run").prop("disabled", true);
     $BU_editor.enable();
+    $BU_editor.getEditor('root.ComputerName').disable();
+    $BU_editor.getEditor('root.LocalHost').disable();
 });
 
 $("#BU_Run").click(function () {

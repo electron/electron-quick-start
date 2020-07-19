@@ -32,7 +32,7 @@ import-module "/tmp/files/Modules/Get-VariableValues.psm1"
 
 #------------------------------------------------------[Local Variables]--------------------------------------------------------
 
-$installList = @("feh", "i3", "tmux", "xdotool", "unclutter", "cockpit", "cockpit-packagekit")
+$installList = @("feh", "i3", "tmux", "xdotool", "unclutter", "cockpit", "cockpit-packagekit", "ttf-mscorefonts-installer")
 
 #Set-PSDebug -trace 0
 
@@ -66,7 +66,7 @@ if($config.EnableBrowser -or $config.customStartup) {
 
 apt-get install $installList -qy -o Dpkg::Options::=`"--force-confnew`"
 
-#delete all users with of 1000 or over
+#delete all users with a UID of 1000 or over (basically non-system users)
 write-host "removing any previously configured users (including installation user)..."
 $users = get-content "/etc/passwd" | select-string -pattern ":1[0-9][0-9][0-9]"
 
@@ -131,6 +131,7 @@ $parsedJSON = ConvertFrom-Json (get-content "$pwd/files/etc/chromium-browser/pol
 $parsedJSON.psobject.properties | ForEach-Object { $chromeConfig[$_.Name] = $_.Value }
 $chromeConfig.HomepageLocation = $config.BrowserURL
 
+#If we have been provided any websites to whitelist, we institute that whitelist as well as a global blacklist
 if ($config.BrowserURLWhitelist) {
     $chromeConfig.URLWhitelist = $config.BrowserURLWhitelist
     $chromeConfig.URLBlacklist = @(,"*")
@@ -185,7 +186,7 @@ bash -c "set -x && cat /dev/null > /root/.bash_history && history -c && exit"
 
 # Reboot on finish
 write-output "rebooting in 30 seconds"
-#put in a one minute delay to allow things like meshcentral to finish initializing
+#put in a 30 second delay to allow things like meshcentral to finish initializing
 start-sleep 29
 write-output 'finished script'
 start-sleep 1

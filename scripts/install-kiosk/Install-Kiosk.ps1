@@ -158,7 +158,8 @@ else {
 #region validationchecks
 
 
-# Note: we need all passwords in plaintext because there is no secure method of password transmission to linux via powershell.
+# Note: we need all passwords in plaintext because there is no secure method of password transmission to linux via powershell. Note that
+# this is *sort* of OK because we are transferring the parameters via SSH which is an encrypted tunnel. Not ideal, but secure enough.
 
 if (!($config.username)) {
     $config.UserName = [PSCredential]::new($config.Credential).GetNetworkCredential().UserName
@@ -207,9 +208,11 @@ if ($LASTEXITCODE -ne 0) {
 
 #get the architecture to determine what device we are installing on
 $plinkArgs = @("-batch", "-ssh", "-pw", $config.plaintextpassword, "$($config.username)@$($config.ComputerName)", "cat /etc/os-release")
-# $arch = &"$plinkloc" $plinkArgs | select-string -pattern "ID=(.*)$"
+
+#this parses the text to get the architecture
 $config.architecture = (&"$plinkloc" $plinkArgs | select-string -pattern "^ID=(.*)").matches.groups[1].value
 write-output $arch
+
 if($config.architecture -eq "ubuntu") {
     write-output "Detected destination kiosk as a ubuntu kiosk"
 } elseif ($config.architecture -eq "raspbian") {
