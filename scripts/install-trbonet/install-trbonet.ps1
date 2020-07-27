@@ -4,7 +4,7 @@
 param(
     [parameter(ParameterSetName = 'cmd')] [string]$ComputerName,
     [parameter(ParameterSetName = 'cmd')] [PSCredential] $Credential,
-    [parameter(ParameterSetName = 'cmd')] [string]$NasName,
+    [parameter(ParameterSetName = 'cmd')] [string]$trbonetPath,
     [parameter(ParameterSetName = 'json', Mandatory = $true)] [string]$JSON,
     [string]$Logfile
 )
@@ -84,17 +84,6 @@ if ($config.LogFile) {
 #-----------------------------------------------------[Validation Checks]--------------------------------------------------------
 #region validationchecks
 
-
-# Note: we need all passwords in plaintext because there is no secure method of password transmission to linux via powershell.
-
-if (!($config.username)) {
-    $config.UserName = [PSCredential]::new($config.Credential).GetNetworkCredential().UserName
-}
-
-if (!($config.plaintextpassword)) {
-    $config.PlainTextPassword = [PSCredential]::new($config.Credential).GetNetworkCredential().Password
-}
-
 #endregion
 
 #----------------------------------------------------[Functions]-------------------------------------------------------------------
@@ -107,9 +96,10 @@ function installTrbonet($JSON) {
     $cred = New-Object System.Management.Automation.PSCredential ($config.username, $password)
 
     #mount shared folder
-    write-output "mounting \\$($config.NasName)\Published Training"
+    $trboNetFolder = split-path $config.trbonetPath
+    write-output "mounting $trboNetFolder"
     try {
-        New-PSDrive -Name "Q" -Root "\\$($config.NasName)\Published Training" -Persist -PSProvider "FileSystem" -Credential $cred -ErrorAction stop
+        New-PSDrive -Name "trbonet" -Root $trboNetFolder -PSProvider "FileSystem" -Credential $cred -ErrorAction stop
     }
     catch {
         write-error "could not mount network share, exiting"
@@ -120,15 +110,32 @@ function installTrbonet($JSON) {
 
     Get-Process "trbo*" | Stop-Process -force -confirm:$false
 
+    write-output "backing up any existing trbonet configs"
+    foreach ($user in ((Get-ChildItem "C:\users\*").basename)) {
+        $path = "C:\users\$user\appdata\roaming\Neocom Software"
+        if (test-path $path) {
+            move-item $path $path.bak -force -confirm:$false
+        }
+    }
+
     write-output "Uninstalling all previous TRBOnets"
     wmic product where "name like 'TRBOnet%'" call uninstall
 
     write-output "Installing TRBOnet Plus"
-    &"Q:\zz_IT Use Only\TRBOnet_Plus_5.5.0.3135.exe" /qn
+    &$config.trbonetPath /qn
     write-output "waiting for install to finish"
     do {
         start-sleep 5
     } while (get-process | select-string "TRBO")
+
+    write-output "moving configs back"
+    foreach ($user in ((Get-ChildItem "C:\users\*").basename)) {
+        $path = "C:\users\$user\appdata\roaming\Neocom Software"
+        if (test-path "$path.bak") {
+            move-item "$path.bak" $path -force -confirm:$false
+        }
+    }
+
     write-output "finished!"
 }
 

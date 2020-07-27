@@ -38,15 +38,16 @@ var $IT_schema = {
                 }
             }
         },
-        "NasName": {
+        "trbonetPath": {
             "type": "string",
             "propertyOrder": 4,
-            "title": "Local NAS Name/IP",
+            "title": "UNC Path of the TRBONet Installer",
             "minLength": 1,
             "options": {
                 "inputAttributes": {
-                    "placeholder": "wyndhamnas.westbus.com.au"
-                }
+                    "placeholder": "\\\\wyndhamnas.westbus.com.au\\public\\trbonet.exe"
+                },
+                "infoText": "the network location of the installer. Note that the credentials you use for remoting will also be used for mounting the shared folder"
             }
         },
     }

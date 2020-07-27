@@ -16,6 +16,6 @@ $images = Get-WindowsImage -ImagePath $args[0] | select-object -property "ImageI
 $config.imageName = [String[]]$images.imageName
 $config.imageIndex = [Int[]]$images.imageIndex
 
-$config.Installers = [String[]]((Get-ChildItem $psscriptroot\..\files\deploy\installers).name)
+$config.Installers = [String[]]((Get-ChildItem $psscriptroot\..\..\..\installers).name)
 
 ConvertTo-Json $config
