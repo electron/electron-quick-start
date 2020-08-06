@@ -58,6 +58,10 @@ var $IT_element = $("#IT_Form")[0]
 var $IT_editor = new JSONEditor($IT_element, {
     schema: $IT_schema
 });
+$IT_log.setTheme("ace/theme/xcode");
+$IT_log.session.setMode("ace/mode/mediawiki");
+$IT_log.setReadOnly(true);
+$IT_log.setAutoScrollEditorIntoView(true);
 
 $("#IT_Validate").click(function () {
     if (!($IT_editor.validate().length)) {
@@ -94,20 +98,39 @@ $("#IT_Run").click(function () {
     $IT_scriptProcess.stdout.on('data', (data) => {
         data = cleanString(data.toString('utf8'));
         if (data.length > 0) {
-            $('#IT_Log').append(data + "\n");
+            $IT_log.session.insert({
+                row: $IT_log.session.getLength(),
+                column: 0
+            }, (data + "\n"));
+
+            if ($("#IT_Autoscroll")[0].checked) {
+                $IT_log.gotoLine($IT_log.session.getLength());
+            }
         }
     });
 
     $IT_scriptProcess.stderr.on('data', (data) => {
-        if (data) {
-            data = data.toString('utf8');
-            $('#IT_Log').append(data);
-            // console.log(data);
+        data = cleanString(data.toString('utf8'));
+        if (data.length > 0) {
+            $IT_log.session.insert({
+                row: $IT_log.session.getLength(),
+                column: 0
+            }, (data + "\n"));
+
+            if ($("#IT_Autoscroll")[0].checked) {
+                $IT_log.gotoLine($IT_log.session.getLength());
+            }
         }
     });
 
     $IT_scriptProcess.on('close', (code) => {
-        $('#IT_Log').append(`finished with code ${code}\n`);
+        $IT_log.session.insert({
+            row: $IT_log.session.getLength(),
+            column: 0
+        }, (`finished with code ${code}\n`));
+        if ($("#IT_Autoscroll")[0].checked) {
+            $IT_log.gotoLine($IT_log.session.getLength());
+        }
         $("#IT_Run").prop("disabled", false);
         $("#IT_Reset").prop("disabled", false);
         $IT_scriptProcess = null

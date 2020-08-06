@@ -221,10 +221,16 @@ var $WI_schema = {
         }
     }
 }
+var $WI_log = ace.edit("WI_Log");
+$WI_log.setTheme("ace/theme/xcode");
+$WI_log.session.setMode("ace/mode/mediawiki");
+$WI_log.setReadOnly(true);
+$WI_log.setAutoScrollEditorIntoView(true);
+
 
 //generate the form
 var $WI_element = $("#WI_Form")[0]
-var $WI_editor = new JSONEditor($WI_element, {schema: $WI_schema});
+var $WI_editor = new JSONEditor($WI_element, { schema: $WI_schema });
 $WI_editor.getEditor('root.ImageLocation').disable();
 
 //We make a copy of the schema for phase 2,
@@ -249,9 +255,9 @@ function generateForm($imagePath) {
             $("#WI_Browse").css("display", "none");
             $("#WI_Validate").css("display", "initial");
             $("#WI_Run").css("display", "initial");
-            
+
             $WI_editor.destroy();
-            $WI_editor = new JSONEditor($WI_element, {schema: $WI_schema2});
+            $WI_editor = new JSONEditor($WI_element, { schema: $WI_schema2 });
             $WI_editor.getEditor('root.ImageLocation').disable();
             return;
         }
@@ -349,7 +355,7 @@ $("#WI_Reset").click(function () {
     $("#WI_Browse").css("display", "initial");
 
     //generate the form again
-    $WI_editor = new JSONEditor($WI_element, {schema: $WI_schema});
+    $WI_editor = new JSONEditor($WI_element, { schema: $WI_schema });
     $WI_editor.getEditor('root.ImageLocation').disable();
 });
 
@@ -370,20 +376,39 @@ $("#WI_Run").click(function () {
     $WI_scriptProcess.stdout.on('data', (data) => {
         data = cleanString(data.toString('utf8'));
         if (data.length > 0) {
-            $('#WI_Log').append(data + "\n");
+            $WI_log.session.insert({
+                row: $WI_log.session.getLength(),
+                column: 0
+            }, (data + "\n"));
+
+            if ($("#WI_Autoscroll")[0].checked) {
+                $WI_log.gotoLine($WI_log.session.getLength());
+            }
         }
     });
 
     $WI_scriptProcess.stderr.on('data', (data) => {
-        if (data) {
-            data = data.toString('utf8');
-            $('#WI_Log').append(data);
-            // console.log(data);
+        data = cleanString(data.toString('utf8'));
+        if (data.length > 0) {
+            $WI_log.session.insert({
+                row: $WI_log.session.getLength(),
+                column: 0
+            }, (data + "\n"));
+
+            if ($("#WI_Autoscroll")[0].checked) {
+                $WI_log.gotoLine($WI_log.session.getLength());
+            }
         }
     });
 
     $WI_scriptProcess.on('close', (code) => {
-        $('#WI_Log').append(`finished with code ${code}\n`);
+        $WI_log.session.insert({
+            row: $WI_log.session.getLength(),
+            column: 0
+        }, (`finished with code ${code}\n`));
+        if ($("#WI_Autoscroll")[0].checked) {
+            $WI_log.gotoLine($WI_log.session.getLength());
+        }
         $("#WI_Reset").prop("disabled", false);
         $("#WI_Edit").prop("disabled", false);
         $("#WI_Run").prop("disabled", false);

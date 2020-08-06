@@ -20,7 +20,7 @@ function cleanString(input) {
 
     //remove null or invalid characters
     var output = "";
-    for (var i=0; i<input.length; i++) {
+    for (var i = 0; i < input.length; i++) {
         if (input.charCodeAt(i) <= 127 && input.charCodeAt(i) > 0) {
             output += input.charAt(i);
         }
@@ -28,6 +28,12 @@ function cleanString(input) {
 
     //trim any unnecessary whitespace
     output = $.trim(output)
+
+    //add timestamps
+    if (output.length > 0) {
+        output = '[' + new Date().toLocaleTimeString() + "] " + output
+        output = output.replace(/(?:(?:\r\n|\r|\n)\s*){1}/gm, '\n[' + new Date().toLocaleTimeString() + "] ");
+    }
 
     return output;
 }
@@ -71,11 +77,13 @@ function getRootDir() {
 
 
 //searchable section menu
-$("#section-input").selectize({create: false, maxItems: 1,
+$("#section-input").selectize({
+    create: false, maxItems: 1,
     sortField: 'text',
-onItemAdd(value) {
-    $(`#${value}`).trigger('click');
-}})
+    onItemAdd(value) {
+        $(`#${value}`).trigger('click');
+    }
+})
 
 $rootDir = getRootDir();
 
@@ -84,7 +92,7 @@ var psPath = $rootDir + "\\tools\\pwsh\\pwsh.exe";
 //let's import our subcategories
 for (var key in $scripts) {
     //add each section to the search box
-    $("#section-input")[0].selectize.addOption({value: (key), text: ($('#'+ key).text())});
+    $("#section-input")[0].selectize.addOption({ value: (key), text: ($('#' + key).text()) });
 
     var $targetHTML = $rootDir + "\\" + $scripts[key] + ".html";
     var data = fs.readFileSync($targetHTML);

@@ -159,6 +159,11 @@ var $BU_schema = {
 //initializations
 var $BU_element = $("#BU_Form")[0]
 var $BU_editor = new JSONEditor($BU_element, { schema: $BU_schema });
+var $BU_log = ace.edit("BU_Log");
+$BU_log.setTheme("ace/theme/xcode");
+$BU_log.session.setMode("ace/mode/mediawiki");
+$BU_log.setReadOnly(true);
+$BU_log.setAutoScrollEditorIntoView(true);
 
 $("#BU_GetUsers").click(function () {
     if (!($BU_editor.validate().length)) {
@@ -272,19 +277,38 @@ $("#BU_Run").click(function () {
     $BU_scriptProcess.stdout.on('data', (data) => {
         data = cleanString(data.toString('utf8'));
         if (data.length > 0) {
-            $('#BU_Log').append(data + "\n");
+            $BU_log.session.insert({
+                row: $BU_log.session.getLength(),
+                column: 0
+            }, (data + "\n"));
+
+            if ($("#BU_Autoscroll")[0].checked) {
+                $BU_log.gotoLine($BU_log.session.getLength());
+            }
         }
     });
 
     $BU_scriptProcess.stderr.on('data', (data) => {
-        if (data) {
-            data = data.toString('utf8');
-            $('#BU_Log').append(data);
+        if (data.length > 0) {
+            $BU_log.session.insert({
+                row: $BU_log.session.getLength(),
+                column: 0
+            }, (data + "\n"));
+
+            if ($("#BU_Autoscroll")[0].checked) {
+                $BU_log.gotoLine($BU_log.session.getLength());
+            }
         }
     });
 
     $BU_scriptProcess.on('close', (code) => {
-        $('#BU_Log').append(`finished with code ${code}\n`);
+        $BU_log.session.insert({
+            row: $BU_log.session.getLength(),
+            column: 0
+        }, (`finished with code ${code}\n`));
+        if ($("#BU_Autoscroll")[0].checked) {
+            $BU_log.gotoLine($BU_log.session.getLength());
+        }
         $("#BU_Run").prop("disabled", false);
         $("#BU_Reset").prop("disabled", false);
         $BU_scriptProcess = null
