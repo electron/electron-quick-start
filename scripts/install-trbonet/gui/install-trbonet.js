@@ -88,6 +88,7 @@ $("#IT_Run").click(function () {
     // Disable form controls
     $("#IT_Reset").prop("disabled", true);
     $("#IT_Run").prop("disabled", true);
+    $("#IT_Edit").prop("disabled", true);
 
     // spawn the final script
     var args = ["-noninteractive", "-executionpolicy", "bypass", "-file", `${$rootDir}\\scripts\\install-trbonet\\install-trbonet.ps1`, "-json", JSON.stringify($IT_finalJSON)];

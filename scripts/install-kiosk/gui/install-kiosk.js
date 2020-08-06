@@ -314,6 +314,7 @@ $("#IK_Run").click(function () {
     // Disable form controls
     $("#IK_Reset").prop("disabled", true);
     $("#IK_Run").prop("disabled", true);
+    $("#IK_Edit").prop("disabled", false);
 
     // spawn the final script
     var args = ["-noninteractive", "-executionpolicy", "bypass", "-file", `${$rootDir}\\scripts\\install-kiosk\\Install-Kiosk.ps1`, "-json", JSON.stringify($IK_finalJSON)];

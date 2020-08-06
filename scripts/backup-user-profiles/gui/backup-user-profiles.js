@@ -266,6 +266,7 @@ $("#BU_Run").click(function () {
     // Disable form controls
     $("#BU_Reset").prop("disabled", true);
     $("#BU_Run").prop("disabled", true);
+    $("#BU_Edit").prop("disabled", true);
 
     // spawn the final script
     var args = ["-noninteractive", "-executionpolicy", "bypass", "-file", `${$rootDir}\\scripts\\backup-user-profiles\\backup-user-profiles.ps1`, "-json", JSON.stringify($BU_finalJSON)];

@@ -16,7 +16,7 @@ const dialog = remote.dialog;
 //generic functions
 function cleanString(input) {
     //remove any empty lines
-    input = input.replace(/(?:(?:\r\n|\r|\n)\s*){2}/gm, "");
+    input = input.replace(/(?:(?:\r\n|\r|\n)\s*){2}/gm, "\n");
 
     //remove null or invalid characters
     var output = "";
@@ -110,27 +110,36 @@ $("#home").css("display", "");
 //main menu button actions
 $("#menu-install-windows").click(function () {
     $("section").css("display", "none");
+    $("#main-list").children().css("font-weight","Normal");
     $("#install-windows").css("display", "");
+    $("#menu-install-windows").css("font-weight","Bold");
 });
 
 $("#menu-home").click(function () {
+    $("#main-list").children().css("font-weight","Normal");
     $("section").css("display", "none");
     $("#home").css("display", "");
 });
 
 $("#menu-install-kiosk").click(function () {
+    $("#main-list").children().css("font-weight","Normal");
     $("section").css("display", "none");
     $("#install-kiosk").css("display", "");
+    $("#menu-install-kiosk").css("font-weight","Bold");
 });
 
 $("#menu-install-trbonet").click(function () {
+    $("#main-list").children().css("font-weight","Normal");
     $("section").css("display", "none");
     $("#install-trbonet").css("display", "");
+    $("#menu-install-trbonet").css("font-weight","Bold");
 });
 
 $("#menu-backup-user-profiles").click(function () {
+    $("#main-list").children().css("font-weight","Normal");
     $("section").css("display", "none");
     $("#backup-user-profiles").css("display", "");
+    $("#menu-backup-user-profiles").css("font-weight","Bold");
 });
 
 exec(`"${psPath}" -noninteractive -executionpolicy bypass "${$rootDir}\\scripts\\gather-computer-info.ps1"`, (error, stdout, stderr) => {
