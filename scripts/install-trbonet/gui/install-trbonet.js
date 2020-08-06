@@ -58,6 +58,7 @@ var $IT_element = $("#IT_Form")[0]
 var $IT_editor = new JSONEditor($IT_element, {
     schema: $IT_schema
 });
+var $IT_log = ace.edit("IT_Log");
 $IT_log.setTheme("ace/theme/xcode");
 $IT_log.session.setMode("ace/mode/mediawiki");
 $IT_log.setReadOnly(true);
