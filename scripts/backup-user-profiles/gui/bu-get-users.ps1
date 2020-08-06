@@ -84,7 +84,10 @@ function getUsers() {
     $items = Get-ItemProperty -path $path
     Foreach ($item in $items) {
         $objUser = New-Object System.Security.Principal.SecurityIdentifier($item.PSChildName)
-        $objName = $objUser.Translate([System.Security.Principal.NTAccount])
+        #we want to ignore errors here, so we don't catch
+        try {
+            $objName = $objUser.Translate([System.Security.Principal.NTAccount])
+        } catch {}
         $item.PSChildName = $objName.value
     }
     $items = $items | Where-Object {$_.pschildname -notlike "NT AUTHORITY*"}

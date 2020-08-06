@@ -111,10 +111,20 @@ function installTrbonet($JSON) {
     Get-Process "trbo*" | Stop-Process -force -confirm:$false
 
     write-output "backing up any existing trbonet configs"
+    if(test-path "C:\programdata\Neocom Software") {
+        if(test-path "C:\programdata\Neocom Software.bak") {
+            remove-item "C:\programdata\Neocom Software.bak" -Recurse -force -Confirm:$false
+        }
+        rename-item "C:\programdata\Neocom Software" "C:\programdata\Neocom Software.bak"
+    }
+
     foreach ($user in ((Get-ChildItem "C:\users\*").basename)) {
         $path = "C:\users\$user\appdata\roaming\Neocom Software"
         if (test-path $path) {
-            move-item $path $path.bak -force -confirm:$false
+            if(test-path "$path.bak") {
+                remove-item "$path.bak" -Recurse -force -Confirm:$false
+            }
+            rename-item $path "$path.bak"
         }
     }
 
@@ -129,10 +139,20 @@ function installTrbonet($JSON) {
     } while (get-process | select-string "TRBO")
 
     write-output "moving configs back"
+    if(test-path "C:\programdata\Neocom Software.bak") {
+        if(test-path "C:\programdata\Neocom Software") {
+            remove-item "C:\programdata\Neocom Software" -recurse -force -confirm:$false
+        }
+        rename-item "C:\programdata\Neocom Software.bak" "C:\programdata\Neocom Software" -force -confirm:$false
+    }
+
     foreach ($user in ((Get-ChildItem "C:\users\*").basename)) {
         $path = "C:\users\$user\appdata\roaming\Neocom Software"
         if (test-path "$path.bak") {
-            move-item "$path.bak" $path -force -confirm:$false
+            if(test-path $path) {
+                remove-item $path -Recurse -force -Confirm:$false
+            }
+            rename-item "$path.bak" $path -force -confirm:$false
         }
     }
 

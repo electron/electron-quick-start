@@ -75,9 +75,9 @@ var $BU_schema = {
             "minLength": 1,
             "type": "string",
             "options": {
-                "grid_columns": 12,
+                "grid_columns": 6,
                 "inputAttributes": {
-                    "placeholder": "D:\\MyBackup\\NameOfBackup"
+                    "placeholder": "D:\\Backups"
                 },
                 "dependencies": {
                     "RadioButtons": "Local Drive",
@@ -92,16 +92,31 @@ var $BU_schema = {
             "type": "string",
             "pattern": "\\\\\\\\[a-zA-Z0-9\\.\\-_]{1,}(\\\\[a-zA-Z0-9\\-_]{1,}){1,}[\\$]{0,1}",
             "options": {
-                "grid_columns": 12,
+                "grid_columns": 6,
                 "patternmessage": "The path should follow UNC path guidelines (\\\\server\\path)",
                 "inputAttributes": {
-                    "placeholder": "\\\\networkdrive\\backup\\NameOfBackup"
+                    "placeholder": "\\\\networkdrive\\backup"
                 },
                 "dependencies": {
                     "RadioButtons": "Network Drive",
                     "Phase2": true
                 },
-                "infoText": "The local folder *on the target machine* that you want to save the profile data. If it does not exist, it will be created."
+                "infoText": "The network path of where you want to save the backup."
+            }
+        },
+        "BackupName": {
+            "title": "Backup Name",
+            "minLength": 1,
+            "type": "string",
+            "options": {
+                "grid_columns": 6,
+                "inputAttributes": {
+                    "placeholder": "Name Of Backup"
+                },
+                "dependencies": {
+                    "Phase2": true
+                },
+                "infoText": "The name of the backup (folder will be created if it does not exist)"
             }
         },
         "username": {
@@ -143,7 +158,7 @@ var $BU_schema = {
 
 //initializations
 var $BU_element = $("#BU_Form")[0]
-var $BU_editor = new JSONEditor($BU_element, {schema: $BU_schema});
+var $BU_editor = new JSONEditor($BU_element, { schema: $BU_schema });
 
 $("#BU_GetUsers").click(function () {
     if (!($BU_editor.validate().length)) {
@@ -156,12 +171,11 @@ $("#BU_GetUsers").click(function () {
 
         //get the form data
         Phase2Data = $BU_editor.getValue()
-        Phase2Json = JSON.stringify(Phase2Data);
 
         //run the powershell script that gets our users
-        exec(`"${psPath}" -noninteractive -executionpolicy bypass "${$rootDir}\\scripts\\backup-user-profiles\\gui\\bu-get-users.ps1" -json ${Phase2Json}`, (error, stdout, stderr) => {
+        var args = ["-noninteractive", "-executionpolicy", "bypass", "-file", `${$rootDir}\\scripts\\backup-user-profiles\\gui\\bu-get-users.ps1`, "-json", JSON.stringify(Phase2Data)];
+        execFile(psPath, args, (error, stdout, stderr) => {
             if (stdout) {
-                //receive the output
                 gatheredData = JSON.parse(stdout);
 
                 //generate a new form based on the first form's schema.
@@ -178,7 +192,7 @@ $("#BU_GetUsers").click(function () {
 
                 //create the form again with the updated schema
                 $BU_editor.destroy();
-                $BU_editor = new JSONEditor($BU_element, {schema: $BU_schema2});
+                $BU_editor = new JSONEditor($BU_element, { schema: $BU_schema2 });
 
                 //disable the parts we've already determined
                 $BU_editor.getEditor('root.ComputerName').disable();
@@ -243,36 +257,34 @@ $("#BU_Edit").click(function () {
 });
 
 $("#BU_Run").click(function () {
-    // $('#BU_Log').prepend(JSON.stringify($BU_finalJSON));
+    // $('#BU_Log').append(JSON.stringify($BU_finalJSON));
     // Disable form controls
     $("#BU_Reset").prop("disabled", true);
     $("#BU_Run").prop("disabled", true);
 
     // spawn the final script
-    var args = ["-noninteractive", "-executionpolicy", "bypass", "-file", `${$rootDir}\\scripts\\install-trbonet\\install-trbonet.ps1`, "-json", JSON.stringify($BU_finalJSON)];
+    var args = ["-noninteractive", "-executionpolicy", "bypass", "-file", `${$rootDir}\\scripts\\backup-user-profiles\\backup-user-profiles.ps1`, "-json", JSON.stringify($BU_finalJSON)];
     $BU_scriptProcess = spawn(psPath, args);
 
 
     $("#BU_Nav2").trigger('click');
 
     $BU_scriptProcess.stdout.on('data', (data) => {
-        if (data) {
-            data = data.toString('utf8');
-            $('#BU_Log').prepend(data);
-            // console.log(data);
+        data = cleanString(data.toString('utf8'));
+        if (data.length > 0) {
+            $('#BU_Log').append(data + "\n");
         }
     });
 
     $BU_scriptProcess.stderr.on('data', (data) => {
         if (data) {
             data = data.toString('utf8');
-            $('#BU_Log').prepend(data);
-            // console.log(data);
+            $('#BU_Log').append(data);
         }
     });
 
     $BU_scriptProcess.on('close', (code) => {
-        $('#BU_Log').prepend(`finished with code ${code}\n`);
+        $('#BU_Log').append(`finished with code ${code}\n`);
         $("#BU_Run").prop("disabled", false);
         $("#BU_Reset").prop("disabled", false);
         $BU_scriptProcess = null

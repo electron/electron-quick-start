@@ -79,7 +79,7 @@ $("#IT_Edit").click(function () {
 });
 
 $("#IT_Run").click(function () {
-    // $('#IT_Log').prepend(JSON.stringify($IT_finalJSON));
+    // $('#IT_Log').append(JSON.stringify($IT_finalJSON));
     // Disable form controls
     $("#IT_Reset").prop("disabled", true);
     $("#IT_Run").prop("disabled", true);
@@ -92,23 +92,22 @@ $("#IT_Run").click(function () {
     $("#IT_Nav2").trigger('click');
 
     $IT_scriptProcess.stdout.on('data', (data) => {
-        if (data) {
-            data = data.toString('utf8');
-            $('#IT_Log').prepend(data);
-            // console.log(data);
+        data = cleanString(data.toString('utf8'));
+        if (data.length > 0) {
+            $('#IT_Log').append(data + "\n");
         }
     });
 
     $IT_scriptProcess.stderr.on('data', (data) => {
         if (data) {
             data = data.toString('utf8');
-            $('#IT_Log').prepend(data);
+            $('#IT_Log').append(data);
             // console.log(data);
         }
     });
 
     $IT_scriptProcess.on('close', (code) => {
-        $('#IT_Log').prepend(`finished with code ${code}\n`);
+        $('#IT_Log').append(`finished with code ${code}\n`);
         $("#IT_Run").prop("disabled", false);
         $("#IT_Reset").prop("disabled", false);
         $IT_scriptProcess = null

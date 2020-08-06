@@ -8,9 +8,29 @@
 //modules
 const fs = require('fs');
 var exec = require('child_process').exec;
+var execFile = require('child_process').execFile;
 var spawn = require('child_process').spawn;
 const remote = require('electron').remote;
 const dialog = remote.dialog;
+
+//generic functions
+function cleanString(input) {
+    //remove any empty lines
+    input = input.replace(/(?:(?:\r\n|\r|\n)\s*){2}/gm, "");
+
+    //remove null or invalid characters
+    var output = "";
+    for (var i=0; i<input.length; i++) {
+        if (input.charCodeAt(i) <= 127 && input.charCodeAt(i) > 0) {
+            output += input.charAt(i);
+        }
+    }
+
+    //trim any unnecessary whitespace
+    output = $.trim(output)
+
+    return output;
+}
 
 //local variables
 var $rootDir = ""

@@ -354,7 +354,7 @@ $("#WI_Reset").click(function () {
 });
 
 $("#WI_Run").click(function () {
-    // $('#WI_Log').prepend(JSON.stringify($WI_finalJSON));
+    // $('#WI_Log').append(JSON.stringify($WI_finalJSON));
     // Disable form controls
     $("#WI_Edit").prop("disabled", true);
     $("#WI_Run").prop("disabled", true);
@@ -368,23 +368,22 @@ $("#WI_Run").click(function () {
     $("#WI_Nav2").trigger('click');
 
     $WI_scriptProcess.stdout.on('data', (data) => {
-        if (data) {
-            data = data.toString('utf8');
-            $('#WI_Log').prepend(data);
-            // console.log(data);
+        data = cleanString(data.toString('utf8'));
+        if (data.length > 0) {
+            $('#WI_Log').append(data + "\n");
         }
     });
 
     $WI_scriptProcess.stderr.on('data', (data) => {
         if (data) {
             data = data.toString('utf8');
-            $('#WI_Log').prepend(data);
+            $('#WI_Log').append(data);
             // console.log(data);
         }
     });
 
     $WI_scriptProcess.on('close', (code) => {
-        $('#WI_Log').prepend(`finished with code ${code}\n`);
+        $('#WI_Log').append(`finished with code ${code}\n`);
         $("#WI_Reset").prop("disabled", false);
         $("#WI_Edit").prop("disabled", false);
         $("#WI_Run").prop("disabled", false);

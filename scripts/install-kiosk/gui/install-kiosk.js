@@ -304,7 +304,7 @@ $("#IK_Edit").click(function () {
 });
 
 $("#IK_Run").click(function () {
-    // $('#IK_Log').prepend(JSON.stringify($IK_finalJSON));
+    // $('#IK_Log').append(JSON.stringify($IK_finalJSON));
     // Disable form controls
     $("#IK_Reset").prop("disabled", true);
     $("#IK_Run").prop("disabled", true);
@@ -317,23 +317,22 @@ $("#IK_Run").click(function () {
     $("#IK_Nav2").trigger('click');
 
     $IK_scriptProcess.stdout.on('data', (data) => {
-        if (data) {
-            data = data.toString('utf8');
-            $('#IK_Log').prepend(data);
-            // console.log(data);
+        data = cleanString(data.toString('utf8'));
+        if (data.length > 0) {
+            $('#IK_Log').append(data + "\n");
         }
     });
 
     $IK_scriptProcess.stderr.on('data', (data) => {
         if (data) {
             data = data.toString('utf8');
-            $('#IK_Log').prepend(data);
+            $('#IK_Log').append(data);
             // console.log(data);
         }
     });
 
     $IK_scriptProcess.on('close', (code) => {
-        $('#IK_Log').prepend(`finished with code ${code}\n`);
+        $('#IK_Log').append(`finished with code ${code}\n`);
         $("#IK_Run").prop("disabled", false);
         $("#IK_Reset").prop("disabled", false);
         $IK_scriptProcess = null
