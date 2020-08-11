@@ -75,6 +75,15 @@ if ($config.LogFile) {
 }
 
 #endregion
+
+
+#----------------------------------------------------------[Local Variables]----------------------------------------------------------
+#region Local Variables
+$7zLoc = "$pwd\..\..\tools\7zip"
+$usmtLoc = "$pwd\..\..\tools\usmt"
+
+#endregion
+
 #----------------------------------------------------------[Functions]----------------------------------------------------------
 #region Functions
 
@@ -162,14 +171,14 @@ if($session) {
     write-output "copying setup files."
     $scriptblock = [scriptblock]::Create("new-item '$destination' -type directory -force")
     invoke-command -session $session -scriptblock $scriptblock
-    copy-item -path "$pwd\tools\7z*" -Destination $destination -Force -ToSession $session
+    copy-item -path "$7zLoc\7z*" -Destination $destination -Force -ToSession $session
 
     if([Environment]::Is64BitOperatingSystem) {
-        copy-item -path "$pwd\files\usmt-64.7z" -Destination "$destination\usmt.7z" -Force -ToSession $session
+        copy-item -path "$usmtLoc\usmt-64.7z" -Destination "$destination\usmt.7z" -Force -ToSession $session
     } else {
-        copy-item -path "$pwd\files\usmt-32.7z" -Destination "$destination\usmt.7z" -Force -ToSession $session
+        copy-item -path "$usmtLoc\usmt-32.7z" -Destination "$destination\usmt.7z" -Force -ToSession $session
     }
-    copy-item -path "$pwd\files\usmt-config.7z" -Destination "$destination\usmt-config.7z" -Force -ToSession $session
+    copy-item -path "$usmtLoc\usmt-config.7z" -Destination "$destination\usmt-config.7z" -Force -ToSession $session
 
     invoke-command -session $session -scriptblock ${function:scanState} -ArgumentList $config
 
@@ -178,14 +187,14 @@ if($session) {
 } else {
     write-output "copying setup files."
     new-item $destination -type directory -force
-    copy-item -path "$pwd\tools\7z*" -Destination $destination -Force
+    copy-item -path "$7zLoc\7z*" -Destination $destination -Force
 
     if([Environment]::Is64BitOperatingSystem) {
-        copy-item -path "$pwd\files\usmt-64.7z" -Destination "$destination\usmt.7z" -Force
+        copy-item -path "$usmtLoc\usmt-64.7z" -Destination "$destination\usmt.7z" -Force
     } else {
-        copy-item -path "$pwd\files\usmt-32.7z" -Destination "$destination\usmt.7z" -Force
+        copy-item -path "$usmtLoc\usmt-32.7z" -Destination "$destination\usmt.7z" -Force
     }
-    copy-item -path "$pwd\files\usmt-config.7z" -Destination "$destination\usmt-config.7z" -Force
+    copy-item -path "$usmtLoc\usmt-config.7z" -Destination "$destination\usmt-config.7z" -Force
     scanState $config
 }
 
