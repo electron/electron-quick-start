@@ -10,15 +10,13 @@ var x = canvas.width/2;
 var y = canvas.height-30;
 var dx = 2;
 var dy = -2;
-//var dx = 10;
-//var dy = -10;
 var ballRadius = 10;
 var paddleHeight = 10;
 var paddleWidth = 125;
-//var paddleWidth = 750;
 var paddleX = (canvas.width-paddleWidth) / 2;
-var brickRowCount = 3;
+var brickRowCount = 4;
 var brickColumnCount = 5;
+var total = 16
 var brickWidth = 133;
 var brickHeight = 20;
 var brickPadding = 20;
@@ -37,16 +35,20 @@ var xlol = 1;
 for(var c=0; c<brickColumnCount; c++) {
     if (xlol+c < 5) {
         if(xlol+c == 2){
-            bricks[c][1] = { x: 0, y: 0, type: xlol+c, status: 2 };
+            bricks[c][2] = { x: 0, y: 0, type: xlol+c, status: 2 };
         }
         else{
-            bricks[c][1] = { x: 0, y: 0, type: xlol+c, status: 1 };
+            bricks[c][2] = { x: 0, y: 0, type: xlol+c, status: 1 };
         }
     }
     else{
-        bricks[c][1] = { x: 0, y: 0, type: 5, status: 1 };
+        bricks[c][2] = { x: 0, y: 0, type: 5, status: 1 };
     }
 }
+bricks[0][0] = { x: 0, y: 0, type: 1, status: 0};
+bricks[4][0] = { x: 0, y: 0, type: 1, status: 0};
+bricks[0][3] = { x: 0, y: 0, type: 1, status: 0};
+bricks[4][3] = { x: 0, y: 0, type: 1, status: 0};
 
 document.addEventListener("keydown", keyDownHandler, false);
 document.addEventListener("keyup", keyUpHandler, false);
@@ -209,8 +211,8 @@ function collisionDetection() {
                     if (b.status == 0){
                         bricksDest++;
                     }
-                    if(bricksDest == brickRowCount*brickColumnCount) {
-                        window.location.replace("leveltwo.html");
+                    if(bricksDest == total) {
+                        window.location.replace("levelthree.html");
                         clearInterval(interval); // Needed for Chrome to end game
                     }
                 }
