@@ -1,5 +1,5 @@
 // Modules to control application life and create native browser window
-const {app, BrowserWindow} = require('electron')
+const {app, ipcMain, BrowserWindow} = require('electron')
 const path = require('path')
 
 function createWindow () {
@@ -14,15 +14,17 @@ function createWindow () {
 
   // and load the index.html of the app.
   mainWindow.loadFile('index.html')
-
-  // Open the DevTools.
-  // mainWindow.webContents.openDevTools()
 }
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
+  // Prepare for child processes to indicate test results.
+  ipcMain.on('test-done', () => finishTest(true))
+  app.on('child-process-gone', (ev, details) => failTestIfBadProcess(details))
+  app.on('render-process-gone', (ev, webContents, details) => failTestIfBadProcess(details))
+
   createWindow()
   
   app.on('activate', function () {
@@ -39,5 +41,9 @@ app.on('window-all-closed', function () {
   if (process.platform !== 'darwin') app.quit()
 })
 
-// In this file you can include the rest of your app's specific main process
-// code. You can also put them in separate files and require them here.
+function finishTest (success) {
+  process.exit(success ? 0 : 1)
+}
+function failTestIfBadProcess (details) {
+  if (details.reason !== 'clean-exit') finishTest(false)
+}
