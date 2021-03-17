@@ -1,6 +1,13 @@
 // All of the Node.js APIs are available in the preload process.
 // It has the same sandbox as a Chrome extension.
 
+// Test helpers
+const test = {
+  allPassed: () => test.done(true),
+  assert: (ok) => ok || test.fail(),
+  done: (success) => require('electron').ipcRenderer.send('test-done', success),
+  fail: () => test.done(false)
+}
 
 // Example test: check that process.versions.electron
 // - is defined in the renderer process
@@ -9,27 +16,14 @@
 try {
   const ver = process.versions.electron
   const tokens = process.versions.electron.split('.', 3)
-  assert(tokens.length === 3)
+  test.assert(tokens.length === 3)
   for (const token of tokens) {
     const num = Number.parseInt(token)
-    assert(num !== NaN)
-    assert(num >= 0)
+    test.assert(num !== NaN)
+    test.assert(num >= 0)
   }
-  testDone()
+  test.allPassed()
 } catch (err) {
-  fail()
-}
-
-
-// Test helper code
-
-function fail () {
-  process.exit(1)
-}
-function assert (ok) {
-  if (!ok) fail()
-}
-function testDone() {
-  const { ipcRenderer } = require('electron')
-  ipcRenderer.send('test-done')
+  console.log(err);
+  test.fail()
 }

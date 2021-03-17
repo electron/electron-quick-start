@@ -1,5 +1,5 @@
 // Modules to control application life and create native browser window
-const {app, ipcMain, BrowserWindow} = require('electron')
+const {app, crashReporter, ipcMain, BrowserWindow} = require('electron')
 const path = require('path')
 
 function createWindow () {
@@ -20,10 +20,7 @@ function createWindow () {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
-  // Prepare for child processes to indicate test results.
-  ipcMain.on('test-done', () => finishTest(true))
-  app.on('child-process-gone', (ev, details) => failTestIfBadProcess(details))
-  app.on('render-process-gone', (ev, webContents, details) => failTestIfBadProcess(details))
+  test.init()
 
   createWindow()
   
@@ -41,9 +38,14 @@ app.on('window-all-closed', function () {
   if (process.platform !== 'darwin') app.quit()
 })
 
-function finishTest (success) {
-  process.exit(success ? 0 : 1)
-}
-function failTestIfBadProcess (details) {
-  if (details.reason !== 'clean-exit') finishTest(false)
+// Test helpers
+const test = {
+  done: (success) => process.exit(success ? 0 : 1),
+  init: () => {
+    crashReporter.start({ uploadToServer: false, submitURL: '' })
+    ipcMain.on('test-done', (_, success) => test.done(success))
+    const failIfBadExit = (details) => details.reason === 'clean-exit' || test.done(false)
+    app.on('child-process-gone', (_ev, details) => test.failIfBadExit(details))
+    app.on('render-process-gone', (_ev, _, details) => test.failIfBadExit(details))
+  }
 }
