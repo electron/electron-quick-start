@@ -4,9 +4,9 @@
 // Test helpers
 const test = {
   allPassed: () => test.done(true),
-  assert: (ok) => ok || test.fail(),
-  done: (success) => require('electron').ipcRenderer.send('test-done', success),
-  fail: () => test.done(false)
+  assert: (ok, ...logs) => ok || test.fail(...logs),
+  done: (success, ...logs) => require('electron').ipcRenderer.send('test-done', success, ...logs),
+  fail: (...logs) => test.done(false, new Error('trace'), ...logs)
 }
 
 // Example test: check that process.versions.electron
@@ -24,6 +24,5 @@ try {
   }
   test.allPassed()
 } catch (err) {
-  console.log(err);
-  test.fail()
+  test.fail(err)
 }
