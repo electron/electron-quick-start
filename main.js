@@ -16,7 +16,6 @@ function createWindow () {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
-  test.init()
 
   createWindow()
   
@@ -34,18 +33,19 @@ app.on('window-all-closed', function () {
   if (process.platform !== 'darwin') app.quit()
 })
 
-// Test helpers
-const test = {
-  done: (success, ...logs) => {
-    console.log(`test ${success ? 'passed' : 'failed'}`)
-    logs.forEach((l) => console.log(l))
-    process.exit(success ? 0 : 1)
-  },
-  init: () => {
-    crashReporter.start({ uploadToServer: false, submitURL: '' })
-    ipcMain.on('test-done', (_, ...logs) => test.done(...logs))
-    const failIfBadExit = (details) => details.reason === 'clean-exit' || test.done(false, details)
-    app.on('child-process-gone', (_ev, details) => test.failIfBadExit(details))
-    app.on('render-process-gone', (_ev, _, details) => test.failIfBadExit(details))
-  }
+
+function testDone(success, ...logs) {
+  console.log(`test ${success ? 'passed' : 'failed'}`)
+  logs.forEach((l) => console.log(l))
+  process.exit(success ? 0 : 1)
 }
+
+(function setupTests() {
+  crashReporter.start({ uploadToServer: false, submitURL: '' })
+  ipcMain.on('test-done', (_, ...logs) => testDone(...logs))
+  const failIfBadExit = (details) => {
+    if (details.reason !== 'clean-exit') testDone(false, details)
+  }
+  app.on('child-process-gone', (_ev, details) => test.failIfBadExit(details))
+  app.on('render-process-gone', (_ev, _, details) => test.failIfBadExit(details))
+})()

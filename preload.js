@@ -3,10 +3,14 @@
 
 // Test helpers
 const test = {
-  allPassed: () => test.done(true),
-  assert: (ok, ...logs) => ok || test.fail(...logs),
-  done: (success, ...logs) => require('electron').ipcRenderer.send('test-done', success, ...logs),
-  fail: (...logs) => test.done(false, new Error('trace'), ...logs)
+  assert: (ok, ...logs) => {
+    if (!ok) test.fail(...logs)
+  },
+  fail: (...logs) => test.done(false, ...logs),
+  done: (success = true, ...logs) => {
+    if (!success) logs.unshift(new Error('trace'))
+    require('electron').ipcRenderer.send('test-done', success, ...logs)
+  },
 }
 
 // Example test: check that process.versions.electron
@@ -22,7 +26,7 @@ try {
     test.assert(num !== NaN)
     test.assert(num >= 0)
   }
-  test.allPassed()
+  test.done()
 } catch (err) {
   test.fail(err)
 }
