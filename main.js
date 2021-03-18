@@ -36,7 +36,7 @@ app.on('window-all-closed', function () {
 
 function testDone(success, ...logs) {
   console.log(`test ${success ? 'passed' : 'failed'}`)
-  logs.forEach((l) => console.log(l))
+  logs.forEach(console.log)
   process.exit(success ? 0 : 1)
 }
 
