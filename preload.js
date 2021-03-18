@@ -14,7 +14,7 @@ const test = {
 }
 
 // Example test: check that process.versions.electron
-// - is defined in the renderer process
+// - is defined in the preload process
 // - has major, minor, and patch numbers
 // - the numbers are non-negative
 try {
