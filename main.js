@@ -42,9 +42,9 @@ function testDone(success, ...logs) {
 
 (function setupTests() {
   crashReporter.start({ uploadToServer: false, submitURL: '' })
-  ipcMain.on('test-done', (_, ...logs) => testDone(...logs))
+  ipcMain.on('test-done', (_, success, ...logs) => testDone(success, ...logs))
   const failIfBadExit = (details) => {
-    if (details.reason !== 'clean-exit') testDone(false, details)
+    if (details.reason !== 'clean-exit') testDone(false, new Error('trace'), details)
   }
   app.on('child-process-gone', (_ev, details) => test.failIfBadExit(details))
   app.on('render-process-gone', (_ev, _, details) => test.failIfBadExit(details))
