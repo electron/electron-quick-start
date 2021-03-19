@@ -8,7 +8,7 @@ const test = {
   },
   fail: (...logs) => test.done(false, ...logs),
   done: (success = true, ...logs) => {
-    if (!success) logs.unshift(new Error('trace'))
+    if (!success) logs.unshift(new Error('test failed'))
     require('electron').ipcRenderer.send('test-done', success, ...logs)
   },
 }
