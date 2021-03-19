@@ -40,7 +40,7 @@ function testDone(success, ...logs) {
   process.exit(success ? 0 : 1)
 }
 
-(function setupTests() {
+{
   crashReporter.start({ uploadToServer: false, submitURL: '' })
   ipcMain.on('test-done', (_, success, ...logs) => testDone(success, ...logs))
   const failIfBadExit = (details) => {
@@ -48,4 +48,4 @@ function testDone(success, ...logs) {
   }
   app.on('child-process-gone', (_ev, details) => test.failIfBadExit(details))
   app.on('render-process-gone', (_ev, _, details) => test.failIfBadExit(details))
-})()
+}
