@@ -46,6 +46,6 @@ function testDone(success, ...logs) {
   const failIfBadExit = (details) => {
     if (details.reason !== 'clean-exit') testDone(false, new Error('trace'), details)
   }
-  app.on('child-process-gone', (_ev, details) => test.failIfBadExit(details))
-  app.on('render-process-gone', (_ev, _, details) => test.failIfBadExit(details))
+  app.on('child-process-gone', (_ev, details) => failIfBadExit(details))
+  app.on('render-process-gone', (_ev, _, details) => failIfBadExit(details))
 }
