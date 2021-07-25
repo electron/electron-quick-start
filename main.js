@@ -42,7 +42,7 @@ function testDone(success, ...logs) {
 }
 
 {
-  if (electronMajor > 8)
+  if (electronMajor >= 10) // companyName required before v10
     crashReporter.start({ uploadToServer: false, submitURL: '' })
 
   ipcMain.on('test-done', (_, success, ...logs) => testDone(success, ...logs))
