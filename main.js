@@ -1,6 +1,7 @@
 // Modules to control application life and create native browser window
 const {app, crashReporter, ipcMain, BrowserWindow} = require('electron')
 const path = require('path')
+const electronMajor = Number.parseInt(process.versions.electron);
 
 function createWindow () {
   // Create the browser window.
@@ -41,7 +42,9 @@ function testDone(success, ...logs) {
 }
 
 {
-  crashReporter.start({ uploadToServer: false, submitURL: '' })
+  if (electronMajor >= 10) // companyName required before v10
+    crashReporter.start({ uploadToServer: false, submitURL: '' })
+
   ipcMain.on('test-done', (_, success, ...logs) => testDone(success, ...logs))
   const failIfBadExit = (details) => {
     if (details.reason !== 'clean-exit') testDone(false, new Error('trace'), details)
