@@ -11,7 +11,7 @@ A basic Electron application needs just these files:
 - `index.html` - A web page to render. This is the app's **renderer process**.
 - `preload.js` - A content script that runs before the renderer process loads.
 
-You can learn more about each of these components in depth within the [Tutorial](https://electronjs.org/docs/latest/tutorial/tutorial-1-prerequisites).
+You can learn more about each of these components in depth within the [Tutorial](https://www.electronjs.org/docs/latest/tutorial/tutorial-prerequisites).
 
 ## To Use
 
