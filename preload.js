@@ -16,7 +16,7 @@ const test = {
     if (!success) logs.unshift(new Error('test failed'))
     require('electron').ipcRenderer.send('test-done', success, ...logs)
     process.exit(success ? 0 : 1)
-  },
+  }
 }
 
 // Example test: check that process.versions.electron
@@ -28,7 +28,7 @@ try {
   test.assert(tokens.length === 3)
   for (const token of tokens) {
     const num = Number.parseInt(token)
-    test.assert(num !== NaN)
+    test.assert(!Number.isNaN(num))
     test.assert(num >= 0)
   }
   test.done()

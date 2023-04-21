@@ -1,7 +1,7 @@
 // Modules to control application life and create native browser window
-const {app, crashReporter, ipcMain, BrowserWindow} = require('electron')
+const { app, crashReporter, ipcMain, BrowserWindow } = require('electron')
 const path = require('path')
-const electronMajor = Number.parseInt(process.versions.electron);
+const electronMajor = Number.parseInt(process.versions.electron)
 
 function createWindow () {
   // Create the browser window.
@@ -10,14 +10,13 @@ function createWindow () {
       preload: path.join(__dirname, 'preload.js')
     }
   })
-  mainWindow.loadFile('index.html');
+  mainWindow.loadFile('index.html')
 }
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
-
   createWindow()
 
   app.on('activate', function () {
@@ -34,16 +33,17 @@ app.on('window-all-closed', function () {
   if (process.platform !== 'darwin') app.quit()
 })
 
-
-function testDone(success, ...logs) {
+function testDone (success, ...logs) {
   console.log(`test ${success ? 'passed' : 'failed'}`)
   logs.forEach((i) => console.log(i))
   process.exit(success ? 0 : 1)
 }
 
 {
-  if (electronMajor >= 10) // companyName required before v10
+  // companyName required before v10
+  if (electronMajor >= 10) {
     crashReporter.start({ uploadToServer: false, submitURL: '' })
+  }
 
   ipcMain.on('test-done', (_, success, ...logs) => testDone(success, ...logs))
   const failIfBadExit = (details) => {
