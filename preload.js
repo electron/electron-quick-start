@@ -1,5 +1,10 @@
-// All of the Node.js APIs are available in the preload process.
-// It has the same sandbox as a Chrome extension.
+/**
+ * The preload script runs before. It has access to web APIs
+ * as well as Electron's renderer process modules and some
+ * polyfilled Node.js functions.
+ *
+ * https://www.electronjs.org/docs/latest/tutorial/sandbox
+ */
 
 // Test helpers
 const test = {
@@ -11,7 +16,7 @@ const test = {
     if (!success) logs.unshift(new Error('test failed'))
     require('electron').ipcRenderer.send('test-done', success, ...logs)
     process.exit(success ? 0 : 1)
-  },
+  }
 }
 
 // Example test: check that process.versions.electron
@@ -23,7 +28,7 @@ try {
   test.assert(tokens.length === 3)
   for (const token of tokens) {
     const num = Number.parseInt(token)
-    test.assert(num !== NaN)
+    test.assert(!Number.isNaN(num))
     test.assert(num >= 0)
   }
   test.done()
