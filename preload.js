@@ -15,7 +15,6 @@ const test = {
   done: (success = true, ...logs) => {
     if (!success) logs.unshift(new Error('test failed'))
     require('electron').ipcRenderer.send('test-done', success, ...logs)
-    process.exit(success ? 0 : 1)
   }
 }
 
