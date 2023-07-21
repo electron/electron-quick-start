@@ -1,5 +1,5 @@
 // Modules to control application life and create native browser window
-const { app, BrowserWindow } = require('electron')
+const { app, BrowserWindow, ipcMain, dialog } = require('electron')
 const path = require('path')
 
 function createWindow () {
@@ -23,6 +23,26 @@ function createWindow () {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
+  ipcMain.handle('openDirectory', (e, defaultPath) =>
+    dialog
+      .showOpenDialog({
+        defaultPath: defaultPath,
+        properties: ["openDirectory"],
+      })
+      .then((results) => {
+        if (!results.canceled) {
+          console.log(`Opening directory: ${results.filePaths.join(",")}`);
+        } else {
+          console.log("Unable to open path requested.");
+        }
+        return results.canceled ? [] : results.filePaths;
+      })
+      .catch((e) => {
+        console.log(e);
+        return [];
+      })
+  );
+  
   createWindow()
 
   app.on('activate', function () {
@@ -30,6 +50,8 @@ app.whenReady().then(() => {
     // dock icon is clicked and there are no other windows open.
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
+
+  
 })
 
 // Quit when all windows are closed, except on macOS. There, it's common

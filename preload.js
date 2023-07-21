@@ -1,3 +1,4 @@
+const { contextBridge, ipcRenderer } = require('electron')
 /**
  * The preload script runs before. It has access to web APIs
  * as well as Electron's renderer process modules and some
@@ -15,3 +16,7 @@ window.addEventListener('DOMContentLoaded', () => {
     replaceText(`${type}-version`, process.versions[type])
   }
 })
+
+const openDirectory = (defaultPath) => ipcRenderer.invoke('openDirectory', defaultPath);
+
+contextBridge.exposeInMainWorld("electron", {openDirectory});

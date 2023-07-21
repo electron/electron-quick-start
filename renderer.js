@@ -5,3 +5,8 @@
  * `contextIsolation` is turned on. Use the contextBridge API in `preload.js`
  * to expose Node.js functionality from the main process.
  */
+document.querySelectorAll('.open-file').forEach((el) => el.addEventListener(
+    'click', 
+    (e) => {
+        e.preventDefault(); 
+        window.electron.openDirectory()}))
