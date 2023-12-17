@@ -1,5 +1,7 @@
 # electron-quick-start
 
+git clone https://github.com/electron/electron-quick-start
+
 **Clone and run for a quick way to see Electron in action.**
 
 This is a minimal Electron application based on the [Quick Start Guide](https://electronjs.org/docs/latest/tutorial/quick-start) within the Electron documentation.
