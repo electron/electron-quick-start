@@ -14,7 +14,7 @@ function createWindow() {
   });
 
   if (isDev) mainWindow.loadURL("http://localhost:3000");
-  else mainWindow.loadFile(path.join("build", "index.html"));
+  else mainWindow.loadFile(path.join("build_vite", "index.html"));
 }
 
 app.whenReady().then(() => {
