@@ -1,5 +1,8 @@
 import { app, BrowserWindow, ipcMain } from "electron";
 import path from "path";
+import { sum } from "./modules/sum/sum";
+
+console.log("sum", sum(50, 50));
 
 export const isDev = process.env.NODE_ENV === "development";
 
