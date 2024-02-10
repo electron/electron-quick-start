@@ -1,6 +1,6 @@
 import { app, BrowserWindow, ipcMain } from "electron";
 import path from "path";
-import { sum } from "./modules/sum/sum";
+import { sum } from "../global/modules/sum/sum";
 
 console.log("sum", sum(50, 50));
 
