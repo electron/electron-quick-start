@@ -1,15 +1,17 @@
-import { useState } from "react";
-import { sum } from "../global/modules/sum/sum";
+import { useRef } from "react";
+import { renderToString } from "react-dom/server";
 import "./App.css";
 import reactLogo from "./assets/react.svg";
+import { TARGET_PRINTER } from "./modules/targetPrinter/targetPrinter";
+import { TARGET_PRINTER_UTIL } from "./modules/targetPrinter/targetPrinter.util";
 import viteLogo from "/vite.svg";
 
 function App() {
-  const [count, setCount] = useState(sum(50, 50));
+  const { refTargetElement, printTarget } = useAppPrinter();
 
   return (
     <>
-      <div>
+      <div ref={refTargetElement}>
         <a href="https://vitejs.dev" target="_blank">
           <img src={viteLogo} className="logo" alt="Vite logo" />
         </a>
@@ -19,9 +21,7 @@ function App() {
       </div>
       <h1>Vite + React</h1>
       <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
+        <button onClick={printTarget}>print Target</button>
         <p>
           Edit <code>src/App.tsx</code> and save to test HMR
         </p>
@@ -31,6 +31,26 @@ function App() {
       </p>
     </>
   );
+}
+
+function useAppPrinter() {
+  const refTargetElement = useRef<HTMLDivElement>(null);
+
+  function printTarget() {
+    if (refTargetElement.current === null) return;
+    TARGET_PRINTER.print(refTargetElement.current, {
+      path: "./TARGET_PRINTER_TEST.pdf",
+      toPDFOption: {
+        displayHeaderFooter: true,
+        headerTemplate: "<div></div>",
+        footerTemplate: renderToString(
+          <TARGET_PRINTER_UTIL.DefaultFooter leftText="hello world" />
+        ),
+      },
+    });
+  }
+
+  return { refTargetElement, printTarget };
 }
 
 export default App;
