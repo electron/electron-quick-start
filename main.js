@@ -13,8 +13,12 @@ function createWindow () {
   })
 
   // and load the index.html of the app.
-  mainWindow.loadFile('index.html')
-
+  // mainWindow.loadFile('index.html')
+  //mainWindow.loadURL('https://dragonwrench.s3-us-west-2.amazonaws.com/index.html');
+  mainWindow.loadURL('https://dragonwrench.awsapps.com/connect/ccp-v2/softphone');
+  //mainWindow.loadURL('https://guitaralgorithms.my.connect.aws/ccp-v2/softphone');
+  //mainWindow.loadURL('http://192.168.1.74/crypto/');
+  //mainWindow.loadURL('http://localhost:4567/connect');
   // Open the DevTools.
   // mainWindow.webContents.openDevTools()
 }
