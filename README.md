@@ -2,7 +2,8 @@
 
 **Quickly create and share examples of Electron app behaviors or bugs.**
 
-> ⚠️ **Note:** This repro was renamed from `electron-quick-start` to clarify its purpose as a repro template. If you're looking to boostrap a new Electron app, check out the [Electron Forge](https://www.electronforge.io/) docs instead to get started!
+> [!NOTE]
+> This repro was renamed from `electron-quick-start` to clarify its purpose as a repro template. If you're looking to boostrap a new Electron app, check out the [Electron Forge](https://www.electronforge.io/) docs instead to get started!
 
 Creating a minimal reproduction (or "minimal repro") is essential when troubleshooting Electron apps. By stripping away everything except the code needed to demonstrate a specific behavior or bug, it becomes easier for others to understand, debug, and fix issues. This focused approach saves time and ensures that everyone involved is looking at exactly the same problem without distractions.
 
