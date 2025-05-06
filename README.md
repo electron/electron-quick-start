@@ -1,10 +1,10 @@
-# electron-quick-start
+# minimal-repro
 
-**Clone and run for a quick way to see Electron in action.**
+**Quickly create and share examples of Electron app behaviors or bugs.**
 
-This is a minimal Electron application based on the [Quick Start Guide](https://electronjs.org/docs/latest/tutorial/quick-start) within the Electron documentation.
+Creating a minimal reproduction (or "minimal repro") is essential when troubleshooting Electron apps. By stripping away everything except the code needed to demonstrate a specific behavior or bug, it becomes easier for others to understand, debug, and fix issues. This focused approach saves time and ensures that everyone involved is looking at exactly the same problem without distractions.
 
-A basic Electron application needs just these files:
+A basic Electron application needs these files:
 
 - `package.json` - Points to the app's main file and lists its details and dependencies.
 - `main.js` - Starts the app and creates a browser window to render HTML. This is the app's **main process**.
@@ -19,9 +19,9 @@ To clone and run this repository you'll need [Git](https://git-scm.com) and [Nod
 
 ```bash
 # Clone this repository
-git clone https://github.com/electron/electron-quick-start
+git clone https://github.com/electron/minimal-repro
 # Go into the repository
-cd electron-quick-start
+cd minimal-repro
 # Install dependencies
 npm install
 # Run the app
@@ -34,6 +34,7 @@ Note: If you're using Linux Bash for Windows, [see this guide](https://www.howto
 
 - [electronjs.org/docs](https://electronjs.org/docs) - all of Electron's documentation
 - [Electron Fiddle](https://electronjs.org/fiddle) - Electron Fiddle, an app to test small Electron experiments
+- [Electron Forge](https://www.electronforge.io/) - Looking to bootstrap a new Electron app? Check out the Electron Forge docs to get started
 
 ## License
 
